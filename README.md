@@ -29,7 +29,8 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 **Software-engineering disciplines**
 
 - **tdd** — strict Red-Green-Refactor.
-- **functional-programming** — pure core / effectful shell, immutability, ADTs, total functions, errors-as-values (woven with *Grokking Simplicity*: actions/calculations/data, copy-on-write, stratified/onion architecture).
+- **functional-programming** — pure core / effectful shell, immutability, ADTs, total functions, errors-as-values (woven with *Grokking Simplicity*: actions/calculations/data, copy-on-write, stratified/onion architecture); grounded in the λ-calculus foundation below.
+- **lambda-calculus** — Church's model of computation and the theory beneath FP (*Michaelson*): syntax, α/β/η-reduction, normal vs applicative order & Church–Rosser, currying, Church encodings, the Y combinator, and types.
 - **scala** — Scala 2.13 idioms & gotchas (incl. the `sealed abstract case class` smart-constructor pattern).
 - **python** — idiomatic, modern Python 3.x from *Effective Python*, *Fluent Python*, and *Automate the Boring Stuff*: the data model/dunders, comprehensions & generators, EAFP, dataclasses/type hints, the GIL & asyncio, stdlib + automation, and tooling (venv/ruff/black/mypy/pytest), with a Scala/FP comparison lens.
 - **design-patterns** — the 23 Gang-of-Four patterns with Scala/FP mappings and a modern critique.

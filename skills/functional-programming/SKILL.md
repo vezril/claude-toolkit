@@ -156,6 +156,18 @@ What the call graph tells you: **code near the top is easiest to change** (littl
 
 Prefer composing small functions over one big procedure. Dispatch through the ADT (`fromChar` → pattern match → `toChar`) rather than reaching for raw primitives. Build pipelines with `map`/`flatMap`/`fold`. A function should read as a transformation of values, not a sequence of mutations.
 
+## Theoretical foundation: the λ-calculus
+
+These practices aren't arbitrary — they fall out of the **λ-calculus**, Church's model of computation and the formal basis of functional programming (see [[lambda-calculus]]). The connections worth knowing:
+
+- **Referential transparency = confluent reduction.** "Same input → same output, replace a call with its result" is the Church–Rosser property: a term has at most one normal form, reached by reducing (β) in any order. Purity is what lets you treat code as λ-terms you can substitute freely.
+- **Currying and partial application** come straight from λ-calculus, where every function is unary and multi-argument functions are nested abstractions (`λx.λy.E`). Scala's `=>` is an abstraction; a call is application.
+- **Recursion is a fixed point.** Named/`letrec` recursion is sugar over the Y/fixed-point combinator; this is why structural/total recursion (and termination) deserve care.
+- **Laziness vs strictness = normal order vs applicative order** — the same evaluation-order distinction, with the same trade (normal order terminates more often, applicative order is usually cheaper).
+- **ADTs and "illegal states unrepresentable"** are the typed layer (simply-typed λ-calculus → Hindley–Milner): types rule out ill-formed terms and, in the simply-typed fragment, guarantee termination.
+
+You don't need the theory to apply the discipline, but it explains *why* the discipline is sound. Reach for [[lambda-calculus]] when you want the underlying model.
+
 ## Anti-patterns
 
 - `var`, mutable collections, imperative `while`/`for`-with-side-effects loops — replace with folds/recursion/comprehensions.
@@ -172,6 +184,7 @@ Prefer composing small functions over one big procedure. Dispatch through the AD
 
 ## Related
 
+- [[lambda-calculus]] — the formal model underneath: reduction, currying, fixed-point recursion, normal vs applicative order, and typed encodings.
 - [[tdd]] — pure, total functions are the easiest things in the world to test.
 - [[scala]] — the concrete language mechanics (sealed ADTs, `sealed abstract case class`, value classes, `Either`, copy-on-write via persistent collections, Cats Effect `IO`) used to express these principles.
 - `scala-bio-framework` — project-specific application.
