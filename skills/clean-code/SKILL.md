@@ -39,9 +39,9 @@ Clean Code is written in mutable, OO Java; many of its goals are *defaults* in [
 
 ## Balanced critique (apply judgment, not dogma)
 
-The principles are sound; some rules are over-applied or debated — flag these:
-- **Function size can be taken too far.** Extracting every few lines into a named method can *hurt* readability (ping-pong between tiny functions, lost locality, names that just restate code). Extract when it clarifies a concept or removes duplication, not to hit a line count. The "ideal of 2–4 lines" is aspirational, not a target.
-- **Comments aren't failures by default.** *Why*-comments (rationale, trade-offs, non-obvious constraints, links to a ticket/spec) are valuable and can't be expressed in code; the book's stance is best read as "don't comment *what* the code already says," not "comments are bad."
+The principles are sound; some rules are over-applied or debated — flag these. Two are the well-known points where **John Ousterhout's *A Philosophy of Software Design* ([[software-design]]) directly disagrees with Clean Code** — consult that skill for the design-tier counterpoint:
+- **Function size can be taken too far.** Extracting every few lines into a named method can *hurt* readability (ping-pong between tiny functions, lost locality, names that just restate code). Extract when it clarifies a concept or removes duplication, not to hit a line count. The "ideal of 2–4 lines" is aspirational, not a target. ([[software-design]] argues over-decomposition into shallow modules — "classitis" — *increases* complexity; extract to make a module *deeper*, not just shorter.)
+- **Comments aren't failures by default.** *Why*-comments (rationale, trade-offs, non-obvious constraints, links to a ticket/spec) are valuable and can't be expressed in code; the book's stance is best read as "don't comment *what* the code already says," not "comments are bad." ([[software-design]] goes further — comments capture design intent the code *can't*, and you should write them first as a design tool.)
 - **Some examples are dated** (mutable beans, inheritance-heavy OO, Java-3/4-era idioms); take the principle, not the literal style — prefer immutability and composition ([[functional-programming]], [[modern-java]]).
 - **SRP is widely misread.** "One reason to change" means one *axis of change / one actor*, not "one method/verb." Don't shatter a cohesive class into anemic fragments.
 - **Don't dogmatically forbid `else`/`switch`.** Prefer polymorphism/ADTs where they genuinely reduce branching, but a clear `switch`/`match` on a closed set is often the *cleanest* option.
@@ -64,6 +64,7 @@ A short list; the full catalog is in `references/smells-and-heuristics.md`:
 
 ## Related
 
+- [[software-design]] — the module/architecture design tier (Ousterhout's *A Philosophy of Software Design*): complexity, deep modules, information hiding. Agrees on most goals but **diverges on comments and method size** (see the critique above) — read it for the higher-level counterpoint.
 - [[tdd]] — clean tests (F.I.R.S.T, one concept per test) and the discipline that keeps code clean; this skill defers testing depth there.
 - [[design-patterns]] — the OO/structural patterns behind "separate construction from use," polymorphism-over-conditionals, and the expression problem.
 - [[modern-java]] — Java-21 idioms (records, sealed types, `Optional`) that realize several Clean Code goals more directly than the 2008 examples.
