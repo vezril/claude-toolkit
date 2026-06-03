@@ -63,6 +63,10 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 - **ux-design** — *Laws of UX*: psychology-based UX heuristics (Fitts/Hick/Miller/Jakob/Gestalt/…); pairs with the SwiftUI / apple-dev skills.
 
+**Games**
+
+- **swgoh-expert** — Star Wars: Galaxy of Heroes expert assistant (teams, counters, mods, relics, GAC/TW/Conquest).
+
 **Apple / Swift** (contributed; `apple-dev` meta added to route among them)
 
 - **apple-dev** — meta/overview: the entry point and router for the Apple/Swift cluster below.
