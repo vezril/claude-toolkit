@@ -1,6 +1,6 @@
 ---
 name: scala
-description: Scala 2.13 idioms and gotchas learned in practice — sealed-trait ADTs, value classes, companion-object factories, the smart-constructor invariant pattern (sealed abstract case class), exhaustive pattern matching, Either/Option, foldLeft/map/flatMap over loops, Cats Effect 3 IO/IOApp, and ScalaTest AnyFunSpec. Use when writing or reviewing Scala code, defining a case class with an invariant, choosing between a value class and a plain class, fixing the Scala 2.13 private-constructor apply leak, structuring a Cats Effect program, or writing ScalaTest specs. Primary language of the scala-bioinformatics project (Scala 2.13.18). Apply even when not named explicitly for any .scala work in this codebase.
+description: Scala 2.13 idioms and gotchas learned in practice — sealed-trait ADTs, value classes, companion-object factories, the smart-constructor invariant pattern (sealed abstract case class), exhaustive pattern matching, Either/Option, copy-on-write via persistent collections and case-class .copy, first-class functions and higher-order refactorings, foldLeft/map/filter/reduce over loops, Cats Effect 3 IO/IOApp, and ScalaTest AnyFunSpec. Use when writing or reviewing Scala code, defining a case class with an invariant, choosing between a value class and a plain class, fixing the Scala 2.13 private-constructor apply leak, doing copy-on-write or defensive copying at a Java/mutable boundary, expressing an implicit argument as a first-class function, structuring a Cats Effect program, or writing ScalaTest specs. Primary language of the scala-bioinformatics project (Scala 2.13.18). Apply even when not named explicitly for any .scala work in this codebase.
 ---
 
 # Scala (2.13) Idioms
@@ -100,6 +100,32 @@ dna.value.iterator.flatMap(c => fromChar(c).map(toRna).map(toChar)).mkString
 
 Mind numeric width: use per-step modulo and check the worst-case intermediate against `Int.MaxValue`; reach for `BigInt` when a count can exceed it.
 
+## Copy-on-write comes for free; defensive copy only at the edge
+
+The [[functional-programming]] copy-on-write discipline (copy → modify copy → return copy) is the *default* in Scala — you mostly get it for nothing:
+
+- Persistent collections (`Vector`, `List`, `Map`, `Set`) return a new structure on every "update" (`:+`, `updated`, `+`, `-`) via structural sharing; the original is untouched. So `xs :+ x` *is* copy-on-write.
+- `case class` `.copy(field = ...)` is copy-on-write for records: it returns a new instance, shares the rest. `seq.foldLeft(Counts(0,0,0,0))((acc, c) => acc.copy(a = acc.a + 1))` accumulates immutably.
+- A "modify nested field" is just nested `.copy`; if it gets deep, reach for a lens/optics or a small `update`-style helper rather than hand-nesting many `.copy` calls.
+
+**Defensive copying** only matters at a boundary with mutable/untrusted code — e.g. handing a collection to a Java API that might retain and mutate it, or receiving a mutable `Array`/`java.util.List` from one. There, deep-copy on the way out and on the way in (`.toVector`, `.clone()`, build a fresh immutable structure). Inside the pure Scala core everything is already immutable, so don't pay for deep copies you don't need.
+
+## First-class functions: express the implicit argument
+
+When several functions differ only by a value baked into their *name* or body (`incrementSize`, `incrementQuantity`, `setName`…), that's the "implicit argument in the function name" smell. Make the varying part a first-class value — a function or a field name passed as an argument:
+
+```scala
+// smell: the field "size" is implicit in the function name
+def incrementSize(item: Item): Item = item.copy(size = item.size + 1)
+
+// express it: the operation becomes a first-class function argument
+def update[A](item: Item, modify: Item => Item): Item = modify(item)
+val bigger = update(item, i => i.copy(size = i.size + 1))
+```
+
+- Pass functions three ways: a lambda (`x => ...`), a method reference / eta-expansion (`f _` or `f`), or a named `val` holding a function. Prefer a named function when the callback is reused or deserves a name.
+- "Replace the body with a callback" turns a fixed body into a higher-order function taking the varying step — the same move behind `map`/`filter`/`fold`. Build pipelines by chaining these rather than writing bespoke loops.
+
 ## Cats Effect 3: `IOApp` shell
 
 Effects live in `IO`, at the edge. The entry point is an `IOApp`; per-task runners build an `IO[Unit]` with a for-comprehension:
@@ -152,10 +178,12 @@ class FooSpec extends AnyFunSpec with Matchers {
 - `var`, mutable collections, `while` loops — use folds/recursion/comprehensions.
 - Bare `println` / throwing exceptions for expected failures — use `IO.println` / `Either`.
 - Non-exhaustive matches left unaddressed — fix the warning.
+- Deep/defensive copying inside the pure core where persistent collections and `.copy` already give copy-on-write for free — only deep-copy at a mutable/Java boundary.
+- Near-duplicate functions differing only by a baked-in value/field — express that as a first-class function or field argument.
 - Reaching for Scala 3 syntax — this project is pinned to 2.13.
 
 ## Related
 
-- [[functional-programming]] — the principles these idioms serve (purity, total functions, illegal states unrepresentable).
+- [[functional-programming]] — the principles these idioms serve (actions/calculations/data, purity, copy-on-write, total functions, stratified/onion architecture, illegal states unrepresentable).
 - [[tdd]] — Red-Green-Refactor with AnyFunSpec, including `assertDoesNotCompile`.
 - `scala-bio-framework` — how these idioms are applied to the bioinformatics domain specifically.
