@@ -38,8 +38,9 @@ Design / modeling:
 
 Review (read-only):
 
-- **`scala-fp-reviewer.md`** — reviews Scala / functional code against the FP, Scala, TDD, and design-patterns skills.
-- **`modern-java-reviewer.md`** — reviews Java code against Effective Java on a Java 21 baseline.
+- **`clean-code-reviewer.md`** — language-agnostic readability/maintainability review (Clean Code principles + smells catalog).
+- **`scala-fp-reviewer.md`** — reviews Scala / functional code against the FP, Scala, TDD, design-patterns, and clean-code skills.
+- **`modern-java-reviewer.md`** — reviews Java code against Effective Java (Java 21) plus clean-code readability.
 - **`crypto-reviewer.md`** — reviews code/designs for cryptographic correctness and safety.
 
 Active coding:
