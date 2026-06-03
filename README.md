@@ -73,7 +73,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 **Life & money**
 
-- **personal-finance** — Andrew Hallam's *Balance*: spending for happiness (experiences/time/relationships, "afford anything but not everything") + low-cost index investing, fees, asset allocation, and raising money-capable kids. Educational, not financial advice.
+- **personal-finance** — Hallam's *Balance* + Alini's *Money Like You Mean It* (Canadian): spending for happiness ("afford anything but not everything") and low-cost index investing, plus the practical toolkit — debt/credit, rent-vs-buy & mortgages, income/side hustles, insurance, wills, and couples/family money. Educational, not financial advice.
 
 **Games**
 

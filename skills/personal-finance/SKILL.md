@@ -1,11 +1,11 @@
 ---
 name: personal-finance
-description: Personal finance and money-for-well-being, distilled from Andrew Hallam's *Balance: How to Invest and Spend for Happiness, Health, and Wealth*. Two halves — (1) spending and life: time affluence over stuff, experiences/others/time-saving/novelty as the spending that buys happiness, "afford anything but not everything" (ruthless prioritization), gratitude and choosing who you compare to, social relationships as the real driver of health and longevity, and rethinking retirement around purpose; (2) investing: why hidden fees and active management drown returns, low-cost passive/index ("couch potato") investing and all-in-one ETFs, robo-advisors, picking and holding an asset allocation that matches your real risk tolerance, staying the course (behaviour beats stock-picking), socially responsible/ESG investing, and raising financially capable kids (chores, delayed gratification, RESP). Mentions Canadian vehicles (RRSP/TFSA/RESP) but is globally framed. Use whenever discussing personal finance, budgeting/spending decisions, saving, index vs active investing, investment fees, asset allocation, retirement or financial-independence planning, money and happiness, or teaching kids about money. NOT financial advice — Claude is not a financial advisor; figures/limits/tax rules change and vary by region, so verify current specifics.
+description: Personal finance — spending for well-being, low-cost investing, and the practical money toolkit — distilled from Andrew Hallam's *Balance: How to Invest and Spend for Happiness, Health, and Wealth* and Erica Alini's *Money Like You Mean It* (a Canadian handbook). Covers (1) spending and life: time affluence over stuff, experiences/others/time-saving/novelty as the spending that buys happiness, "afford anything but not everything," gratitude, relationships as the real driver of health and longevity, rethinking retirement around purpose; (2) investing: why hidden fees and active management drown returns, low-cost passive/index ("couch potato") investing, all-in-one ETFs, robo-advisors, choosing and holding an asset allocation that matches real risk tolerance, behaviour over stock-picking, ESG investing, raising money-capable kids; and (3) the practical toolkit: good vs bad debt and credit/credit-score and payoff strategies, rent vs buy and mortgage mechanics, growing income and judging side hustles, emergency funds, insurance (life/disability/renters), wills and power of attorney, couples & family money, and the cost of kids. Uses Canadian vehicles (RRSP/TFSA/RESP) and Canadian context (housing, EI). Use whenever discussing personal finance, budgeting/spending, debt/credit, saving, rent-vs-buy/mortgages, income/side hustles, index vs active investing, fees, asset allocation, insurance, retirement or financial-independence planning, estate basics, money and happiness, or teaching kids about money. NOT financial advice — Claude is not a financial advisor; figures/limits/tax rules change and vary by region, so verify current specifics.
 ---
 
 # Personal Finance (money for a good life)
 
-From Andrew Hallam's **Balance: How to Invest and Spend for Happiness, Health, and Wealth** (2022). The book's thesis: wealth is a means, not the end — the goal is a life with health, strong relationships, purpose, and *enough* money, built on **low-cost passive investing** and **spending deliberately on what actually raises well-being**. Hallam (a Canadian author) references Canadian accounts but writes for a global audience; the principles are universal, the account names are local.
+Built from two complementary books. **Andrew Hallam's *Balance: How to Invest and Spend for Happiness, Health, and Wealth* (2022)** supplies the philosophy and investing core: wealth is a means, not the end — the goal is a life with health, relationships, purpose, and *enough* money, built on **low-cost passive investing** and **spending deliberately on what raises well-being**. **Erica Alini's *Money Like You Mean It* (Dundurn, 2021)** adds the **practical, explicitly Canadian toolkit** for today's economy: debt and credit, rent-vs-buy and mortgages, income and side hustles, insurance, wills, and couples/family money. Hallam is global-with-Canadian-accounts; Alini is Canada-specific.
 
 > **Not financial advice.** This skill summarizes one book's principles for education and discussion. Claude is not a financial advisor. It can lay out the factors and trade-offs so a person can decide for themselves, but it should not give confident buy/sell recommendations. Contribution limits, tax rules, and product details change over time and differ by country/province — **verify current specifics** (and suggest a fee-only advisor or accountant for personalized, high-stakes decisions). This is a standalone life/finance skill — the rest of the toolkit is engineering-focused.
 
@@ -35,6 +35,18 @@ The investing half (chapters 7–9, 11, appendix):
 
 See `references/investing-and-fees.md` for the mechanics, the fee math, and the Canadian-vehicle notes.
 
+## Part 3 — The practical money toolkit (Alini)
+
+Erica Alini's contribution is the hands-on, modern-economy mechanics — the script of "get a job, buy a house, retire at 65" no longer fits unstable work, sky-high housing, and student debt:
+
+- **Debt is a tool, not evil — but a "frenemy."** Distinguish low-rate productive debt (mortgage, sometimes student loans) from corrosive high-rate debt (credit cards, payday loans); kill the high-interest debt first (avalanche vs. snowball — pick what you'll stick with). Understand interest/APR, minimum-payment traps, and how your **credit score** is built.
+- **Housing is the biggest lever.** Shelter is usually your largest cost and gates everything else. **Rent vs. buy** isn't "renting is wasted money" — buying carries land-transfer tax, closing costs, ~1%/yr maintenance, property tax, interest, and illiquidity; renting + investing the difference can win, especially in expensive markets. If buying, understand mortgage mechanics (amortization, fixed/variable, the stress test, CMHC insurance under 20% down) and avoid being house-poor.
+- **Income is half the equation.** Grow primary income (skills, negotiation, switching); judge **side hustles honestly** — net of tax, expenses, time, and burnout.
+- **Prep for curveballs.** Build an **emergency fund**; carry the right **insurance** (renters insurance is cheap and skipped; **life and disability** matter once people depend on your income — your earning power is your biggest asset); get a **will and power of attorney** (yes, even if single).
+- **Couples & family money.** Combining/separating finances, talking about money, the real **cost of kids** (childcare, parental leave/EI), saving early via **RESP**, and aging-parent/estate basics.
+
+See `references/debt-housing-protection.md` for the full toolkit.
+
 ## Canadian context (verify current rules)
 
 The book mentions Canadian wrappers: **RRSP** (tax-deferred retirement), **TFSA** (tax-free growth/withdrawals), and **RESP** (education savings, with government grant matching). It also points to all-in-one ETFs and robo-advisors available to Canadians. **Do not state current contribution limits, grant rates, or tax treatment from memory** — these change yearly and vary by situation; look them up (or have the person confirm with CRA/an advisor). The *strategy* (max low-cost index exposure inside tax-advantaged accounts, automate, hold) is the durable takeaway.
@@ -50,6 +62,7 @@ The book mentions Canadian wrappers: **RRSP** (tax-deferred retirement), **TFSA*
 
 - **`references/spending-for-wellbeing.md`** — the life/behavioural chapters: time affluence, the happiness-spending categories with their research, prioritization, gratitude/comparison, relationships-and-longevity, and rethinking retirement.
 - **`references/investing-and-fees.md`** — fees and active-vs-passive math, index/couch-potato portfolios, all-in-one ETFs and robo-advisors, choosing/holding an allocation, SRI/ESG, kids & RESP, and the Canadian-vehicle caveats.
+- **`references/debt-housing-protection.md`** — Alini's Canadian toolkit: debt/credit & payoff, rent-vs-buy & mortgages, income/side hustles, emergency funds, insurance, wills/POA, and couples/family money.
 
 ## Always-apply defaults
 
@@ -61,5 +74,5 @@ The book mentions Canadian wrappers: **RRSP** (tax-deferred retirement), **TFSA*
 
 ## Related
 
-- Source: *Balance: How to Invest and Spend for Happiness, Health, and Wealth* (Andrew Hallam, Page Two, 2022). Related reading the book draws on: *Happy Money* (Dunn & Norton), *Afford Anything* (Paula Pant), Hallam's own *Millionaire Teacher* / *Millionaire Expat*.
+- Sources: *Balance: How to Invest and Spend for Happiness, Health, and Wealth* (Andrew Hallam, Page Two, 2022) and *Money Like You Mean It* (Erica Alini, Dundurn, 2021 — Canadian). Related reading the books draw on: *Happy Money* (Dunn & Norton), *Afford Anything* (Paula Pant), Hallam's *Millionaire Teacher* / *Millionaire Expat*.
 - This is a standalone life/finance skill (the toolkit is otherwise engineering-focused), alongside other non-engineering skills like ux-design and swgoh-expert.
