@@ -53,6 +53,16 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **akka-actors** · **akka-cluster** · **akka-persistence** · **akka-streams** · **akka-discovery** · **akka-serialization** · **akka-utilities** (core).
 - **akka-http** · **akka-grpc** · **alpakka** · **akka-projections** · **akka-persistence-plugins** (ecosystem).
 
+**DevOps & operations**
+
+- **devops** — principles meta: CALMS, the Three Ways (*Phoenix Project*) & Five Ideals (*Unicorn Project*), CI/CD/IaC, DORA metrics.
+- **ansible** — agentless, idempotent configuration management / infrastructure as code.
+- **site-reliability-engineering** — Google SRE: SLIs/SLOs/error budgets, toil, golden signals, on-call & blameless postmortems.
+
+**Design**
+
+- **ux-design** — *Laws of UX*: psychology-based UX heuristics (Fitts/Hick/Miller/Jakob/Gestalt/…); pairs with the SwiftUI / apple-dev skills.
+
 **Apple / Swift** (contributed; `apple-dev` meta added to route among them)
 
 - **apple-dev** — meta/overview: the entry point and router for the Apple/Swift cluster below.
