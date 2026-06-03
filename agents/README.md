@@ -33,7 +33,8 @@ Notes:
 Design / modeling:
 
 - **`domain-modeler.md`** — runs an EventStorming-style exploration and distills it into a DDD model (bounded contexts, aggregates, events) mapped to code.
-- **`akka-architect.md`** — designs and reviews Akka systems using the Akka suite plus DDD and EventStorming.
+- **`akka-architect.md`** — designs and reviews Akka systems on the **Core** libraries (actors, cluster, persistence, streams) plus DDD and EventStorming.
+- **`akka-sdk-architect.md`** — designs and reviews **Akka SDK** (Java) services — choosing components (agents, entities, views, workflows, endpoints, consumers, timed actions) and the api/application/domain layout.
 
 Review (read-only):
 
