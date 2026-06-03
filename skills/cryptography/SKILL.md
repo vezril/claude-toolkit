@@ -107,6 +107,7 @@ When illustrating a primitive in C, match the book's Part V conventions so examp
 
 ## Related
 
+- [[information-theory]] — the mathematical foundation Shannon used to define crypto: entropy (key/randomness strength), perfect secrecy (`H(key) ≥ H(message)`, the one-time pad), and unicity distance.
 - [[functional-programming]], [[scala]], [[tdd]] — sibling skills in this repo (general engineering practice).
 - Primary source for recommendations: *Cryptography Engineering* — Ferguson, Schneier & Kohno (Wiley, 2010). The modern best-practice authority; basis of the design philosophy, recommendations, and `references/engineering-practice.md`.
 - Source for structure and the C examples: *Applied Cryptography*, 2nd ed., Bruce Schneier (Wiley, 1996) — Parts I–V. C is adapted from the Part V source listings (lightly cleaned from OCR; loop bounds restored where the scan dropped characters). Historical/structural; defer to *Cryptography Engineering* on what's secure today.

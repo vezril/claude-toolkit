@@ -39,6 +39,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **clean-code** — Robert Martin's readable/maintainable-code principles + the smells & heuristics catalog, with a balanced critique.
 - **software-design** — Ousterhout's *A Philosophy of Software Design* (complexity, deep modules); the design tier above clean-code.
 - **secure-coding** — defensive hardening against common vulnerability classes (memory safety, injection, auth/secrets/TLS); pairs with cryptography.
+- **information-theory** — Cover & Thomas: entropy, KL divergence, mutual information, source-coding & channel-capacity limits, with applications to crypto, compression, coding, and ML.
 
 **Akka** (Akka Core 2.10.x + ecosystem, Scala + Java Typed)
 
