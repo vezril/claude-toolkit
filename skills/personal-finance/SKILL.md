@@ -49,7 +49,7 @@ See `references/debt-housing-protection.md` for the full toolkit.
 
 ## Canadian context (verify current rules)
 
-The book mentions Canadian wrappers: **RRSP** (tax-deferred retirement), **TFSA** (tax-free growth/withdrawals), and **RESP** (education savings, with government grant matching). It also points to all-in-one ETFs and robo-advisors available to Canadians. **Do not state current contribution limits, grant rates, or tax treatment from memory** — these change yearly and vary by situation; look them up (or have the person confirm with CRA/an advisor). The *strategy* (max low-cost index exposure inside tax-advantaged accounts, automate, hold) is the durable takeaway.
+The book mentions Canadian wrappers: **RRSP** (tax-deferred retirement), **TFSA** (tax-free growth/withdrawals), **FHSA** (first-home savings), and **RESP** (education savings, with government grant matching). It also points to all-in-one ETFs and robo-advisors available to Canadians. **Do not state current contribution limits, grant rates, or tax treatment from memory** — these change yearly and vary by situation; look them up (or have the person confirm with CRA/an advisor). For the **authoritative CRA account mechanics** (FHSA $8k/$40k limits, RRSP deduction room, the Home Buyers' Plan $60k withdrawal and repayment), see [[canadian-registered-accounts]]. The *strategy* (max low-cost index exposure inside tax-advantaged accounts, automate, hold) is the durable takeaway.
 
 ## How to apply this skill
 
@@ -75,4 +75,5 @@ The book mentions Canadian wrappers: **RRSP** (tax-deferred retirement), **TFSA*
 ## Related
 
 - Sources: *Balance: How to Invest and Spend for Happiness, Health, and Wealth* (Andrew Hallam, Page Two, 2022) and *Money Like You Mean It* (Erica Alini, Dundurn, 2021 — Canadian). Related reading the books draw on: *Happy Money* (Dunn & Norton), *Afford Anything* (Paula Pant), Hallam's *Millionaire Teacher* / *Millionaire Expat*.
+- [[canadian-registered-accounts]] — the authoritative CRA mechanics for FHSA / RRSP / Home Buyers' Plan (limits, repayment, deductibility) that this skill defers to for "verify current rules."
 - This is a standalone life/finance skill (the toolkit is otherwise engineering-focused), alongside other non-engineering skills like ux-design and swgoh-expert.
