@@ -35,6 +35,17 @@ Cross-links: [[akka-actors]], [[akka-cluster]], [[akka-persistence]], [[akka-str
 - **[[akka-projections]]** — build CQRS read-sides from event/durable-state streams with offset tracking; service-to-service event replication. *The read side of [[akka-persistence]].*
 - **[[akka-persistence-plugins]]** — the storage backends (R2DBC recommended, JDBC, Cassandra, DynamoDB). *Choose where events/state actually live.*
 
+**Operations & architecture libraries:**
+- **[[akka-management]]** — HTTP management, Cluster Bootstrap (form a cluster via discovery instead of static seed-nodes), health checks, k8s rolling-update helpers. *Use to run a cluster on Kubernetes/cloud.*
+- **[[akka-diagnostics]]** — config checker + thread-starvation detector. *Catch config mistakes and blocking-on-the-wrong-dispatcher.*
+- **[[akka-distributed-cluster]]** — active-active across cloud regions via Replicated Event Sourcing + Projection gRPC (separate clusters, brokerless). *Multi-region HA.*
+- **[[akka-edge]]** — push services to the edge / constrained devices (incl. Akka Edge Rust), edge↔cloud replication. *Local-first, low latency.*
+- **[[akka-insights]]** — commercial telemetry/observability (Cinnamon) for actors/cluster/sharding/persistence/streams. *Production monitoring.*
+
+## The Akka SDK (a higher-level alternative)
+
+Separately from these Core libraries, the **[[akka-sdk]]** is an opinionated, component-based **Java** framework (the evolution of Kalix) where you write components (**[[akka-sdk-agents]]**, **[[akka-sdk-event-sourced-entities]]**, **[[akka-sdk-key-value-entities]]**, **[[akka-sdk-views]]**, **[[akka-sdk-workflows]]**, **[[akka-sdk-endpoints]]**, **[[akka-sdk-consumers]]**, **[[akka-sdk-timed-actions]]**) and the Akka runtime handles persistence, sharding, replication, and scaling for you — no database or service mesh to manage. **Use the SDK** to build event-driven/agentic services fast with less infrastructure code; **use these Core libraries** when you need low-level control. Start at [[akka-sdk]].
+
 ## How the pieces fit (a typical system)
 
 A reactive microservice often looks like: **[[akka-http]]/[[akka-grpc]]** at the edge → commands to **[[akka-cluster]]** sharded **[[akka-persistence]]** event-sourced aggregates (single-writer per entity) → events stored via an **[[akka-persistence-plugins]]** backend (R2DBC) → **[[akka-projections]]** build read models and publish to other services (Projection gRPC) → **[[alpakka]]** integrates Kafka/external systems → all serialized with **[[akka-serialization]]** (Jackson), discovered via **[[akka-discovery]]**, and resilient via the **[[akka-cluster]]** split-brain resolver. Design the aggregates and bounded contexts with [[domain-driven-design]] and [[event-storming]] first.
