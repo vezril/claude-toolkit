@@ -36,12 +36,23 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **event-storming** — Brandolini's workshop technique: notation, facilitation, and the path from the wall to DDD/code.
 - **modern-java** — Effective Java (3rd ed., all 90 items) on a Java 21 baseline with modern idioms.
 - **cryptography** — Schneier's *Applied Cryptography* (with C examples) updated by *Cryptography Engineering* as the modern authority.
+- **clean-code** — Robert Martin's readable/maintainable-code principles + the smells & heuristics catalog, with a balanced critique.
+- **software-design** — Ousterhout's *A Philosophy of Software Design* (complexity, deep modules); the design tier above clean-code.
+- **secure-coding** — defensive hardening against common vulnerability classes (memory safety, injection, auth/secrets/TLS); pairs with cryptography.
 
 **Akka** (Akka Core 2.10.x + ecosystem, Scala + Java Typed)
 
 - **akka** — meta/overview: actor-model philosophy, module map, when to reach for each.
 - **akka-actors** · **akka-cluster** · **akka-persistence** · **akka-streams** · **akka-discovery** · **akka-serialization** · **akka-utilities** (core).
 - **akka-http** · **akka-grpc** · **alpakka** · **akka-projections** · **akka-persistence-plugins** (ecosystem).
+
+**Apple / Swift** (contributed)
+
+- **swiftui-ui-patterns** · **swiftui-view-refactor** · **swiftui-liquid-glass** · **swiftui-performance-audit** — building, refactoring, styling (iOS 26+ Liquid Glass), and auditing SwiftUI.
+- **swift-concurrency-expert** — Swift 6.2+ concurrency review and remediation.
+- **native-app-profiling** · **ios-debugger-agent** — profiling macOS/iOS apps (xctrace) and building/running/debugging on the simulator.
+- **release-macos-spm-packaging** · **release-app-store-changelog** — SwiftPM macOS app packaging/signing and App Store release notes.
+- **github-issue-fix-flow** — end-to-end GitHub issue → fix → build/test → push workflow.
 
 Each skill is a folder with a `SKILL.md` (YAML frontmatter `name` + `description`, then the body); larger skills add `references/*.md` loaded on demand.
 
