@@ -71,6 +71,10 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 - **ux-design** — *Laws of UX*: psychology-based UX heuristics (Fitts/Hick/Miller/Jakob/Gestalt/…); pairs with the SwiftUI / apple-dev skills.
 
+**Life & money**
+
+- **personal-finance** — Andrew Hallam's *Balance*: spending for happiness (experiences/time/relationships, "afford anything but not everything") + low-cost index investing, fees, asset allocation, and raising money-capable kids. Educational, not financial advice.
+
 **Games**
 
 - **swgoh-expert** — Star Wars: Galaxy of Heroes expert assistant (teams, counters, mods, relics, GAC/TW/Conquest).
