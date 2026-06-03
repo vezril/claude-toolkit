@@ -1,6 +1,6 @@
 ---
 name: functional-programming
-description: Functional programming discipline — pure functions, immutability, total functions, algebraic data types, making illegal states unrepresentable, and a pure core with effects pushed to the edge. Use when designing or reviewing code that should be functional, modeling a domain with ADTs and smart constructors, choosing how to represent errors (Either vs exceptions), deciding whether a function needs an Either wrapper, eliminating var/mutable state/imperative loops, or separating pure logic from IO/side effects. Default style in the scala-bioinformatics project (Scala + Cats Effect). Apply even when not named explicitly — any work introducing a domain type, algorithm, or effectful boundary should follow these principles.
+description: Functional programming discipline — separating actions, calculations, and data (ACD); pure functions, immutability via copy-on-write and defensive copying; total functions; algebraic data types; making illegal states unrepresentable; stratified design; and a pure core / onion architecture with effects pushed to the edge. Use when designing or reviewing code that should be functional, classifying code as action/calculation/data, extracting a calculation out of an action, minimizing implicit inputs/outputs, choosing an immutability discipline, organizing code into layers (stratified/onion architecture), modeling a domain with ADTs and smart constructors, choosing how to represent errors (Either vs exceptions), deciding whether a function needs an Either wrapper, eliminating var/mutable state/imperative loops, or separating pure logic from IO/side effects. Default style in the scala-bioinformatics project (Scala + Cats Effect). Apply even when not named explicitly — any work introducing a domain type, algorithm, or effectful boundary should follow these principles.
 ---
 
 # Functional Programming
@@ -9,6 +9,18 @@ Build programs out of **pure functions over immutable data**, model the domain s
 
 If the user's explicit instructions conflict with this skill, the user wins. Otherwise this is the default style.
 
+## The core lens: actions, calculations, data
+
+Every piece of code is one of three things. Classify before you design, and the right structure usually follows:
+
+- **Data** — inert facts about events: a parsed record, a count, an email address. No behavior, just values. Easiest to understand, store, and compare.
+- **Calculations** — pure computations from input to output (a.k.a. pure functions). Same input → same output, no side effects. *Referentially transparent*: a call can be replaced by its result without changing the program. This is exactly what *Purity* (below) describes.
+- **Actions** — anything that depends on *when* or *how many times* it runs: IO, reading the clock/random, mutation, network, printing. These are the hard part; everything that touches them becomes an action too.
+
+Prefer the cheapest category that does the job: **push actions toward calculations, and calculations toward data** where you can. An action that only needs its inputs made explicit can often become a calculation; a calculation whose results are finite and fixed can sometimes become a lookup table (data). The whole skill is, in effect, techniques for shrinking the action surface and growing the pure, data-driven core.
+
+This classification drives the architecture: calculations and data form the pure core (the onion's inner layers — see *Pure core, effectful shell*), actions live at the edge.
+
 ## Purity
 
 A pure function: same input → same output, every time, with no observable side effects (no mutation of shared state, no IO, no clock/random reads, no throwing for control flow).
@@ -16,6 +28,23 @@ A pure function: same input → same output, every time, with no observable side
 - **No `var`, no mutable collections, no imperative loops.** Use `foldLeft`, `map`, `flatMap`, `collect`, recursion, or comprehensions instead. Review every function for these before declaring it done.
 - **Accumulate with `foldLeft`** when building up a result; **`map`/`flatMap` + `mkString`/`toVector`** when producing a new collection. Example: counting bases is a `foldLeft` over the sequence into a result record using `.copy`; transcribing is a `flatMap` producing a new string.
 - Purity makes code trivially testable (no setup/teardown, no mocks) and safe to reason about locally. This is *why* the [[tdd]] cycle is cheap here.
+
+## Extracting calculations from actions
+
+When logic is tangled inside an action, pull the decision-making out into a calculation that the action merely calls. The mechanical move: identify what the code reads and what it writes, turn the reads into explicit parameters and the writes into a returned value, and the body becomes pure.
+
+**Minimize implicit inputs and outputs.** An implicit input is anything a function depends on that isn't an argument (a global, the clock, shared mutable state); an implicit output is any effect other than the return value (mutating an argument, writing a global, printing). Every implicit in/out is what makes a function an action and makes it hard to test and reuse. Convert them to explicit arguments and return values until nothing is left — at which point the function *is* a calculation.
+
+- Fewer implicit inputs/outputs → more reusable (callers control everything via arguments) and more testable (call it, check the return value).
+- This is the same principle as a smart constructor taking a raw value and returning a result, rather than reaching out to read or mutate something on the side.
+
+## Immutability discipline
+
+Calculations require immutable data. Two complementary disciplines keep data immutable even in a language that allows mutation:
+
+**Copy-on-write** — for data you own. To "modify" immutable data, do three steps: (1) make a copy, (2) modify the copy, (3) return the copy. The original is never touched, so a write becomes a read — and a read of immutable data is a calculation. In Scala this is mostly free: persistent collections (`Vector`, `Map`, `List`) and `case class` `.copy` already return new values via structural sharing rather than mutating; the discipline is simply to *never* reach for a mutable collection or `var`. See [[scala]] for the mechanics.
+
+**Defensive copying** — for data crossing a boundary with code you don't trust to respect immutability (legacy code, a mutable Java/3rd-party API). Two rules: (1) **deep-copy data as it leaves** your code into untrusted code, and (2) **deep-copy data as it enters** from untrusted code. Then nothing they hold can mutate your values and nothing they hand you can be mutated under you. Deep copies are more expensive than the shallow copies of copy-on-write, so reserve defensive copying for the trust boundary; use copy-on-write everywhere inside it. In a fully immutable Scala core you rarely need it — it's the escape hatch at the edge.
 
 ## Total functions: don't wrap what can't fail
 
@@ -85,9 +114,15 @@ object UnrootedBinaryTreesProblemError {
 
 ## Pure core, effectful shell
 
-Structure the program as a **pure functional core** wrapped by a thin **effectful shell**.
+Structure the program as a **pure functional core** wrapped by a thin **effectful shell**. This is the **onion architecture**: concentric layers where actions live only on the outside and everything calls inward.
 
-- Domain types and algorithms are pure — no `IO`, no IO, no side effects. They're just data and total/fallible functions over it.
+- **Interaction layer** (outer) — the actions: IO, file/network reads, printing, the clock. The Cats Effect `IOApp` entry point and per-task runners.
+- **Domain layer** (middle) — calculations that encode the business rules: pure domain types and the total/fallible functions over them.
+- **Language layer** (inner) — general utilities and the language/library primitives the domain is built from.
+
+Three rules make it work: interaction with the world happens *only* in the interaction layer; layers call *inward* toward the center; a layer never knows about the layers outside it. Contrast the traditional layered architecture (web → domain → database), where the database sits at the bottom and therefore *everything above it is an action* — that's why it isn't functional. Putting calculations at the center, with actions as a thin outer rind, is what gives a functional architecture its prominent pure core.
+
+- Domain types and algorithms are pure — no `IO`, no side effects. They're just data and total/fallible functions over it.
 - All effects (reading files, printing, the clock) live at the boundary — here, the Cats Effect `IOApp` entry point and the per-problem runners that do `IO.blocking` reads and `IO.println`:
 
 ```scala
@@ -106,6 +141,17 @@ def solve(): IO[Unit] =
 - The shell parses input → calls the pure core → renders/prints the result. Keep logic *out* of the shell; keep effects *out* of the core.
 - No bare `println` — console output goes through `IO.println` (or the project's IO equivalent) so it stays in the effect type.
 
+## Stratified design
+
+Organize functions into layers by **rate of change** and level of detail, so each function is built only from functions roughly one level of abstraction below it. Read as a call graph, well-stratified code forms comfortable layers rather than one function reaching across many levels at once. Four patterns to aim for:
+
+1. **Straightforward implementations** — a function should read at a single, consistent level of detail; its body shouldn't mix high-level intent with low-level fiddling. If it does, extract the low-level part into a helper one layer down.
+2. **Abstraction barrier** — a small set of functions that lets callers operate on a structure (e.g. a cart) without knowing its representation. Above the barrier you forget the implementation; below it you forget who calls you. This lets you swap the underlying data structure without touching callers.
+3. **Minimal interface** — define new operations in terms of the existing minimal set rather than growing the barrier; keep the core interface small so there's less to maintain and reason about.
+4. **Comfortable layers** — stop refactoring when the layers are good enough to work in comfortably; don't abstract for its own sake.
+
+What the call graph tells you: **code near the top is easiest to change** (little is built on it) — put fast-changing business rules there. **Code near the bottom is more reused and more depended-upon** — keep it stable and test it most thoroughly. This dovetails with keeping stable, total primitives (see *Total functions*) at the bottom, and with the onion layering above.
+
 ## Composition
 
 Prefer composing small functions over one big procedure. Dispatch through the ADT (`fromChar` → pattern match → `toChar`) rather than reaching for raw primitives. Build pipelines with `map`/`flatMap`/`fold`. A function should read as a transformation of values, not a sequence of mutations.
@@ -118,10 +164,15 @@ Prefer composing small functions over one big procedure. Dispatch through the AD
 - Validating the same data repeatedly instead of once at the boundary, then trusting the type.
 - A shared supertype that merges genuinely distinct domains (DNA vs RNA) — keep them independent.
 - Business logic leaking into the `IO` shell, or `IO`/side effects leaking into the core.
+- Implicit inputs/outputs (globals, hidden mutation, side-effecting reads) where an explicit argument/return would make the function a calculation.
+- An action doing work that could be extracted into a calculation and merely called from the action.
+- Mutating data in place instead of copy-on-write; reaching for deep/defensive copies *inside* your trusted core where copy-on-write suffices.
+- Functions that span multiple levels of abstraction at once, or growing an abstraction barrier instead of building on its minimal interface.
 - Speculative generality — modeling cases or parameters no requirement (and no [[tdd]] test) demands.
 
 ## Related
 
 - [[tdd]] — pure, total functions are the easiest things in the world to test.
-- [[scala]] — the concrete language mechanics (sealed ADTs, `sealed abstract case class`, value classes, `Either`, Cats Effect `IO`) used to express these principles.
+- [[scala]] — the concrete language mechanics (sealed ADTs, `sealed abstract case class`, value classes, `Either`, copy-on-write via persistent collections, Cats Effect `IO`) used to express these principles.
 - `scala-bio-framework` — project-specific application.
+- *Grokking Simplicity* (Eric Normand) — source of the actions/calculations/data lens, copy-on-write & defensive copying disciplines, stratified design, and the onion architecture framing in this skill.
