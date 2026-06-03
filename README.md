@@ -41,6 +41,12 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **secure-coding** — defensive hardening against common vulnerability classes (memory safety, injection, auth/secrets/TLS); pairs with cryptography.
 - **information-theory** — Cover & Thomas: entropy, KL divergence, mutual information, source-coding & channel-capacity limits, with applications to crypto, compression, coding, and ML.
 
+**Operating systems** (OSTEP + Silberschatz + Tanenbaum; for writing one)
+
+- **operating-systems** — meta/overview: the three pillars, kernel architectures, the subsystem map.
+- **os-processes-and-scheduling** · **os-memory-and-virtual-memory** · **os-concurrency** · **os-file-systems-and-persistence** · **os-io-and-devices** · **os-virtualization** · **os-security** (subsystems).
+- **osdev-kernel** — hands-on: toolchain, boot, QEMU, and the bring-up roadmap to actually write a kernel (x86-64 & ARM64, C or Rust).
+
 **Akka** (Akka Core 2.10.x + ecosystem, Scala + Java Typed)
 
 - **akka** — meta/overview: actor-model philosophy, module map, when to reach for each.
