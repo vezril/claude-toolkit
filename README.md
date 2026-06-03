@@ -98,6 +98,7 @@ In `agents/` (see [`agents/README.md`](agents/README.md) for the frontmatter spe
 - **scala-fp-reviewer** — reviews Scala / functional code against the FP, Scala, TDD, and design-patterns skills.
 - **akka-architect** — designs and reviews Akka systems using the Akka suite plus DDD and EventStorming.
 - **git-and-ci-reviewer** — reviews Git hygiene (commits, branches, history) and GitHub Actions workflows for correctness and security.
+- **personal-finance-advisor** — a warm, fiduciary-spirited money companion (budgeting, debt, low-cost investing, Canadian FHSA/RRSP/HBP) who educates and weighs trade-offs rather than selling or prescribing.
 
 (See [`agents/README.md`](agents/README.md) for the full list.)
 

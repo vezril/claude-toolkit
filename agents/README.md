@@ -52,4 +52,8 @@ Active coding / operations:
 - **`apple-release-manager.md`** — packages/signs/notarizes SwiftPM macOS apps and generates App Store release notes.
 - **`issue-fixer.md`** — takes a GitHub issue end to end (gh → fix → build/test → commit & push); domain-neutral.
 
+Advisory (non-engineering):
+
+- **`personal-finance-advisor.md`** — a warm, fiduciary-spirited personal-finance companion (budgeting, debt, low-cost investing, retirement, Canadian FHSA/RRSP/HBP); educates and lays out trade-offs, doesn't sell or give buy/sell calls; not a licensed advisor.
+
 Add more by dropping a new `*.md` file in this directory following the template above.
