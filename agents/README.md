@@ -43,6 +43,7 @@ Review (read-only):
 - **`modern-java-reviewer.md`** — reviews Java code against Effective Java (Java 21) plus clean-code readability.
 - **`swiftui-reviewer.md`** — reviews Swift / SwiftUI code (patterns, Observation, concurrency, performance, readability).
 - **`crypto-reviewer.md`** — reviews code/designs for cryptographic correctness and safety.
+- **`git-and-ci-reviewer.md`** — reviews Git hygiene (commits, branches, history) and GitHub Actions workflows for correctness and security.
 
 Active coding / operations:
 
