@@ -30,7 +30,19 @@ Notes:
 
 ## Agents here
 
-- **`scala-fp-reviewer.md`** — reviews Scala / functional code against the FP, Scala, TDD, and design-patterns skills.
+Design / modeling:
+
+- **`domain-modeler.md`** — runs an EventStorming-style exploration and distills it into a DDD model (bounded contexts, aggregates, events) mapped to code.
 - **`akka-architect.md`** — designs and reviews Akka systems using the Akka suite plus DDD and EventStorming.
+
+Review (read-only):
+
+- **`scala-fp-reviewer.md`** — reviews Scala / functional code against the FP, Scala, TDD, and design-patterns skills.
+- **`modern-java-reviewer.md`** — reviews Java code against Effective Java on a Java 21 baseline.
+- **`crypto-reviewer.md`** — reviews code/designs for cryptographic correctness and safety.
+
+Active coding:
+
+- **`tdd-coach.md`** — pairs on a feature test-first, driving strict Red-Green-Refactor (writes & runs code).
 
 Add more by dropping a new `*.md` file in this directory following the template above.
