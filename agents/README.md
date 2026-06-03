@@ -41,10 +41,14 @@ Review (read-only):
 - **`clean-code-reviewer.md`** — language-agnostic readability/maintainability review (Clean Code principles + smells catalog).
 - **`scala-fp-reviewer.md`** — reviews Scala / functional code against the FP, Scala, TDD, design-patterns, and clean-code skills.
 - **`modern-java-reviewer.md`** — reviews Java code against Effective Java (Java 21) plus clean-code readability.
+- **`swiftui-reviewer.md`** — reviews Swift / SwiftUI code (patterns, Observation, concurrency, performance, readability).
 - **`crypto-reviewer.md`** — reviews code/designs for cryptographic correctness and safety.
 
-Active coding:
+Active coding / operations:
 
 - **`tdd-coach.md`** — pairs on a feature test-first, driving strict Red-Green-Refactor (writes & runs code).
+- **`ios-app-debugger.md`** — builds/runs/debugs iOS/macOS apps on the simulator; reproduces, profiles, and fixes runtime issues.
+- **`apple-release-manager.md`** — packages/signs/notarizes SwiftPM macOS apps and generates App Store release notes.
+- **`issue-fixer.md`** — takes a GitHub issue end to end (gh → fix → build/test → commit & push); domain-neutral.
 
 Add more by dropping a new `*.md` file in this directory following the template above.

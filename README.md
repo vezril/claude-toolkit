@@ -46,8 +46,9 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **akka-actors** · **akka-cluster** · **akka-persistence** · **akka-streams** · **akka-discovery** · **akka-serialization** · **akka-utilities** (core).
 - **akka-http** · **akka-grpc** · **alpakka** · **akka-projections** · **akka-persistence-plugins** (ecosystem).
 
-**Apple / Swift** (contributed)
+**Apple / Swift** (contributed; `apple-dev` meta added to route among them)
 
+- **apple-dev** — meta/overview: the entry point and router for the Apple/Swift cluster below.
 - **swiftui-ui-patterns** · **swiftui-view-refactor** · **swiftui-liquid-glass** · **swiftui-performance-audit** — building, refactoring, styling (iOS 26+ Liquid Glass), and auditing SwiftUI.
 - **swift-concurrency-expert** — Swift 6.2+ concurrency review and remediation.
 - **native-app-profiling** · **ios-debugger-agent** — profiling macOS/iOS apps (xctrace) and building/running/debugging on the simulator.
