@@ -43,6 +43,15 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **secure-coding** — defensive hardening against common vulnerability classes (memory safety, injection, auth/secrets/TLS); pairs with cryptography.
 - **information-theory** — Cover & Thomas: entropy, KL divergence, mutual information, source-coding & channel-capacity limits, with applications to crypto, compression, coding, and ML.
 
+**Agentic SDLC** (multi-agent software lifecycle; BMAD + Richards & Ford + Anthropic, adapted with execution-grounded review)
+
+- **sdlc-orchestration** — meta: the four phases, maker-checker per phase, artifact-driven state, HITL gates; routes to the specialists below.
+- **requirements-engineering** — PRD/SRS, the SPEC kernel, measurable NFRs, INVEST stories, elicitation & validation.
+- **software-architecture** — *Fundamentals of Software Architecture* + C4 + ADRs: characteristics, styles & trade-offs, decisions, risk storming, diagramming.
+- **spec-driven-development** — lock the *what* before the *how*; SPEC kernel, self-contained story files, document sharding.
+- **test-strategy** — risk-based P0–P3, test levels/pyramid, ATDD, traceability, execution-grounded quality gates (complements tdd).
+- **agentic-workflows** — Anthropic's workflow-vs-agent patterns + Claude Agent SDK loop + LangGraph; the runtime mechanics for the role agents.
+
 **Operating systems** (OSTEP + Silberschatz + Tanenbaum; for writing one)
 
 - **operating-systems** — meta/overview: the three pillars, kernel architectures, the subsystem map.
@@ -99,6 +108,7 @@ In `agents/` (see [`agents/README.md`](agents/README.md) for the frontmatter spe
 - **akka-architect** — designs and reviews Akka systems using the Akka suite plus DDD and EventStorming.
 - **git-and-ci-reviewer** — reviews Git hygiene (commits, branches, history) and GitHub Actions workflows for correctness and security.
 - **personal-finance-advisor** — a warm, fiduciary-spirited money companion (budgeting, debt, low-cost investing, Canadian FHSA/RRSP/HBP) who educates and weighs trade-offs rather than selling or prescribing.
+- **sdlc-orchestrator** · **requirements-analyst** · **solution-architect** · **story-planner** · **qa-test-architect** — the agentic-SDLC team: coordinate the pipeline, write the PRD/SRS, design the architecture, decompose into stories, and own the (execution-grounded) test strategy.
 
 (See [`agents/README.md`](agents/README.md) for the full list.)
 

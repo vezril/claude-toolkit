@@ -36,6 +36,14 @@ Design / modeling:
 - **`akka-architect.md`** — designs and reviews Akka systems on the **Core** libraries (actors, cluster, persistence, streams) plus DDD and EventStorming.
 - **`akka-sdk-architect.md`** — designs and reviews **Akka SDK** (Java) services — choosing components (agents, entities, views, workflows, endpoints, consumers, timed actions) and the api/application/domain layout.
 
+Agentic SDLC team:
+
+- **`sdlc-orchestrator.md`** — drives a feature through analysis → planning → solutioning → implementation; delegates to the specialists, gates handoffs, keeps a human in the loop (plans/routes, doesn't write artifacts).
+- **`requirements-analyst.md`** — elicits and writes the PRD/SRS or SPEC; measurable NFRs, INVEST stories, locks the *what* before the *how*.
+- **`solution-architect.md`** — turns requirements into architecture (characteristics → style trade-offs → components → ADRs → risk storming → C4).
+- **`story-planner.md`** — decomposes PRD + architecture into epics and self-contained, INVEST, traceable story files.
+- **`qa-test-architect.md`** — designs the risk-based test strategy and runs the **execution-grounded** quality gate (complements the tdd-coach).
+
 Review (read-only):
 
 - **`clean-code-reviewer.md`** — language-agnostic readability/maintainability review (Clean Code principles + smells catalog).
