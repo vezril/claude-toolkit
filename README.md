@@ -75,6 +75,15 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **docker** — containerizing apps (*Docker in Action*): containers vs VMs, image layers & Dockerfiles, volumes, networking, Docker Compose, and an orchestration intro.
 - **site-reliability-engineering** — Google SRE: SLIs/SLOs/error budgets, toil, golden signals, on-call & blameless postmortems.
 
+**Game development** (Godot engine; Schell/Nystrom/Millington/Lengyel/Akenine-Möller + Gaffer/Red Blob) — a "Game Dev Studio" mirroring the SDLC team
+
+- **game-development** — meta: the lifecycle (concept→prototype→vertical slice→production→polish→ship), find-the-fun-first, **playtesting as the quality gate**; routes to the rest.
+- **game-design** — the Lenses (Schell), Theory of Fun, Game Feel, MDA, balance, the GDD.
+- **game-programming-patterns** — Nystrom's catalog (game loop, component, state, observer, object pool, spatial partition…).
+- **godot** — the engine: nodes/scenes/signals, GDScript lifecycle, 2D/3D, subsystems, Godot 3→4.
+- **game-math** · **game-graphics** · **game-ai** · **game-physics** · **multiplayer-networking** · **procedural-generation** · **game-audio** — the technical specialties.
+- **game-production** — scoping, milestones, anti-crunch, indie launch/marketing (monetization-ethics flagged).
+
 **Networking** (Tanenbaum + Stevens + Network Warrior/CCNA/Network+; defensive security)
 
 - **computer-networks** — meta/overview: the OSI/TCP-IP layered model, encapsulation, design principles, performance fundamentals; routes to the rest.
@@ -121,6 +130,7 @@ In `agents/` (see [`agents/README.md`](agents/README.md) for the frontmatter spe
 - **personal-finance-advisor** — a warm, fiduciary-spirited money companion (budgeting, debt, low-cost investing, Canadian FHSA/RRSP/HBP) who educates and weighs trade-offs rather than selling or prescribing.
 - **sdlc-orchestrator** · **requirements-analyst** · **solution-architect** · **story-planner** · **qa-test-architect** — the agentic-SDLC team: coordinate the pipeline, write the PRD/SRS, design the architecture, decompose into stories, and own the (execution-grounded) test strategy.
 - **network-architect** · **network-troubleshooter** — design networks (addressing/segmentation/routing/zones) and diagnose connectivity/performance issues (execution-grounded: ping/traceroute/dig/tcpdump).
+- **game-dev-orchestrator** · **game-designer** · **game-systems-architect** · **gameplay-programmer** · **level-designer** · **playtest-lead** · **technical-artist** · **game-producer** — the Game Dev Studio: drive the lifecycle, design, architect, implement (Godot), design levels/PCG, run playtests (the fun gate), shaders/juice, and production/launch.
 
 (See [`agents/README.md`](agents/README.md) for the full list.)
 

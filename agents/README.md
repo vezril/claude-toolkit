@@ -49,6 +49,17 @@ Networking:
 - **`network-architect.md`** — designs/reviews network architecture: addressing & subnetting (VLSM), VLAN segmentation, routing, and security zones, with a topology diagram.
 - **`network-troubleshooter.md`** — diagnoses connectivity/performance bottom-up, execution-grounded (ping/traceroute/mtr/dig/ss/tcpdump); own/authorized networks only.
 
+Game Dev Studio:
+
+- **`game-dev-orchestrator.md`** — drives the game lifecycle (concept→prototype→slice→production→polish→ship), gating each phase on a **playtest**; delegates, HITL.
+- **`game-designer.md`** — designs the core loop, mechanics, systems/balance, game feel; writes the GDD.
+- **`game-systems-architect.md`** — engine choice, code architecture, game programming patterns, engine-vs-custom subsystems.
+- **`gameplay-programmer.md`** — implements mechanics in Godot/GDScript, test-first where it pays, runs the game.
+- **`level-designer.md`** — levels/content, pacing/difficulty, onboarding, author-vs-procedural.
+- **`playtest-lead.md`** — plans/runs playtests (the empirical "is it fun?" gate) + risk-based code QA.
+- **`technical-artist.md`** — shaders, VFX, juice, rendering setup, graphics performance.
+- **`game-producer.md`** — scope, milestones, anti-crunch, validation, indie launch/marketing & monetization ethics.
+
 Review (read-only):
 
 - **`clean-code-reviewer.md`** — language-agnostic readability/maintainability review (Clean Code principles + smells catalog).
