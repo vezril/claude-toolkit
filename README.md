@@ -84,6 +84,10 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **game-math** · **game-graphics** · **game-ai** · **game-physics** · **multiplayer-networking** · **procedural-generation** · **game-audio** — the technical specialties.
 - **game-production** — scoping, milestones, anti-crunch, indie launch/marketing (monetization-ethics flagged).
 
+**Home & IoT**
+
+- **home-assistant** — the local-first home-automation platform (home-assistant.io): the entity/state model, automations/scripts/templating, Zigbee/Z-Wave/Matter/MQTT/ESPHome ecosystems, add-ons, recorder/statistics, and secure remote access + IoT segmentation. Pairs with the networking skills for VLANs/remote access.
+
 **Networking** (Tanenbaum + Stevens + Network Warrior/CCNA/Network+; defensive security)
 
 - **computer-networks** — meta/overview: the OSI/TCP-IP layered model, encapsulation, design principles, performance fundamentals; routes to the rest.
