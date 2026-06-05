@@ -80,5 +80,19 @@ Set-level: **consistent** (no contradictions), **complete** (no gaps), **non-red
 
 **Requirement attributes to record** (29148): identifier, priority (e.g. MoSCoW: Must/Should/Could/Won't), source/rationale, status, and verification method (test / analysis / inspection / demonstration).
 
+## The four 29148 specification documents
+
+29148 (clause 9) defines a progression of requirement information items, each for a different stakeholder/abstraction level — useful when you need formal rigor beyond a single PRD:
+
+- **BRS — Business Requirements Specification** — the *business* view: business purpose/scope, major stakeholders, business processes, operational policies/rules, operational modes, **high-level operational concept** and scenarios, business-operational quality, project constraints. (The "why the business wants this.")
+- **StRS — Stakeholder Requirements Specification** — the *user/stakeholder* view: stakeholder purpose & scope, the stakeholders, system processes, operational policies/rules/constraints, operational modes & states, **user requirements**, operational concept and scenarios. (The "what users need.")
+- **SyRS — System Requirements Specification** — the *system* view (often spanning hardware+software): functional requirements, usability, performance, system-interface requirements, modes/states, physical characteristics, environmental conditions, **security**, information management, policy/regulation, life-cycle sustainment, packaging/handling/shipping.
+- **SwRS / SRS — Software Requirements Specification** — the *software* view: the classic SRS (functional + the quality requirements / "-ilities", interfaces, constraints).
+
+For most product work a single **PRD** (the spine above) collapses BRS+StRS+SwRS pragmatically; reach for the separate 29148 items in regulated, safety-critical, systems-engineering, or contractual contexts. The flow BRS → StRS → SyRS → SwRS mirrors the toolkit pipeline: business intent → user needs → system architecture ([[software-architecture]]) → software requirements.
+
+## Requirement attributes & measurement (29148)
+Record per requirement: **identifier**, **priority** (e.g. MoSCoW), **source/rationale**, **status**, **verification method** (test / analysis / inspection / demonstration), and dependencies. 29148 also calls for **measurement** of requirements (size/volatility/traceability coverage) — i.e. you can manage the requirement set quantitatively, not just write it.
+
 ## Quick mapping
-PRD "FR with testable consequence" = 29148 *verifiable + singular*. PRD "NFR with a number" = 29148 *verifiable* quality requirement → architecture characteristic. PRD IDs = 29148 *traceability*. SPEC non-goals = scope boundary. Use the PRD spine day-to-day; reach for 29148 vocabulary when rigor/audit matters.
+PRD "FR with testable consequence" = 29148 *verifiable + singular*. PRD "NFR with a number" = 29148 *verifiable* quality requirement → architecture characteristic. PRD IDs = 29148 *traceability*. SPEC non-goals = scope boundary. PRD "vision + target users" ≈ BRS/StRS; "FR/NFR" ≈ SwRS. Use the PRD spine day-to-day; reach for the 29148 document set and attribute/verification vocabulary when rigor, safety, or audit matters.

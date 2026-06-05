@@ -95,7 +95,8 @@ Architects **make architecture decisions, continually analyze** the architecture
 
 - **`references/characteristics.md`** — the operational/structural/cross-cutting catalog; identifying (domain vs requirements, explicit vs implicit); measuring & governing (fitness functions).
 - **`references/styles.md`** — each style's description, when to use, and trade-off ratings; the decision criteria and the distributed-computing fallacies.
-- **`references/decisions-and-diagramming.md`** — the ADR template + anti-patterns, risk matrix/storming, and the C4 model in detail.
+- **`references/decisions-and-diagramming.md`** — the ADR template + anti-patterns, risk matrix/storming, and the C4 model overview.
+- **`references/diagrams-as-code.md`** — the full C4 model (abstractions, all diagram types, notation, review checklist, modelling-vs-diagramming) and the text-to-diagram tooling (Mermaid, PlantUML/C4-PlantUML, Structurizr, Obsidian) for keeping diagrams in the repo.
 
 ## Related
 
