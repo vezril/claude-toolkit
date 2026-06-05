@@ -44,6 +44,11 @@ Agentic SDLC team:
 - **`story-planner.md`** — decomposes PRD + architecture into epics and self-contained, INVEST, traceable story files.
 - **`qa-test-architect.md`** — designs the risk-based test strategy and runs the **execution-grounded** quality gate (complements the tdd-coach).
 
+Networking:
+
+- **`network-architect.md`** — designs/reviews network architecture: addressing & subnetting (VLSM), VLAN segmentation, routing, and security zones, with a topology diagram.
+- **`network-troubleshooter.md`** — diagnoses connectivity/performance bottom-up, execution-grounded (ping/traceroute/mtr/dig/ss/tcpdump); own/authorized networks only.
+
 Review (read-only):
 
 - **`clean-code-reviewer.md`** — language-agnostic readability/maintainability review (Clean Code principles + smells catalog).

@@ -75,6 +75,13 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **docker** — containerizing apps (*Docker in Action*): containers vs VMs, image layers & Dockerfiles, volumes, networking, Docker Compose, and an orchestration intro.
 - **site-reliability-engineering** — Google SRE: SLIs/SLOs/error budgets, toil, golden signals, on-call & blameless postmortems.
 
+**Networking** (Tanenbaum + Stevens + Network Warrior/CCNA/Network+; defensive security)
+
+- **computer-networks** — meta/overview: the OSI/TCP-IP layered model, encapsulation, design principles, performance fundamentals; routes to the rest.
+- **tcp-ip** — the protocol suite at the wire (Stevens): IP/ARP/ICMP/UDP/TCP, DNS/DHCP/NAT, handshake/congestion/MTU, reading captures.
+- **network-engineering** — build & operate: subnetting/VLSM, VLANs/STP, routing (OSPF/BGP), NAT, and a bottom-up troubleshooting method.
+- **network-security** — defensive infrastructure security: defense-in-depth/zero-trust, segmentation, firewalls/IDS/IPS, VPNs, DDoS defense, monitoring & IR.
+
 **Version control & CI/CD**
 
 - **git** — the model (objects/DAG/refs/index) plus best-practice workflows: branching/merging/rebasing, conflict resolution, clean history & reflog recovery, collaboration/PRs, commit conventions, tags/releases (from *Mastering Git* + *Git Best Practices Guide*).
@@ -113,6 +120,7 @@ In `agents/` (see [`agents/README.md`](agents/README.md) for the frontmatter spe
 - **git-and-ci-reviewer** — reviews Git hygiene (commits, branches, history) and GitHub Actions workflows for correctness and security.
 - **personal-finance-advisor** — a warm, fiduciary-spirited money companion (budgeting, debt, low-cost investing, Canadian FHSA/RRSP/HBP) who educates and weighs trade-offs rather than selling or prescribing.
 - **sdlc-orchestrator** · **requirements-analyst** · **solution-architect** · **story-planner** · **qa-test-architect** — the agentic-SDLC team: coordinate the pipeline, write the PRD/SRS, design the architecture, decompose into stories, and own the (execution-grounded) test strategy.
+- **network-architect** · **network-troubleshooter** — design networks (addressing/segmentation/routing/zones) and diagnose connectivity/performance issues (execution-grounded: ping/traceroute/dig/tcpdump).
 
 (See [`agents/README.md`](agents/README.md) for the full list.)
 
