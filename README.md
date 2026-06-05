@@ -36,6 +36,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **design-patterns** — the 23 Gang-of-Four patterns with Scala/FP mappings and a modern critique.
 - **domain-driven-design** — Evans' tactical + strategic DDD, with a modern (microservices / event-sourcing) lens.
 - **event-storming** — Brandolini's workshop technique: notation, facilitation, and the path from the wall to DDD/code.
+- **cqrs-event-sourcing** — the event-driven data/consistency patterns (CQRS, Event Sourcing, Sagas, Domain Events) from Richardson's microservices.io + the CQRS community; why database-per-service forces them, and when not to.
 - **modern-java** — Effective Java (3rd ed., all 90 items) on a Java 21 baseline with modern idioms.
 - **cryptography** — Schneier's *Applied Cryptography* (with C examples) updated by *Cryptography Engineering* as the modern authority.
 - **clean-code** — Robert Martin's readable/maintainable-code principles + the smells & heuristics catalog, with a balanced critique.

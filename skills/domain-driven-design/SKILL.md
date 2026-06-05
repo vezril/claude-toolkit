@@ -68,4 +68,5 @@ DDD and FP align unusually well:
 - [[scala]] — smart constructors, `sealed abstract case class`, traits-as-ports, Cats Effect for repositories.
 - [[design-patterns]] — Evans uses Strategy, Composite, and others as *domain* patterns; shares the "apply only to real complexity" restraint.
 - [[tdd]] — refactoring toward deeper insight relies on a fast test suite over a pure domain.
+- [[cqrs-event-sourcing]] — the event-driven data patterns (CQRS, Event Sourcing, Sagas, Domain Events) that are tactical DDD's natural persistence and cross-context consistency mechanisms.
 - Source: *Domain-Driven Design: Tackling Complexity in the Heart of Software*, Eric Evans (Addison-Wesley, 2003). Pattern definitions are faithful to the book; Scala/FP mappings and the modern lens are added for this repo.

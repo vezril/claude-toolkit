@@ -63,4 +63,5 @@ This is why it matters for building software — full treatment in `references/f
 - [[functional-programming]] — events/commands as ADTs, aggregates as pure decide/evolve functions, read models as folds; immutability throughout.
 - [[scala]] — `sealed trait` event/command ADTs, smart-constructor invariants for aggregates.
 - [[design-patterns]] — shares the "apply to real complexity only" restraint.
+- [[cqrs-event-sourcing]] — the domain events, commands, and policies on the wall become event-sourced aggregates, CQRS read models, and saga reactions.
 - Source: *Introducing EventStorming* by Alberto Brandolini (Leanpub, work-in-progress). Notation and workshop structure are faithful to the book; the Scala/FP and event-sourcing/CQRS mappings and DDD bridge are added for this repo.
