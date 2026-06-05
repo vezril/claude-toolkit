@@ -63,14 +63,15 @@ Artifacts are the handoff · lock the *what* before the *how* (SPEC kernel) · b
 - Execution-grounded review baked into `sdlc-orchestrator`, `qa-test-architect`, and the `agentic-workflows`/`test-strategy` skills (the fix for the source frameworks' LLM-judgment-only gates).
 - Sources used: BMAD repo (MIT) + workflow/agents articles; *Fundamentals of Software Architecture* (Richards & Ford); C4 model; Nygard ADRs; Cohn user stories; Anthropic "Building Effective Agents" + Claude Agent SDK; LangGraph; BMAD TEA. All in hand.
 
-**Still missing / deferred (not built):**
+**Wave 2 — built (added 2026-06-03, second pass):**
 
-- **`agent-interoperability`** (MCP + A2A) — *deliberately deferred*. Reason: A2A's surface is still evolving (donated to the Linux Foundation; early method names already stale) and MCP moves fast. **To build it, gather: the current MCP spec (modelcontextprotocol.io) and the current A2A spec.** `agentic-workflows` has a short interop note pointing here.
-- **`terraform`** (optional) — IaC specifics beyond the existing `devops` + `ansible`. Only if you want deeper Terraform coverage; **gather: Terraform docs + tfsec/policy-as-code**.
-- **Optional rigor add-on for `requirements-engineering`:** a formal **ISO/IEC/IEEE 29148** copy (the skill already encodes the key attributes; a full standard would deepen the reference).
-- **Optional deepening for `software-architecture`:** the rest of the C4 site pages (levels/notation/FAQ) — I pulled these in while authoring; no action needed unless you want a dedicated C4 reference.
+- **`agent-interoperability`** (+2 refs) — MCP (rev 2025-11-25) + A2A (v1.0): "MCP = agent↔tool, A2A = agent↔agent"; primitives, transports, Agent Cards, Task lifecycle, security, and when to use which. Linked from `agentic-workflows` (interop note updated). Figures date-stamped; specs evolve.
+- **`terraform`** — declarative IaC: providers/resources/state/modules, write→plan→apply, remote state & locking, **execution-grounded** validation (validate/plan + Sentinel/OPA + tfsec/Checkov). Complements `ansible` (provision vs configure).
+- **`docker`** — *new, beyond the original proposal* (from the uploaded *Docker in Action*): containers vs VMs, image layers/Dockerfiles, volumes, networking, Compose, orchestration intro. Cross-links `os-virtualization`/`os-security`/`devops`/`secure-coding`.
+- **Deepened `software-architecture`** — added `references/diagrams-as-code.md`: the full C4 model (abstractions, all 7 diagram types, notation, review checklist, modelling-vs-diagramming) + Mermaid / PlantUML (C4-PlantUML) / Structurizr / Obsidian.
+- **Deepened `requirements-engineering`** — enriched the ISO/IEC/IEEE 29148 reference with the four-document set (BRS → StRS → SyRS → SwRS) and requirement attributes / verification methods / measurement.
 
-Nothing else outstanding — the upstream SDLC team is complete and integrated with the existing build/review skills and reviewer agents.
+**Still outstanding:** nothing required. Optional future ideas only — a Kubernetes skill (orchestration, hinted by docker), a Structurizr-DSL deep-dive, and re-verifying the MCP/A2A specs periodically (they move). The agentic-SDLC team and its supporting IaC/container/interop skills are complete and integrated with the existing build/review skills and reviewer agents.
 
 ---
 *Sources: Aravinda Kumar, "Building AI-Powered SDLC" series (Medium, 2024–25); BMAD-method v6 (docs + github, MIT); Richards & Ford, *Fundamentals of Software Architecture*; C4 model; Nygard ADRs; Cohn user stories; Anthropic "Building Effective Agents" + Claude Agent SDK; LangGraph.*

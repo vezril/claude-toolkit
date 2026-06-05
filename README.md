@@ -51,6 +51,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **spec-driven-development** — lock the *what* before the *how*; SPEC kernel, self-contained story files, document sharding.
 - **test-strategy** — risk-based P0–P3, test levels/pyramid, ATDD, traceability, execution-grounded quality gates (complements tdd).
 - **agentic-workflows** — Anthropic's workflow-vs-agent patterns + Claude Agent SDK loop + LangGraph; the runtime mechanics for the role agents.
+- **agent-interoperability** — MCP (agent↔tool, rev 2025-11-25) + A2A (agent↔agent, v1.0): primitives, Agent Cards, transports, and when to use which.
 
 **Operating systems** (OSTEP + Silberschatz + Tanenbaum; for writing one)
 
@@ -69,6 +70,8 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 - **devops** — principles meta: CALMS, the Three Ways (*Phoenix Project*) & Five Ideals (*Unicorn Project*), CI/CD/IaC, DORA metrics.
 - **ansible** — agentless, idempotent configuration management / infrastructure as code.
+- **terraform** — declarative IaC: providers/resources/state/modules, write→plan→apply, remote state & locking, policy-as-code & security scanning (provisioning; complements ansible's config management).
+- **docker** — containerizing apps (*Docker in Action*): containers vs VMs, image layers & Dockerfiles, volumes, networking, Docker Compose, and an orchestration intro.
 - **site-reliability-engineering** — Google SRE: SLIs/SLOs/error budgets, toil, golden signals, on-call & blameless postmortems.
 
 **Version control & CI/CD**
