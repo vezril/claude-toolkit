@@ -59,5 +59,5 @@ Escalate only when the simpler tier demonstrably falls short.
 
 **Anthropic's caveat:** frameworks add abstraction that can **obscure the underlying prompts and control flow**, making debugging harder. Start by calling the API directly; adopt a framework only once it clearly earns its complexity. Whatever you choose, **understand what's happening underneath.**
 
-## Interop note (deferred)
-Agent↔tool standardization is **MCP**; agent↔agent is **A2A** — both evolving. A dedicated interoperability skill is intentionally deferred until those specs are re-verified (see the SDLC proposal). For now, prefer shared artifacts + MCP tools for coordination, as in [[sdlc-orchestration]].
+## Interop note
+Agent↔tool standardization is **MCP**; agent↔agent is **A2A**. See **[[agent-interoperability]]** for both (MCP primitives/transports, A2A Agent Cards/Tasks, and when to use which). For coordination within [[sdlc-orchestration]], prefer shared artifacts + MCP tools, moving to A2A once role agents become independently deployed services.
