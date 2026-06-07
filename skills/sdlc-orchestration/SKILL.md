@@ -60,13 +60,13 @@ Don't run the heavyweight pipeline on a one-line change; don't vibe-code a platf
 |-------|--------------|-------|
 | Analysis | analyst / researcher | [[requirements-engineering]] |
 | Planning | requirements-analyst (PRD/SRS) | [[requirements-engineering]], [[spec-driven-development]] |
-| Solutioning | solution-architect | [[software-architecture]], [[domain-driven-design]], [[event-storming]] |
+| Solutioning | solution-architect (web app → full-stack-architect) | [[software-architecture]], [[domain-driven-design]], [[event-storming]], [[web-development]] |
 | Solutioning | story-planner (epics/stories) | [[spec-driven-development]] |
-| Implementation | developer | [[tdd]], [[clean-code]], language skills |
+| Implementation | developer (stack-specific) | [[tdd]], [[clean-code]], language skills ([[react]]/[[vue]]/[[nextjs]]/[[nodejs]]/[[typescript]]/[[html-css]], [[scala]], etc.) |
 | Implementation | qa-test-architect | [[test-strategy]] |
-| Review/ops | reviewers, ci | [[clean-code]], [[secure-coding]], [[github-actions]] |
+| Review/ops | reviewers (frontend-reviewer for web; language reviewers), ci | [[clean-code]], [[secure-coding]], [[github-actions]] |
 
-The runtime mechanics of wiring these agents together (orchestrator-worker, evaluator-optimizer, routing) live in [[agentic-workflows]].
+**Match the specialist to the stack.** The pipeline is technology-neutral; bind the Solutioning/Implementation/Review roles to the project's stack. For a **web app**: architecture → the **full-stack-architect** ([[web-development]]: stack + rendering strategy + API/data/auth), implementation → the web skills ([[react]]/[[vue]]/[[nextjs]]/[[nodejs]]/[[typescript]]/[[html-css]]), review → the **frontend-reviewer**. For mobile/JVM/etc., bind the analogous reviewers/skills. The runtime mechanics of wiring these agents together (orchestrator-worker, evaluator-optimizer, routing) live in [[agentic-workflows]].
 
 ## Anti-patterns
 
