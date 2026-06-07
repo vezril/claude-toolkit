@@ -60,6 +60,11 @@ Game Dev Studio:
 - **`technical-artist.md`** — shaders, VFX, juice, rendering setup, graphics performance.
 - **`game-producer.md`** — scope, milestones, anti-crunch, validation, indie launch/marketing & monetization ethics.
 
+Web development:
+
+- **`full-stack-architect.md`** — designs/reviews web architecture: stack choice, rendering strategy (CSR/SSR/SSG/ISR/RSC), client–server boundary, API/data/auth, deploy topology + ADRs.
+- **`frontend-reviewer.md`** — reviews React/Vue/TS/HTML/CSS for hooks/reactivity rules, accessibility, performance (Core Web Vitals), and XSS (read-only).
+
 Review (read-only):
 
 - **`clean-code-reviewer.md`** — language-agnostic readability/maintainability review (Clean Code principles + smells catalog).
