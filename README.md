@@ -84,6 +84,17 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **game-math** · **game-graphics** · **game-ai** · **game-physics** · **multiplayer-networking** · **procedural-generation** · **game-audio** — the technical specialties.
 - **game-production** — scoping, milestones, anti-crunch, indie launch/marketing (monetization-ethics flagged).
 
+**Web development** (Flanagan/Vanderkam/Wieruch + React/Next.js/Vue/TypeScript docs)
+
+- **javascript** — modern JS (ES2020+): types/coercion, closures, prototypes, `this`, the event loop, async/await, modules (Flanagan 7th + JS&jQuery).
+- **typescript** — JS with static types: structural typing, generics, narrowing/discriminated unions, utility types, strict tsconfig (Effective TypeScript + docs).
+- **html-css** — semantic HTML5 + modern CSS: the cascade/box model, Flexbox & Grid, responsive/mobile-first, typography, a11y.
+- **react** — components/JSX, hooks & the Rules, "you might not need an effect", Suspense, RSC (Road to React + react.dev v19).
+- **nextjs** — the App Router: Server Components, data fetching/streaming, Server Actions, rendering/caching (from the docs).
+- **vue** — Vue 3: reactivity (ref/computed/watch), SFCs, Composition API, directives, Pinia/Vue Router.
+- **nodejs** — JS on the server: the event loop, streams, modules, Express APIs, MongoDB (Node in Action).
+- **nginx** — web server / reverse proxy / load balancer: config tree, TLS, proxying, load balancing, caching, rate limiting.
+
 **Home & IoT**
 
 - **home-assistant** — the local-first home-automation platform (home-assistant.io): the entity/state model, automations/scripts/templating, Zigbee/Z-Wave/Matter/MQTT/ESPHome ecosystems, add-ons, recorder/statistics, and secure remote access + IoT segmentation. Pairs with the networking skills for VLANs/remote access.
