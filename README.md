@@ -86,6 +86,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 **Web development** (Flanagan/Vanderkam/Wieruch + React/Next.js/Vue/TypeScript docs)
 
+- **web-development** — meta/overview: how the stack fits together, the rendering-strategy spectrum (CSR/SSR/SSG/ISR/RSC), the client–server boundary, build/state/perf/security/deploy; routes to the rest.
 - **javascript** — modern JS (ES2020+): types/coercion, closures, prototypes, `this`, the event loop, async/await, modules (Flanagan 7th + JS&jQuery).
 - **typescript** — JS with static types: structural typing, generics, narrowing/discriminated unions, utility types, strict tsconfig (Effective TypeScript + docs).
 - **html-css** — semantic HTML5 + modern CSS: the cascade/box model, Flexbox & Grid, responsive/mobile-first, typography, a11y.
@@ -146,6 +147,7 @@ In `agents/` (see [`agents/README.md`](agents/README.md) for the frontmatter spe
 - **sdlc-orchestrator** · **requirements-analyst** · **solution-architect** · **story-planner** · **qa-test-architect** — the agentic-SDLC team: coordinate the pipeline, write the PRD/SRS, design the architecture, decompose into stories, and own the (execution-grounded) test strategy.
 - **network-architect** · **network-troubleshooter** — design networks (addressing/segmentation/routing/zones) and diagnose connectivity/performance issues (execution-grounded: ping/traceroute/dig/tcpdump).
 - **game-dev-orchestrator** · **game-designer** · **game-systems-architect** · **gameplay-programmer** · **level-designer** · **playtest-lead** · **technical-artist** · **game-producer** — the Game Dev Studio: drive the lifecycle, design, architect, implement (Godot), design levels/PCG, run playtests (the fun gate), shaders/juice, and production/launch.
+- **frontend-reviewer** · **full-stack-architect** — review React/Vue/TS/HTML/CSS (hooks rules, a11y, perf, XSS) and design full-stack web architecture (stack, rendering strategy, API/data/auth, deploy).
 
 (See [`agents/README.md`](agents/README.md) for the full list.)
 
