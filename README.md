@@ -120,6 +120,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 - **personal-finance** — Hallam's *Balance* + Alini's *Money Like You Mean It* (Canadian): spending for happiness ("afford anything but not everything") and low-cost index investing, plus the practical toolkit — debt/credit, rent-vs-buy & mortgages, income/side hustles, insurance, wills, and couples/family money. Educational, not financial advice.
 - **canadian-registered-accounts** — authoritative CRA mechanics for the FHSA, RRSP, and Home Buyers' Plan (eligibility, $8k/$40k & $60k limits, deductibility, repayment, FHSA+HBP stacking). Date-stamped; verify against canada.ca. Not tax advice.
+- **canadian-business-registration** — starting/registering a business in Canada (Quebec focus): legal forms, the Québec REQ/NEQ, federal vs provincial incorporation, the CRA business number & program accounts, and the Quebec GST/QST-via-Revenu-Québec twist. Date-stamped; not legal/tax advice.
 
 **Games**
 

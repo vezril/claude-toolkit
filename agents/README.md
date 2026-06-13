@@ -84,5 +84,6 @@ Active coding / operations:
 Advisory (non-engineering):
 
 - **`personal-finance-advisor.md`** — a warm, fiduciary-spirited personal-finance companion (budgeting, debt, low-cost investing, retirement, Canadian FHSA/RRSP/HBP); educates and lays out trade-offs, doesn't sell or give buy/sell calls; not a licensed advisor.
+- **`business-formation-advisor.md`** — a practical guide for starting/registering a business in Canada (Quebec focus): structure choice, REQ/NEQ, incorporation, CRA BN & program accounts, Revenu Québec GST/QST; educates & lists steps, not legal/tax advice.
 
 Add more by dropping a new `*.md` file in this directory following the template above.
