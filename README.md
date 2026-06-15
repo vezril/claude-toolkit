@@ -26,6 +26,10 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 ## Skills
 
+**Session priming**
+
+- **prime** — at the start of a session, analyzes the project (structure, architecture, design patterns, conventions) from **concrete evidence** (cross-validated, confidence-labelled, asks on ambiguity — no hallucination), produces a Priming Brief, then activates the matching skills and the sdlc-orchestrator team bound to the real stack.
+
 **Software-engineering disciplines**
 
 - **tdd** — strict Red-Green-Refactor.
