@@ -34,7 +34,9 @@ Every phase decomposes into the same shape — this is the reusable unit:
 - **Generator (maker)** — produces the artifact from its inputs.
 - **Reviewer (checker)** — critiques it against the source artifacts and standards, and **(our addition) executes** what can be executed.
 
-It loops, bounded, until the reviewer is satisfied or a max-iteration cap is hit, then a **human approves**. This maps to the role agents: requirements-analyst, solution-architect, story-planner, developer + reviewer, qa-test-architect.
+It loops, bounded, until the reviewer is satisfied or a max-iteration cap is hit, then a **human approves**. This maps to the role agents: requirements-analyst, solution-architect, story-planner, test-writer + implementer (the dev pair), qa-test-architect.
+
+**In Implementation the maker itself splits into a file-separated pair.** The **test-writer** owns RED and may touch **test code only** (test source roots, `*.test.*`/`*.spec.*`/`*Spec.*` files, fixtures/helpers); the **implementer** owns GREEN + refactor and may touch **production code only** (source, build/config, wiring). Each is the other's check: tests can't be weakened to fit the code, and no production code exists that a test didn't demand. Boundary conflicts — a test needing a production seam, a test the implementer believes is wrong — are routed to the owning agent as a request, never resolved by crossing the file boundary.
 
 ## Operating principles (carry these over)
 
@@ -45,6 +47,7 @@ It loops, bounded, until the reviewer is satisfied or a max-iteration cap is hit
 - **Human-in-the-loop at every gate.** The human approves phase transitions; agents propose, humans dispose.
 - **Lock the *what* before the *how*.** Requirements and the SPEC kernel come before architecture and code ([[spec-driven-development]]).
 - **Execute, don't opine.** A review that doesn't run the code/tests/plan is a guess. Ground every checker in real tool output. (The biggest weakness of the source frameworks.)
+- **Gate mechanically before you gate with judgment.** Where an artifact's *form* is checkable by a script, check it with a script — deterministic, reproducible, cheap — and let the LLM/human reviewer spend judgment only on *substance*. Stories are the worked example: `scripts/lint-story.py` enforces the schema in [[spec-driven-development]] (structure, Given/When/Then grammar, task↔AC closure, resolvable references, FR/CAP traceability) as layer zero of the readiness gate; **a lint failure short-circuits the gate** straight back to the story-planner for rewrite — the LLM review never runs on a malformed set.
 
 ## Tracks (match process weight to the work)
 
@@ -62,7 +65,8 @@ Don't run the heavyweight pipeline on a one-line change; don't vibe-code a platf
 | Planning | requirements-analyst (PRD/SRS) | [[requirements-engineering]], [[spec-driven-development]] |
 | Solutioning | solution-architect (web app → full-stack-architect) | [[software-architecture]], [[domain-driven-design]], [[event-storming]], [[web-development]] |
 | Solutioning | story-planner (epics/stories) | [[spec-driven-development]] |
-| Implementation | developer (stack-specific) | [[tdd]], [[clean-code]], language skills ([[react]]/[[vue]]/[[nextjs]]/[[nodejs]]/[[typescript]]/[[html-css]], [[scala]], etc.) |
+| Implementation | test-writer (RED — test code only) | [[tdd]], [[test-strategy]] |
+| Implementation | implementer (GREEN — production code only) | [[tdd]], [[clean-code]], language skills ([[react]]/[[vue]]/[[nextjs]]/[[nodejs]]/[[typescript]]/[[html-css]], [[scala]], etc.) |
 | Implementation | qa-test-architect | [[test-strategy]] |
 | Review/ops | reviewers (frontend-reviewer for web; language reviewers), ci | [[clean-code]], [[secure-coding]], [[github-actions]] |
 
