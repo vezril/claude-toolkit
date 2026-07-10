@@ -46,6 +46,8 @@ A practical playbook for driving a feature from idea to shipped code with the `c
         └──────────────── orchestrated by sdlc-orchestrator, human approves each gate ─────────────────┘
 ```
 
+![The SDLC pipeline: analysis → planning → solutioning → story lint gate → implementation, coordinated by the sdlc-orchestrator with a human approving each gate](figures/sdlc-pipeline.svg)
+
 **Artifacts are the handoff.** Each phase reads the previous artifact and produces the next: the PRD tells the architect what matters; the architecture tells the dev which patterns to follow; the story gives one unit of focused context.
 
 ---
@@ -77,9 +79,13 @@ Define **what** to build.
 
 ### Phase 3 — Solutioning → architecture + stories *(required)*
 Define **how**, then break it into work.
+
+![The Solutioning sub-workflow: PRD → solution-architect (full-stack-architect for web) → story-planner → readiness check → implementation](figures/solutioning-phase.svg)
 1. **Architecture** — [[solution-architect]] (skill [[software-architecture]]): derive the driving **characteristics** (≤ ~7, measurable) from the NFRs, choose the **least-worst style** (trade-offs, not a "best"), record **ADRs** (context/decision/consequences), risk-storm it, and draw **C4** (Context + Container, as Mermaid in the repo). → `architecture.md` + ADRs.
 2. **Stories** — [[story-planner]] (skill [[spec-driven-development]]): decompose into epics and **self-contained, INVEST stories** — each carrying acceptance criteria and `[Source: …]` references to the exact PRD/architecture sections, so it can be built in a fresh context. → `stories/`.
 3. **Readiness check** — layered. **Layer zero is deterministic:** `scripts/lint-story.py` validates every story against the normative schema (title/status/statement structure, Given/When/Then grammar, task↔AC mapping closure, `[Source:]` references that actually resolve, FR/CAP traceability) — any failure **short-circuits the gate and bounces the stories back to the story-planner for rewrite**, before any LLM review runs. Then the substance review verifies PRD + architecture + stories align. **Gate:** lint-clean + PASS/CONCERNS/FAIL — and **you approve** before any code.
+
+![The layered readiness gate sub-workflow: stories → deterministic linter (exit 1 loops back to the story-planner for rewrite, bounded at 3) → LLM readiness review on a separate model → human approval → implementation](figures/readiness-gate.svg)
 
 > **Brownfield?** Use the [[spec-driven-development]] **delta-spec** approach (OpenSpec): keep living specs in the repo and express the change as `ADDED/MODIFIED/REMOVED` against them.
 
@@ -88,6 +94,8 @@ Work one story at a time through a tight cycle:
 ```
 create story → red (test-writer) ⇄ green (implementer) → execution-grounded review → (QA) → next story → (epic done → retrospective)
 ```
+
+![The per-story implementation sub-workflow: create story → test-writer (test code only) ping-pongs failing tests and green suites with the implementer (production code only) across the hook-enforced boundary → execution-grounded review → QA gate → next story](figures/implementation-dev-pair.svg)
 - **Dev (the pair):** [[test-writer]] writes one failing test — it may touch **test code only** — then [[implementer]] writes the minimum production code to pass and refactors — it may touch **non-test code only**. They ping-pong until the story's acceptance criteria are covered. The file boundary is the point: tests can't be bent to fit the code, and code can't edit its own spec. If a test needs a production seam, the test-writer *requests* it from the implementer; if a test looks wrong, the implementer *reports* it back — neither crosses the line. The boundary isn't just charter: the plugin's `PreToolUse` hook (`hooks/enforce-dev-pair-boundary.py`) inspects the calling agent and **denies** any Edit/Write outside its territory (test paths/naming conventions classify the file). ([[tdd-coach]] remains the solo alternative for informal pairing.) Language reviewers ([[scala-fp-reviewer]], etc.), [[clean-code-reviewer]], and [[secure-coding]] keep quality up.
 - **QA:** [[qa-test-architect]] (skill [[test-strategy]]) sets risk-based priorities (P0–P3), turns acceptance criteria into tests (ATDD), and **runs the suite + measures coverage** — the gate is a green run, not an opinion.
 - **CI/release:** [[git-and-ci-reviewer]] + [[github-actions]]; ship onto infra via [[docker]] / [[terraform]].
@@ -116,6 +124,10 @@ Don't run the heavyweight pipeline on a typo; don't vibe-code a platform.
 5. **Human-in-the-loop at every gate.** Agents propose; you dispose.
 6. **Lock the *what* before the *how*.** Requirements/SPEC precede architecture and code.
 7. **Execute, don't opine.** Every quality gate runs the code/tests/`terraform plan` — a review that doesn't execute is a guess. *(This is the deliberate upgrade over the source frameworks.)*
+
+**Where you come in** — the purple pills are the mandatory human approvals; everything between them runs on its own (amber = deterministic script, teal = LLM checker). On the standard track a feature costs you 4 + N approvals (N = story count), plus escalations (exhausted rewrite loops, disputed tests, CONCERNS verdicts):
+
+![Human intervention points: you decide it's worth planning, approve the PRD, the architecture, readiness, and each story merge; the lint script and LLM review run without you](figures/human-gates.svg)
 
 ---
 
