@@ -26,6 +26,8 @@ A practical playbook for driving a feature from idea to shipped code with the `c
 | [[solution-architect]] | Architect | architecture + ADRs + C4 |
 | [[story-planner]] | Tech PO | epics + self-contained, INVEST stories |
 | [[qa-test-architect]] | Test architect | test strategy + the (executed) quality gate |
+| [[test-writer]] | TDD specialist (RED) | failing tests from acceptance criteria — **test code only** |
+| [[implementer]] | Developer (GREEN) | production code that makes them pass — **non-test code only** |
 
 **Supporting cast you already have** (wired in, not duplicated): [[tdd-coach]], [[clean-code-reviewer]], the language reviewers (e.g. [[scala-fp-reviewer]]), [[git-and-ci-reviewer]], [[issue-fixer]]; and supporting skills [[clean-code]], [[software-design]], [[domain-driven-design]], [[event-storming]], [[cqrs-event-sourcing]], [[secure-coding]], [[devops]], [[docker]], [[terraform]], [[github-actions]], [[agent-interoperability]].
 
@@ -77,16 +79,16 @@ Define **what** to build.
 Define **how**, then break it into work.
 1. **Architecture** — [[solution-architect]] (skill [[software-architecture]]): derive the driving **characteristics** (≤ ~7, measurable) from the NFRs, choose the **least-worst style** (trade-offs, not a "best"), record **ADRs** (context/decision/consequences), risk-storm it, and draw **C4** (Context + Container, as Mermaid in the repo). → `architecture.md` + ADRs.
 2. **Stories** — [[story-planner]] (skill [[spec-driven-development]]): decompose into epics and **self-contained, INVEST stories** — each carrying acceptance criteria and `[Source: …]` references to the exact PRD/architecture sections, so it can be built in a fresh context. → `stories/`.
-3. **Readiness check** — verify PRD + architecture + stories align. **Gate:** PASS/CONCERNS/FAIL — and **you approve** before any code.
+3. **Readiness check** — layered. **Layer zero is deterministic:** `scripts/lint-story.py` validates every story against the normative schema (title/status/statement structure, Given/When/Then grammar, task↔AC mapping closure, `[Source:]` references that actually resolve, FR/CAP traceability) — any failure **short-circuits the gate and bounces the stories back to the story-planner for rewrite**, before any LLM review runs. Then the substance review verifies PRD + architecture + stories align. **Gate:** lint-clean + PASS/CONCERNS/FAIL — and **you approve** before any code.
 
 > **Brownfield?** Use the [[spec-driven-development]] **delta-spec** approach (OpenSpec): keep living specs in the repo and express the change as `ADDED/MODIFIED/REMOVED` against them.
 
 ### Phase 4 — Implementation → build it, story by story *(required)*
 Work one story at a time through a tight cycle:
 ```
-create story → dev (TDD) → execution-grounded review → (QA) → next story → (epic done → retrospective)
+create story → red (test-writer) ⇄ green (implementer) → execution-grounded review → (QA) → next story → (epic done → retrospective)
 ```
-- **Dev:** [[tdd-coach]] drives red-green-refactor; language reviewers ([[scala-fp-reviewer]], etc.), [[clean-code-reviewer]], and [[secure-coding]] keep quality up.
+- **Dev (the pair):** [[test-writer]] writes one failing test — it may touch **test code only** — then [[implementer]] writes the minimum production code to pass and refactors — it may touch **non-test code only**. They ping-pong until the story's acceptance criteria are covered. The file boundary is the point: tests can't be bent to fit the code, and code can't edit its own spec. If a test needs a production seam, the test-writer *requests* it from the implementer; if a test looks wrong, the implementer *reports* it back — neither crosses the line. The boundary isn't just charter: the plugin's `PreToolUse` hook (`hooks/enforce-dev-pair-boundary.py`) inspects the calling agent and **denies** any Edit/Write outside its territory (test paths/naming conventions classify the file). ([[tdd-coach]] remains the solo alternative for informal pairing.) Language reviewers ([[scala-fp-reviewer]], etc.), [[clean-code-reviewer]], and [[secure-coding]] keep quality up.
 - **QA:** [[qa-test-architect]] (skill [[test-strategy]]) sets risk-based priorities (P0–P3), turns acceptance criteria into tests (ATDD), and **runs the suite + measures coverage** — the gate is a green run, not an opinion.
 - **CI/release:** [[git-and-ci-reviewer]] + [[github-actions]]; ship onto infra via [[docker]] / [[terraform]].
 - **Gate:** tests pass, coverage meets the P0/P1 map, review clean — and **you approve** the merge.
@@ -124,7 +126,7 @@ Don't run the heavyweight pipeline on a typo; don't vibe-code a platform.
 1. **Plan** — [[requirements-analyst]]: PRD with `FR: TOTP 2FA`, NFR `auth p95 < 200ms`, non-goal "no SMS 2FA", success metric "% accounts with 2FA" + counter-metric "login success rate must not drop". *You approve.*
 2. **Architect** — [[solution-architect]]: characteristics = security + usability + performance; decision recorded as an ADR ("TOTP via authenticator app; secrets crypto-sharded"); C4 container diagram updated. *You approve.*
 3. **Stories** — [[story-planner]]: `Enable 2FA`, `Verify TOTP at login`, `Recovery codes` — each INVEST, with Given/When/Then acceptance criteria and references to the PRD/architecture. *You approve readiness.*
-4. **Build** — per story: [[tdd-coach]] writes failing tests then code; [[secure-coding]] checks the secret handling; [[qa-test-architect]] marks login/verify as **P0**, turns the acceptance criteria into tests, and **runs them + coverage**. [[git-and-ci-reviewer]] checks the PR/workflow. *You approve the merge.*
+4. **Build** — per story: [[test-writer]] turns the acceptance criteria into failing tests; [[implementer]] writes the production code that passes them; [[secure-coding]] checks the secret handling; [[qa-test-architect]] marks login/verify as **P0**, turns the acceptance criteria into tests, and **runs them + coverage**. [[git-and-ci-reviewer]] checks the PR/workflow. *You approve the merge.*
 
 ---
 
@@ -135,6 +137,7 @@ Don't run the heavyweight pipeline on a typo; don't vibe-code a platform.
 - **Just architecture:** *"solution-architect: design `<X>` and record ADRs."*
 - **Break into work:** *"story-planner: turn the PRD + architecture into stories."*
 - **Test plan + gate:** *"qa-test-architect: build the test strategy and run the gate."*
+- **Build a story:** *"test-writer: turn story `<N>`'s acceptance criteria into failing tests"* → *"implementer: make them pass."*
 - **Always:** fresh chat per phase · approve each gate · artifacts in the repo · gates that actually run.
 
 ---

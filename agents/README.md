@@ -42,7 +42,10 @@ Agentic SDLC team:
 - **`requirements-analyst.md`** — elicits and writes the PRD/SRS or SPEC; measurable NFRs, INVEST stories, locks the *what* before the *how*.
 - **`solution-architect.md`** — turns requirements into architecture (characteristics → style trade-offs → components → ADRs → risk storming → C4).
 - **`story-planner.md`** — decomposes PRD + architecture into epics and self-contained, INVEST, traceable story files.
-- **`qa-test-architect.md`** — designs the risk-based test strategy and runs the **execution-grounded** quality gate (complements the tdd-coach).
+- **`qa-test-architect.md`** — designs the risk-based test strategy and runs the **execution-grounded** quality gate (complements the dev pair).
+- **`test-writer.md`** — the RED half of the dev pair: turns acceptance criteria into failing tests; may touch **test code only**, hands back a request when blocked on production code.
+- **`implementer.md`** — the GREEN half of the dev pair: makes failing tests pass and refactors; may touch **production code only**, reports disputed tests instead of editing them.
+  - The pair's file boundary is enforced mechanically by the plugin's PreToolUse hook (`hooks/enforce-dev-pair-boundary.py`), which denies Edit/Write calls outside each agent's territory.
 
 Networking:
 
@@ -76,7 +79,7 @@ Review (read-only):
 
 Active coding / operations:
 
-- **`tdd-coach.md`** — pairs on a feature test-first, driving strict Red-Green-Refactor (writes & runs code).
+- **`tdd-coach.md`** — pairs on a feature test-first, driving strict Red-Green-Refactor (writes & runs code); the solo alternative to the test-writer + implementer pair.
 - **`ios-app-debugger.md`** — builds/runs/debugs iOS/macOS apps on the simulator; reproduces, profiles, and fixes runtime issues.
 - **`apple-release-manager.md`** — packages/signs/notarizes SwiftPM macOS apps and generates App Store release notes.
 - **`issue-fixer.md`** — takes a GitHub issue end to end (gh → fix → build/test → commit & push); domain-neutral.

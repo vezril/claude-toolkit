@@ -66,6 +66,8 @@ As a {role}, I want {action}, so that {benefit}.
 
 The **References** section is what makes it self-contained — it points at the exact spec/architecture sections, so the dev agent loads only those. Acceptance criteria are the contract for [[tdd]] and [[test-strategy]].
 
+This format is **normative and machine-checked**: `references/story-schema.md` pins down the exact grammar, and `scripts/lint-story.py` enforces it deterministically (structure, Given/When/Then ordering, task↔AC mapping closure, `[Source:]` resolution, FR/CAP traceability) as layer zero of the readiness gate in [[sdlc-orchestration]] — a violation short-circuits the gate and returns the story for rewrite. The linter owns form; whether a criterion is *meaningful* stays with the reviewer.
+
 ## Document sharding (context management)
 
 Large docs (500+ lines: a big PRD or architecture) blow an agent's context and bury the relevant part. **Shard** them: split on level-2 (`##`) headers into a folder of numbered section files (`01-context.md`, `02-data-architecture.md`, …) plus an `index.md`. Then a story references only the shard it needs. Sharding enables **parallel work** and keeps each agent's context focused — the practical mechanism behind "fresh context per workflow."

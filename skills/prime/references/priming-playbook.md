@@ -92,5 +92,5 @@ Persist (with the user's OK) to `CLAUDE.md` or `docs/project-context.md`.
 | JVM / Java | [[modern-java]] | review → **modern-java-reviewer** |
 | Python | [[python]] | solution-architect; clean-code-reviewer |
 | Apple/Swift | [[apple-dev]] + swift skills | swiftui-reviewer / ios-app-debugger |
-| Any | [[software-architecture]], [[design-patterns]], [[clean-code]], [[test-strategy]], [[git]] | **sdlc-orchestrator** to drive; **requirements-analyst** / **story-planner** / **qa-test-architect**; **tdd-coach**, **clean-code-reviewer**, **git-and-ci-reviewer** |
+| Any | [[software-architecture]], [[design-patterns]], [[clean-code]], [[test-strategy]], [[git]] | **sdlc-orchestrator** to drive; **requirements-analyst** / **story-planner** / **qa-test-architect**; **test-writer** + **implementer** (dev pair), **clean-code-reviewer**, **git-and-ci-reviewer** |
 Always: bind to what the **evidence** shows, not what's fashionable; if the stack has no dedicated skill, analyze generically with the architecture/design skills and say so.
