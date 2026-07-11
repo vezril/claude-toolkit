@@ -65,6 +65,20 @@ gh api -X POST repos/<owner>/<name>/rulesets --input - <<'EOF'
 EOF
 ```
 
+## Plan restriction (private repos on the free plan)
+
+GitHub's free plan does not allow branch protection on **private** repos — the rulesets
+API (and the legacy protection API alike) returns **HTTP 403** with an "Upgrade to GitHub
+Pro or make this repository public" message. This is an account-plan limit, not a failure
+of the run:
+
+- Report **loudly**: "Branch protection UNAVAILABLE on this plan for private repos — the
+  repo continues UNPROTECTED. PR discipline is by convention only; direct pushes to
+  <default-branch> are possible. Re-run this skill after making the repo public or
+  upgrading the plan."
+- Treat the step as completed-with-warning, not failed: no retry, no fallback to the
+  legacy API (same restriction applies), no visibility change on your own initiative.
+
 ## Step 4 — verify and report
 
 `gh api repos/<owner>/<name>/rules/branches/<default-branch>` must now list all three rule

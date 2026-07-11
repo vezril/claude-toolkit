@@ -5,6 +5,7 @@ export const meta = {
   phases: [
     { title: 'Create repo', detail: 'local directory + empty GitHub repo, main seeded with an empty commit' },
     { title: 'Protect main', detail: 'protect-main ruleset: require PR, block force-push and deletion' },
+    { title: 'OpenSpec', detail: 'openspec init --tools claude (uncommitted; rides the next ship)' },
     { title: 'Starter docs', detail: 'README.md + LICENSE.md (MIT) in the working tree' },
     { title: 'Ship', detail: 'commit, push, PR; merge only in auto mode' },
   ],
@@ -17,14 +18,17 @@ export const meta = {
 // The human choosing to launch this workflow with an explicit name + visibility IS the
 // authorization for the outward-facing repo creation; the merge stays gated unless auto.
 
-if (!args || typeof args !== 'object') {
+// Tolerate stringified args (some invokers pass JSON text rather than an object).
+let A = args
+if (typeof A === 'string') { try { A = JSON.parse(A) } catch { /* falls through to the guard */ } }
+if (!A || typeof A !== 'object') {
   throw new Error("args required: { name: 'my-repo', visibility: 'public'|'private', auto?: true, docs?: false, ship?: false }")
 }
-const name = args.name
-const visibility = args.visibility
-const auto = args.auto === true
-const docs = args.docs !== false
-const ship = args.ship !== false
+const name = A.name
+const visibility = A.visibility
+const auto = A.auto === true
+const docs = A.docs !== false
+const ship = A.ship !== false
 if (!name || !/^[a-z0-9][a-z0-9._-]*$/.test(name)) {
   throw new Error(`args.name must match [a-z0-9][a-z0-9._-]* — got: ${JSON.stringify(name)}`)
 }
@@ -82,7 +86,11 @@ You are one step of the new-github-project workflow; the human authorized it by 
 the workflow — do not stop to ask.
 ${findSkill('github-branch-protection')}
 Parameter: repo "vezril/${name}". The repo was just created and main already has its seed
-commit. Return JSON only.`, {
+commit. IMPORTANT: if GitHub returns the plan-restriction 403 (branch protection
+unavailable for private repos on the free plan), that is a completed-with-warning outcome,
+NOT an error — per the skill's "Plan restriction" section, return unavailable: true,
+activeRules: [], and the reason in the reason field; do NOT set the error field for this
+case. Return JSON only.`, {
   label: 'protect-main',
   schema: {
     type: 'object',
@@ -90,6 +98,8 @@ commit. Return JSON only.`, {
       rulesetId: { type: 'number' },
       rulesetUrl: { type: 'string' },
       activeRules: { type: 'array', items: { type: 'string' } },
+      unavailable: { type: 'boolean' },
+      reason: { type: 'string' },
       error: { type: 'string' },
     },
     required: ['activeRules'],
@@ -97,6 +107,38 @@ commit. Return JSON only.`, {
 })
 if (!protection || protection.error) {
   return { status: 'failed', step: 'protect-main', error: protection ? protection.error : 'agent died', created }
+}
+if (protection.unavailable) {
+  log(`WARNING: branch protection unavailable — ${protection.reason || 'plan restriction'}. Continuing UNPROTECTED.`)
+}
+
+phase('OpenSpec')
+const openspec = await agent(`
+You are one step of the new-github-project workflow (no human mid-run — never stop to ask).
+In ${created.localPath}, initialize the OpenSpec configuration for Claude Code by running
+exactly:
+  openspec init --tools claude .
+Leave everything uncommitted — the generated files (openspec/, .claude/commands/opsx/,
+.claude/skills/openspec-*) ride the next ship step. If the openspec CLI is not on PATH,
+do NOT fail: return skipped: true with the reason (this is a completed-with-warning
+outcome; the human can run it later). Return JSON only.`, {
+  label: 'openspec-init',
+  schema: {
+    type: 'object',
+    properties: {
+      initialized: { type: 'boolean' },
+      skipped: { type: 'boolean' },
+      reason: { type: 'string' },
+      error: { type: 'string' },
+    },
+    required: ['initialized'],
+  },
+})
+if (!openspec || openspec.error) {
+  return { status: 'failed', step: 'openspec-init', error: openspec ? openspec.error : 'agent died', created, protection }
+}
+if (openspec.skipped) {
+  log(`WARNING: OpenSpec init skipped — ${openspec.reason || 'openspec CLI unavailable'}. Run 'openspec init --tools claude' in the repo later.`)
 }
 
 if (!docs) {
@@ -106,7 +148,7 @@ if (!docs) {
     bare: true,
     repo: created.repoUrl,
     localPath: created.localPath,
-    protection: { rulesetUrl: protection.rulesetUrl, activeRules: protection.activeRules },
+    protection: { rulesetUrl: protection.rulesetUrl || null, activeRules: protection.activeRules, unavailable: protection.unavailable === true, reason: protection.reason || null },
   }
 }
 
@@ -138,7 +180,7 @@ if (!ship) {
     shipped: false,
     repo: created.repoUrl,
     localPath: created.localPath,
-    protection: { rulesetUrl: protection.rulesetUrl, activeRules: protection.activeRules },
+    protection: { rulesetUrl: protection.rulesetUrl || null, activeRules: protection.activeRules, unavailable: protection.unavailable === true, reason: protection.reason || null },
     docs: docsResult.files,
   }
 }
@@ -147,7 +189,8 @@ phase('Ship')
 const shipResult = await agent(`
 You are the final step of the new-github-project workflow.
 ${findSkill('git-ship')}
-Work inside ${created.localPath}. Ship the starter docs (README.md, LICENSE.md) on a branch
+Work inside ${created.localPath}. Ship the starter docs (README.md, LICENSE.md) and the
+OpenSpec configuration from the bootstrap (openspec/, .claude/ — if present) on a branch
 named docs/starter-docs.
 Mode: ${auto
     ? 'AUTO — the human launched the workflow with auto: true, so merge the PR without asking.'
@@ -175,7 +218,7 @@ return {
   status: shipResult.merged ? 'complete' : 'awaiting-merge-approval',
   repo: created.repoUrl,
   localPath: created.localPath,
-  protection: { rulesetUrl: protection.rulesetUrl, activeRules: protection.activeRules },
+  protection: { rulesetUrl: protection.rulesetUrl || null, activeRules: protection.activeRules, unavailable: protection.unavailable === true, reason: protection.reason || null },
   docs: docsResult.files,
   pr: { url: shipResult.prUrl, merged: shipResult.merged, mergeCommit: shipResult.mergeCommit || null },
   nextStep: shipResult.merged
