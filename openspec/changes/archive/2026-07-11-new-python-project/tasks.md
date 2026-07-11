@@ -21,8 +21,8 @@
 ## 4. Docs + ship
 
 - [x] 4.1 README: *Python project scaffolding* group + Workflows entry
-- [ ] 4.2 Ship via git-ship (gated)
+- [x] 4.2 Ship via git-ship (gated)
 
 ## 5. End-to-end verification (needs the human)
 
-- [ ] 5.1 Full gated run against a throwaway repo (`dockerhub: false`): bare bootstrap (openspec config rides the PR — first live exercise of the OpenSpec phase), scaffold, green gate, PR + `awaiting-merge-approval`; approve, merge, `development` created; ci.yml + dev.yml green with publish skipped; human deletes the throwaway afterwards
+- [x] 5.1 Full gated run against a throwaway repo (`dockerhub: false`): bare bootstrap (openspec config rides the PR — first live exercise of the OpenSpec phase), scaffold, green gate, PR + `awaiting-merge-approval`; approve, merge, `development` created; ci.yml + dev.yml green with publish skipped; human deletes the throwaway afterwards
