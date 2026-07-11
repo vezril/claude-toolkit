@@ -120,6 +120,10 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **repo-starter-docs** — write a basic `README.md` and MIT `LICENSE.md` into the working tree (no commit — that's git-ship's job).
 - **git-ship** — commit on a feature branch, push, open the PR, and merge — merge gated on explicit human authorization unless auto mode was explicitly enabled for the run.
 
+**Toolkit maintenance**
+
+- **toolkit-archive** — retire a toolkit component into `archive/<name>/` with a `RETIRED.md` (what / why / replaced-by / date), de-index it from this README, and remove stale `~/.claude` installs; refuses while active components still reference it.
+
 **Design**
 
 - **ux-design** — *Laws of UX*: psychology-based UX heuristics (Fitts/Hick/Miller/Jakob/Gestalt/…); pairs with the SwiftUI / apple-dev skills.
@@ -185,6 +189,8 @@ agents/
   README.md            # subagent template & spec
 workflows/
   <workflow>.js        # Workflow-tool scripts (copy into .claude/workflows/ to use)
+archive/
+  <name>/              # retired components, verbatim + RETIRED.md (inert; see archive/README.md)
 LICENSE                # MIT
 ```
 
