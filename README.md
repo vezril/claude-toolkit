@@ -167,6 +167,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **native-app-profiling** · **ios-debugger-agent** — profiling macOS/iOS apps (xctrace) and building/running/debugging on the simulator.
 - **release-macos-spm-packaging** · **release-app-store-changelog** — SwiftPM macOS app packaging/signing and App Store release notes.
 - **github-issue-fix-flow** — end-to-end GitHub issue → fix → build/test → push workflow.
+- **webkit** — building browsers and web-content apps on Apple WebKit: the WKWebView embedding surface by browser-building task (navigation policy, JS↔native via content worlds, content-rule-list blocking, data stores/private browsing/profiles, downloads, permissions), the multi-process model, `isInspectable` debugging, ITP mechanics + the tracking-prevention/security policies, ports/contributing/LGPL, and feature status (flags, css-status, standards-positions). From the Apple docs + webkit.org primary sources; `references/` carry the depth.
 
 Each skill is a folder with a `SKILL.md` (YAML frontmatter `name` + `description`, then the body); larger skills add `references/*.md` loaded on demand.
 
@@ -182,6 +183,7 @@ In `agents/` (see [`agents/README.md`](agents/README.md) for the frontmatter spe
 - **network-architect** · **network-troubleshooter** — design networks (addressing/segmentation/routing/zones) and diagnose connectivity/performance issues (execution-grounded: ping/traceroute/dig/tcpdump).
 - **game-dev-orchestrator** · **game-designer** · **game-systems-architect** · **gameplay-programmer** · **level-designer** · **playtest-lead** · **technical-artist** · **game-producer** — the Game Dev Studio: drive the lifecycle, design, architect, implement (Godot), design levels/PCG, run playtests (the fun gate), shaders/juice, and production/launch.
 - **frontend-reviewer** · **full-stack-architect** — review React/Vue/TS/HTML/CSS (hooks rules, a11y, perf, XSS) and design full-stack web architecture (stack, rendering strategy, API/data/auth, deploy).
+- **webkit-developer** — builds and debugs WKWebView-based browsers/web views end to end (delegates, JS bridges, content blocking, data stores, downloads, Inspector debugging) and prepares WebKit-style patches for upstreaming.
 - **calvin-voice-writer** — drafts prose in Calvin's own writing voice (notes, emails, messages, posts) using the calvin-voice skill; for prose he'll send as his own, never code.
 
 (See [`agents/README.md`](agents/README.md) for the full list.)

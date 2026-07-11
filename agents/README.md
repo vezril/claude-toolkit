@@ -67,6 +67,7 @@ Web development:
 
 - **`full-stack-architect.md`** — designs/reviews web architecture: stack choice, rendering strategy (CSR/SSR/SSG/ISR/RSC), client–server boundary, API/data/auth, deploy topology + ADRs.
 - **`frontend-reviewer.md`** — reviews React/Vue/TS/HTML/CSS for hooks/reactivity rules, accessibility, performance (Core Web Vitals), and XSS (read-only).
+- **`webkit-developer.md`** — builds and debugs WKWebView-based browsers/web views end to end (delegates, JS bridges, content-rule-list blocking, data stores, downloads, Web Inspector debugging) and prepares WebKit-style patches for upstreaming; uses the **webkit** skill.
 
 Review (read-only):
 
