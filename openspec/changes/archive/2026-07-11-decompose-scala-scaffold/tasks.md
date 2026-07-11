@@ -34,11 +34,11 @@
 
 - [x] 6.1 Archive `~/.claude/skills/new-scala-service` via toolkit-archive (successors: new-scala-pekko-service workflow + the five skills); dockerhub-repo.sh noted as inherited by dockerhub-setup
 - [x] 6.2 README: index the five skills + the workflow; note LICENSE.md standardization
-- [ ] 6.3 Strict-YAML check across all SKILL.md frontmatters; ship via git-ship (gated)
+- [x] 6.3 Strict-YAML check across all SKILL.md frontmatters; ship via git-ship (gated)
 
 ## 7. Mid-implementation additions (human decisions during the live run)
 
 - [x] 7.1 Protection degrades gracefully on the plan-restriction 403 (private repo, free plan): skill "Plan restriction" section, workflow warning + `unavailable` pass-through, spec + design updated
 - [x] 7.2 Both workflows tolerate stringified `args` (parse-then-validate)
 - [x] 7.3 OpenSpec at bootstrap: `openspec init --tools claude` phase in new-github-project (bare mode included, files ride the next ship; CLI absent = warning skip), ship prompts updated, spec + design + README updated
-- [ ] 7.4 Ship the mid-implementation fixes via git-ship (gated)
+- [x] 7.4 Ship the mid-implementation fixes via git-ship (gated)
