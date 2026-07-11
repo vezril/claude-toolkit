@@ -126,6 +126,10 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 - **calvin-voice** — drafts prose in the author's own writing voice (vault notes, journal entries, emails, chat replies, posts) so it reads as if he wrote it from scratch, not as a rewrite. Built eval-driven from a stylometric fingerprint of ~130k words of his own writing plus curated exemplars, with three registers (notes / journal / guide). Triggers only when asked to draft prose to send or publish as his own — never on code or client deliverables. Ships with the fingerprint pipeline (baseline + re-runnable stylometry script) so it can be rebuilt as the vault grows.
 
+**Toolkit maintenance**
+
+- **toolkit-archive** — retire a toolkit component into `archive/<name>/` with a `RETIRED.md` (what / why / replaced-by / date), de-index it from this README, and remove stale `~/.claude` installs; refuses while active components still reference it.
+
 **Design**
 
 - **ux-design** — *Laws of UX*: psychology-based UX heuristics (Fitts/Hick/Miller/Jakob/Gestalt/…); pairs with the SwiftUI / apple-dev skills.
@@ -192,6 +196,8 @@ agents/
   README.md            # subagent template & spec
 workflows/
   <workflow>.js        # Workflow-tool scripts (copy into .claude/workflows/ to use)
+archive/
+  <name>/              # retired components, verbatim + RETIRED.md (inert; see archive/README.md)
 LICENSE                # MIT
 ```
 
