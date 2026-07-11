@@ -97,6 +97,8 @@ Load the reference for the layer you're working at:
 
 - [[apple-dev]] — the Apple/Swift cluster this sits in (app lifecycle, SwiftUI chrome).
 - [[web-development]] · [[html-css]] · [[javascript]] — the content side of the glass.
+- [[webassembly]] — the other language JavaScriptCore runs; a WKWebView browser inherits
+  Wasm support for free (this skill is the vessel, that one is the language).
 - [[secure-coding]] · [[network-security]] — TLS handling, sandboxing your browser.
 - Sources: developer.apple.com/documentation/webkit; webkit.org — web-inspector,
   tracking-prevention (+policy), security-policy, code-style-guidelines, feature-policy,

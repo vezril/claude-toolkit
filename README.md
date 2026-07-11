@@ -101,6 +101,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **vue** — Vue 3: reactivity (ref/computed/watch), SFCs, Composition API, directives, Pinia/Vue Router.
 - **nodejs** — JS on the server: the event loop, streams, modules, Express APIs, MongoDB (Node in Action).
 - **nginx** — web server / reverse proxy / load balancer: config tree, TLS, proxying, load balancing, caching, rate limiting.
+- **webassembly** — the portable sandboxed compilation target, in and out of the browser: the core language against Spec Release 3.0 (stack machine, modules, linear memory, soundness, GC/tail-calls/exceptions/memory64), the JS API + interop (streaming instantiation, the grow-detaches-buffer gotcha, COOP/COEP threads), toolchains (Emscripten, wasm-bindgen/wasm-pack, AssemblyScript, WABT), and WASI capability security + the server-side runtimes (from Sletten's *Definitive Guide*, the Core Spec read twice, and MDN; `references/` carry the depth).
 
 **Home & IoT**
 
