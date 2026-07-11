@@ -38,10 +38,10 @@ Design / modeling:
 
 Agentic SDLC team:
 
-- **`sdlc-orchestrator.md`** — drives a feature through analysis → planning → solutioning → implementation; delegates to the specialists, gates handoffs, keeps a human in the loop (plans/routes, doesn't write artifacts).
+- **`sdlc-orchestrator.md`** — drives a feature through analysis → planning → solutioning → implementation; opens the feature's OpenSpec change at Solutioning (`openspec new change` + proposal.md) and names `openspec archive` as the human-triggered close-out; delegates to the specialists, gates handoffs (readiness = lint-story.py **and** `openspec validate`, either failure short-circuits), keeps a human in the loop (plans/routes, doesn't write the content artifacts).
 - **`requirements-analyst.md`** — elicits and writes the PRD/SRS or SPEC; measurable NFRs, INVEST stories, locks the *what* before the *how*.
 - **`solution-architect.md`** — turns requirements into architecture (characteristics → style trade-offs → components → ADRs → risk storming → C4).
-- **`story-planner.md`** — decomposes PRD + architecture into epics and self-contained, INVEST, traceable story files.
+- **`story-planner.md`** — builds the change's delta specs and tasks.md, and decomposes PRD + architecture into epics and self-contained, INVEST, traceable story files (tasks.md references the stories).
 - **`qa-test-architect.md`** — designs the risk-based test strategy and runs the **execution-grounded** quality gate (complements the dev pair).
 - **`test-writer.md`** — the RED half of the dev pair: turns acceptance criteria into failing tests; may touch **test code only**, hands back a request when blocked on production code.
 - **`implementer.md`** — the GREEN half of the dev pair: makes failing tests pass and refactors; may touch **production code only**, reports disputed tests instead of editing them.

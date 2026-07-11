@@ -15,13 +15,16 @@ A feature flows through four phases; each produces artifacts that become the *co
 
 1. **Analysis** (product discovery) — explore the problem before writing requirements. Optional: brainstorming, market/domain/technical research, a **product brief**. Output: brief + research notes.
 2. **Planning** (backlog creation) — define *what* to build. Required: a **PRD/SRS**. Optional: validate/edit it, a **UX design**. Output: the requirements doc. → [[requirements-engineering]]
-3. **Solutioning** (sprint 0 / technical refinement) — define *how*. Required: **architecture**, **epics & stories**, and an **implementation-readiness check** across PRD + architecture + stories. → [[software-architecture]], [[spec-driven-development]]
-4. **Implementation** (sprint execution) — build it one story at a time. Required: **sprint planning**, **create story**, **dev story**. Optional but recommended: validate story, **QA automation**, **code review**, **retrospective** (per epic). → [[tdd]], [[test-strategy]], the reviewer agents
+3. **Solutioning** (sprint 0 / technical refinement) — define *how*, **inside an OpenSpec change**. The phase opens with `openspec new change <feature>` (the orchestrator), then fills the change's artifact chain: `proposal.md` (what/why distilled from the PRD — orchestrator), `design.md` (change-scoped how + ADR pointers — solution-architect; the system-level HLD/ADRs stay repo docs), **delta specs** under `specs/` (Requirement/Scenario, ADDED/MODIFIED/REMOVED — story-planner), and `tasks.md` (sequenced checklist referencing the story files — story-planner). Required: **architecture**, the **change artifacts**, **epics & stories** (story files per the story schema, unchanged), and an **implementation-readiness check** across all of them. Change artifacts *distill and reference* the PRD/HLD — never fork their content. → [[software-architecture]], [[spec-driven-development]]
+4. **Implementation** (sprint execution) — build it one story at a time, driving the change's `tasks.md`. Required: **sprint planning**, **create story**, **dev story**, and — after the last story ships — **`openspec archive <feature>`** (human-triggered, never automatic) to promote the delta specs into the living `openspec/specs/`. Optional but recommended: validate story, **QA automation**, **code review**, **retrospective** (per epic). → [[tdd]], [[test-strategy]], the reviewer agents
 
 ## The artifact pipeline
 
 ```
-idea → product brief → PRD/SRS → architecture (+ ADRs) → epics & stories → code + tests → (deploy)
+idea → product brief → PRD/SRS → ┌─ OpenSpec change ────────────────────────────┐ → code + tests → (deploy) → archive
+                                 │ proposal → design → delta specs → tasks.md   │
+                                 │ + architecture (+ ADRs) + epics & stories    │
+                                 └───────────────────────────────────────────────┘
 ```
 
 Each stage consumes the prior artifact and emits a new, versioned one. The PRD tells the architect which constraints matter; the architecture tells the dev which patterns to follow; the story gives focused, complete context for one unit of implementation. Keep artifacts as files in the repo.
@@ -47,7 +50,7 @@ It loops, bounded, until the reviewer is satisfied or a max-iteration cap is hit
 - **Human-in-the-loop at every gate.** The human approves phase transitions; agents propose, humans dispose.
 - **Lock the *what* before the *how*.** Requirements and the SPEC kernel come before architecture and code ([[spec-driven-development]]).
 - **Execute, don't opine.** A review that doesn't run the code/tests/plan is a guess. Ground every checker in real tool output. (The biggest weakness of the source frameworks.)
-- **Gate mechanically before you gate with judgment.** Where an artifact's *form* is checkable by a script, check it with a script — deterministic, reproducible, cheap — and let the LLM/human reviewer spend judgment only on *substance*. Stories are the worked example: `scripts/lint-story.py` enforces the schema in [[spec-driven-development]] (structure, Given/When/Then grammar, task↔AC closure, resolvable references, FR/CAP traceability) as layer zero of the readiness gate; **a lint failure short-circuits the gate** straight back to the story-planner for rewrite — the LLM review never runs on a malformed set.
+- **Gate mechanically before you gate with judgment.** Where an artifact's *form* is checkable by a script, check it with a script — deterministic, reproducible, cheap — and let the LLM/human reviewer spend judgment only on *substance*. The readiness gate has **two deterministic layers with one rule**: `scripts/lint-story.py` enforces the story schema from [[spec-driven-development]] (structure, Given/When/Then grammar, task↔AC closure, resolvable references, FR/CAP traceability), and `openspec validate --change <feature>` enforces the change-artifact form. **Either failing short-circuits the gate** straight back to the story-planner for rewrite (bounded, ~3 iterations, then escalate) — the LLM review never runs on a malformed set. A missing openspec CLI blocks the gate with a clear report; it never passes by absence.
 
 ## Tracks (match process weight to the work)
 
