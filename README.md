@@ -119,8 +119,16 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **github-actions** — automating CI/CD with GitHub Actions: workflow syntax, events/jobs/matrix, writing actions, runners, secrets/OIDC, reusable workflows, and security hardening (from *Automating Workflows with GitHub Actions*).
 - **github-new-repo** — create a brand-new empty GitHub repo (name + public/private as parameters), `main` seeded with an empty initial commit so protection and PRs work from day one.
 - **github-branch-protection** — apply the standard `protect-main` ruleset to a repo (require PR with 0 approvals, block force-push and deletion); idempotent.
-- **repo-starter-docs** — write a basic `README.md` and MIT `LICENSE.md` into the working tree (no commit — that's git-ship's job).
+- **repo-starter-docs** — write a basic `README.md` and MIT `LICENSE.md` into the working tree (no commit — that's git-ship's job). `LICENSE.md` is the toolkit-wide standard for scaffolded projects.
 - **git-ship** — commit on a feature branch, push, open the PR, and merge — merge gated on explicit human authorization unless auto mode was explicitly enabled for the run.
+
+**Scala service scaffolding** (the decomposed successor to the retired `new-scala-service` monolith — see `archive/`)
+
+- **scala-sbt-build** — the sbt build definition: two-module (pure core / Pekko server) `build.sbt` with all library dependencies, `project/` plugins (dynver, native-packager, scalafmt/scalafix, scoverage, buildinfo), formatter/linter configs, `.gitignore`; package root parameterized (default `me.cference`); enriches the README's Getting-started section after repo-starter-docs.
+- **scala-pekko-server** — production sources only: core `Greeting`, `Main`, `HttpServer` (coordinated shutdown), hello + health routes, `AppConfig`, `application.conf`, `logback.xml`. Never touches tests.
+- **scala-pekko-tests** — test sources only: `GreetingSpec` + route specs; reads the real package from the generated production code. Never touches production. (The dev pair's territory rule, applied to scaffolding.)
+- **github-actions-scala-ci** — ci.yml (format / compile+test+coverage / dynver sanity / gitleaks), dev.yml (`:dev` images), release.yml (immutable semver images + GitHub Release), setup-scala composite action; image publishing skips gracefully when `DOCKERHUB_*` secrets are absent.
+- **dockerhub-setup** — create the Docker Hub repo, mint a `<repo>-ci` access token via the Hub API (loud fallback to the admin PAT if minting fails), and pipe both values into GitHub Actions secrets; credentials from env only, never echoed.
 
 **Communications & writing**
 
@@ -180,8 +188,18 @@ not part of the plugin install; copy them to `.claude/workflows/` (project) or
 - **new-github-project** — end-to-end new-project bootstrap chaining the four skills above:
   create the local dir + empty GitHub repo (`github-new-repo`) → protect `main`
   (`github-branch-protection`) → write starter docs (`repo-starter-docs`) → commit/PR
-  (`git-ship`). Args: `{ name, visibility: 'public'|'private', auto?: true }`. The merge waits
-  for human approval unless `auto` is passed.
+  (`git-ship`). Args: `{ name, visibility: 'public'|'private', auto?: true, docs?: true, ship?: true }`.
+  `docs:false, ship:false` = **bare mode** (repo + protection only, returns synchronously) —
+  the primitive that flavor workflows compose. The merge waits for human approval unless
+  `auto` is passed.
+- **new-scala-pekko-service** — the Scala 3 + Pekko flavor: bare bootstrap → decomposed
+  scaffold on `feat/scaffold` (scala-sbt-build → scala-pekko-server → scala-pekko-tests →
+  repo-starter-docs → README enrichment → github-actions-scala-ci) → optional dockerhub-setup →
+  `sbt` green gate (red ships nothing) → one gated PR. Args: `{ name, visibility, dockerhub,
+  auto?, pkgRoot? }` — `visibility` and `dockerhub` are required decisions, ask the human.
+  After the merge, `development` is created from merged `main`. Not scaffolded anymore
+  (vs. the old monolith): README/LICENSE (repo-starter-docs owns them, `LICENSE.md`) and the
+  `openspec/` folder (run `openspec init` in the new project when it adopts spec-driven changes).
 
 ## Layout
 
