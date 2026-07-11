@@ -23,4 +23,4 @@
 
 - [x] 4.1 Consistency grep: every file narrating Solutioning mentions the propose step and validate layer identically; no stale "stories are the only Solutioning artifact" phrasing anywhere
 - [x] 4.2 SVGs render (open in browser), strict-YAML check on touched skills, `openspec validate sdlc-openspec-propose`
-- [ ] 4.3 Ship via git-ship (gated)
+- [x] 4.3 Ship via git-ship (gated)
