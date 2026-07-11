@@ -145,6 +145,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 **Toolkit maintenance**
 
 - **toolkit-archive** — retire a toolkit component into `archive/<name>/` with a `RETIRED.md` (what / why / replaced-by / date), de-index it from this README, and remove stale `~/.claude` installs; refuses while active components still reference it.
+- **merge** — the end-of-change train: merge the gated PR → tag `vX.Y.Z` on merged `main` (fires release.yml where present) → `openspec archive` + land the bookkeeping. One invocation authorizes the train's merges; failing checks, uninvented versions, and ambiguity are absolute stops. Composes with git-ship: git-ship gets changes *to* the gate, merge takes them from it.
 
 **Design**
 
