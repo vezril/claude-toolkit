@@ -1,6 +1,8 @@
 # claude-toolkit
 
-A curated [Claude Code](https://code.claude.com) **plugin** bundling reusable **skills** and **subagents** — software-engineering disciplines and a comprehensive Akka suite, distilled from primary sources (books and official docs) and oriented toward a Scala / functional-programming stack.
+A curated [Claude Code](https://code.claude.com) **plugin** bundling reusable **skills** and **subagents** across many domains — **software engineering** (with a comprehensive Akka suite), **communications & writing**, **personal finance**, plus networking, operating systems, DevOps, and game / web / Apple development — distilled from primary sources (books and official docs).
+
+It began as a Scala / functional-programming toolkit and has grown into a general-purpose one. Its three most-developed pillars are **software engineering**, **communications** (writing in your own voice), and **finances** (Canadian personal finance and business setup); the rest fill out the stack around them.
 
 The skills cross-reference each other via `[[name]]` links; the subagents apply them.
 
@@ -116,11 +118,15 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **git** — the model (objects/DAG/refs/index) plus best-practice workflows: branching/merging/rebasing, conflict resolution, clean history & reflog recovery, collaboration/PRs, commit conventions, tags/releases (from *Mastering Git* + *Git Best Practices Guide*).
 - **github-actions** — automating CI/CD with GitHub Actions: workflow syntax, events/jobs/matrix, writing actions, runners, secrets/OIDC, reusable workflows, and security hardening (from *Automating Workflows with GitHub Actions*).
 
+**Communications & writing**
+
+- **calvin-voice** — drafts prose in the author's own writing voice (vault notes, journal entries, emails, chat replies, posts) so it reads as if he wrote it from scratch, not as a rewrite. Built eval-driven from a stylometric fingerprint of ~130k words of his own writing plus curated exemplars, with three registers (notes / journal / guide). Triggers only when asked to draft prose to send or publish as his own — never on code or client deliverables. Ships with the fingerprint pipeline (baseline + re-runnable stylometry script) so it can be rebuilt as the vault grows.
+
 **Design**
 
 - **ux-design** — *Laws of UX*: psychology-based UX heuristics (Fitts/Hick/Miller/Jakob/Gestalt/…); pairs with the SwiftUI / apple-dev skills.
 
-**Life & money**
+**Personal finance & money**
 
 - **personal-finance** — Hallam's *Balance* + Alini's *Money Like You Mean It* (Canadian): spending for happiness ("afford anything but not everything") and low-cost index investing, plus the practical toolkit — debt/credit, rent-vs-buy & mortgages, income/side hustles, insurance, wills, and couples/family money. Educational, not financial advice.
 - **canadian-registered-accounts** — authoritative CRA mechanics for the FHSA, RRSP, and Home Buyers' Plan (eligibility, $8k/$40k & $60k limits, deductibility, repayment, FHSA+HBP stacking). Date-stamped; verify against canada.ca. Not tax advice.
@@ -153,6 +159,7 @@ In `agents/` (see [`agents/README.md`](agents/README.md) for the frontmatter spe
 - **network-architect** · **network-troubleshooter** — design networks (addressing/segmentation/routing/zones) and diagnose connectivity/performance issues (execution-grounded: ping/traceroute/dig/tcpdump).
 - **game-dev-orchestrator** · **game-designer** · **game-systems-architect** · **gameplay-programmer** · **level-designer** · **playtest-lead** · **technical-artist** · **game-producer** — the Game Dev Studio: drive the lifecycle, design, architect, implement (Godot), design levels/PCG, run playtests (the fun gate), shaders/juice, and production/launch.
 - **frontend-reviewer** · **full-stack-architect** — review React/Vue/TS/HTML/CSS (hooks rules, a11y, perf, XSS) and design full-stack web architecture (stack, rendering strategy, API/data/auth, deploy).
+- **calvin-voice-writer** — drafts prose in Calvin's own writing voice (notes, emails, messages, posts) using the calvin-voice skill; for prose he'll send as his own, never code.
 
 (See [`agents/README.md`](agents/README.md) for the full list.)
 
