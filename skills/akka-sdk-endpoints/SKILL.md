@@ -1,6 +1,6 @@
 ---
 name: akka-sdk-endpoints
-description: Akka SDK Endpoints (Java) — the only externally reachable components, in three flavors: HTTP endpoints (@HttpEndpoint, @Get/@Post/@Put/@Patch/@Delete, path/query params, JSON request/response records, HttpResponses, SSE, WebSocket), gRPC endpoints (proto-defined services, @GrpcEndpoint, streaming), and MCP endpoints (@McpEndpoint exposing tools/resources/prompts to LLM clients). Covers calling components via the injected ComponentClient, calling other services via HttpClientProvider, access control (@Acl, @JWT, TLS), error handling, streaming/SSE, and testing. Use when exposing an Akka SDK service over HTTP/REST, gRPC, or MCP, building an API/edge layer, or securing endpoints. Part of the Akka SDK (Java); see akka-sdk for the model.
+description: "Akka SDK Endpoints (Java) — the only externally reachable components, in three flavors: HTTP endpoints (@HttpEndpoint, @Get/@Post/@Put/@Patch/@Delete, path/query params, JSON request/response records, HttpResponses, SSE, WebSocket), gRPC endpoints (proto-defined services, @GrpcEndpoint, streaming), and MCP endpoints (@McpEndpoint exposing tools/resources/prompts to LLM clients). Covers calling components via the injected ComponentClient, calling other services via HttpClientProvider, access control (@Acl, @JWT, TLS), error handling, streaming/SSE, and testing. Use when exposing an Akka SDK service over HTTP/REST, gRPC, or MCP, building an API/edge layer, or securing endpoints. Part of the Akka SDK (Java); see akka-sdk for the model."
 ---
 
 # Akka SDK — Endpoints
