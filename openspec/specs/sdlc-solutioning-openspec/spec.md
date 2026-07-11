@@ -16,7 +16,7 @@ The SDLC pipeline SHALL open an OpenSpec change (`openspec new change <feature>`
 
 ### Requirement: Readiness gate gains the openspec validate layer
 
-The implementation-readiness gate SHALL run `openspec validate --change <feature>` as a deterministic layer alongside `lint-story.py`; a non-zero exit from either SHALL short-circuit the gate back to the story-planner (bounded iterations, then human escalation) before any LLM alignment review runs. A missing openspec CLI SHALL block the gate with a clear report, not pass it.
+The implementation-readiness gate SHALL run `openspec validate <feature>` as a deterministic layer alongside `lint-story.py`; a non-zero exit from either SHALL short-circuit the gate back to the story-planner (bounded iterations, then human escalation) before any LLM alignment review runs. A missing openspec CLI SHALL block the gate with a clear report, not pass it.
 
 #### Scenario: Invalid change artifacts
 
