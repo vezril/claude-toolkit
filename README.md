@@ -117,6 +117,10 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 - **git** — the model (objects/DAG/refs/index) plus best-practice workflows: branching/merging/rebasing, conflict resolution, clean history & reflog recovery, collaboration/PRs, commit conventions, tags/releases (from *Mastering Git* + *Git Best Practices Guide*).
 - **github-actions** — automating CI/CD with GitHub Actions: workflow syntax, events/jobs/matrix, writing actions, runners, secrets/OIDC, reusable workflows, and security hardening (from *Automating Workflows with GitHub Actions*).
+- **github-new-repo** — create a brand-new empty GitHub repo (name + public/private as parameters), `main` seeded with an empty initial commit so protection and PRs work from day one.
+- **github-branch-protection** — apply the standard `protect-main` ruleset to a repo (require PR with 0 approvals, block force-push and deletion); idempotent.
+- **repo-starter-docs** — write a basic `README.md` and MIT `LICENSE.md` into the working tree (no commit — that's git-ship's job).
+- **git-ship** — commit on a feature branch, push, open the PR, and merge — merge gated on explicit human authorization unless auto mode was explicitly enabled for the run.
 
 **Communications & writing**
 
@@ -163,6 +167,18 @@ In `agents/` (see [`agents/README.md`](agents/README.md) for the frontmatter spe
 
 (See [`agents/README.md`](agents/README.md) for the full list.)
 
+## Workflows
+
+In `workflows/` — deterministic multi-agent scripts for Claude Code's Workflow tool. They are
+not part of the plugin install; copy them to `.claude/workflows/` (project) or
+`~/.claude/workflows/` (user) to make them invocable by name.
+
+- **new-github-project** — end-to-end new-project bootstrap chaining the four skills above:
+  create the local dir + empty GitHub repo (`github-new-repo`) → protect `main`
+  (`github-branch-protection`) → write starter docs (`repo-starter-docs`) → commit/PR
+  (`git-ship`). Args: `{ name, visibility: 'public'|'private', auto?: true }`. The merge waits
+  for human approval unless `auto` is passed.
+
 ## Layout
 
 ```
@@ -174,6 +190,8 @@ skills/
 agents/
   <agent>.md           # subagents (YAML frontmatter + system prompt)
   README.md            # subagent template & spec
+workflows/
+  <workflow>.js        # Workflow-tool scripts (copy into .claude/workflows/ to use)
 LICENSE                # MIT
 ```
 
