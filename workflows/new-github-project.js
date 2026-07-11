@@ -10,21 +10,29 @@ export const meta = {
   ],
 }
 
-// args: { name: string (required), visibility: 'public' | 'private' (required), auto?: boolean }
+// args: { name: string (required), visibility: 'public' | 'private' (required), auto?: boolean,
+//         docs?: boolean (default true), ship?: boolean (default true) }
+// docs:false + ship:false = "bare mode": repo + protection only, returns synchronously —
+// for flavor workflows (new-scala-pekko-service, …) that bring their own docs and PR.
 // The human choosing to launch this workflow with an explicit name + visibility IS the
 // authorization for the outward-facing repo creation; the merge stays gated unless auto.
 
 if (!args || typeof args !== 'object') {
-  throw new Error("args required: { name: 'my-repo', visibility: 'public'|'private', auto?: true }")
+  throw new Error("args required: { name: 'my-repo', visibility: 'public'|'private', auto?: true, docs?: false, ship?: false }")
 }
 const name = args.name
 const visibility = args.visibility
 const auto = args.auto === true
+const docs = args.docs !== false
+const ship = args.ship !== false
 if (!name || !/^[a-z0-9][a-z0-9._-]*$/.test(name)) {
   throw new Error(`args.name must match [a-z0-9][a-z0-9._-]* — got: ${JSON.stringify(name)}`)
 }
 if (visibility !== 'public' && visibility !== 'private') {
   throw new Error("args.visibility must be exactly 'public' or 'private' — the human chooses, no default")
+}
+if (!docs && ship) {
+  throw new Error('docs:false with ship:true is pointless — there would be nothing to ship. Use bare mode (both false) or keep docs on.')
 }
 
 // Every step agent locates the skill it executes; the toolkit may be installed as a plugin,
@@ -68,6 +76,7 @@ if (!created || created.error) {
 }
 
 phase('Protect main')
+// (protection always runs; bare mode only skips docs + ship below)
 const protection = await agent(`
 You are one step of the new-github-project workflow; the human authorized it by launching
 the workflow — do not stop to ask.
@@ -90,8 +99,19 @@ if (!protection || protection.error) {
   return { status: 'failed', step: 'protect-main', error: protection ? protection.error : 'agent died', created }
 }
 
+if (!docs) {
+  log('Bare mode: skipping starter docs and ship — repo is ready for a flavor workflow.')
+  return {
+    status: 'complete',
+    bare: true,
+    repo: created.repoUrl,
+    localPath: created.localPath,
+    protection: { rulesetUrl: protection.rulesetUrl, activeRules: protection.activeRules },
+  }
+}
+
 phase('Starter docs')
-const docs = await agent(`
+const docsResult = await agent(`
 You are one step of the new-github-project workflow.
 ${findSkill('repo-starter-docs')}
 Work inside ${created.localPath}. Project description: none was provided — use the skill's
@@ -107,12 +127,24 @@ Write the files only; no commit. Return JSON only.`, {
     required: ['files'],
   },
 })
-if (!docs || docs.error) {
-  return { status: 'failed', step: 'starter-docs', error: docs ? docs.error : 'agent died', created, protection }
+if (!docsResult || docsResult.error) {
+  return { status: 'failed', step: 'starter-docs', error: docsResult ? docsResult.error : 'agent died', created, protection }
+}
+
+if (!ship) {
+  log('ship:false — starter docs written but left uncommitted for the caller to ship.')
+  return {
+    status: 'complete',
+    shipped: false,
+    repo: created.repoUrl,
+    localPath: created.localPath,
+    protection: { rulesetUrl: protection.rulesetUrl, activeRules: protection.activeRules },
+    docs: docsResult.files,
+  }
 }
 
 phase('Ship')
-const ship = await agent(`
+const shipResult = await agent(`
 You are the final step of the new-github-project workflow.
 ${findSkill('git-ship')}
 Work inside ${created.localPath}. Ship the starter docs (README.md, LICENSE.md) on a branch
@@ -134,19 +166,19 @@ Return JSON only.`, {
     required: ['prUrl', 'merged'],
   },
 })
-if (!ship || ship.error) {
-  return { status: 'failed', step: 'ship', error: ship ? ship.error : 'agent died', created, protection, docs }
+if (!shipResult || shipResult.error) {
+  return { status: 'failed', step: 'ship', error: shipResult ? shipResult.error : 'agent died', created, protection, docs: docsResult }
 }
 
-log(ship.merged ? 'Docs PR merged.' : `Docs PR awaiting human approval: ${ship.prUrl}`)
+log(shipResult.merged ? 'Docs PR merged.' : `Docs PR awaiting human approval: ${shipResult.prUrl}`)
 return {
-  status: ship.merged ? 'complete' : 'awaiting-merge-approval',
+  status: shipResult.merged ? 'complete' : 'awaiting-merge-approval',
   repo: created.repoUrl,
   localPath: created.localPath,
   protection: { rulesetUrl: protection.rulesetUrl, activeRules: protection.activeRules },
-  docs: docs.files,
-  pr: { url: ship.prUrl, merged: ship.merged, mergeCommit: ship.mergeCommit || null },
-  nextStep: ship.merged
+  docs: docsResult.files,
+  pr: { url: shipResult.prUrl, merged: shipResult.merged, mergeCommit: shipResult.mergeCommit || null },
+  nextStep: shipResult.merged
     ? null
-    : `Ask the human to authorize the merge of ${ship.prUrl}, then merge it (gh pr merge --merge) and sync main.`,
+    : `Ask the human to authorize the merge of ${shipResult.prUrl}, then merge it (gh pr merge --merge) and sync main.`,
 }
