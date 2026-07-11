@@ -187,8 +187,10 @@ not part of the plugin install; copy them to `.claude/workflows/` (project) or
 
 - **new-github-project** — end-to-end new-project bootstrap chaining the four skills above:
   create the local dir + empty GitHub repo (`github-new-repo`) → protect `main`
-  (`github-branch-protection`) → write starter docs (`repo-starter-docs`) → commit/PR
-  (`git-ship`). Args: `{ name, visibility: 'public'|'private', auto?: true, docs?: true, ship?: true }`.
+  (`github-branch-protection`; degrades with a loud warning where the plan forbids it, e.g.
+  private repos on the free plan) → `openspec init --tools claude` → write starter docs
+  (`repo-starter-docs`) → commit/PR (`git-ship`).
+  Args: `{ name, visibility: 'public'|'private', auto?: true, docs?: true, ship?: true }`.
   `docs:false, ship:false` = **bare mode** (repo + protection only, returns synchronously) —
   the primitive that flavor workflows compose. The merge waits for human approval unless
   `auto` is passed.
@@ -197,9 +199,10 @@ not part of the plugin install; copy them to `.claude/workflows/` (project) or
   repo-starter-docs → README enrichment → github-actions-scala-ci) → optional dockerhub-setup →
   `sbt` green gate (red ships nothing) → one gated PR. Args: `{ name, visibility, dockerhub,
   auto?, pkgRoot? }` — `visibility` and `dockerhub` are required decisions, ask the human.
-  After the merge, `development` is created from merged `main`. Not scaffolded anymore
-  (vs. the old monolith): README/LICENSE (repo-starter-docs owns them, `LICENSE.md`) and the
-  `openspec/` folder (run `openspec init` in the new project when it adopts spec-driven changes).
+  After the merge, `development` is created from merged `main`. Vs. the old monolith:
+  README/LICENSE come from repo-starter-docs (`LICENSE.md` standard) and the OpenSpec
+  surface comes from the bootstrap's `openspec init --tools claude` — the scala scaffold
+  scripts own neither.
 
 ## Layout
 

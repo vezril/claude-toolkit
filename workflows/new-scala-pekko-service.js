@@ -15,25 +15,28 @@ export const meta = {
 // name, visibility AND dockerhub are required with no defaults — the outer conversation
 // must ask the human ("public or private?", "Docker Hub repo needed?") before launching.
 // Drop-list vs the retired monolith: README/LICENSE now come from repo-starter-docs
-// (LICENSE.md standard), and the openspec/ folder is no longer scaffolded — run
-// `openspec init` in the new project when/if it adopts spec-driven changes.
+// (LICENSE.md standard). The OpenSpec surface now comes from the bootstrap workflow
+// (openspec init --tools claude), not from the scala scaffold scripts.
 
-if (!args || typeof args !== 'object') {
+// Tolerate stringified args (some invokers pass JSON text rather than an object).
+let A = args
+if (typeof A === 'string') { try { A = JSON.parse(A) } catch { /* falls through to the guard */ } }
+if (!A || typeof A !== 'object') {
   throw new Error("args required: { name, visibility: 'public'|'private', dockerhub: true|false, auto?: true, pkgRoot?: 'me.cference' }")
 }
-const { name, visibility } = args
-const auto = args.auto === true
-const pkgRoot = args.pkgRoot || 'me.cference'
+const { name, visibility } = A
+const auto = A.auto === true
+const pkgRoot = A.pkgRoot || 'me.cference'
 if (!name || !/^[a-z][a-z0-9-]*[a-z0-9]$/.test(name)) {
   throw new Error(`args.name must be lowercase [a-z0-9-], start with a letter — got: ${JSON.stringify(name)}`)
 }
 if (visibility !== 'public' && visibility !== 'private') {
   throw new Error("args.visibility must be 'public' or 'private' — ask the human, no default")
 }
-if (typeof args.dockerhub !== 'boolean') {
+if (typeof A.dockerhub !== 'boolean') {
   throw new Error('args.dockerhub must be explicitly true or false — ask the human: "Does this project need a Docker Hub repo (image publishing from CI)?"')
 }
-const dockerhub = args.dockerhub
+const dockerhub = A.dockerhub
 
 const findSkill = (skill) => `
 First locate the skill file ${skill}/SKILL.md. Check in order (glob, take the first hit):
@@ -151,7 +154,8 @@ You are the final step of the new-scala-pekko-service workflow.
 ${findSkill('git-ship')}
 Work inside ${dir}, branch feat/scaffold (already contains the full scaffold; the sbt suite
 is green). Stage the scaffold explicitly (this is a freshly scaffolded repo — every file was
-just created deliberately), commit, push, open the PR against main titled
+just created deliberately; include the OpenSpec configuration from bootstrap — openspec/
+and .claude/ — if present), commit, push, open the PR against main titled
 "Scaffold ${name}: Scala 3 + Pekko service (build, server, tests, docs, CI)".
 Mode: ${auto
     ? `AUTO — the human launched the workflow with auto: true. Merge the PR, sync main, then create the development branch from merged main and push it (git branch development && git push -u origin development).`

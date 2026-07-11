@@ -49,6 +49,21 @@ new-scala-pekko-service (workflow)
 
 **Retirement.** Last step: `toolkit-archive` (from add-archive-skill) archives `~/.claude/skills/new-scala-service` into the repo's `archive/` with RETIRED.md pointing at the new workflow + skills. Sequencing: add-archive-skill ships first.
 
+**Protection under plan limits (added mid-implementation).** GitHub's free plan returns
+403 for branch protection (rulesets and legacy API alike) on **private** repos. Decision
+(human, 2026-07-11): degrade gracefully — `github-branch-protection` treats the plan-403
+as completed-with-warning ("continuing UNPROTECTED", never a silent skip), the bootstrap
+workflow logs the warning and carries `unavailable: true` + reason in its protection
+result, and nothing ever changes repo visibility autonomously. Also hardened both
+workflow scripts to tolerate stringified `args` (parse-then-validate).
+
+**OpenSpec at bootstrap (added mid-implementation, 2026-07-11).** The human reversed the
+drop-list call on `openspec/`: instead of each project running `openspec init` when it
+adopts spec-driven changes, the bootstrap workflow now runs `openspec init --tools claude`
+for every new repo (bare mode included), files uncommitted so they ride the next ship
+step. Missing CLI = completed-with-warning skip. The scala scaffold scripts still don't
+touch OpenSpec — ownership sits in the bootstrap, one level up.
+
 ## Risks
 
 - Hub API token endpoints are less stable than GitHub's; the fallback path (admin PAT as secret) keeps the workflow shippable.
