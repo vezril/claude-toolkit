@@ -39,10 +39,13 @@ A practical playbook for driving a feature from idea to shipped code with the `c
         ANALYSIS        →        PLANNING        →        SOLUTIONING        →     IMPLEMENTATION
    (optional discovery)      (what to build)          (how to build it)         (build it, story by story)
 
-   idea / brief        →   PRD / SRS / SPEC    →   architecture + ADRs    →   code + tests
-   research notes          (requirements-           epics & stories            (per story:
-                            analyst)                 (solution-architect,        create → dev → review → QA)
-                                                      story-planner)
+   idea / brief        →   PRD / SRS / SPEC    →   the OpenSpec change     →   code + tests → archive
+   research notes          (requirements-           proposal → design →         (per story:
+                            analyst)                 delta specs → tasks.md      create → dev → review → QA;
+                                                     + architecture + ADRs       then openspec archive
+                                                     + epics & stories           promotes the specs)
+                                                     (orchestrator, solution-
+                                                      architect, story-planner)
         └──────────────── orchestrated by sdlc-orchestrator, human approves each gate ─────────────────┘
 ```
 
@@ -77,29 +80,33 @@ Define **what** to build.
 - **Skill:** [[requirements-engineering]] — the PRD spine (vision, users + jobs-to-be-done, `FR-N` with testable consequences, measurable NFRs, **non-goals**, success metrics **with counter-metrics**), the SPEC kernel, INVEST stories.
 - **Output:** `prd.md` / `spec.md` with stable IDs. **Gate:** every requirement is testable, measurable, ID'd, non-goals explicit — and **you approve**.
 
-### Phase 3 — Solutioning → architecture + stories *(required)*
-Define **how**, then break it into work.
+### Phase 3 — Solutioning → the OpenSpec change (architecture + specs + stories) *(required)*
+Define **how**, inside an **OpenSpec change** — the phase's artifact container.
 
-![The Solutioning sub-workflow: PRD → solution-architect (full-stack-architect for web) → story-planner → readiness check → implementation](figures/solutioning-phase.svg)
-1. **Architecture** — [[solution-architect]] (skill [[software-architecture]]): derive the driving **characteristics** (≤ ~7, measurable) from the NFRs, choose the **least-worst style** (trade-offs, not a "best"), record **ADRs** (context/decision/consequences), risk-storm it, and draw **C4** (Context + Container, as Mermaid in the repo). → `architecture.md` + ADRs.
-2. **Stories** — [[story-planner]] (skill [[spec-driven-development]]): decompose into epics and **self-contained, INVEST stories** — each carrying acceptance criteria and `[Source: …]` references to the exact PRD/architecture sections, so it can be built in a fresh context. → `stories/`.
-3. **Readiness check** — layered. **Layer zero is deterministic:** `scripts/lint-story.py` validates every story against the normative schema (title/status/statement structure, Given/When/Then grammar, task↔AC mapping closure, `[Source:]` references that actually resolve, FR/CAP traceability) — any failure **short-circuits the gate and bounces the stories back to the story-planner for rewrite**, before any LLM review runs. Then the substance review verifies PRD + architecture + stories align. **Gate:** lint-clean + PASS/CONCERNS/FAIL — and **you approve** before any code.
+![The Solutioning sub-workflow: the orchestrator opens the OpenSpec change and writes the proposal, the solution-architect (full-stack-architect for web) fills design.md, the story-planner writes the delta specs, tasks.md, and stories, then the two-validator readiness check gates into implementation](figures/solutioning-phase.svg)
+1. **Open the change** — [[sdlc-orchestrator]]: `openspec new change <feature>`, then `proposal.md` — the what/why **distilled** from the PRD (sequence-and-state work; the change artifacts *distill and reference* the PRD/HLD, never fork them). → `openspec/changes/<feature>/proposal.md`.
+2. **Architecture** — [[solution-architect]] (skill [[software-architecture]]): derive the driving **characteristics** (≤ ~7, measurable) from the NFRs, choose the **least-worst style** (trade-offs, not a "best"), record **ADRs** (context/decision/consequences), risk-storm it, and draw **C4** (Context + Container, as Mermaid in the repo). The system-level `architecture.md` + ADRs stay repo docs; the **change-scoped how** lands in the change's `design.md`, pointing at them.
+3. **Specs & stories** — [[story-planner]] (skill [[spec-driven-development]]): build the specs as the change's **delta specs** (`specs/`, Requirement/Scenario format, `ADDED/MODIFIED/REMOVED` against the living `openspec/specs/`), decompose into epics and **self-contained, INVEST stories** — each carrying acceptance criteria and `[Source: …]` references so it can be built in a fresh context — and write `tasks.md`, the sequenced checklist **referencing** the story files. → `openspec/changes/<feature>/specs/`, `tasks.md`, `stories/`.
+4. **Readiness check** — layered. **Layer zero is deterministic, twice over:** `scripts/lint-story.py` validates every story against the normative schema (title/status/statement structure, Given/When/Then grammar, task↔AC mapping closure, `[Source:]` references that actually resolve, FR/CAP traceability), and `openspec validate --change <feature>` validates the change artifacts. A failure from **either** **short-circuits the gate and bounces the work back to the story-planner for rewrite**, before any LLM review runs (a missing openspec CLI blocks the gate — it never passes by absence). Then the substance review verifies PRD + architecture + specs + stories align. **Gate:** both validators clean + PASS/CONCERNS/FAIL — and **you approve** before any code.
 
-![The layered readiness gate sub-workflow: stories → deterministic linter (exit 1 loops back to the story-planner for rewrite, bounded at 3) → LLM readiness review on a separate model → human approval → implementation](figures/readiness-gate.svg)
+![The layered readiness gate sub-workflow: stories and change artifacts → two deterministic validators, lint-story.py and openspec validate (either failing loops back to the story-planner for rewrite, bounded at 3) → LLM readiness review on a separate model → human approval → implementation](figures/readiness-gate.svg)
 
-> **Brownfield?** Use the [[spec-driven-development]] **delta-spec** approach (OpenSpec): keep living specs in the repo and express the change as `ADDED/MODIFIED/REMOVED` against them.
+> Greenfield and brownfield take the **same path** now: the living specs in `openspec/specs/` are the baseline (empty on day one), and every change is expressed as deltas against them — the [[spec-driven-development]] OpenSpec approach, promoted from brownfield option to the standard route.
 
 ### Phase 4 — Implementation → build it, story by story *(required)*
 Work one story at a time through a tight cycle:
 ```
-create story → red (test-writer) ⇄ green (implementer) → execution-grounded review → (QA) → next story → (epic done → retrospective)
+create story → red (test-writer) ⇄ green (implementer) → execution-grounded review → (QA) → next story → (epic done → retrospective) → openspec archive
 ```
+
+Implementation drives the change's `tasks.md`; each task points at its story file.
 
 ![The per-story implementation sub-workflow: create story → test-writer (test code only) ping-pongs failing tests and green suites with the implementer (production code only) across the hook-enforced boundary → execution-grounded review → QA gate → next story](figures/implementation-dev-pair.svg)
 - **Dev (the pair):** [[test-writer]] writes one failing test — it may touch **test code only** — then [[implementer]] writes the minimum production code to pass and refactors — it may touch **non-test code only**. They ping-pong until the story's acceptance criteria are covered. The file boundary is the point: tests can't be bent to fit the code, and code can't edit its own spec. If a test needs a production seam, the test-writer *requests* it from the implementer; if a test looks wrong, the implementer *reports* it back — neither crosses the line. The boundary isn't just charter: the plugin's `PreToolUse` hook (`hooks/enforce-dev-pair-boundary.py`) inspects the calling agent and **denies** any Edit/Write outside its territory (test paths/naming conventions classify the file). ([[tdd-coach]] remains the solo alternative for informal pairing.) Language reviewers ([[scala-fp-reviewer]], etc.), [[clean-code-reviewer]], and [[secure-coding]] keep quality up.
 - **QA:** [[qa-test-architect]] (skill [[test-strategy]]) sets risk-based priorities (P0–P3), turns acceptance criteria into tests (ATDD), and **runs the suite + measures coverage** — the gate is a green run, not an opinion.
 - **CI/release:** [[git-and-ci-reviewer]] + [[github-actions]]; ship onto infra via [[docker]] / [[terraform]].
 - **Gate:** tests pass, coverage meets the P0/P1 map, review clean — and **you approve** the merge.
+- **Close-out:** after the last story ships, **you trigger `openspec archive <feature>`** — it promotes the change's delta specs into the living `openspec/specs/`, which accumulate as the system's source of truth. Never automatic; the orchestrator names it and waits.
 
 ---
 
@@ -125,7 +132,7 @@ Don't run the heavyweight pipeline on a typo; don't vibe-code a platform.
 6. **Lock the *what* before the *how*.** Requirements/SPEC precede architecture and code.
 7. **Execute, don't opine.** Every quality gate runs the code/tests/`terraform plan` — a review that doesn't execute is a guess. *(This is the deliberate upgrade over the source frameworks.)*
 
-**Where you come in** — the purple pills are the mandatory human approvals; everything between them runs on its own (amber = deterministic script, teal = LLM checker). On the standard track a feature costs you 4 + N approvals (N = story count), plus escalations (exhausted rewrite loops, disputed tests, CONCERNS verdicts):
+**Where you come in** — the purple pills are the mandatory human approvals; everything between them runs on its own (amber = deterministic script, teal = LLM checker). On the standard track a feature costs you 4 + N approvals (N = story count) plus the final `openspec archive` close-out, plus escalations (exhausted rewrite loops, disputed tests, CONCERNS verdicts):
 
 ![Human intervention points: you decide it's worth planning, approve the PRD, the architecture, readiness, and each story merge; the lint script and LLM review run without you](figures/human-gates.svg)
 
@@ -136,9 +143,11 @@ Don't run the heavyweight pipeline on a typo; don't vibe-code a platform.
 > *"Add two-factor authentication to the app."*
 
 1. **Plan** — [[requirements-analyst]]: PRD with `FR: TOTP 2FA`, NFR `auth p95 < 200ms`, non-goal "no SMS 2FA", success metric "% accounts with 2FA" + counter-metric "login success rate must not drop". *You approve.*
-2. **Architect** — [[solution-architect]]: characteristics = security + usability + performance; decision recorded as an ADR ("TOTP via authenticator app; secrets crypto-sharded"); C4 container diagram updated. *You approve.*
-3. **Stories** — [[story-planner]]: `Enable 2FA`, `Verify TOTP at login`, `Recovery codes` — each INVEST, with Given/When/Then acceptance criteria and references to the PRD/architecture. *You approve readiness.*
-4. **Build** — per story: [[test-writer]] turns the acceptance criteria into failing tests; [[implementer]] writes the production code that passes them; [[secure-coding]] checks the secret handling; [[qa-test-architect]] marks login/verify as **P0**, turns the acceptance criteria into tests, and **runs them + coverage**. [[git-and-ci-reviewer]] checks the PR/workflow. *You approve the merge.*
+2. **Open the change** — [[sdlc-orchestrator]]: `openspec new change add-2fa`; `proposal.md` distills the PRD's what/why.
+3. **Architect** — [[solution-architect]]: characteristics = security + usability + performance; decision recorded as an ADR ("TOTP via authenticator app; secrets crypto-sharded"); C4 container diagram updated; the change's `design.md` carries the 2FA-scoped how and points at the ADR. *You approve.*
+4. **Specs & stories** — [[story-planner]]: delta specs (`specs/auth/spec.md`: `ADDED Requirement: TOTP second factor` with Given/When/Then scenarios); stories `Enable 2FA`, `Verify TOTP at login`, `Recovery codes` — each INVEST, referenced from `tasks.md`. `lint-story.py` + `openspec validate` both pass. *You approve readiness.*
+5. **Build** — per story off `tasks.md`: [[test-writer]] turns the acceptance criteria into failing tests; [[implementer]] writes the production code that passes them; [[secure-coding]] checks the secret handling; [[qa-test-architect]] marks login/verify as **P0**, turns the acceptance criteria into tests, and **runs them + coverage**. [[git-and-ci-reviewer]] checks the PR/workflow. *You approve the merge.*
+6. **Close out** — *you trigger* `openspec archive add-2fa`: the auth delta becomes part of the living `openspec/specs/auth/spec.md`.
 
 ---
 
@@ -147,9 +156,11 @@ Don't run the heavyweight pipeline on a typo; don't vibe-code a platform.
 - **Start:** *"Use the sdlc-orchestrator to take `<idea>` through the pipeline."*
 - **Just requirements:** *"requirements-analyst: write the PRD for `<X>`."*
 - **Just architecture:** *"solution-architect: design `<X>` and record ADRs."*
-- **Break into work:** *"story-planner: turn the PRD + architecture into stories."*
+- **Open the change:** *"sdlc-orchestrator: open the OpenSpec change for `<feature>` and distill the PRD into its proposal."*
+- **Break into work:** *"story-planner: build the delta specs and turn the PRD + architecture into stories + tasks.md."*
 - **Test plan + gate:** *"qa-test-architect: build the test strategy and run the gate."*
 - **Build a story:** *"test-writer: turn story `<N>`'s acceptance criteria into failing tests"* → *"implementer: make them pass."*
+- **Close a feature:** `openspec archive <feature>` (you trigger it; promotes the deltas into the living specs).
 - **Always:** fresh chat per phase · approve each gate · artifacts in the repo · gates that actually run.
 
 ---
