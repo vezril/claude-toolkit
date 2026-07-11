@@ -1,0 +1,38 @@
+# Unattended SDLC policy (trust rung 1) — copy to <target-repo>/.claude/unattended-policy.yml
+#
+# Read by: the claude-auto workflow (guards, budgets) and
+# scripts/check-protected-paths.py (the protected_paths block, parsed
+# dependency-free — keep it a flat list of globs).
+#
+# This file is itself a protected path: the unattended pipeline may never
+# modify it. Changes to it are always a human PR.
+
+# Who may trigger unattended runs (GitHub logins). The workflow refuses the
+# label from anyone else. Keep this short — every name here can make the
+# pipeline write code.
+author_allowlist:
+  - vezril            # ADJUST: your GitHub login(s)
+
+# Globs the unattended run may never modify. Checked deterministically by
+# check-protected-paths.py in the verify job; any match fails the run.
+# `**` crosses directories, `*` does not; paths are repo-relative.
+protected_paths:
+  - .github/workflows/**          # CI config, including the claude-auto workflow itself
+  - .claude/**                    # this policy, settings, hooks config
+  - hooks/**                      # enforcement hooks
+  - scripts/**                    # validators and checkers
+  - .openspec.yaml                # OpenSpec config
+  - release/**                    # ADJUST: release/deploy scripts
+  - deploy/**                     # ADJUST
+  - prompts/**                    # ADJUST: prompt templates (LLM-chatbot repos)
+
+# Budget caps, enforced by the workflow (timeout-minutes, --max-turns).
+budget:
+  max_minutes_per_job: 30         # wall-clock cap per phase job
+  max_turns_per_phase: 60         # claude -p turn cap per phase
+  max_rewrite_iterations: 3       # bounded loop before escalation (matches the attended pipeline)
+
+# Circuit breaker: if the last N processed issues all escalated, the guard
+# job refuses new runs until re-armed (see templates/unattended/README.md).
+circuit_breaker:
+  consecutive_escalations: 3

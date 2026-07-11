@@ -138,6 +138,24 @@ Don't run the heavyweight pipeline on a typo; don't vibe-code a platform.
 
 ---
 
+## Unattended mode (trust rung 1)
+
+An opt-in variant for fire-and-forget bugfixes: label a GitHub issue and the pipeline runs headless in CI — spec, change artifacts, build, verify, independent review — ending at an **open PR with evidence**. Only two purple pills survive: applying the trigger label, and merging the PR. Everything else resolves mechanically, and every failure converges on one escalation: findings posted on the issue + a `needs-human` label. (`openspec archive` also stays yours.)
+
+| Attended gate | Unattended replacement |
+|---------------|------------------------|
+| Worth planning? | Opt-in label + author allowlist + quick-track triage (bigger → escalate) |
+| PRD approval | Quick-track spec derived from the issue, validator-model sanity check |
+| Architecture approval | **Not replaced** — architecture work is out of unattended scope |
+| Readiness | `lint-story.py` + `openspec validate` + separate-model review (**CONCERNS = FAIL**) |
+| Per-story merge | Suite green + coverage + refuting reviewer PASS → PR opened, **not merged** |
+
+![Unattended mode: you file and label the issue, guards and gates run mechanically (validators, protected-path check, refuting review on a separate model), and the only other human action is merging the PR; failures escalate to needs-human](figures/human-gates-unattended.svg)
+
+Safety model: issue text is *data*, never instructions; protected paths (CI config, the policy file, hooks/validators, release scripts, prompt templates) are checked deterministically (`scripts/check-protected-paths.py`); the reviewer runs as a separate job on a different model, prompted to refute, and its verdict is a required status check; a circuit breaker disables the trigger after 3 consecutive escalations. Setup and templates: `templates/unattended/` (workflow, policy file, issue form). Auto-merge is deliberately not implemented — the escalation rate from rung 1 is the data that would justify it.
+
+---
+
 ## A worked example (standard track)
 
 > *"Add two-factor authentication to the app."*
