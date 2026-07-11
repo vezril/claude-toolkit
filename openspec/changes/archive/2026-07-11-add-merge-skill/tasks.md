@@ -9,4 +9,4 @@
 - [x] 2.1 README: index under *Toolkit maintenance*; note the composition (git-ship gets changes to the gate, merge takes them from it)
 - [x] 2.2 Strict-YAML check across all frontmatters
 - [x] 2.3 Live dry-run of the resolution logic (read-only): point the skill's PR/change/version detection at this repo's current state and confirm it identifies the right PR, next version, and archive candidate without acting
-- [ ] 2.4 Ship via git-ship (gated) — and close the loop by running `/merge` itself on that PR as its first live train
+- [x] 2.4 Ship via git-ship (gated) — and close the loop by running `/merge` itself on that PR as its first live train
