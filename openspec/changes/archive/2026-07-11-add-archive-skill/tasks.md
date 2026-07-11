@@ -13,4 +13,4 @@
 
 - [x] 3.1 All SKILL.md frontmatters still pass strict YAML parse
 - [x] 3.2 Dry-run the skill against a throwaway dummy component in a scratch copy; confirm RETIRED.md fields, de-indexing, and the referrer guard
-- [ ] 3.3 Ship via git-ship (gated)
+- [x] 3.3 Ship via git-ship (gated)
