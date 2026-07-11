@@ -38,7 +38,7 @@ Design / modeling:
 
 Agentic SDLC team:
 
-- **`sdlc-orchestrator.md`** — drives a feature through analysis → planning → solutioning → implementation; opens the feature's OpenSpec change at Solutioning (`openspec new change` + proposal.md) and names `openspec archive` as the human-triggered close-out; delegates to the specialists, gates handoffs (readiness = lint-story.py **and** `openspec validate`, either failure short-circuits), keeps a human in the loop (plans/routes, doesn't write the content artifacts).
+- **`sdlc-orchestrator.md`** — drives a feature through analysis → planning → solutioning → implementation; opens the feature's OpenSpec change at Solutioning (`openspec new change` + proposal.md) and names `openspec archive` as the human-triggered close-out; delegates to the specialists, gates handoffs (readiness = lint-story.py **and** `openspec validate`, either failure short-circuits), keeps a human in the loop (plans/routes, doesn't write the content artifacts). Supports an opt-in **unattended mode** (trust rung 1: CI-triggered via `templates/unattended/`, mechanical gates + refuting review, ends at a PR — merge and archive stay human).
 - **`requirements-analyst.md`** — elicits and writes the PRD/SRS or SPEC; measurable NFRs, INVEST stories, locks the *what* before the *how*.
 - **`solution-architect.md`** — turns requirements into architecture (characteristics → style trade-offs → components → ADRs → risk storming → C4).
 - **`story-planner.md`** — builds the change's delta specs and tasks.md, and decomposes PRD + architecture into epics and self-contained, INVEST, traceable story files (tasks.md references the stories).

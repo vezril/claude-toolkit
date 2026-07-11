@@ -11,7 +11,7 @@ documentation is updated in the same commit/PR**:
   worked example, cheat sheet).
 - `docs/figures/*.svg` — the workflow diagrams embedded in the playbook
   (`sdlc-pipeline`, `solutioning-phase`, `readiness-gate`, `implementation-dev-pair`,
-  `human-gates`). They are hand-written, self-contained SVGs; edit the affected one(s)
+  `human-gates`, `human-gates-unattended`). They are hand-written, self-contained SVGs; edit the affected one(s)
   to match the new shape and keep the color language: purple = human gate,
   amber = deterministic script, teal = LLM checker, coral = build,
   red/green = the test-writer/implementer pair.
@@ -27,3 +27,8 @@ The pipeline's own rule is "artifacts drive state" — stale workflow docs break
   `hooks/enforce-dev-pair-boundary.py`.
 - The story file format is normative: `skills/spec-driven-development/references/story-schema.md`
   and `scripts/lint-story.py` must change together.
+- The unattended-mode policy lives in three places that must stay consistent:
+  the "Unattended mode" section of `skills/sdlc-orchestration/SKILL.md`, the Modes section of
+  `agents/sdlc-orchestrator.md`, and the reference templates in `templates/unattended/`.
+- `scripts/check-protected-paths.py` parses the `protected_paths:` block format of
+  `templates/unattended/unattended-policy.yml` — change the format and the parser together.
