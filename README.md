@@ -130,6 +130,13 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **github-actions-scala-ci** — ci.yml (format / compile+test+coverage / dynver sanity / gitleaks), dev.yml (`:dev` images), release.yml (immutable semver images + GitHub Release), setup-scala composite action; image publishing skips gracefully when `DOCKERHUB_*` secrets are absent.
 - **dockerhub-setup** — create the Docker Hub repo, mint a `<repo>-ci` access token via the Hub API (loud fallback to the admin PAT if minting fails), and pipe both values into GitHub Actions secrets; credentials from env only, never echoed.
 
+**Python project scaffolding** (the Python sibling of the Scala set: uv + ruff + mypy + pytest, same territory rules)
+
+- **python-uv-build** — pyproject.toml (hatchling src layout, dev group ruff/mypy/pytest, tool config), `.python-version`, `.gitignore`, multi-stage uv Dockerfile (`python -m <pkg>`, no HEALTHCHECK — the entry point is a CLI); package name derives scala-consistently (`athena-service` → `athena`); `uv.lock` deliberately not scaffolded (the verify gate's `uv sync` generates it); enriches the README after repo-starter-docs.
+- **python-package** — production sources only: `src/<pkg>/` with the pure typed greeting module and the `__main__` CLI entry. Never touches tests.
+- **python-tests** — test sources only: `tests/test_greeting.py`; reads the real package from `src/`. Never touches production.
+- **github-actions-python-ci** — ci.yml (ruff lint, ruff format check as its own job, mypy, pytest via `uv sync --locked`, gitleaks), dev.yml (`:dev` images), release.yml (immutable semver images + GitHub Release), setup-uv composite action; image publishing skips gracefully when `DOCKERHUB_*` secrets are absent.
+
 **Communications & writing**
 
 - **calvin-voice** — drafts prose in the author's own writing voice (vault notes, journal entries, emails, chat replies, posts) so it reads as if he wrote it from scratch, not as a rewrite. Built eval-driven from a stylometric fingerprint of ~130k words of his own writing plus curated exemplars, with three registers (notes / journal / guide). Triggers only when asked to draft prose to send or publish as his own — never on code or client deliverables. Ships with the fingerprint pipeline (baseline + re-runnable stylometry script) so it can be rebuilt as the vault grows.
@@ -203,6 +210,13 @@ not part of the plugin install; copy them to `.claude/workflows/` (project) or
   README/LICENSE come from repo-starter-docs (`LICENSE.md` standard) and the OpenSpec
   surface comes from the bootstrap's `openspec init --tools claude` — the scala scaffold
   scripts own neither.
+- **new-python-project** — the Python 3.12 + uv flavor, same shape: bare bootstrap →
+  scaffold on `feat/scaffold` (python-uv-build → python-package → python-tests →
+  repo-starter-docs → README enrichment → github-actions-python-ci) → optional
+  dockerhub-setup → uv green gate (`uv sync` + ruff check + format check + mypy + pytest;
+  the generated `uv.lock` ships with the PR; red ships nothing) → one gated PR;
+  `development` from merged `main` post-approval. Args: `{ name, visibility, dockerhub,
+  auto?, pkg? }` — `visibility` and `dockerhub` are required decisions, ask the human.
 
 ## Layout
 
