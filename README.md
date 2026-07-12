@@ -113,6 +113,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **tcp-ip** — the protocol suite at the wire (Stevens): IP/ARP/ICMP/UDP/TCP, DNS/DHCP/NAT, handshake/congestion/MTU, reading captures.
 - **network-engineering** — build & operate: subnetting/VLSM, VLANs/STP, routing (OSPF/BGP), NAT, and a bottom-up troubleshooting method.
 - **network-security** — defensive infrastructure security: defense-in-depth/zero-trust, segmentation, firewalls/IDS/IPS, VPNs, DDoS defense, monitoring & IR.
+- **wifi-pineapple** — operating the Hak5 WiFi Pineapple Mark VII (the commercial 802.11 wireless-auditing appliance) for **authorized** WiFi assessments: the UI (`172.16.42.1:1471`), PineAP (rogue-AP/association engine — modes, the SSID pool, Client/SSID filters for scoping, Evil WPA/Enterprise), Recon, WPA handshake capture (PCAP/Hashcat-22000, cracked offline), Campaigns, Modules, Cloud C², the REST/module-dev API, setup/recovery/LED states, and the 802.11 foundations that explain how it all works. A query-answering reference from Hak5's official docs; `references/` carry the depth. Own hardware / written authorization only.
 
 **Version control & CI/CD**
 
