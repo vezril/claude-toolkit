@@ -141,6 +141,9 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 **Communications & writing**
 
 - **calvin-voice** — drafts prose in the author's own writing voice (vault notes, journal entries, emails, chat replies, posts) so it reads as if he wrote it from scratch, not as a rewrite. Built eval-driven from a stylometric fingerprint of ~130k words of his own writing plus curated exemplars, with three registers (notes / journal / guide). Triggers only when asked to draft prose to send or publish as his own — never on code or client deliverables. Ships with the fingerprint pipeline (baseline + re-runnable stylometry script) so it can be rebuilt as the vault grows.
+- **detect-ai** — local stylometric estimate (0–100, per-signal breakdown) of how AI-drafted a text reads: burstiness, cliché density, hedging, structural uniformity. Honest-confidence by design: no detector is reliable, results are never proof, and it refuses to be used to accuse a specific person of misconduct. Fully local — no text leaves the machine. *(Adapted from a third-party skill; safety-reviewed and rewritten — the original sent text + an API key to a paid service.)*
+- **humanize** — edits stilted, AI-drafted, or over-formal prose to read naturally (rhythm variance, cliché removal, real stances, `--touch light|standard|deep`), with a hard scope boundary: refuses detector-evasion and academic-misrepresentation framing, and never fabricates "human" details. *(Adapted from a third-party detector-bypass tool; the bypass purpose was removed, not carried.)*
+- **cold-email** — 50–125-word cold outreach drafts on AIDA/PAS/BAB with honesty guardrails: no fabricated personalization, no bait-and-switch subjects, no fake urgency, spam-law reminder for bulk. Drafts only — never sends. *(Adapted from a third-party skill.)*
 
 **Toolkit maintenance**
 
