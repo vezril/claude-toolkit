@@ -177,15 +177,15 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **github-issue-fix-flow** — end-to-end GitHub issue → fix → build/test → push workflow.
 - **webkit** — building browsers and web-content apps on Apple WebKit: the WKWebView embedding surface by browser-building task (navigation policy, JS↔native via content worlds, content-rule-list blocking, data stores/private browsing/profiles, downloads, permissions), the multi-process model, `isInspectable` debugging, ITP mechanics + the tracking-prevention/security policies, ports/contributing/LGPL, and feature status (flags, css-status, standards-positions). From the Apple docs + webkit.org primary sources; `references/` carry the depth.
 
-**Google Cloud Platform** (53 per-product skills, each distilled from the live `cloud.google.com` docs, fetched 2026-07 — decision-guidance and gotchas over reference regurgitation; all prefixed `gcp-` so non-GCP skills for the same tech can coexist)
+**Google Cloud Platform** (56 per-product skills, each distilled from the live `cloud.google.com` docs, fetched 2026-07 — decision-guidance and gotchas over reference regurgitation; all prefixed `gcp-` so non-GCP skills for the same tech can coexist)
 
 - *API management & integration* — **gcp-api-gateway** · **gcp-apigee** · **gcp-endpoints** (managed front doors, lightweight → full-lifecycle) · **gcp-eventarc** · **gcp-workflows** · **gcp-application-integration** (event routing, orchestration, iPaaS).
 - *Build, deploy & tooling* — **gcp-cloud-build** · **gcp-artifact-registry** · **gcp-artifact-analysis** · **gcp-buildpacks** · **gcp-app-hub** · **gcp-cloud-code** · **gcp-cloud-sdk** (the gcloud CLI + auth/ADC) · **gcp-cloud-scheduler** · **gcp-cloud-tasks**.
 - *Compute & serverless* — **gcp-cloud-run** · **gcp-cloud-functions** (now Cloud Run functions) · **gcp-app-engine** · **gcp-gke** (Autopilot vs Standard) · **gcp-compute-engine**.
 - *Data & analytics* — **gcp-bigquery** · **gcp-lakehouse** (Lakehouse for Apache Iceberg) · **gcp-looker** · **gcp-dataflow** · **gcp-pubsub**.
-- *Databases* — **gcp-bigtable** · **gcp-datastore** (Firestore in Datastore mode) · **gcp-memorystore-redis** · **gcp-alloydb** · **gcp-spanner** · **gcp-cloud-sql**.
+- *Databases* — **gcp-firestore** (Native mode) · **gcp-datastore** (Firestore in Datastore mode) · **gcp-bigtable** · **gcp-memorystore-redis** · **gcp-alloydb** · **gcp-spanner** · **gcp-cloud-sql**.
 - *Networking* — **gcp-vpc** · **gcp-cloud-nat** · **gcp-cloud-vpn** · **gcp-interconnect** · **gcp-cloud-router** · **gcp-cloud-dns** · **gcp-load-balancing** · **gcp-cloud-domains** · **gcp-media-cdn** · **gcp-cloud-cdn**.
-- *Security & observability* — **gcp-iam** · **gcp-iap** · **gcp-vpc-service-controls** · **gcp-secure-web-proxy** · **gcp-cloud-ids** · **gcp-certificate-manager** · **gcp-secret-manager** · **gcp-cloud-logging** (incl. audit logs) · **gcp-cloud-monitoring** · **gcp-cloud-trace** · **gcp-error-reporting**.
+- *Security & observability* — **gcp-iam** · **gcp-iap** · **gcp-vpc-service-controls** · **gcp-secure-web-proxy** · **gcp-cloud-ids** · **gcp-certificate-manager** · **gcp-secret-manager** · **gcp-cloud-kms** · **gcp-binary-authorization** · **gcp-cloud-logging** (incl. audit logs) · **gcp-cloud-monitoring** · **gcp-cloud-trace** · **gcp-error-reporting**.
 - *Storage* — **gcp-cloud-storage**.
 
 Each skill is a folder with a `SKILL.md` (YAML frontmatter `name` + `description`, then the body); larger skills add `references/*.md` loaded on demand.
@@ -203,6 +203,7 @@ In `agents/` (see [`agents/README.md`](agents/README.md) for the frontmatter spe
 - **game-dev-orchestrator** · **game-designer** · **game-systems-architect** · **gameplay-programmer** · **level-designer** · **playtest-lead** · **technical-artist** · **game-producer** — the Game Dev Studio: drive the lifecycle, design, architect, implement (Godot), design levels/PCG, run playtests (the fun gate), shaders/juice, and production/launch.
 - **frontend-reviewer** · **full-stack-architect** — review React/Vue/TS/HTML/CSS (hooks rules, a11y, perf, XSS) and design full-stack web architecture (stack, rendering strategy, API/data/auth, deploy).
 - **webkit-developer** — builds and debugs WKWebView-based browsers/web views end to end (delegates, JS bridges, content blocking, data stores, downloads, Inspector debugging) and prepares WebKit-style patches for upstreaming.
+- **gcp-developer** — builds scalable, secure cloud-native apps on Google Cloud (the Professional Cloud Developer role): platform choice, containers, event-driven flows, data access, app security, and observability — competencies mirror the certification, bound to the `gcp-*` skills plus the toolkit's dev-craft skills. Active: writes code and runs gcloud.
 - **calvin-voice-writer** — drafts prose in Calvin's own writing voice (notes, emails, messages, posts) using the calvin-voice skill; for prose he'll send as his own, never code.
 
 (See [`agents/README.md`](agents/README.md) for the full list.)

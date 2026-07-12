@@ -115,6 +115,7 @@ aggregate the findings across projects.
 
 - [[gcp-artifact-registry]] — the registry whose pushes trigger automatic scanning
 - [[gcp-cloud-build]] — on-demand scan gates and SLSA provenance generation
+- [[gcp-binary-authorization]] — consumes these findings as check-based deploy-gate policy
 - [[gcp-gke]], [[gcp-cloud-run]] — where Binary Authorization enforces attestations
 - [[gcp-cloud-storage]] — where generated SBOMs live
 - [[gcp-pubsub]] — notifications on new notes/occurrences
