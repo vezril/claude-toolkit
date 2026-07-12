@@ -166,6 +166,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 **Games**
 
 - **swgoh-expert** — Star Wars: Galaxy of Heroes expert assistant (teams, counters, mods, relics, GAC/TW/Conquest).
+- **ttrpg-storytelling** — writing and running stories for tabletop RPGs: the collaborative stance (prep situations not plots, players as co-authors, session zero + safety tools), the writing craft (the 5 C's, conflict types, sensory world-building, NPCs/villains with quirks-motivations-secrets, campaign→arc→session structure), and the table craft (open with a Bang, share narration after wins, loop choices into consequences, equifinality, pacing, foreshadowing, cliffhangers) — plus a diagnose-a-flat-game section. Synthesized from four TTRPG storytelling guides.
 
 **Apple / Swift** (contributed; `apple-dev` meta added to route among them)
 
