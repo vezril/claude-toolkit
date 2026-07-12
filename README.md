@@ -177,6 +177,17 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **github-issue-fix-flow** — end-to-end GitHub issue → fix → build/test → push workflow.
 - **webkit** — building browsers and web-content apps on Apple WebKit: the WKWebView embedding surface by browser-building task (navigation policy, JS↔native via content worlds, content-rule-list blocking, data stores/private browsing/profiles, downloads, permissions), the multi-process model, `isInspectable` debugging, ITP mechanics + the tracking-prevention/security policies, ports/contributing/LGPL, and feature status (flags, css-status, standards-positions). From the Apple docs + webkit.org primary sources; `references/` carry the depth.
 
+**Google Cloud Platform** (53 per-product skills, each distilled from the live `cloud.google.com` docs, fetched 2026-07 — decision-guidance and gotchas over reference regurgitation; all prefixed `gcp-` so non-GCP skills for the same tech can coexist)
+
+- *API management & integration* — **gcp-api-gateway** · **gcp-apigee** · **gcp-endpoints** (managed front doors, lightweight → full-lifecycle) · **gcp-eventarc** · **gcp-workflows** · **gcp-application-integration** (event routing, orchestration, iPaaS).
+- *Build, deploy & tooling* — **gcp-cloud-build** · **gcp-artifact-registry** · **gcp-artifact-analysis** · **gcp-buildpacks** · **gcp-app-hub** · **gcp-cloud-code** · **gcp-cloud-sdk** (the gcloud CLI + auth/ADC) · **gcp-cloud-scheduler** · **gcp-cloud-tasks**.
+- *Compute & serverless* — **gcp-cloud-run** · **gcp-cloud-functions** (now Cloud Run functions) · **gcp-app-engine** · **gcp-gke** (Autopilot vs Standard) · **gcp-compute-engine**.
+- *Data & analytics* — **gcp-bigquery** · **gcp-lakehouse** (Lakehouse for Apache Iceberg) · **gcp-looker** · **gcp-dataflow** · **gcp-pubsub**.
+- *Databases* — **gcp-bigtable** · **gcp-datastore** (Firestore in Datastore mode) · **gcp-memorystore-redis** · **gcp-alloydb** · **gcp-spanner** · **gcp-cloud-sql**.
+- *Networking* — **gcp-vpc** · **gcp-cloud-nat** · **gcp-cloud-vpn** · **gcp-interconnect** · **gcp-cloud-router** · **gcp-cloud-dns** · **gcp-load-balancing** · **gcp-cloud-domains** · **gcp-media-cdn** · **gcp-cloud-cdn**.
+- *Security & observability* — **gcp-iam** · **gcp-iap** · **gcp-vpc-service-controls** · **gcp-secure-web-proxy** · **gcp-cloud-ids** · **gcp-certificate-manager** · **gcp-secret-manager** · **gcp-cloud-logging** (incl. audit logs) · **gcp-cloud-monitoring** · **gcp-cloud-trace** · **gcp-error-reporting**.
+- *Storage* — **gcp-cloud-storage**.
+
 Each skill is a folder with a `SKILL.md` (YAML frontmatter `name` + `description`, then the body); larger skills add `references/*.md` loaded on demand.
 
 ## Subagents
