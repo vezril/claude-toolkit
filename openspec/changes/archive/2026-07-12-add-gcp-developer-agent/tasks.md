@@ -17,4 +17,4 @@
 - [x] 3.2 `agents/README.md`: add `gcp-developer` to the agent list
 - [x] 3.3 Validation sweep: strict-YAML across all frontmatters (skills + agent); every `[[gcp-*]]` cross-link (incl. the 3 new + the reciprocal) resolves; agent's `skills:` entries all resolve to real skills; new skills carry Sources + Related + license
 - [x] 3.4 Coverage re-diff: confirm every exam-guide-named product either binds a skill or is named as a gap in the agent body
-- [ ] 3.5 Ship via git-ship (gated)
+- [x] 3.5 Ship via git-ship (gated)
