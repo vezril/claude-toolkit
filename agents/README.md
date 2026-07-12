@@ -69,6 +69,10 @@ Web development:
 - **`frontend-reviewer.md`** — reviews React/Vue/TS/HTML/CSS for hooks/reactivity rules, accessibility, performance (Core Web Vitals), and XSS (read-only).
 - **`webkit-developer.md`** — builds and debugs WKWebView-based browsers/web views end to end (delegates, JS bridges, content-rule-list blocking, data stores, downloads, Web Inspector debugging) and prepares WebKit-style patches for upstreaming; uses the **webkit** skill.
 
+Cloud:
+
+- **`gcp-developer.md`** — the Professional Cloud Developer role: builds and configures scalable, secure cloud-native apps on Google Cloud (platform choice, containers, event-driven flows, data access, app security, observability). Competencies mirror the certification's four sections; binds the `gcp-*` product skills plus the toolkit's dev-craft skills (tdd, test-strategy, clean-code, secure-coding, docker). Active: writes code and runs gcloud, with confirm-before-irreversible and credential-hygiene guardrails.
+
 Review (read-only):
 
 - **`clean-code-reviewer.md`** — language-agnostic readability/maintainability review (Clean Code principles + smells catalog).
