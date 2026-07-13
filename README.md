@@ -167,6 +167,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 **Health & wellbeing**
 
+- **phq-9** — walk someone through the PHQ-9 depression screening questionnaire as a warm, one-question-at-a-time supportive check-in (verbatim instrument, 0–27 scoring + severity bands, functional-impairment item, PHQ-2 pre-screen), with hard rails the roleplay never overrides: it's a **screen, not a diagnosis**; **not a replacement for professional care**; and any endorsement of item 9 (self-harm) triggers a real, non-fictional safety response + crisis resources (988/911/findahelpline.com) regardless of the total. From the PHQ-9 instrument PDFs + Wikipedia/MDCalc/safe-interpretation sources.
 - **gad-7** — walk someone through the GAD-7 generalized-anxiety screening questionnaire as a warm, one-question-at-a-time supportive check-in (verbatim instrument, 0–21 scoring + severity bands, functional-impairment item, GAD-2 pre-screen, the ≥10 threshold; also screens panic/social-anxiety/PTSD, not just GAD), with hard rails the roleplay never overrides: it's a **screen, not a diagnosis**, and **not a replacement for professional care**. No self-harm item, but surfaces real crisis resources (988/911/findahelpline.com) if distress arises. Sibling of **phq-9**; anxiety and depression often co-occur.
 
 **Games**
