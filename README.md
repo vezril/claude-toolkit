@@ -165,6 +165,10 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **canadian-registered-accounts** — authoritative CRA mechanics for the FHSA, RRSP, and Home Buyers' Plan (eligibility, $8k/$40k & $60k limits, deductibility, repayment, FHSA+HBP stacking). Date-stamped; verify against canada.ca. Not tax advice.
 - **canadian-business-registration** — starting/registering a business in Canada (Quebec focus): legal forms, the Québec REQ/NEQ, federal vs provincial incorporation, the CRA business number & program accounts, and the Quebec GST/QST-via-Revenu-Québec twist. Date-stamped; not legal/tax advice.
 
+**Health & wellbeing**
+
+- **gad-7** — walk someone through the GAD-7 generalized-anxiety screening questionnaire as a warm, one-question-at-a-time supportive check-in (verbatim instrument, 0–21 scoring + severity bands, functional-impairment item, GAD-2 pre-screen, the ≥10 threshold; also screens panic/social-anxiety/PTSD, not just GAD), with hard rails the roleplay never overrides: it's a **screen, not a diagnosis**, and **not a replacement for professional care**. No self-harm item, but surfaces real crisis resources (988/911/findahelpline.com) if distress arises. Sibling of **phq-9**; anxiety and depression often co-occur.
+
 **Games**
 
 - **swgoh-expert** — Star Wars: Galaxy of Heroes expert assistant (teams, counters, mods, relics, GAC/TW/Conquest).
