@@ -165,6 +165,10 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **canadian-registered-accounts** — authoritative CRA mechanics for the FHSA, RRSP, and Home Buyers' Plan (eligibility, $8k/$40k & $60k limits, deductibility, repayment, FHSA+HBP stacking). Date-stamped; verify against canada.ca. Not tax advice.
 - **canadian-business-registration** — starting/registering a business in Canada (Quebec focus): legal forms, the Québec REQ/NEQ, federal vs provincial incorporation, the CRA business number & program accounts, and the Quebec GST/QST-via-Revenu-Québec twist. Date-stamped; not legal/tax advice.
 
+**Health & wellbeing**
+
+- **phq-9** — walk someone through the PHQ-9 depression screening questionnaire as a warm, one-question-at-a-time supportive check-in (verbatim instrument, 0–27 scoring + severity bands, functional-impairment item, PHQ-2 pre-screen), with hard rails the roleplay never overrides: it's a **screen, not a diagnosis**; **not a replacement for professional care**; and any endorsement of item 9 (self-harm) triggers a real, non-fictional safety response + crisis resources (988/911/findahelpline.com) regardless of the total. From the PHQ-9 instrument PDFs + Wikipedia/MDCalc/safe-interpretation sources.
+
 **Games**
 
 - **swgoh-expert** — Star Wars: Galaxy of Heroes expert assistant (teams, counters, mods, relics, GAC/TW/Conquest).
