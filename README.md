@@ -59,6 +59,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **test-strategy** — risk-based P0–P3, test levels/pyramid, ATDD, traceability, execution-grounded quality gates (complements tdd).
 - **agentic-workflows** — Anthropic's workflow-vs-agent patterns + Claude Agent SDK loop + LangGraph; the runtime mechanics for the role agents.
 - **agent-interoperability** — MCP (agent↔tool, rev 2025-11-25) + A2A (agent↔agent, v1.0): primitives, Agent Cards, transports, and when to use which.
+- **openclaw-agents** — the agent system of OpenClaw (self-hosted messaging-gateway platform): the embedded per-session agent loop, the `openclaw agent` CLI + gateway `agent`/`agent.wait` RPC, lane-based concurrency, per-run prompt assembly, multi-agent config, thinking levels, tool policy + exec approvals, and `sessions_spawn` sub-agent delegation.
 
 **Operating systems** (OSTEP + Silberschatz + Tanenbaum; for writing one)
 
