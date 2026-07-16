@@ -10,13 +10,15 @@ license: MIT
 Quebec residential tenancy runs on the **Civil Code of Québec**, and almost every dispute is decided by the **Tribunal administratif du logement (TAL)** — the specialized tribunal formerly called the *Régie du logement*. Quebec's rules differ sharply from the rest of Canada (deposits are illegal, leases renew automatically, no-pet clauses are enforceable), so **don't import intuitions from Ontario or elsewhere.**
 
 > ## This is information, not legal advice
-> I'm not a lawyer and this skill isn't a substitute for one. It's here to help you **understand your position, decode a notice, find the right deadline, and know what to ask** — so you arrive at the TAL, a lawyer, legal aid, or a *comité logement* already oriented. For anything binding, go to those people. Three honesty notes that shape everything here:
-> - **Éducaloi cites no Civil Code article numbers**, so this skill doesn't invent any. The handful that appear are marked as coming from the TAL site or the annotated Code — verify them on [LégisQuébec](https://www.legisquebec.gouv.qc.ca) or CanLII.
+> I'm not a lawyer and this skill isn't a substitute for one. It's here to help you **understand your position, decode a notice, find the right deadline, and know what to ask** — so you arrive at the TAL, a lawyer, legal aid, or a *comité logement* already oriented. For anything binding, go to those people. Two honesty notes that shape everything here:
 > - **The law moved materially in 2024** (assignment refusal, senior protections, a three-year eviction ban, representation rules) and some of it is **time-limited**. Check currency.
 > - **TAL fees are re-indexed every 1 April.** Any figure here is a dated snapshot.
+>
+> **On sources:** the plain-language layer comes from Éducaloi, which cites no article numbers; the **statutory layer is quoted from the actual Civil Code text** on LégisQuébec and cross-checked against the TAL's own citation map. Nothing is invented — but verify anything decision-critical on [LégisQuébec](https://www.legisquebec.gouv.qc.ca/en/document/cs/ccq-1991) directly.
 
 Load a reference for depth:
 
+- **[references/civil-code-articles.md](references/civil-code-articles.md)** — **the statutory layer**: the actual text of the key lease articles (**1851–1978**), the scope article **1892** (incl. *accessories and dependencies*), the mandatory-provisions article **1893**, the obligations (**1854/1855/1856**), and the remedies article **1863** — plus the TAL's own obligation→article map and a worked walkthrough of a **change-of-use** notice.
 - **[references/lease-and-money.md](references/lease-and-money.md)** — the lease (mandatory form, verbal leases, French rule, **void clauses**), the **rent-disclosure notice** + deadlines to contest, **illegal deposits**, what a landlord may/may not ask, paying rent and the **3-week rule**, **co-tenancy** (joint vs solidary), discrimination, **renewal & rent increases**, and **assignment vs subletting**.
 - **[references/living-in-the-dwelling.md](references/living-in-the-dwelling.md)** — both sides' obligations, **the form/destination (change-of-use) rule**, **access & visits** (24h/10 days; visits 9–9, work 7–7), repairs & **repair-and-deduct**, heating, **poor conditions / unfit dwellings**, pets, and the **silence-defaults trap**.
 - **[references/ending-the-lease.md](references/ending-the-lease.md)** — **repossession vs eviction vs termination-for-fault** kept distinct, notice periods, the **eviction indemnity formula**, **senior protection**, the **June 2024 eviction ban**, and early termination (HLM / seniors' care / handicap / **spousal or sexual violence**).
@@ -25,6 +27,8 @@ Load a reference for depth:
 ## The mental model
 
 - **Almost everything runs through the TAL.** A landlord **cannot evict you themselves** — only the TAL can end a lease, and only a **bailiff** executes it. A demand letter is a *first step*, not a legal act.
+- **The dwelling rules are public order** (**art. 1893**): a lease clause inconsistent with them is **without effect**. You cannot sign away these protections, and a clause in your lease saying otherwise is simply void.
+- **Specific performance is the default remedy, not termination** (**art. 1863**): breach entitles the other party to an **order to comply** plus damages; **resiliation requires *serious injury***.
 - **The landlord usually bears the burden.** On repossession, eviction, and termination-for-fault, it's the landlord who must apply to the TAL and **prove** their case — and for fault they must show **serious prejudice**.
 - **Leases renew automatically.** Ending or changing one requires a specific notice in a specific window; doing nothing usually favours the tenant staying.
 - **Deadlines are the whole game**, and **silence means different things** depending on the notice. Get that backwards and you lose rights by doing nothing.
