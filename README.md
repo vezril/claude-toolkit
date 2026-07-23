@@ -67,6 +67,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **os-processes-and-scheduling** · **os-memory-and-virtual-memory** · **os-concurrency** · **os-file-systems-and-persistence** · **os-io-and-devices** · **os-virtualization** · **os-security** (subsystems).
 - **osdev-kernel** — hands-on: toolchain, boot, QEMU, and the bring-up roadmap to actually write a kernel (x86-64 & ARM64, C or Rust).
 - **6502-assembly** — the MOS 6502 CPU from *Easy 6502*: registers/flags, the instruction set, every addressing mode, branching/stack/subroutines, and a full Snake-game walkthrough (NES/C64/Apple II family).
+- **malbolge** — the esolang Ben Olmstead (1998) built to be almost impossible to program in (named after Dante's eighth circle): the exact ternary machine (59049 ten-trit cells, registers a/c/d, position-dependent decode, self-encrypting code, the `crazy`/rotate ops, both 94-char tables reproduced exactly), the spec-vs-reference I/O swap, why hand-writing is hopeless, and how real programs are actually *found* (beam search, Scheffer's cryptanalysis, the 2005 method, HeLL/LMAO). Ships a **stdlib-only reference interpreter verified by execution** (prints `Hello, world.` from the canonical program) + a validator. From Olmstead's public-domain spec/interpreter + Scheffer + esolangs/Wikipedia.
 
 **Akka** (Akka Core 2.10.x + ecosystem, Scala + Java Typed)
 
