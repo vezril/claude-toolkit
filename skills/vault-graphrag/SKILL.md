@@ -30,12 +30,13 @@ Load the reference for the operation at hand:
 
 ## The model in one paragraph
 
-Three note types. An **incident** is one handled defect/investigation — keyed by
+Four note types. An **incident** is one handled defect/investigation — keyed by
 its ticket id, carrying symptom / root cause / resolution as *frontmatter fields*
 so retrieval never has to parse prose. An **entity** is a durable thing incidents
 happen to: a service, platform, component, or team. A **pattern** is a recurring
 failure shape ("silent await on a downstream dependency") that generalizes across
-incidents. Incidents link *to* entities and patterns via frontmatter wikilinks;
+incidents. A **lesson** is a measured practice improvement (a prompt technique,
+an eval-design finding) written by evidence-producing workflows like EDD runs. Incidents link *to* entities and patterns via frontmatter wikilinks;
 Obsidian's backlinks give you the reverse edges for free. The payoff compounds:
 every handled incident makes the next "have we seen this before?" cheaper.
 

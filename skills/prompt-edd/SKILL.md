@@ -81,6 +81,10 @@ Write both in a plain first-person voice: contractions fine, varied sentence len
 
 **Package** (if a certification wants a bundle): zip prompt.md, iteration-log.md, evals/, prompts/, outputs/, results/ — history and evidence included, scratch excluded.
 
+## Step 5 — Persist the learnings (close the loop)
+
+An iteration log proves the work; it doesn't make the next run smarter. If the user keeps a [[vault-graphrag]] knowledge graph, end every EDD run by writing the transferable findings into it as `lesson` notes (schema in that skill's references/schema.md): each confirmed hypothesis→measured-delta pair is a candidate. Only mint what generalizes beyond this task ("an output contract with anchored literals fixes shape failures" qualifies; "case-07 needed a design-link rule" doesn't). Check `lessons/` first and extend an existing note's Evidence section instead of minting a near-duplicate. And the read side is the actual payoff: at Step 1 of the NEXT run, read `lessons/` before designing the suite — persisted memory you don't consult is a diary, not memory.
+
 ## Failure modes to refuse
 
 - Writing the iteration log before or without running evals (fabricated evidence).

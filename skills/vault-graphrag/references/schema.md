@@ -11,6 +11,7 @@ retrieval, so treat schema conformance the way you'd treat a failing type check.
   incidents/   ABC-446.md            # basename = ticket key, verbatim
   entities/    orders-api.md         # basename = entity name from the binding
   patterns/    silent-downstream-await.md   # kebab-case failure shape
+  lessons/     sentence-budgets-over-word-caps.md   # kebab-case practice
 ```
 
 - Folders organize; the `type` field is the authority. Never infer type from path.
@@ -125,6 +126,41 @@ What resolutions of this pattern have in common (timeout + user-visible fallback
    occurrence shows up.
 4. Kebab-case basename, ≤4 words, verb-or-shape not blame ("config-drift-between-
    environments", not "ops-forgot-to-sync").
+
+## Type: lesson
+
+A generalizable practice learned from **measured** work — prompt techniques,
+eval-design findings, workflow habits. Where `pattern` captures how systems
+fail, `lesson` captures how the practitioner works better. Written by processes
+that produce evidence (an EDD iteration log, a pipeline retro), never from
+vibes.
+
+```markdown
+---
+type: lesson
+title: "Sentence budgets beat word caps"
+date: 2026-07-23
+source: "EDD run: defect-summary eval iterations"
+client: shared          # lessons are usually client-agnostic
+tags: [prompting, evals]
+---
+
+## The lesson
+One or two sentences stating the practice.
+
+## Evidence
+The measured observation that earned it: scores before/after, run references.
+A lesson with no evidence section is an opinion — put it in a daily note, not here.
+
+## How to apply
+When to reach for it, in 1–3 bullets.
+```
+
+Minting rules: kebab-case basename stating the practice (≤6 words); check
+`lessons/` for an existing note first and extend its Evidence section rather
+than minting a near-duplicate; one lesson per note. Lessons are not scanned by
+incident recall — they surface through Obsidian search, backlinks, and the
+processes that write them re-reading them first.
 
 ## Link vocabulary summary
 
