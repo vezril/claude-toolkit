@@ -1,0 +1,46 @@
+diff --git a/src/retry/backoff.py b/src/retry/backoff.py
+index 3f1a2b4..8c9d0e1 100644
+--- a/src/retry/backoff.py
++++ b/src/retry/backoff.py
+@@ -12,18 +12,24 @@ class BackoffPolicy:
+-    JITTER = 0.2
+-    MAX_RETRIES = 3
++    JITTER = 0.35
++    MAX_RETRIES = 5
+
+     def next_delay(self, attempt: int) -> float:
+-        delay = self.base * (2 ** attempt)
+-        return delay + random.uniform(0, self.JITTER * delay)
++        delay = min(self.base * (2 ** attempt), self.MAX_DELAY)
++        jittered = delay + random.uniform(0, self.JITTER * delay)
++        log.debug("retry attempt %d delay %.2fs", attempt, jittered)
++        return jittered
++
++    @property
++    def exhausted_message(self) -> str:
++        return f"gave up after {self.MAX_RETRIES} attempts"
+diff --git a/src/retry/legacy_backoff.py b/src/retry/legacy_backoff.py
+deleted file mode 100644
+index 1a2b3c4..0000000
+--- a/src/retry/legacy_backoff.py
++++ /dev/null
+@@ -1,31 +0,0 @@
+-"""Legacy linear backoff, unused since the v2 client."""
+-class LinearBackoff:
+-    def next_delay(self, attempt):
+-        return 1.0 * attempt
+diff --git a/tests/test_backoff.py b/tests/test_backoff.py
+new file mode 100644
+index 0000000..5d6e7f8
+--- /dev/null
++++ b/tests/test_backoff.py
+@@ -0,0 +1,22 @@
++import pytest
++from src.retry.backoff import BackoffPolicy
++
++def test_delay_is_capped():
++    p = BackoffPolicy(base=1.0)
++    assert p.next_delay(30) <= p.MAX_DELAY * (1 + p.JITTER)
++
++def test_retry_count_raised_to_five():
++    assert BackoffPolicy.MAX_RETRIES == 5

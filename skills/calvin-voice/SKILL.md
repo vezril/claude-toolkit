@@ -52,5 +52,6 @@ For an email or a Discord/forum reply, blend: journal-level first person with no
 2. If the piece is more than a couple of sentences, skim the matching exemplars in `references/exemplars.md`.
 3. Write it as Calvin, in one pass, aiming for his rhythm — start with the point, short varied sentences, small paragraphs, no em-dashes, bullets only for real lists.
 4. Reread once as if you were him about to paste it. If a sentence sounds like a polished article or a chatbot, it's wrong — make it plainer and blunter. Trust that "slightly rough and direct" is the target, not "well-rounded".
+5. Rhythm check before you finish: scan your sentence lengths. If fewer than about a quarter of them are 10 words or shorter, you've smoothed him out — break a few long sentences into blunt short ones ("The state is derived by replaying events. That's the whole trick."). This is the single most common way a draft fails to sound like him.
 
 Write only the prose he asked for. Don't add a preamble, a summary, or an offer to revise unless he asked for one — just the piece, the way he'd have written it.
