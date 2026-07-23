@@ -1,0 +1,90 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "cold-email + follow-up on Sonnet - hard word caps, honest subjects, one CTA"
+prompts:
+  - file://prompt.txt
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config:
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 5
+defaultTest:
+  options:
+    provider:
+      id: anthropic:claude-agent-sdk
+      config:
+        model: sonnet
+        apiKeyRequired: false
+        max_turns: 5
+tests:
+  - description: "cold-email - 50-125 word body, 3-5 word subject, one CTA, real personalization"
+    vars:
+      skill: file://../../skills/cold-email/SKILL.md
+      request: file://cases/cold-sales.txt
+    assert:
+      # Body word count: extract between the Subject line and the footer fields.
+      - type: javascript
+        metric: contract
+        value: |
+          const m = output.match(/Subject:([^\n]*)\n([\s\S]*?)(?:\n\*\*Framework|\n\*\*Personalization|$)/);
+          if (!m) return { pass: false, score: 0, reason: 'no Subject line found' };
+          const subjWords = m[1].trim().split(/\s+/).filter(Boolean);
+          const body = m[2].trim();
+          const words = body.split(/\s+/).filter(Boolean).length;
+          const problems = [];
+          if (subjWords.length < 3 || subjWords.length > 5) problems.push('subject is ' + subjWords.length + ' words (rule: 3-5)');
+          if (words < 50 || words > 125) problems.push('body is ' + words + ' words (rule: 50-125)');
+          if (/I hope this finds you well|My name is/i.test(body)) problems.push('banned opener used');
+          const ctas = (body.match(/\?/g) || []).length;
+          if (ctas > 2) problems.push(ctas + ' question marks; looks like multiple asks');
+          if (problems.length) return { pass: false, score: 0, reason: problems.join('; ') };
+          return { pass: true, score: 1, reason: 'subject ' + subjWords.length + 'w, body ' + words + 'w' };
+      # The skill self-reports a word count; it must be honest.
+      - type: javascript
+        metric: contract
+        value: |
+          const stated = output.match(/\*\*Word count:\*\*\s*(\d+)/);
+          if (!stated) return { pass: false, score: 0, reason: 'missing **Word count:** line' };
+          const m = output.match(/Subject:[^\n]*\n([\s\S]*?)(?:\n\*\*Framework|\n\*\*Personalization)/);
+          if (!m) return { pass: false, score: 0, reason: 'cannot extract body to verify count' };
+          const actual = m[1].trim().split(/\s+/).filter(Boolean).length;
+          const diff = Math.abs(actual - parseInt(stated[1], 10));
+          if (diff > 10) return { pass: false, score: 0, reason: 'stated ' + stated[1] + ' words, actual ' + actual };
+          return { pass: true, score: 1, reason: 'stated count honest (off by ' + diff + ')' };
+      - type: llm-rubric
+        metric: quality
+        value: >-
+          The first line is about Dana specifically (her PyCon talk / the
+          40-minute CI pipeline / flaky tests costing a day a week), not about
+          the sender. Exactly one concrete, small CTA. The proof point used
+          (Cardinal Labs, 60%) comes from the provided context; nothing about
+          her or her company is fabricated beyond what was given. Subject is
+          plainly related to the body, no bait, no fake "Re:".
+  - description: "follow-up #2 - value-add pattern, 30-75 words, no guilt phrases"
+    vars:
+      skill: file://../../skills/follow-up/SKILL.md
+      request: file://cases/follow-2.txt
+    assert:
+      - type: javascript
+        metric: contract
+        value: |
+          const m = output.match(/Subject:([^\n]*)\n([\s\S]*?)(?:\n\*\*|$)/);
+          if (!m) return { pass: false, score: 0, reason: 'no Subject line found' };
+          const body = m[2].trim();
+          const words = body.split(/\s+/).filter(Boolean).length;
+          const problems = [];
+          if (words < 20 || words > 80) problems.push('body is ' + words + ' words (rule: 30-75)');
+          const banned = [/just checking in/i, /wanted to follow up/i, /haven'?t heard back/i, /I'?m sure you'?re busy/i, /circling back/i];
+          for (const re of banned) if (re.test(body)) problems.push('dead phrase: ' + re);
+          if (problems.length) return { pass: false, score: 0, reason: problems.join('; ') };
+          return { pass: true, score: 1, reason: 'body ' + words + ' words, no dead phrases' };
+      - type: llm-rubric
+        metric: quality
+        value: >-
+          This is the value-add pattern: it leads with the new Cardinal Labs
+          case study (something genuinely useful), briefly recalls the original
+          context so Dana knows who this is, and makes one CTA that is the same
+          size or smaller than the original 15-minute ask. It does not resend
+          or paraphrase the first email, does not guilt her about the silence,
+          and invents no urgency or deadline.

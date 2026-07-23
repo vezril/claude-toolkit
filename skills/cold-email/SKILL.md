@@ -26,7 +26,7 @@ If any piece is missing, ask for it before drafting. If the user has no genuine 
 
 ## Hard Rules
 
-1. **50-125 words.** Shorter wins.
+1. **50-125 words.** Shorter wins. Enforce it structurally: 2-3 short paragraphs of at most 2 sentences each, plus the CTA line — respect that shape and the cap takes care of itself. Count the body words before finalizing; over 125, cut.
 2. **Subject: 3-5 words**, lowercase, plainly related to the body — never bait-and-switch.
 3. **First line is about them**, referencing something specific and true. No "I hope this finds you well", no "My name is...".
 4. **One CTA**, concrete and small ("worth a 15-min call Thursday?" — not "let me know your thoughts").
@@ -42,6 +42,8 @@ If any piece is missing, ask for it before drafting. If the user has no genuine 
 A specific reason for emailing *this* person, evidence of two minutes of real research, a clear "what's in it for them", and zero hype words.
 
 ## Output Format
+
+Reply in exactly this order — the first line of your reply is the Subject line, and the Framework/Personalization/Word count notes come after the email, never before:
 
 ```
 Subject: [subject line]

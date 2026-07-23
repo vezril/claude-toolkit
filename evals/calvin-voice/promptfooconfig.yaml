@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "calvin-voice on Sonnet - measurable voice fingerprints plus register fit"
+prompts:
+  - file://prompt.txt
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config:
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 5
+defaultTest:
+  vars:
+    skill: file://../../skills/calvin-voice/SKILL.md
+    exemplars: file://../../skills/calvin-voice/references/exemplars.md
+  options:
+    provider:
+      id: anthropic:claude-agent-sdk
+      config:
+        model: sonnet
+        apiKeyRequired: false
+        max_turns: 5
+  assert:
+    # The deterministic fingerprints: no em dashes, no semicolons, no AI stock phrases.
+    - type: javascript
+      metric: fingerprint
+      value: |
+        const problems = [];
+        if (output.includes('—')) problems.push('contains an em dash');
+        if (/;/.test(output.replace(/&[a-z]+;/g, ''))) problems.push('contains a semicolon');
+        const banned = [/\bdelve\b/i, /\bmoreover\b/i, /\bfurthermore\b/i, /\bcrucially\b/i, /it'?s worth noting/i, /in conclusion/i, /\btapestry\b/i, /in today'?s/i, /not only .{1,40} but also/i];
+        for (const re of banned) if (re.test(output)) problems.push('banned phrase: ' + re);
+        if (problems.length) return { pass: false, score: 0, reason: problems.join('; ') };
+        return { pass: true, score: 1, reason: 'no em dashes, no semicolons, no stock phrases' };
+    # Sentence rhythm: short and varied, per the measured voice profile.
+    - type: javascript
+      metric: fingerprint
+      value: |
+        const prose = output.split('\n').filter(l => !/^\s*[-*#>|]/.test(l)).join(' ');
+        const sentences = prose.split(/[.!?]+\s/).map(s => s.trim()).filter(s => s.split(/\s+/).length > 1);
+        if (sentences.length < 3) return { pass: true, score: 1, reason: 'too few sentences to measure' };
+        const lens = sentences.map(s => s.split(/\s+/).length);
+        const avg = lens.reduce((a,b)=>a+b,0)/lens.length;
+        const short = lens.filter(n => n <= 10).length / lens.length;
+        const max = Math.max(...lens);
+        const problems = [];
+        if (avg > 20) problems.push('avg sentence length ' + avg.toFixed(1) + ' (voice is ~14)');
+        if (short < 0.2) problems.push('only ' + Math.round(short*100) + '% short sentences (voice is ~45%)');
+        if (max > 40) problems.push('a ' + max + '-word sentence');
+        if (problems.length) return { pass: false, score: 0, reason: problems.join('; ') };
+        return { pass: true, score: 1, reason: 'avg ' + avg.toFixed(1) + ' words, ' + Math.round(short*100) + '% short' };
+tests:
+  - description: "notes register - concept note"
+    vars: { task: file://cases/task-notes.txt }
+    assert:
+      - type: llm-rubric
+        metric: register
+        value: >-
+          Reads like a plain personal vault note: starts with the point (no
+          windup or scene-setting), small paragraphs of one idea each, concrete
+          functional diction, an example or consequence rather than abstraction.
+          Reasoning is written as prose, not bulleted. No chatbot framing, no
+          preamble, no closing offer.
+  - description: "guide register - how-to with real steps"
+    vars: { task: file://cases/task-guide.txt }
+    assert:
+      - type: llm-rubric
+        metric: register
+        value: >-
+          Instructional and neutral, leaning on "you". The actual steps may be a
+          bulleted or numbered list (that is a genuine enumeration); any
+          explanation around them is prose. Plain diction, no hype adjectives,
+          starts with the point.
+  - description: "journal register - short Discord reply to a friend"
+    vars: { task: file://cases/task-journal.txt }
+    assert:
+      - type: llm-rubric
+        metric: register
+        value: >-
+          Short and casual, first person, sounds like a message typed to a
+          friend: contractions, maybe an exclamation, all the real status facts
+          present (first half ring glued, second half next weekend, months of
+          settling, then bearing edges). Not formatted as a letter, no bullets,
+          no sign-off block.

@@ -1,0 +1,70 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "pr-description on Sonnet - format, full coverage of the diff, nothing invented"
+# NOTE: this skill lives in ~/.claude/skills/pr-description; cases/skill-snapshot.md
+# is the frozen copy this suite tests.
+prompts:
+  - file://prompt.txt
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config:
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 5
+defaultTest:
+  vars:
+    skill: file://cases/skill-snapshot.md
+  options:
+    provider:
+      id: anthropic:claude-agent-sdk
+      config:
+        model: sonnet
+        apiKeyRequired: false
+        max_turns: 5
+tests:
+  - description: "retry-policy branch - modified, deleted, and added files all covered"
+    vars:
+      branch: fix/retry-backoff-cap
+      commits: |
+        - Cap exponential backoff at MAX_DELAY and raise retry budget
+        - Remove unused legacy linear backoff
+      diff: file://cases/retry-diff.txt
+    assert:
+      - type: javascript
+        metric: contract
+        value: |
+          const problems = [];
+          for (const s of ['## What', '## Why', '## Changes']) {
+            if (!output.includes(s)) problems.push('missing section ' + s);
+          }
+          const what = (output.split('## What')[1] || '').split('##')[0].trim();
+          const sentences = what.split(/[.!?]+\s/).filter(x => x.trim().length > 3);
+          if (sentences.length > 2) problems.push('## What is ' + sentences.length + ' sentences (should be ~1)');
+          if (problems.length) return { pass: false, score: 0, reason: problems.join('; ') };
+          return { pass: true, score: 1, reason: 'format ok' };
+      # Coverage: every file in the diff appears; the deletion is called out.
+      - type: javascript
+        metric: coverage
+        value: |
+          const problems = [];
+          for (const f of ['backoff.py', 'legacy_backoff.py']) {
+            if (!output.includes(f)) problems.push('file not mentioned: ' + f);
+          }
+          // The skill requires naming deleted/renamed files; new tests may be
+          // described without the filename.
+          if (!/\btests?\b/i.test(output)) problems.push('added tests not mentioned at all');
+          if (!/delet|remov/i.test(output)) problems.push('deletion not called out');
+          if (problems.length) return { pass: false, score: 0, reason: problems.join('; ') };
+          return { pass: true, score: 1, reason: 'all files covered, deletion noted' };
+      - type: llm-rubric
+        metric: fidelity
+        value: >-
+          Every bullet in ## Changes traces to something actually in the diff
+          (jitter 0.2 to 0.35, retries 3 to 5, delay cap via MAX_DELAY, debug
+          logging, exhausted_message property, legacy file deleted, new tests).
+          Nothing is invented: no claims about performance results, tickets,
+          reviews, or behavior the diff does not show. The ## Why is plausible
+          from the diff and commits without fabricating incident details. Note:
+          the deleted file's docstring says "unused since the v2 client", so
+          mentioning the v2 client or the file being dead code IS grounded in
+          the diff, not fabricated.
