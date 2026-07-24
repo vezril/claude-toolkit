@@ -36,6 +36,10 @@ Design / modeling:
 - **`akka-architect.md`** — designs and reviews Akka systems on the **Core** libraries (actors, cluster, persistence, streams) plus DDD and EventStorming.
 - **`akka-sdk-architect.md`** — designs and reviews **Akka SDK** (Java) services — choosing components (agents, entities, views, workflows, endpoints, consumers, timed actions) and the api/application/domain layout.
 
+Adversarial validation:
+
+- **`adversarial-validator.md`** — cross-examines a finding/analysis/fix with a refute-don't-confirm mandate and full code/log access; returns REFUTED / WEAKENED / SURVIVED with an attack log. Invoked via the `cross-examine` skill at decision gates.
+
 Agentic SDLC team:
 
 - **`sdlc-orchestrator.md`** — drives a feature through analysis → planning → solutioning → implementation; opens the feature's OpenSpec change at Solutioning (`openspec new change` + proposal.md) and names `openspec archive` as the human-triggered close-out; delegates to the specialists, gates handoffs (readiness = lint-story.py **and** `openspec validate`, either failure short-circuits), keeps a human in the loop (plans/routes, doesn't write the content artifacts). Supports an opt-in **unattended mode** (trust rung 1: CI-triggered via `templates/unattended/`, mechanical gates + refuting review, ends at a PR — merge and archive stay human).

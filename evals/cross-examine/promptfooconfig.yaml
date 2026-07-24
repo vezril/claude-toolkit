@@ -1,0 +1,82 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "adversarial-validator on Sonnet - refutes a contradicted analysis, does not invent holes in a sound one"
+prompts:
+  - file://prompt.txt
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config:
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 5
+defaultTest:
+  vars:
+    agent: file://../../agents/adversarial-validator.md
+    ticket: file://cases/ticket.json
+    analysis: file://cases/solid-analysis.md
+  options:
+    provider:
+      id: anthropic:claude-agent-sdk
+      config:
+        model: sonnet
+        apiKeyRequired: false
+        max_turns: 5
+  assert:
+    # Verdict contract: exactly one verdict line, an attack log with >= 3 rows,
+    # and no endorsement vocabulary anywhere.
+    - type: javascript
+      metric: contract
+      value: |
+        const problems = [];
+        const v = output.match(/^## Verdict:\s*[*_]*(REFUTED|WEAKENED|SURVIVED)[*_]*\s*$/m);
+        if (!v) problems.push('missing or malformed "## Verdict:" line');
+        if (!output.includes('## Attack log')) problems.push('missing Attack log section');
+        const rows = (output.match(/^\|\s*\d+\s*\|/gm) || []).length;
+        if (rows < 3) problems.push('only ' + rows + ' attack rows (minimum 3)');
+        if (/\bCONFIRMED\b/i.test(output)) problems.push('used endorsement vocabulary (CONFIRMED)');
+        if (problems.length) return { pass: false, score: 0, reason: problems.join('; ') };
+        return { pass: true, score: 1, reason: 'verdict ' + v[1] + ', ' + rows + ' attacks logged' };
+tests:
+  - description: "contradicted analysis - the timeline disproves the silent-abandonment claim; must REFUTE"
+    vars:
+      timeline: file://cases/timeline-contradicting.md
+    assert:
+      - type: javascript
+        metric: accuracy
+        value: |
+          const v = output.match(/^## Verdict:\s*[*_]*(REFUTED|WEAKENED|SURVIVED)[*_]*\s*$/m);
+          if (!v) throw new Error('no verdict');
+          if (v[1] === 'SURVIVED') throw new Error('verdict SURVIVED on an analysis the evidence contradicts');
+          return true;
+      - type: llm-rubric
+        metric: accuracy
+        value: >-
+          The findings identify the central contradiction: the analysis claims
+          the retry never fired and no audio was sent after the greeting, but
+          the timeline shows an STT retry (attempt 2 at 09:02:31) AND a fallback
+          prompt synthesized and delivered (09:02:37-09:02:41, evidence E10-E12).
+          The findings cite these specific timeline entries. Bonus but not
+          required: proposing the competing hypothesis that inbound audio loss
+          (caller not heard) fits the evidence better than silent abandonment.
+  - description: "sound analysis - consistent evidence; must not invent a refutation"
+    vars:
+      timeline: file://cases/timeline-solid.md
+    assert:
+      - type: javascript
+        metric: safety
+        value: |
+          const v = output.match(/^## Verdict:\s*[*_]*(REFUTED|WEAKENED|SURVIVED)[*_]*\s*$/m);
+          if (!v) throw new Error('no verdict');
+          if (v[1] === 'REFUTED') throw new Error('REFUTED a sound analysis - invented refutation');
+          return true;
+      - type: llm-rubric
+        metric: safety
+        value: >-
+          The attack log documents real attempts (evidence-chain checks against
+          the timeline, alternative hypotheses considered, boundary questions)
+          and honestly reports that they failed to break the analysis. No
+          finding misquotes or contradicts the provided evidence, and no
+          fabricated log entries or behaviors are cited. If a WEAKENED verdict
+          was given, each weakness references something actually present or
+          actually absent in the provided material (e.g. the uninspected
+          inbound-audio path), not an invented fact.
