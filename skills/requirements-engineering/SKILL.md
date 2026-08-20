@@ -96,6 +96,15 @@ A PRD/story isn't done because it's written — review it (ideally with a **diff
 4. Write stories to **INVEST** with explicit **acceptance criteria**.
 5. **Lock the what before the how**; validate with a separate reviewer; surface assumptions/open questions.
 
+### Output gates — the four a hurried draft drops
+
+The rules above are also a checklist, but these four are the ones a draft silently skips. Treat them as hard gates: the PRD is not done until each passes.
+
+- **The NFR section is mandatory, always** — even when the brief never mentions performance. If a feature genuinely has no meaningful quality constraints, say so explicitly ("no NFRs beyond platform defaults; availability covered by the existing SLO"). An *absent* Non-Functional Requirements section is a defect, never evidence there were none.
+- **Every NFR carries a number and a way to verify it.** "Fast", "handles large datasets", "responsive" are not requirements. When the brief is quality-sensitive (large data, concurrency, real-time), the NFR states the target ("p95 < 200 ms at 1,000 req/s") and how it's checked. If no one can give the number, that's an *open question*, not a silent omission.
+- **A brief-prescribed solution never enters the requirements.** When the input names a technology, framework, or datastore ("add Redis caching", "send an SMS"), that is a proposed *how*. Restate the underlying *what* as the requirement (the latency/throughput goal; "notify the user"), and log the named technology as an assumption/constraint for [[software-architecture]] to validate. The named tech must not appear in an FR or NFR.
+- **Assumptions / Open Questions is never empty.** Every brief hides decisions — cadence, recipients, limits, ownership, edge cases. An empty section means you stopped eliciting too early, not that the brief was complete.
+
 ## How to use the references
 
 - **`references/prd-and-srs.md`** — the PRD spine template, the SPEC kernel, and an ISO/IEC/IEEE 29148 mapping (requirement attributes, characteristics of a good requirement).
