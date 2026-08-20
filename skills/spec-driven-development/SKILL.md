@@ -129,6 +129,13 @@ BMAD's SPEC kernel (above) locks intent for *new* work; the **OpenSpec** framewo
 5. **Shard** large docs; give each agent only the context it needs.
 6. For **brownfield**, keep **living specs** in the repo and express work as **deltas** (ADDED/MODIFIED/REMOVED); adopt **OpenSpec** rather than reinventing it.
 
+### Output gates — two the anti-patterns above don't stop on their own
+
+Listing "HOW in the WHAT" and "depends on chat history" as anti-patterns isn't enough; a draft still commits them when the *input* invites it. Treat these as hard gates on every story you emit:
+
+- **Keep the HOW out of the story's WHAT.** When the input *suggests* a technology, library, or datastore ("cache it in Redis, key by a JWT hash", "send it over SMS"), the **Story statement and Acceptance Criteria stay implementation-free** — they state observable behavior (latency, freshness, "the user is notified"), never the named mechanism. Put the suggested technology in **Dev Notes** as a proposal for [[software-architecture]] to validate. A capability id in an AC, not a product name.
+- **The story is self-contained — it never points at the conversation.** A fresh-context agent has no chat history, so phrases like "as discussed", "as mentioned above", "the report above", or "the tweak {person} mentioned" reference nothing. **Restate the actual content inline** and cite the exact `[Source: path#id]`. If the needed detail isn't in a citable artifact, raise it as an open question — do not paper over it with a reference to a conversation.
+
 ## Related
 
 - [[requirements-engineering]] — the PRD/SRS and elicitation upstream of the spec.
