@@ -214,6 +214,229 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 Each skill is a folder with a `SKILL.md` (YAML frontmatter `name` + `description`, then the body); larger skills add `references/*.md` loaded on demand.
 
+## Skill evaluation (EDD) status
+
+Every skill in the repo, with evaluation-driven-development (EDD) results where a skill has been put through a deterministic promptfoo eval suite. Untested skills are listed with blank results. Scores are N=3-per-case majority against a deterministic rubric (no LLM judge); "naive baseline" is the task with no skill loaded, "with skill" is the real `SKILL.md` embedded. Full suites and iteration logs live in `promptfoo/skill-evals/<skill>/`.
+
+| Skill | EDD naive baseline | With skill | Outcome |
+|---|---|---|---|
+| `6502-assembly` |  |  |  |
+| `agent-interoperability` |  |  |  |
+| `agentic-workflows` |  |  |  |
+| `ai-layoff-radar` |  |  |  |
+| `akka` |  |  |  |
+| `akka-actors` |  |  |  |
+| `akka-cluster` |  |  |  |
+| `akka-diagnostics` |  |  |  |
+| `akka-discovery` |  |  |  |
+| `akka-distributed-cluster` |  |  |  |
+| `akka-edge` |  |  |  |
+| `akka-grpc` |  |  |  |
+| `akka-http` |  |  |  |
+| `akka-insights` |  |  |  |
+| `akka-management` |  |  |  |
+| `akka-persistence` |  |  |  |
+| `akka-persistence-plugins` |  |  |  |
+| `akka-projections` |  |  |  |
+| `akka-sdk` |  |  |  |
+| `akka-sdk-agents` |  |  |  |
+| `akka-sdk-consumers` |  |  |  |
+| `akka-sdk-endpoints` |  |  |  |
+| `akka-sdk-event-sourced-entities` |  |  |  |
+| `akka-sdk-key-value-entities` |  |  |  |
+| `akka-sdk-timed-actions` |  |  |  |
+| `akka-sdk-views` |  |  |  |
+| `akka-sdk-workflows` |  |  |  |
+| `akka-serialization` |  |  |  |
+| `akka-streams` |  |  |  |
+| `akka-utilities` |  |  |  |
+| `alpakka` |  |  |  |
+| `ansible` |  |  |  |
+| `apple-dev` |  |  |  |
+| `calvin-voice` | 79% | 100% | Rhythm lift (mechanical-tell scoring), no patch |
+| `canadian-business-registration` |  |  |  |
+| `canadian-criminal-code` |  |  |  |
+| `canadian-human-rights-act` |  |  |  |
+| `canadian-registered-accounts` |  |  |  |
+| `clean-code` | 96% | 100% | Base-strong; marginal judgment lift, no patch |
+| `cold-email` | 100% | 96% | Base-strong (wash within noise), no patch |
+| `compiler-construction` |  |  |  |
+| `computer-networks` |  |  |  |
+| `cooklang` |  |  |  |
+| `cqrs-event-sourcing` |  |  |  |
+| `cross-examine` |  |  |  |
+| `cryptography` |  |  |  |
+| `design-patterns` |  |  |  |
+| `detect-ai` |  |  |  |
+| `devops` |  |  |  |
+| `docker` |  |  |  |
+| `dockerhub-setup` |  |  |  |
+| `domain-driven-design` |  |  |  |
+| `event-storming` |  |  |  |
+| `flipper-unleashed` |  |  |  |
+| `flipper-zero` |  |  |  |
+| `follow-up` |  |  |  |
+| `functional-programming` |  |  |  |
+| `gad-7` |  |  |  |
+| `game-ai` |  |  |  |
+| `game-audio` |  |  |  |
+| `game-design` |  |  |  |
+| `game-development` |  |  |  |
+| `game-graphics` |  |  |  |
+| `game-math` |  |  |  |
+| `game-physics` |  |  |  |
+| `game-production` |  |  |  |
+| `game-programming-patterns` |  |  |  |
+| `gcp-alloydb` |  |  |  |
+| `gcp-api-gateway` |  |  |  |
+| `gcp-apigee` |  |  |  |
+| `gcp-app-engine` |  |  |  |
+| `gcp-app-hub` |  |  |  |
+| `gcp-application-integration` |  |  |  |
+| `gcp-artifact-analysis` |  |  |  |
+| `gcp-artifact-registry` |  |  |  |
+| `gcp-bigquery` |  |  |  |
+| `gcp-bigtable` |  |  |  |
+| `gcp-binary-authorization` |  |  |  |
+| `gcp-buildpacks` |  |  |  |
+| `gcp-certificate-manager` |  |  |  |
+| `gcp-cloud-build` |  |  |  |
+| `gcp-cloud-cdn` |  |  |  |
+| `gcp-cloud-code` |  |  |  |
+| `gcp-cloud-dns` |  |  |  |
+| `gcp-cloud-domains` |  |  |  |
+| `gcp-cloud-functions` |  |  |  |
+| `gcp-cloud-ids` |  |  |  |
+| `gcp-cloud-kms` |  |  |  |
+| `gcp-cloud-logging` |  |  |  |
+| `gcp-cloud-monitoring` |  |  |  |
+| `gcp-cloud-nat` |  |  |  |
+| `gcp-cloud-router` |  |  |  |
+| `gcp-cloud-run` |  |  |  |
+| `gcp-cloud-scheduler` |  |  |  |
+| `gcp-cloud-sdk` |  |  |  |
+| `gcp-cloud-sql` |  |  |  |
+| `gcp-cloud-storage` |  |  |  |
+| `gcp-cloud-tasks` |  |  |  |
+| `gcp-cloud-trace` |  |  |  |
+| `gcp-cloud-vpn` |  |  |  |
+| `gcp-compute-engine` |  |  |  |
+| `gcp-dataflow` |  |  |  |
+| `gcp-datastore` |  |  |  |
+| `gcp-endpoints` |  |  |  |
+| `gcp-error-reporting` |  |  |  |
+| `gcp-eventarc` |  |  |  |
+| `gcp-firestore` |  |  |  |
+| `gcp-gke` |  |  |  |
+| `gcp-iam` |  |  |  |
+| `gcp-iap` |  |  |  |
+| `gcp-interconnect` |  |  |  |
+| `gcp-lakehouse` |  |  |  |
+| `gcp-load-balancing` |  |  |  |
+| `gcp-looker` |  |  |  |
+| `gcp-media-cdn` |  |  |  |
+| `gcp-memorystore-redis` |  |  |  |
+| `gcp-pubsub` |  |  |  |
+| `gcp-secret-manager` |  |  |  |
+| `gcp-secure-web-proxy` |  |  |  |
+| `gcp-spanner` |  |  |  |
+| `gcp-vpc` |  |  |  |
+| `gcp-vpc-service-controls` |  |  |  |
+| `gcp-workflows` |  |  |  |
+| `git` |  |  |  |
+| `git-ship` |  |  |  |
+| `github-actions` |  |  |  |
+| `github-actions-python-ci` |  |  |  |
+| `github-actions-scala-ci` |  |  |  |
+| `github-branch-protection` |  |  |  |
+| `github-issue-fix-flow` |  |  |  |
+| `github-new-repo` |  |  |  |
+| `godot` |  |  |  |
+| `hackrf-one` |  |  |  |
+| `home-assistant` |  |  |  |
+| `html-css` |  |  |  |
+| `humanize` | 92% | 96% | Style/edit skill; de-cliché lift (mechanical tells), no patch |
+| `information-theory` |  |  |  |
+| `ios-debugger-agent` |  |  |  |
+| `javascript` |  |  |  |
+| `lambda-calculus` |  |  |  |
+| `malbolge` |  |  |  |
+| `markdown` |  |  |  |
+| `merge` |  |  |  |
+| `modern-java` |  |  |  |
+| `morning` |  |  |  |
+| `multiplayer-networking` |  |  |  |
+| `native-app-profiling` |  |  |  |
+| `network-engineering` |  |  |  |
+| `network-security` |  |  |  |
+| `nextjs` |  |  |  |
+| `nginx` |  |  |  |
+| `nodejs` |  |  |  |
+| `openclaw-agents` |  |  |  |
+| `operating-systems` |  |  |  |
+| `os-concurrency` |  |  |  |
+| `os-file-systems-and-persistence` |  |  |  |
+| `os-io-and-devices` |  |  |  |
+| `os-memory-and-virtual-memory` |  |  |  |
+| `os-processes-and-scheduling` |  |  |  |
+| `os-security` |  |  |  |
+| `os-virtualization` |  |  |  |
+| `osdev-kernel` |  |  |  |
+| `personal-finance` |  |  |  |
+| `phq-9` |  |  |  |
+| `portapack-mayhem` |  |  |  |
+| `prime` |  |  |  |
+| `procedural-generation` |  |  |  |
+| `prompt-edd` |  |  |  |
+| `promptfoo` |  |  |  |
+| `python` |  |  |  |
+| `python-package` |  |  |  |
+| `python-tests` |  |  |  |
+| `python-uv-build` |  |  |  |
+| `quebec-charter-rights` |  |  |  |
+| `quebec-civil-code` |  |  |  |
+| `quebec-housing-rights` |  |  |  |
+| `quebec-legal-system` |  |  |  |
+| `quebec-municipal-law` |  |  |  |
+| `react` |  |  |  |
+| `readability` |  |  |  |
+| `release-app-store-changelog` |  |  |  |
+| `release-macos-spm-packaging` |  |  |  |
+| `repo-starter-docs` |  |  |  |
+| `requirements-engineering` | 67% | 100% | ✅ Shipped (PR #46) — 3 measured gaps patched |
+| `scala` |  |  |  |
+| `scala-pekko-server` |  |  |  |
+| `scala-pekko-tests` |  |  |  |
+| `scala-sbt-build` |  |  |  |
+| `sdlc-orchestration` |  |  |  |
+| `secure-coding` | 100% | 100% | Base-model-strong; skill precision-safe (no over-flag) |
+| `site-reliability-engineering` |  |  |  |
+| `software-architecture` | 92% | 100% | Base-strong; +trade-off discipline, no patch |
+| `software-design` |  |  |  |
+| `spec-driven-development` | 0% | 100% | ✅ Shipped (PR #47) — 2 measured gaps patched |
+| `swgoh-expert` |  |  |  |
+| `swift-concurrency-expert` |  |  |  |
+| `swiftui-liquid-glass` |  |  |  |
+| `swiftui-performance-audit` |  |  |  |
+| `swiftui-ui-patterns` |  |  |  |
+| `swiftui-view-refactor` |  |  |  |
+| `tcp-ip` |  |  |  |
+| `tdd` | 46% | 100% | Big lift; skill already optimal, no patch |
+| `terraform` |  |  |  |
+| `test-strategy` | 100% | 100% | Base-model-strong; skill neutral, no patch |
+| `toolkit-archive` |  |  |  |
+| `ttrpg-storytelling` |  |  |  |
+| `typescript` |  |  |  |
+| `ux-design` |  |  |  |
+| `vault-graphrag` |  |  |  |
+| `vue` |  |  |  |
+| `web-development` |  |  |  |
+| `webassembly` |  |  |  |
+| `webkit` |  |  |  |
+| `webui-quickfix-demo` |  |  |  |
+| `wifi-pineapple` |  |  |  |
+| `word-stats` |  |  |  |
+
 ## Subagents
 
 In `agents/` (see [`agents/README.md`](agents/README.md) for the frontmatter spec):
