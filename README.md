@@ -355,7 +355,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `hackrf-one` |  |  |  |
 | `home-assistant` |  |  |  |
 | `html-css` |  |  |  |
-| `humanize` |  |  |  |
+| `humanize` | 92% | 96% | Style/edit skill; de-cliché lift (mechanical tells), no patch |
 | `information-theory` |  |  |  |
 | `ios-debugger-agent` |  |  |  |
 | `javascript` |  |  |  |
@@ -423,7 +423,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `tcp-ip` |  |  |  |
 | `tdd` | 46% | 100% | Big lift; skill already optimal, no patch |
 | `terraform` |  |  |  |
-| `test-strategy` |  |  |  |
+| `test-strategy` | 100% | 100% | Base-model-strong; skill neutral, no patch |
 | `toolkit-archive` |  |  |  |
 | `ttrpg-storytelling` |  |  |  |
 | `typescript` |  |  |  |
