@@ -92,8 +92,8 @@ Read job **logs** (expand steps); enable **step debug logging** (`ACTIONS_STEP_D
 ## Security hardening (treat workflows as production code)
 
 - **Least-privilege `GITHUB_TOKEN`** — set `permissions:` to the minimum; default read-only.
-- **Pin third-party actions to a full SHA**, not a moving tag; review and update deliberately (Dependabot can bump them).
-- **Beware `pull_request_target`** and `workflow_run` — they run with **write token + secrets** in the context of the **base** repo while potentially handling **untrusted fork** code. Never check out and execute untrusted PR code with secrets available.
+- **Pin third-party actions to a full SHA** — the complete 40-hex-character commit SHA (`@8f4b7f84864484a7bf31766abe9204da3cbe65b3  # v3`), not a moving tag and not a truncated SHA; review and update deliberately (Dependabot can bump them).
+- **Beware `pull_request_target`** and `workflow_run` — they run with **write token + secrets** in the context of the **base** repo while potentially handling **untrusted fork** code. Never check out and execute untrusted PR code with secrets available. **The safe fork-PR pattern is two workflows: run the untrusted code under plain `pull_request` (read-only token, no secrets), then post results from a separate `workflow_run`-triggered workflow that never checks out the PR's code. Never combine `pull_request_target` with a checkout of `github.event.pull_request.head` — that is the classic "pwnable workflow", full stop.**
 - **Script injection**: never interpolate untrusted input (`${{ github.event.issue.title }}`, PR titles/branch names) directly into `run:` shells — pass via `env:` and reference `"$VAR"` quoted, so an attacker can't inject shell.
 - Don't `echo` secrets; rely on masking but don't depend on it. Restrict who can change workflows; protect `main`. Scope/secure **self-hosted runners** (above).
 
