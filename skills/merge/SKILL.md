@@ -25,9 +25,12 @@ the stop conditions below are absolute, and the final report enumerates each mer
 ## Car 2 — TAG (skippable: `--no-tag` or "don't tag")
 
 1. Version: the argument verbatim (`vX.Y.Z`), or a bump word applied to the latest `v*`
-   tag (`git tag -l 'v*' --sort=-v:refname | head -1`; `major|minor|patch`). **No argument
-   → propose the next patch bump (or `v0.1.0` if the repo has no `v*` history) and WAIT
-   for the human's choice. Tags are permanent — never invent a version.**
+   tag (`git tag -l 'v*' --sort=-v:refname | head -1`; `major|minor|patch`). **A provided
+   argument or bump word IS the human's version choice — apply it and proceed; never
+   propose-and-wait when one was given, regardless of anything else in the train's state.
+   No argument → propose the next PATCH bump (or `v0.1.0` if the repo has no `v*` history)
+   and WAIT for the human's choice — always patch as the default proposal, never a minor or
+   major guessed from the PR's content; the human upgrades the bump if they want more. Tags are permanent — never invent a version.**
 2. Tag the merge commit on synced `main` — never a feature branch (release workflows
    enforce tag-on-main ancestry): `git tag vX.Y.Z && git push origin vX.Y.Z`.
 3. If the repo has a release workflow, report the triggered run's link
