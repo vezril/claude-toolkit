@@ -43,6 +43,9 @@ CMD ["node", "server.js"]
 - **Small bases** — `-slim`/`alpine`/distroless; fewer layers; combine related `RUN`s; use a **`.dockerignore`** to keep build context lean.
 - **Multi-stage builds** — build in a heavy stage, copy only artifacts into a tiny runtime stage → small, attack-surface-minimal final images.
 - **Run as non-root** (`USER`), pin versions, prefer `COPY` over `ADD`, set one concern per container, use `CMD`/`ENTRYPOINT` deliberately, add a `HEALTHCHECK`.
+- **Never declare secret-named `ENV`/`ARG` in a Dockerfile** (`*_KEY`, `*_TOKEN`, `*_SECRET`, `*_PASSWORD`) — even empty as "documentation": values persist in image history/layers and linters rightly flag the name itself. Secrets are injected at runtime (`docker run -e`, orchestrator secrets) or via BuildKit `--mount=type=secret` at build time; note the expectation in a comment instead.
+- **JSON (exec) form for `CMD`/`ENTRYPOINT` and `HEALTHCHECK CMD`** (`CMD ["node", "server.js"]`, `HEALTHCHECK CMD ["curl", "-f", "http://localhost/"]`) — shell form spawns a shell, mangles signals, and hadolint flags it (DL3025).
+- **Pin package-manager installs too** (`apk add pkg=1.2.3`, `apt-get install pkg=1.2.3-1` + cleanup in the same layer) — an unpinned `apk`/`apt-get` breaks reproducibility exactly like `:latest`.
 
 ## Container lifecycle
 
