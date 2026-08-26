@@ -224,9 +224,9 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `agent-interoperability` |  |  |  |  |
 | `agentic-workflows` |  |  |  |  |
 | `ai-layoff-radar` |  |  |  |  |
-| `akka` |  |  |  |  |
-| `akka-actors` |  |  |  |  |
-| `akka-cluster` |  |  |  |  |
+| `akka` | 96% | 100% | sonnet | Routing base-strong; naive omits the serializer from the k8s cluster checklist; no patch |
+| `akka-actors` | 96% | 100% | sonnet | Typed largely base-strong; naive replyTo discipline gap; no patch |
+| `akka-cluster` | 100% | 100% | sonnet | ✅ Shipped — skill-induced regression by omission (Cluster Bootstrap's home module); patched to 100% |
 | `akka-diagnostics` |  |  |  |  |
 | `akka-discovery` |  |  |  |  |
 | `akka-distributed-cluster` |  |  |  |  |
@@ -235,20 +235,20 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `akka-http` |  |  |  |  |
 | `akka-insights` |  |  |  |  |
 | `akka-management` |  |  |  |  |
-| `akka-persistence` |  |  |  |  |
+| `akka-persistence` | 96% | 100% | sonnet | Judgment base-strong; naive misses withEnforcedReplies+StatusReply convention; no patch |
 | `akka-persistence-plugins` |  |  |  |  |
 | `akka-projections` |  |  |  |  |
-| `akka-sdk` |  |  |  |  |
+| `akka-sdk` | 96% | 100% | sonnet | Kalix-lineage catalog known; naive wobbles on the no-@Acl default-deny; no patch |
 | `akka-sdk-agents` |  |  |  |  |
 | `akka-sdk-consumers` |  |  |  |  |
 | `akka-sdk-endpoints` |  |  |  |  |
-| `akka-sdk-event-sourced-entities` |  |  |  |  |
+| `akka-sdk-event-sourced-entities` | 79% | 100% | sonnet | Biggest round-4 floor: naive hallucinates SDK API (deletion/consistency); no patch |
 | `akka-sdk-key-value-entities` |  |  |  |  |
 | `akka-sdk-timed-actions` |  |  |  |  |
 | `akka-sdk-views` |  |  |  |  |
-| `akka-sdk-workflows` |  |  |  |  |
+| `akka-sdk-workflows` | 83% | 100% | sonnet | Naive hallucinates lifecycle API, misses session memory + compensation shape; no patch |
 | `akka-serialization` |  |  |  |  |
-| `akka-streams` |  |  |  |  |
+| `akka-streams` | 100% | 100% | sonnet | Operator catalog fully base-strong incl. jitter + fusion; neutral-safe, no patch |
 | `akka-utilities` |  |  |  |  |
 | `alpakka` |  |  |  |  |
 | `ansible` |  |  |  |  |
@@ -405,8 +405,8 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `repo-starter-docs` | 54% | 100% | sonnet | Biggest round-3 floor: MIT-by-default + honest README template; no patch |
 | `requirements-engineering` | 67% | 100% | sonnet | ✅ Shipped (PR #46) — 3 measured gaps patched |
 | `scala` | 92% | 100% | sonnet | House-convention floor (`from` factories, AnyFunSpec); no patch |
-| `scala-pekko-server` |  |  |  |  |
-| `scala-pekko-tests` |  |  |  |  |
+| `scala-pekko-server` | n/a (script) | pair harness green | — | Deterministic pair contract harness (territory, purity, components, refusals) |
+| `scala-pekko-tests` | n/a (script) | pair harness green | — | Deterministic pair contract harness (pkg-from-production, test territory, spec coverage) |
 | `scala-sbt-build` |  |  |  |  |
 | `sdlc-orchestration` | 100% | 100% | sonnet | Base-strong; governance inferable from stated facts; neutral-safe, no patch |
 | `secure-coding` | 100% | 100% | sonnet | Base-model-strong; skill precision-safe (no over-flag) |
