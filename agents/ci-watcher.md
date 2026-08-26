@@ -71,6 +71,11 @@ Rules: every field present on every report — `failed: -` on a single line when
 failed (parsers rely on every field existing). Values verbatim from `gh` output — never invent a conclusion,
 a job name, or an error line. On `status: not_found`, `url: -` and
 `conclusion: -` always — never echo a constructed or attempted URL as if it were a run link
-(a parser would read it as real). If a `gh` call itself errors (auth, no such repo), report
-`status: not_found` with the error's first line as `note: <line>`.
+(a parser would read it as real). **Say WHY it wasn't found** — "CI never started" is a
+different failure from "no such thing", and callers debug them differently. Check
+`gh workflow list -R <repo>` once and pick the note:
+- repo has NO workflows at all → `note: repo has no workflows — nothing can run`
+- workflows exist but no run matches the ref/id → `note: workflows exist but no run was
+  ever dispatched for <ref> — check triggers/paths filters`
+- the `gh` call itself errored (auth, no such repo) → `note: <the error's first line>`.
 Nothing after the report block — it is your return value.
