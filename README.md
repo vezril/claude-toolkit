@@ -216,226 +216,226 @@ Each skill is a folder with a `SKILL.md` (YAML frontmatter `name` + `description
 
 ## Skill evaluation (EDD) status
 
-Every skill in the repo, with evaluation-driven-development (EDD) results where a skill has been put through a deterministic promptfoo eval suite. Untested skills are listed with blank results. Scores are N=3-per-case majority against a deterministic rubric (no LLM judge); "naive baseline" is the task with no skill loaded, "with skill" is the real `SKILL.md` embedded. Full suites and iteration logs live in `promptfoo/skill-evals/<skill>/`. (The `ci-watcher` agent has its own tool-using eval suite there as well: naive 29% → definition 100%.)
+Every skill in the repo, with evaluation-driven-development (EDD) results where a skill has been put through a deterministic promptfoo eval suite. Untested skills are listed with blank results. Scores are N=3-per-case majority against a deterministic rubric (no LLM judge); "naive baseline" is the task with no skill loaded, "with skill" is the real `SKILL.md` embedded. Full suites and iteration logs live in `promptfoo/skill-evals/<skill>/`. "Eval model" is the Claude model the suite's provider ran (`claude -p --model <m>`) — the baseline for any future try-it-on-a-cheaper-model optimization; "—" marks deterministic script harnesses with no model arm. (The `ci-watcher` agent has its own tool-using eval suite there as well, run on **haiku** by design: naive 29% → definition 100%.)
 
-| Skill | EDD naive baseline | With skill | Outcome |
-|---|---|---|---|
-| `6502-assembly` |  |  |  |
-| `agent-interoperability` |  |  |  |
-| `agentic-workflows` |  |  |  |
-| `ai-layoff-radar` |  |  |  |
-| `akka` |  |  |  |
-| `akka-actors` |  |  |  |
-| `akka-cluster` |  |  |  |
-| `akka-diagnostics` |  |  |  |
-| `akka-discovery` |  |  |  |
-| `akka-distributed-cluster` |  |  |  |
-| `akka-edge` |  |  |  |
-| `akka-grpc` |  |  |  |
-| `akka-http` |  |  |  |
-| `akka-insights` |  |  |  |
-| `akka-management` |  |  |  |
-| `akka-persistence` |  |  |  |
-| `akka-persistence-plugins` |  |  |  |
-| `akka-projections` |  |  |  |
-| `akka-sdk` |  |  |  |
-| `akka-sdk-agents` |  |  |  |
-| `akka-sdk-consumers` |  |  |  |
-| `akka-sdk-endpoints` |  |  |  |
-| `akka-sdk-event-sourced-entities` |  |  |  |
-| `akka-sdk-key-value-entities` |  |  |  |
-| `akka-sdk-timed-actions` |  |  |  |
-| `akka-sdk-views` |  |  |  |
-| `akka-sdk-workflows` |  |  |  |
-| `akka-serialization` |  |  |  |
-| `akka-streams` |  |  |  |
-| `akka-utilities` |  |  |  |
-| `alpakka` |  |  |  |
-| `ansible` |  |  |  |
-| `apple-dev` |  |  |  |
-| `calvin-voice` | 79% | 100% | Rhythm lift (mechanical-tell scoring), no patch |
-| `canadian-business-registration` |  |  |  |
-| `canadian-criminal-code` |  |  |  |
-| `canadian-human-rights-act` |  |  |  |
-| `canadian-registered-accounts` |  |  |  |
-| `clean-code` | 96% | 100% | Base-strong; marginal judgment lift, no patch |
-| `cold-email` | 100% | 96% | Base-strong (wash within noise), no patch |
-| `compiler-construction` |  |  |  |
-| `computer-networks` |  |  |  |
-| `cooklang` |  |  |  |
-| `cqrs-event-sourcing` |  |  |  |
-| `cross-examine` |  |  |  |
-| `cryptography` |  |  |  |
-| `design-patterns` |  |  |  |
-| `detect-ai` |  |  |  |
-| `devops` |  |  |  |
-| `docker` | 83% | 100% | ✅ Shipped (PR #51) — 3 linter-derived practices added (secret ENV, exec form, pinned installs) |
-| `dockerhub-setup` |  |  |  |
-| `domain-driven-design` | 96% | 100% | ✅ Shipped (PR #56) — ubiquitous-language glossary made part of the deliverable |
-| `event-storming` |  |  |  |
-| `flipper-unleashed` |  |  |  |
-| `flipper-zero` |  |  |  |
-| `follow-up` |  |  |  |
-| `functional-programming` | 96% | 100% | Base-strong; skill fixes the impure-shuffle fragility; no patch |
-| `gad-7` |  |  |  |
-| `game-ai` |  |  |  |
-| `game-audio` |  |  |  |
-| `game-design` |  |  |  |
-| `game-development` |  |  |  |
-| `game-graphics` |  |  |  |
-| `game-math` |  |  |  |
-| `game-physics` |  |  |  |
-| `game-production` |  |  |  |
-| `game-programming-patterns` |  |  |  |
-| `gcp-alloydb` |  |  |  |
-| `gcp-api-gateway` |  |  |  |
-| `gcp-apigee` |  |  |  |
-| `gcp-app-engine` |  |  |  |
-| `gcp-app-hub` |  |  |  |
-| `gcp-application-integration` |  |  |  |
-| `gcp-artifact-analysis` |  |  |  |
-| `gcp-artifact-registry` |  |  |  |
-| `gcp-bigquery` |  |  |  |
-| `gcp-bigtable` |  |  |  |
-| `gcp-binary-authorization` |  |  |  |
-| `gcp-buildpacks` |  |  |  |
-| `gcp-certificate-manager` |  |  |  |
-| `gcp-cloud-build` |  |  |  |
-| `gcp-cloud-cdn` |  |  |  |
-| `gcp-cloud-code` |  |  |  |
-| `gcp-cloud-dns` |  |  |  |
-| `gcp-cloud-domains` |  |  |  |
-| `gcp-cloud-functions` |  |  |  |
-| `gcp-cloud-ids` |  |  |  |
-| `gcp-cloud-kms` |  |  |  |
-| `gcp-cloud-logging` |  |  |  |
-| `gcp-cloud-monitoring` |  |  |  |
-| `gcp-cloud-nat` |  |  |  |
-| `gcp-cloud-router` |  |  |  |
-| `gcp-cloud-run` |  |  |  |
-| `gcp-cloud-scheduler` |  |  |  |
-| `gcp-cloud-sdk` |  |  |  |
-| `gcp-cloud-sql` |  |  |  |
-| `gcp-cloud-storage` |  |  |  |
-| `gcp-cloud-tasks` |  |  |  |
-| `gcp-cloud-trace` |  |  |  |
-| `gcp-cloud-vpn` |  |  |  |
-| `gcp-compute-engine` |  |  |  |
-| `gcp-dataflow` |  |  |  |
-| `gcp-datastore` |  |  |  |
-| `gcp-endpoints` |  |  |  |
-| `gcp-error-reporting` |  |  |  |
-| `gcp-eventarc` |  |  |  |
-| `gcp-firestore` |  |  |  |
-| `gcp-gke` |  |  |  |
-| `gcp-iam` |  |  |  |
-| `gcp-iap` |  |  |  |
-| `gcp-interconnect` |  |  |  |
-| `gcp-lakehouse` |  |  |  |
-| `gcp-load-balancing` |  |  |  |
-| `gcp-looker` |  |  |  |
-| `gcp-media-cdn` |  |  |  |
-| `gcp-memorystore-redis` |  |  |  |
-| `gcp-pubsub` |  |  |  |
-| `gcp-secret-manager` |  |  |  |
-| `gcp-secure-web-proxy` |  |  |  |
-| `gcp-spanner` |  |  |  |
-| `gcp-vpc` |  |  |  |
-| `gcp-vpc-service-controls` |  |  |  |
-| `gcp-workflows` |  |  |  |
-| `git` | 96% | 100% | Sole gap: ~50-char imperative subjects; rescue/safety calls base-strong; no patch |
-| `git-ship` | 100% | 100% | Base-strong (universal ship-safety instincts); neutral-safe, no patch |
-| `github-actions` | 83% | 96% | ✅ Shipped (PR #50) — pwn-request safe pattern + SHA-pin phrasing made imperative |
-| `github-actions-python-ci` | 100% | 100% | Guardrails base-strong + deterministic scaffold contract 10/10 (actionlint); no patch |
-| `github-actions-scala-ci` | n/a (script) | 10/10 contract | Deterministic scaffold-contract harness; guardrail layer measured in python-ci |
-| `github-branch-protection` | 67% | 100% | ✅ Shipped (PR #58) — confirm-means-ask guardrail; real house-spec floor |
-| `github-issue-fix-flow` | 88% | 100% | Format-convention floor (--comments intake, fix/issue-N, Closes #N); no patch |
-| `github-new-repo` | 83% | 100% | ✅ Shipped (PR #59) — an extra ask never aborts the authorized creation |
-| `godot` |  |  |  |
-| `hackrf-one` |  |  |  |
-| `home-assistant` |  |  |  |
-| `html-css` |  |  |  |
-| `humanize` | 92% | 96% | Style/edit skill; de-cliché lift (mechanical tells), no patch |
-| `information-theory` |  |  |  |
-| `ios-debugger-agent` |  |  |  |
-| `javascript` |  |  |  |
-| `lambda-calculus` |  |  |  |
-| `malbolge` |  |  |  |
-| `markdown` |  |  |  |
-| `merge` | 96% | 96% | ✅ Shipped (PR #49) — house version rules + over-wait regression fixed |
-| `modern-java` |  |  |  |
-| `morning` | 50% | 100% | 2nd-biggest lift; run exposed the provider skill-contamination bug (isolation rule) |
-| `multiplayer-networking` |  |  |  |
-| `native-app-profiling` |  |  |  |
-| `network-engineering` |  |  |  |
-| `network-security` |  |  |  |
-| `nextjs` |  |  |  |
-| `nginx` |  |  |  |
-| `nodejs` |  |  |  |
-| `openclaw-agents` |  |  |  |
-| `operating-systems` |  |  |  |
-| `os-concurrency` |  |  |  |
-| `os-file-systems-and-persistence` |  |  |  |
-| `os-io-and-devices` |  |  |  |
-| `os-memory-and-virtual-memory` |  |  |  |
-| `os-processes-and-scheduling` |  |  |  |
-| `os-security` |  |  |  |
-| `os-virtualization` |  |  |  |
-| `osdev-kernel` |  |  |  |
-| `personal-finance` |  |  |  |
-| `phq-9` |  |  |  |
-| `portapack-mayhem` |  |  |  |
-| `prime` | 58% | 100% | Biggest round-2 lift: confidence/evidence discipline; no patch |
-| `procedural-generation` |  |  |  |
-| `prompt-edd` |  |  |  |
-| `promptfoo` |  |  |  |
-| `python` | 71% | 100% | Modern-idiom contract lift (pathlib, hints, EAFP); no patch |
-| `python-package` |  |  |  |
-| `python-tests` |  |  |  |
-| `python-uv-build` |  |  |  |
-| `quebec-charter-rights` |  |  |  |
-| `quebec-civil-code` |  |  |  |
-| `quebec-housing-rights` |  |  |  |
-| `quebec-legal-system` |  |  |  |
-| `quebec-municipal-law` |  |  |  |
-| `react` |  |  |  |
-| `readability` |  |  |  |
-| `release-app-store-changelog` |  |  |  |
-| `release-macos-spm-packaging` |  |  |  |
-| `repo-starter-docs` | 54% | 100% | Biggest round-3 floor: MIT-by-default + honest README template; no patch |
-| `requirements-engineering` | 67% | 100% | ✅ Shipped (PR #46) — 3 measured gaps patched |
-| `scala` | 92% | 100% | House-convention floor (`from` factories, AnyFunSpec); no patch |
-| `scala-pekko-server` |  |  |  |
-| `scala-pekko-tests` |  |  |  |
-| `scala-sbt-build` |  |  |  |
-| `sdlc-orchestration` | 100% | 100% | Base-strong; governance inferable from stated facts; neutral-safe, no patch |
-| `secure-coding` | 100% | 100% | Base-model-strong; skill precision-safe (no over-flag) |
-| `site-reliability-engineering` |  |  |  |
-| `software-architecture` | 92% | 100% | Base-strong; +trade-off discipline, no patch |
-| `software-design` |  |  |  |
-| `spec-driven-development` | 0% | 100% | ✅ Shipped (PR #47) — 2 measured gaps patched |
-| `swgoh-expert` |  |  |  |
-| `swift-concurrency-expert` |  |  |  |
-| `swiftui-liquid-glass` |  |  |  |
-| `swiftui-performance-audit` |  |  |  |
-| `swiftui-ui-patterns` |  |  |  |
-| `swiftui-view-refactor` |  |  |  |
-| `tcp-ip` |  |  |  |
-| `tdd` | 46% | 100% | Big lift; skill already optimal, no patch |
-| `terraform` |  |  |  |
-| `test-strategy` | 100% | 100% | Base-model-strong; skill neutral, no patch |
-| `toolkit-archive` |  |  |  |
-| `ttrpg-storytelling` |  |  |  |
-| `typescript` |  |  |  |
-| `ux-design` |  |  |  |
-| `vault-graphrag` |  |  |  |
-| `vue` |  |  |  |
-| `web-development` |  |  |  |
-| `webassembly` |  |  |  |
-| `webkit` |  |  |  |
-| `webui-quickfix-demo` |  |  |  |
-| `wifi-pineapple` |  |  |  |
-| `word-stats` |  |  |  |
+| Skill | EDD naive baseline | With skill | Eval model | Outcome |
+|---|---|---|---|---|
+| `6502-assembly` |  |  |  |  |
+| `agent-interoperability` |  |  |  |  |
+| `agentic-workflows` |  |  |  |  |
+| `ai-layoff-radar` |  |  |  |  |
+| `akka` |  |  |  |  |
+| `akka-actors` |  |  |  |  |
+| `akka-cluster` |  |  |  |  |
+| `akka-diagnostics` |  |  |  |  |
+| `akka-discovery` |  |  |  |  |
+| `akka-distributed-cluster` |  |  |  |  |
+| `akka-edge` |  |  |  |  |
+| `akka-grpc` |  |  |  |  |
+| `akka-http` |  |  |  |  |
+| `akka-insights` |  |  |  |  |
+| `akka-management` |  |  |  |  |
+| `akka-persistence` |  |  |  |  |
+| `akka-persistence-plugins` |  |  |  |  |
+| `akka-projections` |  |  |  |  |
+| `akka-sdk` |  |  |  |  |
+| `akka-sdk-agents` |  |  |  |  |
+| `akka-sdk-consumers` |  |  |  |  |
+| `akka-sdk-endpoints` |  |  |  |  |
+| `akka-sdk-event-sourced-entities` |  |  |  |  |
+| `akka-sdk-key-value-entities` |  |  |  |  |
+| `akka-sdk-timed-actions` |  |  |  |  |
+| `akka-sdk-views` |  |  |  |  |
+| `akka-sdk-workflows` |  |  |  |  |
+| `akka-serialization` |  |  |  |  |
+| `akka-streams` |  |  |  |  |
+| `akka-utilities` |  |  |  |  |
+| `alpakka` |  |  |  |  |
+| `ansible` |  |  |  |  |
+| `apple-dev` |  |  |  |  |
+| `calvin-voice` | 79% | 100% | sonnet | Rhythm lift (mechanical-tell scoring), no patch |
+| `canadian-business-registration` |  |  |  |  |
+| `canadian-criminal-code` |  |  |  |  |
+| `canadian-human-rights-act` |  |  |  |  |
+| `canadian-registered-accounts` |  |  |  |  |
+| `clean-code` | 96% | 100% | sonnet | Base-strong; marginal judgment lift, no patch |
+| `cold-email` | 100% | 96% | sonnet | Base-strong (wash within noise), no patch |
+| `compiler-construction` |  |  |  |  |
+| `computer-networks` |  |  |  |  |
+| `cooklang` |  |  |  |  |
+| `cqrs-event-sourcing` |  |  |  |  |
+| `cross-examine` |  |  |  |  |
+| `cryptography` |  |  |  |  |
+| `design-patterns` |  |  |  |  |
+| `detect-ai` |  |  |  |  |
+| `devops` |  |  |  |  |
+| `docker` | 83% | 100% | sonnet | ✅ Shipped (PR #51) — 3 linter-derived practices added (secret ENV, exec form, pinned installs) |
+| `dockerhub-setup` |  |  |  |  |
+| `domain-driven-design` | 96% | 100% | sonnet | ✅ Shipped (PR #56) — ubiquitous-language glossary made part of the deliverable |
+| `event-storming` |  |  |  |  |
+| `flipper-unleashed` |  |  |  |  |
+| `flipper-zero` |  |  |  |  |
+| `follow-up` |  |  |  |  |
+| `functional-programming` | 96% | 100% | sonnet | Base-strong; skill fixes the impure-shuffle fragility; no patch |
+| `gad-7` |  |  |  |  |
+| `game-ai` |  |  |  |  |
+| `game-audio` |  |  |  |  |
+| `game-design` |  |  |  |  |
+| `game-development` |  |  |  |  |
+| `game-graphics` |  |  |  |  |
+| `game-math` |  |  |  |  |
+| `game-physics` |  |  |  |  |
+| `game-production` |  |  |  |  |
+| `game-programming-patterns` |  |  |  |  |
+| `gcp-alloydb` |  |  |  |  |
+| `gcp-api-gateway` |  |  |  |  |
+| `gcp-apigee` |  |  |  |  |
+| `gcp-app-engine` |  |  |  |  |
+| `gcp-app-hub` |  |  |  |  |
+| `gcp-application-integration` |  |  |  |  |
+| `gcp-artifact-analysis` |  |  |  |  |
+| `gcp-artifact-registry` |  |  |  |  |
+| `gcp-bigquery` |  |  |  |  |
+| `gcp-bigtable` |  |  |  |  |
+| `gcp-binary-authorization` |  |  |  |  |
+| `gcp-buildpacks` |  |  |  |  |
+| `gcp-certificate-manager` |  |  |  |  |
+| `gcp-cloud-build` |  |  |  |  |
+| `gcp-cloud-cdn` |  |  |  |  |
+| `gcp-cloud-code` |  |  |  |  |
+| `gcp-cloud-dns` |  |  |  |  |
+| `gcp-cloud-domains` |  |  |  |  |
+| `gcp-cloud-functions` |  |  |  |  |
+| `gcp-cloud-ids` |  |  |  |  |
+| `gcp-cloud-kms` |  |  |  |  |
+| `gcp-cloud-logging` |  |  |  |  |
+| `gcp-cloud-monitoring` |  |  |  |  |
+| `gcp-cloud-nat` |  |  |  |  |
+| `gcp-cloud-router` |  |  |  |  |
+| `gcp-cloud-run` |  |  |  |  |
+| `gcp-cloud-scheduler` |  |  |  |  |
+| `gcp-cloud-sdk` |  |  |  |  |
+| `gcp-cloud-sql` |  |  |  |  |
+| `gcp-cloud-storage` |  |  |  |  |
+| `gcp-cloud-tasks` |  |  |  |  |
+| `gcp-cloud-trace` |  |  |  |  |
+| `gcp-cloud-vpn` |  |  |  |  |
+| `gcp-compute-engine` |  |  |  |  |
+| `gcp-dataflow` |  |  |  |  |
+| `gcp-datastore` |  |  |  |  |
+| `gcp-endpoints` |  |  |  |  |
+| `gcp-error-reporting` |  |  |  |  |
+| `gcp-eventarc` |  |  |  |  |
+| `gcp-firestore` |  |  |  |  |
+| `gcp-gke` |  |  |  |  |
+| `gcp-iam` |  |  |  |  |
+| `gcp-iap` |  |  |  |  |
+| `gcp-interconnect` |  |  |  |  |
+| `gcp-lakehouse` |  |  |  |  |
+| `gcp-load-balancing` |  |  |  |  |
+| `gcp-looker` |  |  |  |  |
+| `gcp-media-cdn` |  |  |  |  |
+| `gcp-memorystore-redis` |  |  |  |  |
+| `gcp-pubsub` |  |  |  |  |
+| `gcp-secret-manager` |  |  |  |  |
+| `gcp-secure-web-proxy` |  |  |  |  |
+| `gcp-spanner` |  |  |  |  |
+| `gcp-vpc` |  |  |  |  |
+| `gcp-vpc-service-controls` |  |  |  |  |
+| `gcp-workflows` |  |  |  |  |
+| `git` | 96% | 100% | sonnet | Sole gap: ~50-char imperative subjects; rescue/safety calls base-strong; no patch |
+| `git-ship` | 100% | 100% | sonnet | Base-strong (universal ship-safety instincts); neutral-safe, no patch |
+| `github-actions` | 83% | 96% | sonnet | ✅ Shipped (PR #50) — pwn-request safe pattern + SHA-pin phrasing made imperative |
+| `github-actions-python-ci` | 100% | 100% | sonnet | Guardrails base-strong + deterministic scaffold contract 10/10 (actionlint); no patch |
+| `github-actions-scala-ci` | n/a (script) | 10/10 contract | — | Deterministic scaffold-contract harness; guardrail layer measured in python-ci |
+| `github-branch-protection` | 67% | 100% | sonnet | ✅ Shipped (PR #58) — confirm-means-ask guardrail; real house-spec floor |
+| `github-issue-fix-flow` | 88% | 100% | sonnet | Format-convention floor (--comments intake, fix/issue-N, Closes #N); no patch |
+| `github-new-repo` | 83% | 100% | sonnet | ✅ Shipped (PR #59) — an extra ask never aborts the authorized creation |
+| `godot` |  |  |  |  |
+| `hackrf-one` |  |  |  |  |
+| `home-assistant` |  |  |  |  |
+| `html-css` |  |  |  |  |
+| `humanize` | 92% | 96% | sonnet | Style/edit skill; de-cliché lift (mechanical tells), no patch |
+| `information-theory` |  |  |  |  |
+| `ios-debugger-agent` |  |  |  |  |
+| `javascript` |  |  |  |  |
+| `lambda-calculus` |  |  |  |  |
+| `malbolge` |  |  |  |  |
+| `markdown` |  |  |  |  |
+| `merge` | 96% | 96% | sonnet | ✅ Shipped (PR #49) — house version rules + over-wait regression fixed |
+| `modern-java` |  |  |  |  |
+| `morning` | 50% | 100% | sonnet | 2nd-biggest lift; run exposed the provider skill-contamination bug (isolation rule) |
+| `multiplayer-networking` |  |  |  |  |
+| `native-app-profiling` |  |  |  |  |
+| `network-engineering` |  |  |  |  |
+| `network-security` |  |  |  |  |
+| `nextjs` |  |  |  |  |
+| `nginx` |  |  |  |  |
+| `nodejs` |  |  |  |  |
+| `openclaw-agents` |  |  |  |  |
+| `operating-systems` |  |  |  |  |
+| `os-concurrency` |  |  |  |  |
+| `os-file-systems-and-persistence` |  |  |  |  |
+| `os-io-and-devices` |  |  |  |  |
+| `os-memory-and-virtual-memory` |  |  |  |  |
+| `os-processes-and-scheduling` |  |  |  |  |
+| `os-security` |  |  |  |  |
+| `os-virtualization` |  |  |  |  |
+| `osdev-kernel` |  |  |  |  |
+| `personal-finance` |  |  |  |  |
+| `phq-9` |  |  |  |  |
+| `portapack-mayhem` |  |  |  |  |
+| `prime` | 58% | 100% | sonnet | Biggest round-2 lift: confidence/evidence discipline; no patch |
+| `procedural-generation` |  |  |  |  |
+| `prompt-edd` |  |  |  |  |
+| `promptfoo` |  |  |  |  |
+| `python` | 71% | 100% | sonnet | Modern-idiom contract lift (pathlib, hints, EAFP); no patch |
+| `python-package` |  |  |  |  |
+| `python-tests` |  |  |  |  |
+| `python-uv-build` |  |  |  |  |
+| `quebec-charter-rights` |  |  |  |  |
+| `quebec-civil-code` |  |  |  |  |
+| `quebec-housing-rights` |  |  |  |  |
+| `quebec-legal-system` |  |  |  |  |
+| `quebec-municipal-law` |  |  |  |  |
+| `react` |  |  |  |  |
+| `readability` |  |  |  |  |
+| `release-app-store-changelog` |  |  |  |  |
+| `release-macos-spm-packaging` |  |  |  |  |
+| `repo-starter-docs` | 54% | 100% | sonnet | Biggest round-3 floor: MIT-by-default + honest README template; no patch |
+| `requirements-engineering` | 67% | 100% | sonnet | ✅ Shipped (PR #46) — 3 measured gaps patched |
+| `scala` | 92% | 100% | sonnet | House-convention floor (`from` factories, AnyFunSpec); no patch |
+| `scala-pekko-server` |  |  |  |  |
+| `scala-pekko-tests` |  |  |  |  |
+| `scala-sbt-build` |  |  |  |  |
+| `sdlc-orchestration` | 100% | 100% | sonnet | Base-strong; governance inferable from stated facts; neutral-safe, no patch |
+| `secure-coding` | 100% | 100% | sonnet | Base-model-strong; skill precision-safe (no over-flag) |
+| `site-reliability-engineering` |  |  |  |  |
+| `software-architecture` | 92% | 100% | sonnet | Base-strong; +trade-off discipline, no patch |
+| `software-design` |  |  |  |  |
+| `spec-driven-development` | 0% | 100% | sonnet | ✅ Shipped (PR #47) — 2 measured gaps patched |
+| `swgoh-expert` |  |  |  |  |
+| `swift-concurrency-expert` |  |  |  |  |
+| `swiftui-liquid-glass` |  |  |  |  |
+| `swiftui-performance-audit` |  |  |  |  |
+| `swiftui-ui-patterns` |  |  |  |  |
+| `swiftui-view-refactor` |  |  |  |  |
+| `tcp-ip` |  |  |  |  |
+| `tdd` | 46% | 100% | sonnet | Big lift; skill already optimal, no patch |
+| `terraform` |  |  |  |  |
+| `test-strategy` | 100% | 100% | sonnet | Base-model-strong; skill neutral, no patch |
+| `toolkit-archive` |  |  |  |  |
+| `ttrpg-storytelling` |  |  |  |  |
+| `typescript` |  |  |  |  |
+| `ux-design` |  |  |  |  |
+| `vault-graphrag` |  |  |  |  |
+| `vue` |  |  |  |  |
+| `web-development` |  |  |  |  |
+| `webassembly` |  |  |  |  |
+| `webkit` |  |  |  |  |
+| `webui-quickfix-demo` |  |  |  |  |
+| `wifi-pineapple` |  |  |  |  |
+| `word-stats` |  |  |  |  |
 
 ## Subagents
 
