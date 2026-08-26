@@ -70,7 +70,7 @@ Bake these constellation conventions into the seed (as design intent for the bui
   the broker, git-installed: Scala `hermesmq-client` · Python `clients/python` · JS
   `@hermesmq/client`); don't hand-roll REST calls to the broker. **Pin the client install to the
   broker's release tag** so the contract matches the deployed broker exactly — e.g.
-  `git+https://github.com/vezril/hermesmq@v1.12.0#subdirectory=clients/python` (bump the tag when
+  `git+https://github.com/vezril/hermesmq@v1.13.0#subdirectory=clients/python` (bump the tag when
   the broker's client-pinning tag advances). **gRPC** for typed/streaming
   internal service-to-service; **REST** for browser/BFF/external. *Don't build both protocols if
   only one is used* — the contract's in the Lexicon, so adding the second later is cheap. Rule:
