@@ -216,7 +216,7 @@ Each skill is a folder with a `SKILL.md` (YAML frontmatter `name` + `description
 
 ## Skill evaluation (EDD) status
 
-Every skill in the repo, with evaluation-driven-development (EDD) results where a skill has been put through a deterministic promptfoo eval suite. Untested skills are listed with blank results. Scores are N=3-per-case majority against a deterministic rubric (no LLM judge); "naive baseline" is the task with no skill loaded, "with skill" is the real `SKILL.md` embedded. Full suites and iteration logs live in `promptfoo/skill-evals/<skill>/`.
+Every skill in the repo, with evaluation-driven-development (EDD) results where a skill has been put through a deterministic promptfoo eval suite. Untested skills are listed with blank results. Scores are N=3-per-case majority against a deterministic rubric (no LLM judge); "naive baseline" is the task with no skill loaded, "with skill" is the real `SKILL.md` embedded. Full suites and iteration logs live in `promptfoo/skill-evals/<skill>/`. (The `ci-watcher` agent has its own tool-using eval suite there as well: naive 29% → definition 100%.)
 
 | Skill | EDD naive baseline | With skill | Outcome |
 |---|---|---|---|
@@ -269,14 +269,14 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `design-patterns` |  |  |  |
 | `detect-ai` |  |  |  |
 | `devops` |  |  |  |
-| `docker` |  |  |  |
+| `docker` | 83% | 100% | ✅ Shipped (PR #51) — 3 linter-derived practices added (secret ENV, exec form, pinned installs) |
 | `dockerhub-setup` |  |  |  |
-| `domain-driven-design` |  |  |  |
+| `domain-driven-design` | 96% | 100% | ✅ Shipped (PR #56) — ubiquitous-language glossary made part of the deliverable |
 | `event-storming` |  |  |  |
 | `flipper-unleashed` |  |  |  |
 | `flipper-zero` |  |  |  |
 | `follow-up` |  |  |  |
-| `functional-programming` |  |  |  |
+| `functional-programming` | 96% | 100% | Base-strong; skill fixes the impure-shuffle fragility; no patch |
 | `gad-7` |  |  |  |
 | `game-ai` |  |  |  |
 | `game-audio` |  |  |  |
@@ -343,14 +343,14 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `gcp-vpc` |  |  |  |
 | `gcp-vpc-service-controls` |  |  |  |
 | `gcp-workflows` |  |  |  |
-| `git` |  |  |  |
-| `git-ship` |  |  |  |
-| `github-actions` |  |  |  |
-| `github-actions-python-ci` |  |  |  |
-| `github-actions-scala-ci` |  |  |  |
-| `github-branch-protection` |  |  |  |
-| `github-issue-fix-flow` |  |  |  |
-| `github-new-repo` |  |  |  |
+| `git` | 96% | 100% | Sole gap: ~50-char imperative subjects; rescue/safety calls base-strong; no patch |
+| `git-ship` | 100% | 100% | Base-strong (universal ship-safety instincts); neutral-safe, no patch |
+| `github-actions` | 83% | 96% | ✅ Shipped (PR #50) — pwn-request safe pattern + SHA-pin phrasing made imperative |
+| `github-actions-python-ci` | 100% | 100% | Guardrails base-strong + deterministic scaffold contract 10/10 (actionlint); no patch |
+| `github-actions-scala-ci` | n/a (script) | 10/10 contract | Deterministic scaffold-contract harness; guardrail layer measured in python-ci |
+| `github-branch-protection` | 67% | 100% | ✅ Shipped (PR #58) — confirm-means-ask guardrail; real house-spec floor |
+| `github-issue-fix-flow` | 88% | 100% | Format-convention floor (--comments intake, fix/issue-N, Closes #N); no patch |
+| `github-new-repo` | 83% | 100% | ✅ Shipped (PR #59) — an extra ask never aborts the authorized creation |
 | `godot` |  |  |  |
 | `hackrf-one` |  |  |  |
 | `home-assistant` |  |  |  |
@@ -362,9 +362,9 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `lambda-calculus` |  |  |  |
 | `malbolge` |  |  |  |
 | `markdown` |  |  |  |
-| `merge` |  |  |  |
+| `merge` | 96% | 96% | ✅ Shipped (PR #49) — house version rules + over-wait regression fixed |
 | `modern-java` |  |  |  |
-| `morning` |  |  |  |
+| `morning` | 50% | 100% | 2nd-biggest lift; run exposed the provider skill-contamination bug (isolation rule) |
 | `multiplayer-networking` |  |  |  |
 | `native-app-profiling` |  |  |  |
 | `network-engineering` |  |  |  |
@@ -385,11 +385,11 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `personal-finance` |  |  |  |
 | `phq-9` |  |  |  |
 | `portapack-mayhem` |  |  |  |
-| `prime` |  |  |  |
+| `prime` | 58% | 100% | Biggest round-2 lift: confidence/evidence discipline; no patch |
 | `procedural-generation` |  |  |  |
 | `prompt-edd` |  |  |  |
 | `promptfoo` |  |  |  |
-| `python` |  |  |  |
+| `python` | 71% | 100% | Modern-idiom contract lift (pathlib, hints, EAFP); no patch |
 | `python-package` |  |  |  |
 | `python-tests` |  |  |  |
 | `python-uv-build` |  |  |  |
@@ -402,13 +402,13 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `readability` |  |  |  |
 | `release-app-store-changelog` |  |  |  |
 | `release-macos-spm-packaging` |  |  |  |
-| `repo-starter-docs` |  |  |  |
+| `repo-starter-docs` | 54% | 100% | Biggest round-3 floor: MIT-by-default + honest README template; no patch |
 | `requirements-engineering` | 67% | 100% | ✅ Shipped (PR #46) — 3 measured gaps patched |
-| `scala` |  |  |  |
+| `scala` | 92% | 100% | House-convention floor (`from` factories, AnyFunSpec); no patch |
 | `scala-pekko-server` |  |  |  |
 | `scala-pekko-tests` |  |  |  |
 | `scala-sbt-build` |  |  |  |
-| `sdlc-orchestration` |  |  |  |
+| `sdlc-orchestration` | 100% | 100% | Base-strong; governance inferable from stated facts; neutral-safe, no patch |
 | `secure-coding` | 100% | 100% | Base-model-strong; skill precision-safe (no over-flag) |
 | `site-reliability-engineering` |  |  |  |
 | `software-architecture` | 92% | 100% | Base-strong; +trade-off discipline, no patch |
