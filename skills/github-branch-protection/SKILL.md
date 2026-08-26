@@ -91,6 +91,9 @@ types (`deletion`, `non_fast_forward`, `pull_request`). Report the ruleset id, i
   and stops instead.
 - Changing who can do what to a repo is persistent configuration: outside the
   new-github-project workflow (where launching the workflow is the authorization), confirm
-  with the human before creating the ruleset.
+  with the human before creating the ruleset. Confirming means presenting the proposed
+  `protect-main` spec and asking to proceed, and saying why you are asking (persistent,
+  outward-facing configuration) — never silently abort the step or treat the missing
+  authorization as a failure.
 - If the human wants required checks, review counts, or bypass actors, adjust the JSON to
   their spec — the block above is the default, not a limit.
