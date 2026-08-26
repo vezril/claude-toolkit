@@ -1,6 +1,7 @@
 ---
 name: dockerhub-setup
-description: "Wire a project into Docker Hub end to end: create the Docker Hub repository (idempotent), mint a dedicated CI access token via the Hub API (label <repo>-ci), and set DOCKERHUB_USERNAME / DOCKERHUB_TOKEN as GitHub Actions secrets on the matching GitHub repo so dev/release workflows can publish images. Requires an admin PAT in the environment (DOCKERHUB_USERNAME + DOCKERHUB_TOKEN); absent credentials stop the skill with setup instructions — it never asks for a password in chat. Used by the new-scala-pekko-service workflow when dockerhub: true."
+description: "Wire a project into Docker Hub end to end so you never hand-create the CI secrets: create the Docker Hub repository (idempotent), mint a dedicated CI access token via the Hub API (label <repo>-ci), and set DOCKERHUB_USERNAME / DOCKERHUB_TOKEN as GitHub Actions secrets on the matching GitHub repo so dev/release workflows can publish images. Requires an admin PAT in the environment (DOCKERHUB_USERNAME + DOCKERHUB_TOKEN); absent credentials stop the skill with setup instructions — it never asks for a password in chat. Run it standalone on any new repo, or as the new-scala-pekko-service workflow's dockerhub: true step."
+user-invocable: true
 argument-hint: "<repo-name> [github-owner/repo]   (Docker Hub namespace fixed: calvinference)"
 license: MIT
 ---
@@ -13,6 +14,12 @@ image name = `SERVICE` (project name minus a `-service`/`-svc` suffix).
 Bundled script: `dockerhub-setup.sh` in this skill's folder — it does the Hub API work
 (login → repo create → token mint) and emits the CI credentials **only on fd 3**, never
 stdout.
+
+**Standalone use** (running this directly on an existing repo, not via a workflow): the two
+prerequisites are (1) the admin PAT in the environment (Step 0), and (2) **the GitHub repo must
+already exist** — this skill only wires credentials, it does not create the repo. If the repo
+isn't on GitHub yet, create it first (the `new-github-project` skill or `gh repo create
+vezril/<name>`), then run this. Everything else — Hub repo, CI token, both secrets — is automatic.
 
 ## Step 0 — credentials gate
 
