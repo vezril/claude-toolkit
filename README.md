@@ -231,13 +231,13 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `akka-discovery` |  |  |  |  |
 | `akka-distributed-cluster` |  |  |  |  |
 | `akka-edge` |  |  |  |  |
-| `akka-grpc` |  |  |  |  |
-| `akka-http` |  |  |  |  |
+| `akka-grpc` | 96% | 100% | sonnet | Naive strong; client-lifecycle wobble; no patch |
+| `akka-http` | 96% | 100% | sonnet | ✅ Shipped — omission regression on long-poll client level; patched to 100% |
 | `akka-insights` |  |  |  |  |
 | `akka-management` |  |  |  |  |
 | `akka-persistence` |  |  |  |  |
-| `akka-persistence-plugins` |  |  |  |  |
-| `akka-projections` |  |  |  |  |
+| `akka-persistence-plugins` | 83% | 100% | sonnet | Naive misses R2DBC-default + backtracking-duplicates; no patch |
+| `akka-projections` | 83% | 100% | sonnet | Naive misses the 10x tag rule + withSaveOffset; no patch |
 | `akka-sdk` |  |  |  |  |
 | `akka-sdk-agents` |  |  |  |  |
 | `akka-sdk-consumers` |  |  |  |  |
@@ -247,7 +247,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `akka-sdk-timed-actions` |  |  |  |  |
 | `akka-sdk-views` |  |  |  |  |
 | `akka-sdk-workflows` |  |  |  |  |
-| `akka-serialization` |  |  |  |  |
+| `akka-serialization` | 88% | 100% | sonnet | Naive misses rolling-migration order + the (bytes,id,manifest) triple; no patch |
 | `akka-streams` |  |  |  |  |
 | `akka-utilities` |  |  |  |  |
 | `alpakka` |  |  |  |  |
