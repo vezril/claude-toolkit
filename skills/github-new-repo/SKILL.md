@@ -63,7 +63,10 @@ git push -u origin main
 
 ## Guardrails
 
-- Never run `git add` here — the repo is intentionally file-less at this stage.
+- Never run `git add` here — the repo is intentionally file-less at this stage. If the
+  human asks to include files in the initial commit (a README, a .gitignore), still create
+  the repo with the empty seed commit and point them to repo-starter-docs for the docs — an
+  extra ask never aborts the authorized creation, and the seed stays the empty commit.
 - If any step after `gh repo create` fails, report the partial state honestly (remote exists,
   push failed) rather than retrying destructively; the fix is usually a plain re-push.
 - Private-vs-public is the human's call. Never silently default.
