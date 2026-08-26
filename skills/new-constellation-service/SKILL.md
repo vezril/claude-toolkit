@@ -65,11 +65,13 @@ Bake these constellation conventions into the seed (as design intent for the bui
 
 - **Contract in the Lexicon.** The `.proto`/schema is the single source of truth (`the-lexicon`
   owns it) — coordinate with the Lexicon session; REST/gRPC generate *from* it.
-- **APIs = what the consumers need + Hermes.** **Hermes events are the async default** (provide the
-  HermesMQ client); **gRPC** for typed/streaming internal service-to-service; **REST** for
-  browser/BFF/external. *Don't build both protocols if only one is used* — the contract's in the
-  Lexicon, so adding the second later is cheap. Rule: blocked-and-waiting → REST/gRPC; reaction /
-  pipeline / fan-out → Hermes.
+- **APIs = what the consumers need + Hermes.** **Hermes events are the async default** — use the
+  **official HermesMQ client** for the service's language (in the `hermesmq` repo, versioned with
+  the broker, git-installed: Scala `hermesmq-client` · Python `clients/python` · JS
+  `@hermesmq/client`); don't hand-roll REST calls to the broker. **gRPC** for typed/streaming
+  internal service-to-service; **REST** for browser/BFF/external. *Don't build both protocols if
+  only one is used* — the contract's in the Lexicon, so adding the second later is cheap. Rule:
+  blocked-and-waiting → REST/gRPC; reaction / pipeline / fan-out → Hermes.
 - **Self-hosted `/docs`.** The service serves its own Swagger/OpenAPI on-classpath, no CDN/egress
   (the Apollo v0.13.0 precedent); the UI can surface it too.
 - **Health + metrics** — `/health` + `/metrics` with Hera scrape annotations on the pod.
