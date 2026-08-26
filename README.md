@@ -442,6 +442,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 In `agents/` (see [`agents/README.md`](agents/README.md) for the frontmatter spec):
 
 - **scala-fp-reviewer** — reviews Scala / functional code against the FP, Scala, TDD, and design-patterns skills.
+- **ci-watcher** — a Haiku-powered read-only CI lookout: watches a GitHub Actions run (by id, PR, branch, or workflow) until it finishes and returns a strict, parseable CI-REPORT (status, conclusion, failed jobs/steps with first error lines, url) to the calling agent — polling without burning a frontier-model context.
 - **akka-architect** — designs and reviews Akka systems using the Akka suite plus DDD and EventStorming.
 - **git-and-ci-reviewer** — reviews Git hygiene (commits, branches, history) and GitHub Actions workflows for correctness and security.
 - **personal-finance-advisor** — a warm, fiduciary-spirited money companion (budgeting, debt, low-cost investing, Canadian FHSA/RRSP/HBP) who educates and weighs trade-offs rather than selling or prescribing.
