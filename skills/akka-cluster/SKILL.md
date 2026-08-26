@@ -33,7 +33,7 @@ akka {
 }
 ```
 
-Three ways to join: **Cluster Bootstrap** (automatic discovery via [[akka-discovery]] — preferred in k8s/cloud), **configured seed-nodes** (the first in the list must be up to form a new cluster), or programmatic `JoinSeedNodes`. Use **roles** (`akka.cluster.roles`) to run different actors on different nodes: `if (Cluster(ctx.system).selfMember.hasRole("backend")) ctx.spawn(...)`. Gate startup with `akka.cluster.min-nr-of-members`.
+Three ways to join: **Cluster Bootstrap** (from [[akka-management]] — the `akka-management-cluster-bootstrap` module — doing automatic discovery via [[akka-discovery]]; preferred in k8s/cloud), **configured seed-nodes** (the first in the list must be up to form a new cluster), or programmatic `JoinSeedNodes`. Use **roles** (`akka.cluster.roles`) to run different actors on different nodes: `if (Cluster(ctx.system).selfMember.hasRole("backend")) ctx.spawn(...)`. Gate startup with `akka.cluster.min-nr-of-members`.
 
 ```scala
 val cluster = Cluster(system)               // Java: Cluster.get(system)
