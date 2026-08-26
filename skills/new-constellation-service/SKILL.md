@@ -68,12 +68,20 @@ Bake these constellation conventions into the seed (as design intent for the bui
 - **APIs = what the consumers need + Hermes.** **Hermes events are the async default** — use the
   **official HermesMQ client** for the service's language (in the `hermesmq` repo, versioned with
   the broker, git-installed: Scala `hermesmq-client` · Python `clients/python` · JS
-  `@hermesmq/client`); don't hand-roll REST calls to the broker. **gRPC** for typed/streaming
+  `@hermesmq/client`); don't hand-roll REST calls to the broker. **Pin the client install to the
+  broker's release tag** so the contract matches the deployed broker exactly — e.g.
+  `git+https://github.com/vezril/hermesmq@v1.12.0#subdirectory=clients/python` (bump the tag when
+  the broker's client-pinning tag advances). **gRPC** for typed/streaming
   internal service-to-service; **REST** for browser/BFF/external. *Don't build both protocols if
   only one is used* — the contract's in the Lexicon, so adding the second later is cheap. Rule:
   blocked-and-waiting → REST/gRPC; reaction / pipeline / fan-out → Hermes.
 - **Self-hosted `/docs`.** The service serves its own Swagger/OpenAPI on-classpath, no CDN/egress
   (the Apollo v0.13.0 precedent); the UI can surface it too.
+- **Insomnia collection.** Commit an importable Insomnia export (e.g. `insomnia/<god>.yaml`)
+  covering every endpoint — real example requests, auth, env vars for the tailnet/in-cluster
+  hosts — for manual testing. **Keep it up to date** as the API evolves: it's a living artifact,
+  regenerated/extended from the OpenAPI/contract on every API change, not a one-time scaffold. (The
+  Apollo session's maintained collection is the precedent.)
 - **Health + metrics** — `/health` + `/metrics` with Hera scrape annotations on the pod.
 - **Persistence** (if stateful) — Postgres via the `pg-service` chart + pg-dump→S3 backups.
 - **Runtime secrets** — SOPS+age → k8s Secret (the Harpocrates story), distinct from CI secrets.
