@@ -41,7 +41,7 @@ Http.get(system).newServerAt("0.0.0.0", 8080).bind(route);
 1. **Compose with `concat`** (Scala `~` silently drops routes if you forget it). Put the most specific routes first; an unmatched request → 404.
 2. **Always consume or discard entity bytes** — server requests *and* client responses. A partially-read entity stalls or fails the connection (`response.discardEntityBytes()`).
 3. **Model expected errors as rejections / `complete(StatusCodes.X, ...)`, not exceptions** — exceptions are for failures (stack-trace cost). Bring a top-level `RejectionHandler`/`ExceptionHandler` into implicit scope rather than sealing everywhere.
-4. **Use the request-level client (`Http().singleRequest`) for normal calls**, host-level pools for high volume — never per-request `Source.single(req).via(pool).runWith(Sink.head)`, and never the request-level client for long-poll/streaming (it ties up a pooled connection).
+4. **Use the request-level client (`Http().singleRequest`) for normal calls**, host-level pools for high volume — never per-request `Source.single(req).via(pool).runWith(Sink.head)`, and never the request-level client for long-poll/streaming (it ties up a pooled connection) — long-lived/streaming calls use the **connection-level** API (`Http().connectionTo(...)`), not a pool.
 5. **Reuse `ToEntityMarshaller`/`FromEntityUnmarshaller`** (work on both client and server) and bring JSON support into scope once.
 6. **Shut down gracefully** — `binding.unbind()` then `system.terminate()`, or `binding.terminate(hardDeadline)` to drain in-flight requests; shut down client pools before terminating.
 
