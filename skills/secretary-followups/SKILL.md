@@ -83,8 +83,10 @@ encouragement, no "you've got this".
 
 - Calvin says it's done → move the block to `## Closed`, set `status: closed`, add the date.
   `auto`.
-- The agent *infers* it's done from context → same move, and **say so in the brief**. That's
-  `report` in policy, and it exists so a wrong inference is visible instead of silent.
+- The agent *infers* it's done from an indirect signal → **do not close it.** Surface it for
+  Calvin to confirm. An offhand "Marc's got everything he needs" is not a confirmation, and
+  the cost is asymmetric: a wrongly-closed commitment disappears silently, while surfacing one
+  costs a single line in the brief. `draft` in policy.
 - **Never delete a block.** Closing is a move. If an entry turns out to be nonsense, move it
   to `## Closed` with a note saying why — don't erase it.
 
