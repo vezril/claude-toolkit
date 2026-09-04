@@ -224,9 +224,9 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `agent-interoperability` |  |  |  |  |
 | `agentic-workflows` |  |  |  |  |
 | `ai-layoff-radar` |  |  |  |  |
-| `akka` |  |  |  |  |
-| `akka-actors` |  |  |  |  |
-| `akka-cluster` |  |  |  |  |
+| `akka` | 96% | 100% | sonnet | Routing base-strong; naive omits the serializer from the k8s cluster checklist; no patch |
+| `akka-actors` | 96% | 100% | sonnet | Typed largely base-strong; naive replyTo discipline gap; no patch |
+| `akka-cluster` | 100% | 100% | sonnet | ✅ Shipped — skill-induced regression by omission (Cluster Bootstrap's home module); patched to 100% |
 | `akka-diagnostics` |  |  |  |  |
 | `akka-discovery` |  |  |  |  |
 | `akka-distributed-cluster` |  |  |  |  |
@@ -235,20 +235,20 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `akka-http` | 96% | 100% | sonnet | ✅ Shipped — omission regression on long-poll client level; patched to 100% |
 | `akka-insights` |  |  |  |  |
 | `akka-management` |  |  |  |  |
-| `akka-persistence` |  |  |  |  |
+| `akka-persistence` | 96% | 100% | sonnet | Judgment base-strong; naive misses withEnforcedReplies+StatusReply convention; no patch |
 | `akka-persistence-plugins` | 83% | 100% | sonnet | Naive misses R2DBC-default + backtracking-duplicates; no patch |
 | `akka-projections` | 83% | 100% | sonnet | Naive misses the 10x tag rule + withSaveOffset; no patch |
-| `akka-sdk` |  |  |  |  |
+| `akka-sdk` | 96% | 100% | sonnet | Kalix-lineage catalog known; naive wobbles on the no-@Acl default-deny; no patch |
 | `akka-sdk-agents` |  |  |  |  |
 | `akka-sdk-consumers` |  |  |  |  |
 | `akka-sdk-endpoints` |  |  |  |  |
-| `akka-sdk-event-sourced-entities` |  |  |  |  |
+| `akka-sdk-event-sourced-entities` | 79% | 100% | sonnet | Biggest round-4 floor: naive hallucinates SDK API (deletion/consistency); no patch |
 | `akka-sdk-key-value-entities` |  |  |  |  |
 | `akka-sdk-timed-actions` |  |  |  |  |
 | `akka-sdk-views` |  |  |  |  |
-| `akka-sdk-workflows` |  |  |  |  |
+| `akka-sdk-workflows` | 83% | 100% | sonnet | Naive hallucinates lifecycle API, misses session memory + compensation shape; no patch |
 | `akka-serialization` | 88% | 100% | sonnet | Naive misses rolling-migration order + the (bytes,id,manifest) triple; no patch |
-| `akka-streams` |  |  |  |  |
+| `akka-streams` | 100% | 100% | sonnet | Operator catalog fully base-strong incl. jitter + fusion; neutral-safe, no patch |
 | `akka-utilities` |  |  |  |  |
 | `alpakka` |  |  |  |  |
 | `ansible` |  |  |  |  |
@@ -405,8 +405,8 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `repo-starter-docs` | 54% | 100% | sonnet | Biggest round-3 floor: MIT-by-default + honest README template; no patch |
 | `requirements-engineering` | 67% | 100% | sonnet | ✅ Shipped (PR #46) — 3 measured gaps patched |
 | `scala` | 92% | 100% | sonnet | House-convention floor (`from` factories, AnyFunSpec); no patch |
-| `scala-pekko-server` |  |  |  |  |
-| `scala-pekko-tests` |  |  |  |  |
+| `scala-pekko-server` | n/a (script) | pair harness green | — | Deterministic pair contract harness (territory, purity, components, refusals) |
+| `scala-pekko-tests` | n/a (script) | pair harness green | — | Deterministic pair contract harness (pkg-from-production, test territory, spec coverage) |
 | `scala-sbt-build` |  |  |  |  |
 | `sdlc-orchestration` | 100% | 100% | sonnet | Base-strong; governance inferable from stated facts; neutral-safe, no patch |
 | `secure-coding` | 100% | 100% | sonnet | Base-model-strong; skill precision-safe (no over-flag) |
@@ -443,6 +443,7 @@ In `agents/` (see [`agents/README.md`](agents/README.md) for the frontmatter spe
 
 - **scala-fp-reviewer** — reviews Scala / functional code against the FP, Scala, TDD, and design-patterns skills.
 - **ci-watcher** — a Haiku-powered read-only CI lookout: watches a GitHub Actions run (by id, PR, branch, or workflow) until it finishes and returns a strict, parseable CI-REPORT (status, conclusion, failed jobs/steps with first error lines, url) to the calling agent — polling without burning a frontier-model context.
+- **helm-deployer** — deploys Helm charts the constellation's way: edits the Flux `HelmRelease` pin in `codex/apps/<god>/<god>.yaml` (never an imperative `helm upgrade` against a Flux-managed release), verifies the image exists before rolling, reconciles, waits for real convergence, verifies behaviour rather than just liveness, and reports a strict DEPLOY-REPORT. Fleet rolls go riskiest-last; a cluster push requires Calvin's own direct word.
 - **akka-architect** — designs and reviews Akka systems using the Akka suite plus DDD and EventStorming.
 - **git-and-ci-reviewer** — reviews Git hygiene (commits, branches, history) and GitHub Actions workflows for correctness and security.
 - **personal-finance-advisor** — a warm, fiduciary-spirited money companion (budgeting, debt, low-cost investing, Canadian FHSA/RRSP/HBP) who educates and weighs trade-offs rather than selling or prescribing.
