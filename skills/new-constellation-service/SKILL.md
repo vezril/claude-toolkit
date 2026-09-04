@@ -75,6 +75,11 @@ Bake these constellation conventions into the seed (as design intent for the bui
   internal service-to-service; **REST** for browser/BFF/external. *Don't build both protocols if
   only one is used* — the contract's in the Lexicon, so adding the second later is cheap. Rule:
   blocked-and-waiting → REST/gRPC; reaction / pipeline / fan-out → Hermes.
+- **Topics are self-provisioned, not hand-created.** Your service creates its own Hermes topics
+  at startup, **idempotently** (409 = already exists); the topic names live in the service's own
+  chart/config. Never hand-create a service's topics in the cluster — that's untracked state owned
+  by no publisher (the exact git≠live divergence to avoid). Precedent: Artemis's `media.*`, Demeter's
+  `demeter-deals`.
 - **Self-hosted `/docs`.** The service serves its own Swagger/OpenAPI on-classpath, no CDN/egress
   (the Apollo v0.13.0 precedent); the UI can surface it too.
 - **Insomnia collection.** Commit an importable Insomnia export (e.g. `insomnia/<god>.yaml`)
