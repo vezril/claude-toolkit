@@ -231,13 +231,13 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `akka-discovery` |  |  |  |  |
 | `akka-distributed-cluster` |  |  |  |  |
 | `akka-edge` |  |  |  |  |
-| `akka-grpc` |  |  |  |  |
-| `akka-http` |  |  |  |  |
+| `akka-grpc` | 96% | 100% | sonnet | Naive strong; client-lifecycle wobble; no patch |
+| `akka-http` | 96% | 100% | sonnet | ✅ Shipped — omission regression on long-poll client level; patched to 100% |
 | `akka-insights` |  |  |  |  |
 | `akka-management` |  |  |  |  |
 | `akka-persistence` | 96% | 100% | sonnet | Judgment base-strong; naive misses withEnforcedReplies+StatusReply convention; no patch |
-| `akka-persistence-plugins` |  |  |  |  |
-| `akka-projections` |  |  |  |  |
+| `akka-persistence-plugins` | 83% | 100% | sonnet | Naive misses R2DBC-default + backtracking-duplicates; no patch |
+| `akka-projections` | 83% | 100% | sonnet | Naive misses the 10x tag rule + withSaveOffset; no patch |
 | `akka-sdk` | 96% | 100% | sonnet | Kalix-lineage catalog known; naive wobbles on the no-@Acl default-deny; no patch |
 | `akka-sdk-agents` |  |  |  |  |
 | `akka-sdk-consumers` |  |  |  |  |
@@ -247,7 +247,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `akka-sdk-timed-actions` |  |  |  |  |
 | `akka-sdk-views` |  |  |  |  |
 | `akka-sdk-workflows` | 83% | 100% | sonnet | Naive hallucinates lifecycle API, misses session memory + compensation shape; no patch |
-| `akka-serialization` |  |  |  |  |
+| `akka-serialization` | 88% | 100% | sonnet | Naive misses rolling-migration order + the (bytes,id,manifest) triple; no patch |
 | `akka-streams` | 100% | 100% | sonnet | Operator catalog fully base-strong incl. jitter + fusion; neutral-safe, no patch |
 | `akka-utilities` |  |  |  |  |
 | `alpakka` |  |  |  |  |
