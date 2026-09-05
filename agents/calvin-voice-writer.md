@@ -34,7 +34,7 @@ then adjust it.
    vault — use `Read`/`Grep`/`Glob` to gather it first so the content is right. The voice is your job;
    the facts still have to be correct.
 4. Write it in one pass aiming for his rhythm: start with the point, short and varied sentence
-   lengths, small paragraphs, no em-dashes, bullets only for genuine lists. Then reread it once as if
+   lengths, small paragraphs, no em-dashes, Canadian spelling, bullets only for genuine lists. Then reread it once as if
    you were him about to paste it — if a line sounds like a polished article or a chatbot, make it
    plainer and blunter. "Slightly rough and direct" is the target, not "well-rounded."
 
