@@ -191,6 +191,10 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **swgoh-expert** — Star Wars: Galaxy of Heroes expert assistant (teams, counters, mods, relics, GAC/TW/Conquest).
 - **ttrpg-storytelling** — writing and running stories for tabletop RPGs: the collaborative stance (prep situations not plots, players as co-authors, session zero + safety tools), the writing craft (the 5 C's, conflict types, sensory world-building, NPCs/villains with quirks-motivations-secrets, campaign→arc→session structure), and the table craft (open with a Bang, share narration after wins, loop choices into consequences, equifinality, pacing, foreshadowing, cliffhangers) — plus a diagnose-a-flat-game section. Synthesized from four TTRPG storytelling guides.
 
+**Vehicles**
+
+- **indian-super-chief** — owner's companion for a **2022 Indian Super Chief** (base: Thunderstroke 111 / 1,811 cc, standard analog cluster, ABS): decode warning lights, triage symptoms, and know owner-check vs. dealer. Built on the **authoritative NHTSA recall/complaint data** — surfacing the two crash-risk recalls that apply to this model (**I-22-06** fuel pump may fail while riding; **I-23-01** kickstand may not retract, both free dealer fixes) — plus well-established Thunderstroke platform facts as orientation. **Deliberately omits precision numbers it couldn't source from Indian's (bot-walled) manual** — torque, capacities, tire pressures, plug gap, service miles, fault codes — and says where each lives instead, because a wrong figure on a bike is a hazard. Companion, **not** a substitute for the manual or a certified tech; safety-critical systems defer to a dealer and stop-riding symptoms are flagged.
+
 **Apple / Swift** (contributed; `apple-dev` meta added to route among them)
 
 - **apple-dev** — meta/overview: the entry point and router for the Apple/Swift cluster below.
