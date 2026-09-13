@@ -104,6 +104,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **nodejs** — JS on the server: the event loop, streams, modules, Express APIs, MongoDB (Node in Action).
 - **nginx** — web server / reverse proxy / load balancer: config tree, TLS, proxying, load balancing, caching, rate limiting.
 - **webassembly** — the portable sandboxed compilation target, in and out of the browser: the core language against Spec Release 3.0 (stack machine, modules, linear memory, soundness, GC/tail-calls/exceptions/memory64), the JS API + interop (streaming instantiation, the grow-detaches-buffer gotcha, COOP/COEP threads), toolchains (Emscripten, wasm-bindgen/wasm-pack, AssemblyScript, WABT), and WASI capability security + the server-side runtimes (from Sletten's *Definitive Guide*, the Core Spec read twice, and MDN; `references/` carry the depth).
+- **stripe-payments** — Stripe integrations from the live docs.stripe.com API reference (2026-09, `2026-08-26.dahlia`): choosing hosted Checkout vs Elements + Checkout Sessions vs PaymentIntents, the intent status machine, webhook-driven idempotent fulfillment (raw-body signature verification, at-least-once/unordered delivery), saved cards & off-session SCA recovery, manual capture windows, subscriptions/invoices, refunds/disputes/declines, Connect charge types, and API conventions (keys, versioning, errors & retries, idempotency, pagination/expand/search, rate limits); `references/` carry the depth.
 
 **Home & IoT**
 
@@ -414,6 +415,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `software-architecture` | 92% | 100% | sonnet | Base-strong; +trade-off discipline, no patch |
 | `software-design` |  |  |  |  |
 | `spec-driven-development` | 0% | 100% | sonnet | ✅ Shipped (PR #47) — 2 measured gaps patched |
+| `stripe-payments` |  |  |  |  |
 | `swgoh-expert` |  |  |  |  |
 | `swift-concurrency-expert` |  |  |  |  |
 | `swiftui-liquid-glass` |  |  |  |  |
