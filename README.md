@@ -110,6 +110,12 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **aws-rds** — Amazon RDS (MySQL/MariaDB/PostgreSQL/Oracle/SQL Server/Db2 — distinct from Aurora), distilled from AWS docs and AWS's own RDS advisor agent skill (2026-09): the RDS-vs-Aurora distinction, high availability (Multi-AZ DB instance vs Multi-AZ DB cluster vs read replicas), storage types and sizing, backups/PITR/snapshots, security (KMS, TLS enforcement, IAM auth, Secrets Manager passwords, parameter vs option groups), and operations (RDS Proxy vs PgBouncer, Blue/Green deployments and the binlog-replication trap, Performance Insights vs Enhanced Monitoring, RI vs Database Savings Plans); `references/` carry the depth.
 - **aws-aurora** — Amazon Aurora (MySQL/PostgreSQL-compatible, distinct from standalone RDS), distilled from AWS docs and AWS's own Aurora MySQL/PostgreSQL advisor agent skills (2026-09): the shared-storage architecture (6 copies across 3 AZs, quorum durability, why adding a reader copies no data), promotion-tier failover, Aurora Serverless v2 (ACU sizing, scale-to-zero, mixed provisioned+serverless clusters), copy-on-write cloning, Backtrack, Aurora Global Database (cross-region replication and sub-minute regional failover), I/O-Optimized storage's 25% threshold rule, the Data API, Aurora PostgreSQL express configuration, commitment pricing, and the confirm/block operational safety tiers AWS's own skills apply to destructive changes; `references/` carry the depth.
 - **aws-sqs** — Amazon SQS, distilled from AWS docs and AWS's own messaging agent skill (2026-09): the message lifecycle (visibility timeout, at-least-once delivery), Standard vs FIFO (MessageGroupId ordering, deduplication, high-throughput mode), polling and batching, dead-letter queues and redrive policy (including the queue-policy step EventBridge/SNS-fed DLQs need and easy to skip), the Lambda event source mapping, encryption, the confused-deputy queue-policy pattern, and large messages via the Extended Client Library; `references/` carry the depth.
+- **aws-eventbridge** — Amazon EventBridge, distilled from AWS docs and AWS's own serverless/messaging agent skills (2026-09): event buses and pattern matching, Pipes vs Rules, the target retry policy and the DLQ queue-policy trap, archive/replay mechanics, and EventBridge Scheduler vs legacy scheduled rules; `references/` carry the depth.
+- **aws-api-gateway** — Amazon API Gateway, distilled from AWS docs and AWS's own serverless/task agent skills (2026-09): REST vs HTTP vs WebSocket API selection, the Lambda proxy response shape that causes most 502s, throttling and CORS failure modes, Lambda/JWT/Cognito authorizers and what each does and doesn't enforce, WebSocket route lifecycle and connection cleanup, and stage hardening; `references/` carry the depth.
+- **aws-cognito** — Amazon Cognito, distilled from AWS's own auth agent skill (2026-09): the user-pool-vs-identity-pool decision, the full-replace danger on `update-user-pool-client`/`set-identity-pool-roles`, PKCE over the implicit grant, per-provider federation token types, tokens/rotation/storage, identity pool role selection and the confused-deputy trust condition, and protecting API Gateway/ALB with Cognito; `references/` carry the depth.
+- **aws-s3** — Amazon S3, distilled from AWS docs and AWS's own S3 security agent skill (2026-09): storage classes, strong read-after-write consistency, versioning/lifecycle precedence rules, multipart upload concurrency gotchas and conditional writes, the default-secure bucket recipe (Block Public Access, `DenyInsecureTransport`, encryption), the `put-bucket-policy` full-replace danger, and event notifications (native vs. via EventBridge); `references/` carry the depth.
+- **aws-cloudfront** — Amazon CloudFront, distilled from AWS's own CloudFront agent skill (2026-09): when CloudFront is the right layer, origin locking (OAC/VPC origins/origin mTLS) as a mandatory pairing for every content control, signed URLs/cookies/geo-restrictions/viewer mTLS/edge token validation, cache policies vs behaviors, and CloudFront Functions vs Lambda@Edge; `references/` carry the depth.
+- **aws-rekognition** — Amazon Rekognition image/video analysis, distilled from docs.aws.amazon.com (2026-09): the sync (Image) vs always-async (Video) API split, `DetectLabels`/`DetectModerationLabels` (the 3-level content-moderation taxonomy and its breaking v6.1→v7 label changes)/`DetectFaces`/`DetectText`/`DetectProtectiveEquipment`, face collections and matching (`IndexFaces`/`SearchFaces*`/`CompareFaces`, the identity-verification pattern), the stored-video SNS/IAM job pattern and segment detection, streaming video and Amazon A2I both flagged closed to new customers, Rekognition Custom Labels, and AWS's own responsible-use guidance for face matching (mandatory human review, the 99%+ confidence bar and specific Service Terms obligations for public-safety use); `references/` carry the depth.
 
 **Home & IoT**
 
@@ -260,9 +266,15 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `ansible` |  |  |  |  |
 | `apple-dev` |  |  |  |  |
 | `aws-amplify` |  |  |  |  |
+| `aws-api-gateway` |  |  |  |  |
 | `aws-aurora` |  |  |  |  |
+| `aws-cloudfront` |  |  |  |  |
+| `aws-cognito` |  |  |  |  |
+| `aws-eventbridge` |  |  |  |  |
 | `aws-lambda` |  |  |  |  |
 | `aws-rds` |  |  |  |  |
+| `aws-rekognition` |  |  |  |  |
+| `aws-s3` |  |  |  |  |
 | `aws-sqs` |  |  |  |  |
 | `calvin-voice` | 79% | 100% | sonnet | Rhythm lift (mechanical-tell scoring), no patch |
 | `canadian-business-registration` |  |  |  |  |

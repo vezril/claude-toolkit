@@ -6,7 +6,7 @@ license: MIT
 
 # AWS Lambda
 
-How to build Lambda functions that scale predictably, fail safely, and don't surprise you in production. Distilled from `docs.aws.amazon.com` and AWS's own Lambda/serverless agent skills, fetched 2026-09. Cross-links: [[aws-sqs]] and [[aws-amplify]] for two common trigger sources, [[nodejs]] / [[python]] for handler code, [[cqrs-event-sourcing]] for the event-driven patterns Lambda usually sits inside, [[secure-coding]] for the IAM/secrets hardening below.
+How to build Lambda functions that scale predictably, fail safely, and don't surprise you in production. Distilled from `docs.aws.amazon.com` and AWS's own Lambda/serverless agent skills, fetched 2026-09. Cross-links: [[aws-sqs]], [[aws-eventbridge]], and [[aws-amplify]] for common trigger sources, [[aws-api-gateway]] for the proxy-integration contract Lambda must honor, [[nodejs]] / [[python]] for handler code, [[cqrs-event-sourcing]] for the event-driven patterns Lambda usually sits inside, [[secure-coding]] for the IAM/secrets hardening below.
 
 > **Freshness.** Quotas, pricing, and supported-runtime lists change; treat exact numbers here as a 2026-09 snapshot and re-verify anything a production decision hinges on.
 

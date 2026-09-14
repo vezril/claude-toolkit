@@ -6,7 +6,7 @@ license: MIT
 
 # AWS Amplify (Gen 2)
 
-How to build and ship a full-stack app on **AWS Amplify Gen 2** — the current, TypeScript-first version of Amplify (distinct from the retired Gen 1 CLI/Studio experience). Distilled from [docs.amplify.aws](https://docs.amplify.aws/) and AWS's own Amplify agent skill, fetched 2026-09. Cross-links: [[react]] / [[nextjs]] / [[vue]] / [[typescript]] for the frontend half, [[nodejs]] for Lambda handlers, [[secure-coding]] for the auth/IAM hardening checklist below, [[cqrs-event-sourcing]] for how AppSync subscriptions relate to event-driven patterns.
+How to build and ship a full-stack app on **AWS Amplify Gen 2** — the current, TypeScript-first version of Amplify (distinct from the retired Gen 1 CLI/Studio experience). Distilled from [docs.amplify.aws](https://docs.amplify.aws/) and AWS's own Amplify agent skill, fetched 2026-09. Cross-links: [[react]] / [[nextjs]] / [[vue]] / [[typescript]] for the frontend half, [[nodejs]] for Lambda handlers ([[aws-lambda]] for their execution model), [[aws-cognito]] for what `defineAuth` provisions underneath, [[aws-s3]] for what `defineStorage` provisions underneath, [[secure-coding]] for the auth/IAM hardening checklist below, [[cqrs-event-sourcing]] for how AppSync subscriptions relate to event-driven patterns.
 
 > **Freshness.** Amplify Gen 2 ships continuously; exact package/CLI behavior here is a dated snapshot (2026-09). When in doubt, re-check `docs.amplify.aws` or AWS's own Amplify skill (`aws agent-toolkit`) for the installed version's exact API.
 
