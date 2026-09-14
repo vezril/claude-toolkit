@@ -116,6 +116,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **aws-s3** — Amazon S3, distilled from AWS docs and AWS's own S3 security agent skill (2026-09): storage classes, strong read-after-write consistency, versioning/lifecycle precedence rules, multipart upload concurrency gotchas and conditional writes, the default-secure bucket recipe (Block Public Access, `DenyInsecureTransport`, encryption), the `put-bucket-policy` full-replace danger, and event notifications (native vs. via EventBridge); `references/` carry the depth.
 - **aws-cloudfront** — Amazon CloudFront, distilled from AWS's own CloudFront agent skill (2026-09): when CloudFront is the right layer, origin locking (OAC/VPC origins/origin mTLS) as a mandatory pairing for every content control, signed URLs/cookies/geo-restrictions/viewer mTLS/edge token validation, cache policies vs behaviors, and CloudFront Functions vs Lambda@Edge; `references/` carry the depth.
 - **aws-rekognition** — Amazon Rekognition image/video analysis, distilled from docs.aws.amazon.com (2026-09): the sync (Image) vs always-async (Video) API split, `DetectLabels`/`DetectModerationLabels` (the 3-level content-moderation taxonomy and its breaking v6.1→v7 label changes)/`DetectFaces`/`DetectText`/`DetectProtectiveEquipment`, face collections and matching (`IndexFaces`/`SearchFaces*`/`CompareFaces`, the identity-verification pattern), the stored-video SNS/IAM job pattern and segment detection, streaming video and Amazon A2I both flagged closed to new customers, Rekognition Custom Labels, and AWS's own responsible-use guidance for face matching (mandatory human review, the 99%+ confidence bar and specific Service Terms obligations for public-safety use); `references/` carry the depth.
+- **aws-textract** — Amazon Textract document extraction, distilled from docs.aws.amazon.com (2026-09): the four synchronous single-page APIs (`DetectDocumentText`, `AnalyzeDocument`'s per-feature-billed `FeatureTypes` — TABLES/FORMS/QUERIES/SIGNATURES/LAYOUT, `AnalyzeExpense`, `AnalyzeID` — US-only) vs the async `Start*`/`Get*` family that mirrors Rekognition Video's SNS/IAM pattern, the flat `Block`-object response model walked via `Relationships` rather than nested JSON, the `Queries` natural-language feature, a format/size/page quota table (including a real discrepancy in Textract's own docs about the sync size limit worth verifying before relying on either figure), and the same Amazon-A2I-closed-to-new-customers caveat as Rekognition; `references/` carry the depth.
 
 **Home & IoT**
 
@@ -276,6 +277,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `aws-rekognition` |  |  |  |  |
 | `aws-s3` |  |  |  |  |
 | `aws-sqs` |  |  |  |  |
+| `aws-textract` |  |  |  |  |
 | `calvin-voice` | 79% | 100% | sonnet | Rhythm lift (mechanical-tell scoring), no patch |
 | `canadian-business-registration` |  |  |  |  |
 | `canadian-criminal-code` |  |  |  |  |
