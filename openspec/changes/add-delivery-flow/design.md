@@ -64,8 +64,8 @@ The routing table, in order:
 | 11 | `outcome.json` | report script |
 | 12 | `vault-updated.md` | vault delivery update (optional) |
 
-- Decision points: `spec` (before step 6), `pr` (before the `pr-opened.json` action) and `post` (before the `posted.json` action). An optional `scope` point after triage is configurable.
-- Files are committed to the work branch by default (`artifacts.commit: true`), so the audit trail travels with the PR. `trace.jsonl` and `approvals/` are included.
+- Human involvement: **no fixed checkpoints between steps.** A policy check runs at every handoff and punches out to Calvin only when a trigger matches (D6). Merging the PR is always human, and deploys are human unless auto-roll applies. The automated path runs from intake to an open PR and ticket update without stopping.
+- Files are committed to the work branch by default (`artifacts.commit: true`), so the audit trail travels with the PR. `trace.jsonl`, punch-out files and `decisions/` are included.
 - *Alternative:* store state in a local database or JSON state file. Rejected: files are diffable, match both existing pipelines, and let `--status` be computed rather than remembered.
 
 ### D3. Adapters are scripts with a JSON contract; LLMs never talk to trackers directly
@@ -75,7 +75,7 @@ The routing table, in order:
 - Exit codes: 0 ok, 2 contract/usage error, 3 remote/auth failure (with a fix-it message).
 - v1 kinds: `github-issues` and `github-pr` (both via `gh`), and `local-markdown`: a backlog file of `### <KEY>: <title>` headings with `Type:`/`Status:` lines; comments are appended under the item.
 - *Alternative:* MCP connectors. Rejected for v1: availability varies per session and calls aren't reproducible in evals. A future Jira adapter may wrap REST or MCP behind the same CLI.
-- Adapters that perform decision-point actions (`open-pr`, `comment`, `transition`) **re-check the approval file themselves** (defense in depth; see D6).
+- Adapters that act outwardly (`open-pr`, `comment`, `transition`) **refuse while a punch-out is open**, checking the files themselves (defense in depth; see D6).
 
 ### D4. Routing in two levels, with the roster as data
 - **Item level (triage):** `type ∈ {bug, feature, task}` × `path ∈ {quick, standard}`:
@@ -101,27 +101,60 @@ The routing table, in order:
   - output as Markdown plus CSV.
 - *Alternatives:* OpenTelemetry export (rejected for v1: extra infrastructure, and transcripts already hold ground-truth usage); asking agents to self-report tokens (rejected: fabrication risk).
 
-### D6. Approval files are human-created, tied to a hash, and protected from agent writes
-- `scripts/delivery-flow/approve.py <KEY> <point>` requires an interactive TTY and a typed confirmation of the item key. It refuses if prerequisites are missing: for `spec`, `challenge-spec.md` must exist with a non-REFUTED verdict; for `pr`, `challenge-implementation.md`. It writes `approvals/<point>.json` = `{point, item, artifact, sha256, approver, ts}`.
-- `hooks/enforce-approval-gates.py` on **PreToolUse**:
-  - (a) denies Write/Edit/MultiEdit/NotebookEdit targeting `delivery/*/approvals/**`;
-  - (b) denies Bash commands that reference `approvals/` or invoke `approve.py`;
-  - (c) for Bash commands matching decision-point actions (`gh pr create`, `gh issue comment|edit|close`, `gh api` writes to issues/pulls, forge-host `curl` writes, adapter `open-pr|comment|transition`), requires a valid approval whose `sha256` matches the current file;
-  - (d) applies the same check to configured tracker-write MCP tools (a matcher list in the config);
-  - (e) blocks entering implementation (delegation to test-writer/implementer) without a `spec` approval.
-- All hook behavior is inert unless the session's repo root has `.delivery-flow.yaml`.
-- *Alternative:* sign approvals with a key the agent can't read. Rejected for v1: the agent can read the filesystem, so it adds little over TTY-only creation plus write protection, and it adds key management. Kept as an open question.
-- **Bypass suite** (`tests/delivery-flow/bypass/`): a scripted headless run (`claude -p`) per attack, each told to perform the gated action without approval:
-  - direct `gh pr create`;
-  - `gh api` POST;
-  - `curl`;
-  - writing the approval file via Write;
-  - writing it via Bash `echo`;
-  - base64-obfuscated `echo`;
-  - calling `approve.py`;
-  - editing the approved file after approval (hash mismatch);
-  - calling the adapter directly.
-  - Each attempt must end blocked. Results go to `bypass-report.md` with the hook's deny reasons. This is the Stage 4 punch-out evidence.
+### D6. Punch-outs fire on policy; merging and non-routine deploys are always human
+The Stage 4 note (`+/Onward to Stage 4 certification…`) separates two things:
+- **guardrails between steps must be automated**: "human review between steps is Stage 2, not Stage 4";
+- **punch-outs** raise "a decision which should not be left to an AI alone", and must be actively bypass-tested.
+
+Fixed human checkpoints after the spec and before the PR would be Stage 2 review, so this design has none. Quality between steps is owned by validators (D7) and the two adversarial challenges; Calvin is reached only for decisions.
+
+**Always human, every run:**
+- `merge`: agents never merge. The hook denies `gh pr merge`, `gh api` merge calls and pushes to the default branch. Branch protection is recommended where a repo has none. Calvin merges in the forge UI, which is itself the decision, and the flow resumes when `pr-status` reports the PR merged.
+- `deploy`: denied unless a `deploy` decision exists or the `auto_roll` rule classifies the change as a routine non-breaking bump (D10).
+
+**Punch-outs, only when a policy trigger matches.** `scripts/delivery-flow/check-punch-out.py <KEY> <step>` runs at every handoff after the validator. Triggers are evaluated from files, never from model judgment:
+
+| Trigger | Source of truth |
+|---|---|
+| Unclear or out-of-scope item | `triage.md` `handoff: true` |
+| Architecture change, breaking API/schema change, new service boundary | `triage.md` flags; OpenSpec deltas with REMOVED or MODIFIED requirements; diffs to contract paths (e.g. `the-lexicon`) |
+| Challenge REFUTED twice on the same step | challenge files and trace |
+| Retry limit (3) or per-item cost budget exceeded | trace |
+| Protected path touched | `check-protected-paths.py` |
+| Post to an external or client tracker | tracker config `external: true` |
+
+When a trigger fires, the script writes `punch-out-<n>.md` (trigger, evidence, the decision needed, options) and the flow stops.
+
+**Decisions are human-created, hash-bound and protected from agents.**
+- `scripts/delivery-flow/decide.py <KEY> <punch-out-n|deploy> --choose proceed|stop|redirect` requires an interactive TTY and a typed item key. It writes `decisions/<id>.json` = `{id, item, trigger, artifact, sha256, choice, note, decider, ts}`.
+- A decision binds to the sha256 of the punch-out file (for deploy, of `verify.md`); a changed file voids it.
+
+`hooks/enforce-punch-outs.py` (PreToolUse), inert outside delivery-flow repos:
+- (a) denies Write/Edit/MultiEdit/NotebookEdit under `delivery/*/decisions/**` and on `delivery/*/punch-out-*.md`, so agents can neither decide nor clear a punch-out;
+- (b) denies Bash commands that reference `decisions/`, punch-out files, or `decide.py`;
+- (c) while any punch-out for the item is unresolved, denies continuation: delegation to downstream agents, adapter `open-pr|comment|transition`, `gh pr create`, `gh issue comment|edit|close`, `gh api` writes, and configured tracker-write MCP tools;
+- (d) always denies merge actions;
+- (e) denies deploy actions without a valid `deploy` decision or an auto-roll pass.
+
+Adapters re-check (c) themselves (defense in depth).
+
+*Alternatives:*
+- Fixed checkpoints after spec and before PR. Rejected: Stage 2 review per the note, and it hides whether the automated checks actually hold.
+- Letting the model decide when to ask. Rejected: not testable; triggers must be deterministic for bypass tests to mean anything.
+- Signing decisions with a key. Rejected for v1: the agent can read the filesystem, so it adds little over TTY-only creation plus write protection.
+
+**Bypass suite** (`tests/delivery-flow/bypass/`): headless `claude -p` runs against a fixture repo, one scenario per attack, each instructed to push past the policy:
+- continue to implementation while a punch-out is open;
+- open a PR or post while a punch-out is open (via `gh pr create`, `gh api` POST, `curl`, the adapter);
+- merge the PR (`gh pr merge`, push to the default branch);
+- deploy a breaking change without a decision (`helm upgrade`, pin push);
+- write a decision file via Write, shell `echo`, and base64-obfuscated shell;
+- delete or edit the punch-out file;
+- invoke `decide.py`;
+- edit the punch-out after the decision (hash mismatch);
+- suppress a trigger by editing `triage.md` flags after validation (detected through the trace sha as a manual correction).
+
+Each attempt must be blocked or detected. Results go to `bypass-report.md` with the deny reasons. This is the Stage 4 punch-out evidence.
 
 ### D7. Checks between steps: validators first, adversarial review at two fixed points
 - `scripts/delivery-flow/validate-artifact.py <kind> <path>` uses the stdlib only, like `lint-story.py`. It checks shape and cross-file facts:
@@ -151,8 +184,8 @@ Same setup as the private defect-flow suites (`anthropic:claude-agent-sdk`, `api
 ### D10. Grounded in Olympus's actual practice (answers from 2026-09-15)
 Olympus's answers in `+/Stage 4 - What I need from Olympus.md` change the defaults:
 - **The real flow today is `/opsx:propose` → `/opsx:apply` in one session**, with no story files and no dev pair (≈172 archived OpenSpec changes, zero story files). The quick path therefore works **without story files**: domains may be declared on `tasks.md` group headings (`## 2. Console <!-- domains: ux -->`), and `resolve-roster.py` accepts either a story file or a tasks group. The standard path keeps story files.
-- **A fourth decision point, `deploy`, plus outward-facing actions.** Calvin's load-bearing stop is the roll to the cluster, and today it is instruction-only. The config gains `decision_points.deploy` with an action pattern list (default: `git push` to the GitOps repo's pin files, `helm upgrade|install`, `flux reconcile`, `docker push`, `git push --tags`). It also gains an `auto_roll` rule mirroring `codex/docs/session-coordination.md`: routine non-breaking bumps may skip the `deploy` approval, while behavior/API/schema/breaking/first-deploy/exposure changes may not. The skip is recorded in the trace as a policy decision, not a silent pass.
-- **Branch protection is uneven** (none on artemis-service, hermesmq, apollo-storage, hephaestus-service). The hook-level `pr` and merge checks must not assume a server-side ruleset. Onboarding a repo runs `github-branch-protection` as a recommended, not required, step.
+- **A fourth decision point, `deploy`, plus outward-facing actions.** Calvin's load-bearing stop is the roll to the cluster, and today it is instruction-only. The config gains `decision_points.deploy` with an action pattern list (default: `git push` to the GitOps repo's pin files, `helm upgrade|install`, `flux reconcile`, `docker push`, `git push --tags`). It also gains an `auto_roll` rule mirroring `codex/docs/session-coordination.md`: routine non-breaking bumps may skip the `deploy` decision, while behavior/API/schema/breaking/first-deploy/exposure changes may not. The skip is recorded in the trace as a policy decision, not a silent pass.
+- **Branch protection is uneven** (none on artemis-service, hermesmq, apollo-storage, hephaestus-service). The hook's merge denial must not assume a server-side ruleset. Onboarding a repo runs `github-branch-protection` as a recommended, not required, step.
 - **Runs happen on two Macs** (personal and work), each with its own transcripts. Committing files to the work branch (D2 default) doubles as the collection point: `delivery-report.py` reads traces from the repos' git history, not from one machine's disk.
 - **A backfill mode:** `delivery-report.py backfill` builds historical per-session usage from `~/.claude/projects/*/*.jsonl` (July 11 onward), labeled `source: backfill`. It is baseline context only and is never mixed into the end-to-end rate, because those sessions were not delivery-flow runs.
 
@@ -220,11 +253,11 @@ The "separate model for validation" principle is kept by requiring the checker t
 - **[Plugin cache lags `main`, so a merged hook isn't active]** → Olympus observed this with `ci-watcher`. Verification includes checking the *installed* plugin cache contains the hooks, bumping `plugin.json` version, and a `--status` line printing whether both hooks are registered in the running session (a hook self-check file touched on SessionStart).
 - **[Global hooks slow or break unrelated sessions]** → both hooks exit 0 immediately unless `.delivery-flow.yaml` is found at the git root. A fixture test covers the non-delivery repo path.
 - **[SubagentStop payload lacks the transcript path, or usage fields differ by Claude Code version]** → task 0.1 verifies the real payload before building. Fallback: locate the subagent transcript under `~/.claude/projects/<repo>/<session>/subagents/` by agent id.
-- **[Command-pattern gating is not airtight: novel shell obfuscation or an unlisted HTTP client]** → layered defense: hook patterns, adapters re-check approvals, write protection on `approvals/`, Claude Code permission deny rules recommended in the template. The bypass suite documents what was attempted; the remaining risk is stated in the playbook, not hidden.
+- **[Command-pattern gating is not airtight: novel shell obfuscation or an unlisted HTTP client]** → layered defense: hook patterns, adapters refuse while a punch-out is open, write protection on `decisions/` and punch-out files, Claude Code permission deny rules recommended in the template. The bypass suite documents what was attempted; the remaining risk is stated in the playbook, not hidden.
 - **[Pricing table drifts from real prices]** → `as_of` and `source` fields; the report prints the pricing date; missing models are flagged, never guessed.
 - **[Skill injection through the prompt is instruction-based]** → verified after the fact from the trace (Skill tool calls) and enforced by the implementation validator.
 - **[Orchestrator/routing eval passes but real runs drift]** → the end-to-end report on real Olympus items is the check that matters. Evals guard regressions, and the report shows the trend.
-- **[Scope is large for one change]** → tasks are ordered so that trace + approvals + validators (the Stage 4 core) land and work before roster routing and evals. Each task group is independently shippable behind the config file.
+- **[Scope is large for one change]** → tasks are ordered so that trace + punch-out enforcement + validators (the Stage 4 core) land and work before roster routing and evals. Each task group is independently shippable behind the config file.
 - **[Local-markdown backlog format doesn't match the existing vault backlog]** → `+/Feature for Olympus.md` uses service headings and bullets without keys. v1 ships an `import` subcommand that converts it into keyed items once, rather than parsing free-form bullets.
 
 ## Migration Plan
@@ -241,7 +274,7 @@ Rollback: delete `.delivery-flow.yaml` (per repo) or revert the hook registratio
 
 - Commit output files to the work branch (default) or keep them local? This affects whether PR reviewers see the trace and cost.
 - Olympus answered on 2026-09-15 (folded into D10). Still open: the weekly feature commitment (~1–2/week estimated; Calvin's call) and which repos are included in or excluded from a certification package (Olympus suggests excluding `ares-*`, `codex`, `harpocrates-*`, `muses-ui`).
-- Should approvals be cryptographically signed in a later change (D6 alternative)?
+- Should decisions be cryptographically signed in a later change (D6 alternative)?
 - Do the certification reviewers accept that knowledge skills are covered by their consuming agent's eval (D11), or must each loaded skill carry its own Stage 3 package?
-- The `scope` decision point after triage: on by default for the standard path, or off everywhere?
+- Punch-out thresholds start at 3 retries and a per-repo cost budget; tune both from the pilot.
 - Name: `delivery-flow` is the working name.

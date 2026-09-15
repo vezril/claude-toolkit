@@ -28,9 +28,9 @@ The `local-markdown` adapter SHALL treat each `### <KEY>: <title>` heading in th
 - **WHEN** `local-markdown import "+/Feature for Olympus.md" --prefix OLY --out backlog.md` runs
 - **THEN** `backlog.md` contains one keyed item per bullet under its service heading and the source file is unchanged
 
-### Requirement: Gated adapter actions re-check approvals
-Adapter subcommands that act outwardly (`open-pr`, `comment`, `transition`) SHALL verify that the matching approval file exists and that its `sha256` matches the current file being acted on, and SHALL exit 2 with the reason when it does not, independently of the PreToolUse hook.
+### Requirement: Outward adapter actions refuse while a punch-out is open
+Adapter subcommands that act outwardly (`open-pr`, `comment`, `transition`) SHALL exit 2 without making a remote call when the item has an unresolved punch-out, or when posting to a tracker configured `external: true` without a resolved decision for that post, independently of the PreToolUse hook.
 
-#### Scenario: Adapter refuses without approval
-- **WHEN** `github-pr open-pr` is invoked for DEM-12 and `delivery/DEM-12/approvals/pr.json` does not exist
-- **THEN** the adapter exits 2 naming the missing `pr` approval and makes no remote call
+#### Scenario: Adapter refuses during a punch-out
+- **WHEN** `github-pr open-pr` is invoked for DEM-12 while `delivery/DEM-12/punch-out-1.md` has no matching decision
+- **THEN** the adapter exits 2 naming the open punch-out and makes no remote call
