@@ -18,6 +18,13 @@ Token counts SHALL be read from the Claude Code transcript `usage` fields. Agent
 - **WHEN** the hook cannot locate the subagent transcript
 - **THEN** it writes the record with null token fields and `trace_error` describing the lookup failure
 
+### Requirement: Usage counted once per API message
+The trace hook and report SHALL sum usage once per distinct `message.id` in a transcript, because Claude Code repeats the same `usage` object on every content block of one API message. They SHALL price 5-minute and 1-hour cache writes separately, using `usage.cache_creation.ephemeral_5m_input_tokens` and `ephemeral_1h_input_tokens`.
+
+#### Scenario: Repeated usage not double-counted
+- **WHEN** a subagent transcript contains 6 assistant lines sharing one `message.id` with `output_tokens: 3`
+- **THEN** the step's record shows `output_tokens: 3`, not 18
+
 ### Requirement: Cost from a dated pricing table
 Cost SHALL be computed from `pricing.yaml` (USD per million tokens per model and token class, with `source` and `as_of`). A model absent from the table SHALL produce `cost_usd: null` and `pricing_missing: true`.
 
