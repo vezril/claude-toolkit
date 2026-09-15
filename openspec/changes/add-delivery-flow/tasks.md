@@ -1,12 +1,12 @@
 ## 0. Verify assumptions
 
 - [ ] 0.1 Capture real SubagentStop and Stop hook payloads from the installed Claude Code version; confirm which transcript path fields exist and the `usage` field names in subagent transcripts; record findings in `design.md` D5 (or switch to the fallback lookup)
-- [ ] 0.2 Confirm Claude Code's Bash tool runs without a TTY (so `approve.py`'s TTY check blocks agents) and record the check used
+- [ ] 0.2 Confirm Claude Code's Bash tool runs without a TTY (so `decide.py`'s TTY check blocks agents) and record the check used
 - [ ] 0.3 Fill `pricing.yaml` from Anthropic's published pricing page with `source` and `as_of`; no remembered numbers
 
 ## 1. Config and templates
 
-- [ ] 1.1 Create `templates/delivery-flow/delivery-flow.yaml` (tracker, forge, decision points, per-step models, roster overrides, test command, artifact commit policy, vault binding, tracker-write MCP matcher list) with comments
+- [ ] 1.1 Create `templates/delivery-flow/delivery-flow.yaml` (tracker, forge, punch-out policy with triggers, cost budget and external-tracker flag, deploy and auto-roll, per-step models, roster overrides, test command, artifact commit policy, vault binding, tracker-write MCP matcher list) with comments
 - [ ] 1.2 Create `templates/delivery-flow/roster.yaml` with initial kinds of work (`ux`, `frontend`, `backend`, `contracts`, `infra`, `data`, `mobile`, `docs`) mapped to existing toolkit agents and skills only
 - [ ] 1.3 Create `templates/delivery-flow/pricing.yaml` (from 0.3)
 - [ ] 1.4 Write a shared `scripts/delivery-flow/common.py`: git-root discovery, `.delivery-flow.yaml` detection (the inert-outside rule), config and roster loading with wholesale per-key override
@@ -16,8 +16,8 @@
 - [ ] 2.1 `scripts/delivery-flow/adapters/github_issues.py`: `fetch`, `comment`, `transition`, `related` via `gh`; exit codes 0/2/3; normalized item JSON
 - [ ] 2.2 `scripts/delivery-flow/adapters/github_pr.py`: `open-pr`, `ci-status` via `gh`
 - [ ] 2.3 `scripts/delivery-flow/adapters/local_markdown.py`: `fetch`, `comment`, `transition`, `related`, `import` (new file only)
-- [ ] 2.4 Approval re-check inside `open-pr`, `comment` and `transition` (shared helper in `common.py`)
-- [ ] 2.5 Adapter fixture tests: normalized output, determinism (byte-identical reruns), auth-failure exit 3, refusal without approval, import against a copy of the Olympus feature backlog
+- [ ] 2.4 Open-punch-out refusal inside `open-pr`, `comment` and `transition` (shared helper in `common.py`)
+- [ ] 2.5 Adapter fixture tests: normalized output, determinism (byte-identical reruns), auth-failure exit 3, refusal while a punch-out is open, import against a copy of the Olympus feature backlog
 
 ## 3. Validators
 
@@ -51,12 +51,14 @@
 
 ## 7. Decision-point enforcement
 
-- [ ] 7.1 `scripts/delivery-flow/approve.py`: TTY requirement, typed key confirmation, prerequisite checks, hash-bound approval file
-- [ ] 7.2 `hooks/enforce-approval-gates.py`: approvals-path write protection (tools and Bash), decision-point action patterns, MCP matcher list, implementation-delegation check, inert outside delivery-flow repos
-- [ ] 7.3 Register in `hooks/hooks.json` (PreToolUse matchers for Bash, Write/Edit/MultiEdit/NotebookEdit, Task/Agent, configured MCP tools)
-- [ ] 7.4 Unit tests for the hook's decisions from recorded tool-input payloads
-- [ ] 7.4a `deploy` decision point: configurable deploy action patterns plus the `auto_roll` rule (routine non-breaking bumps skip; API/schema/breaking/first-deploy/exposure do not), with policy-decision trace records; seed defaults from `codex/docs/session-coordination.md`
-- [ ] 7.5 `tests/delivery-flow/bypass/` (including `helm upgrade` and a pin push without a `deploy` approval): fixture repo plus one headless `claude -p` scenario per required attack; writes `bypass-report.md`; non-zero on any breach
+- [ ] 7.1 `scripts/delivery-flow/check-punch-out.py`: deterministic triggers (triage handoff, architecture/breaking/contract-path changes, REFUTED twice, retry limit and cost budget from trace, protected paths, external tracker post); writes `punch-out-<n>.md`; fixture tests per trigger, plus a no-trigger case that must not stop
+- [ ] 7.2 `scripts/delivery-flow/decide.py`: TTY requirement, typed key confirmation, hash-bound decision file for punch-outs and deploy
+- [ ] 7.3 `hooks/enforce-punch-outs.py`: write protection on `decisions/` and punch-out files (tools and Bash), continuation blocking while a punch-out is open, always-deny merge actions, deploy check, MCP matcher list, inert outside delivery-flow repos
+- [ ] 7.4 Register in `hooks/hooks.json` (PreToolUse matchers for Bash, Write/Edit/MultiEdit/NotebookEdit, Task/Agent, configured MCP tools)
+- [ ] 7.5 Unit tests for the hook's decisions from recorded tool-input payloads
+- [ ] 7.6 `deploy` rule: configurable deploy action patterns plus the `auto_roll` rule (routine non-breaking bumps skip; API/schema/breaking/first-deploy/exposure do not), with policy-decision trace records; seed defaults from `codex/docs/session-coordination.md`
+- [ ] 7.7 `tests/delivery-flow/bypass/`: fixture repo plus one headless `claude -p` scenario per attack in design D6 (continue past a punch-out, open PR or post during a punch-out, merge, deploy a breaking change, write or clear decisions and punch-outs, invoke `decide.py`, edit after deciding, suppress a trigger); writes `bypass-report.md`; non-zero on any breach
+- [ ] 7.8 Confirm no fixed human checkpoint remains: a fixture item with no triggers runs from intake to an open PR and ticket update with zero stops
 
 ## 8. Evals
 
@@ -79,11 +81,11 @@
 
 ## 9. Documentation (doc-sync rule)
 
-- [ ] 9.1 Add a "Delivery flow" section to `docs/using-the-sdlc-dev-team.md`: when to use it, routing table, branching, roster, approvals and bypass evidence, trace and report, remaining risks
+- [ ] 9.1 Add a "Delivery flow" section to `docs/using-the-sdlc-dev-team.md`: when to use it, routing table, branching, roster, punch-out policy and bypass evidence, trace and report, remaining risks
 - [ ] 9.2 Create `docs/figures/delivery-flow.svg` in the house color language (purple = human decision point, amber = deterministic script, teal = LLM checker, coral = build, red/green = dev pair) and embed it
 - [ ] 9.3 Update `agents/README.md`, `skills/prime/` team bindings (read the roster), and `skills/sdlc-orchestration/SKILL.md` mirrors
 - [ ] 9.3a Add a playbook subsection on step certification and model tiering (the bar, recertification on prompt change, escalation evidence, the certified-only end-to-end rate)
-- [ ] 9.4 Update `CLAUDE.md` consistency rules (including: any agent or task-skill prompt edit requires re-running its suite and updating `steps.yaml`'s `prompt_sha256`): roster ↔ `resolve-roster.py` ↔ `roster.md`; `validate-artifact.py` ↔ the skill's file formats; approval hook ↔ `approve.py` ↔ adapters' re-check
+- [ ] 9.4 Update `CLAUDE.md` consistency rules (including: any agent or task-skill prompt edit requires re-running its suite and updating `steps.yaml`'s `prompt_sha256`): roster ↔ `resolve-roster.py` ↔ `roster.md`; `validate-artifact.py` ↔ the skill's file formats; punch-out hook ↔ `check-punch-out.py` ↔ `decide.py` ↔ adapters' refusal
 
 ## 10. Verification
 

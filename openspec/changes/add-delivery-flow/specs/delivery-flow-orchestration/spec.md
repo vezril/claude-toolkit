@@ -12,7 +12,7 @@ The `delivery-flow` skill SHALL determine an item's position solely from the fil
 - **THEN** the flow prints the routing table annotated with which files exist, the latest validator result per step, and which decision point (if any) it is waiting on
 
 ### Requirement: Per-repo configuration
-The flow SHALL read `.delivery-flow.yaml` at the repository root for tracker kind, forge kind, enabled decision points, per-step models, roster overrides, test command, artifact commit policy, and optional vault binding. It SHALL stop and ask when the file is missing, never guessing a tracker or forge.
+The flow SHALL read `.delivery-flow.yaml` at the repository root for tracker kind, forge kind, punch-out policy (triggers, cost budget, external trackers), deploy and auto-roll settings, per-step models, roster overrides, test command, artifact commit policy, and optional vault binding. It SHALL stop and ask when the file is missing, never guessing a tracker or forge.
 
 #### Scenario: Missing config
 - **WHEN** `delivery-flow` is invoked in a repository without `.delivery-flow.yaml`
@@ -34,7 +34,7 @@ After every step the flow SHALL run the file's deterministic validator and SHALL
 
 #### Scenario: Validator failure blocks advance
 - **WHEN** `validate-artifact.py pr delivery/DEM-12/pr.md` exits non-zero
-- **THEN** the flow reruns the PR description step with the validator report and does not request the `pr` approval
+- **THEN** the flow reruns the PR description step with the validator report and does not open the PR
 
 #### Scenario: Refuted spec reruns
 - **WHEN** `challenge-spec.md` carries verdict REFUTED
