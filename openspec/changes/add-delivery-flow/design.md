@@ -22,6 +22,12 @@ Constraints:
 - The story format and `lint-story.py` change together.
 - The attended SDLC pipeline must keep working unchanged.
 
+Target shape (figures in `docs/figures/`, embedded in the playbook when this change is implemented):
+
+![Delivery flow](../../../docs/figures/delivery-flow.svg)
+
+![Per-story specialist routing](../../../docs/figures/delivery-flow-routing.svg)
+
 ## Goals / Non-Goals
 
 **Goals:**
