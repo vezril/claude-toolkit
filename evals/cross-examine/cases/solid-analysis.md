@@ -14,7 +14,7 @@ turns_completed=0.
 
 ## Root cause
 
-Two compounding defects in the AICAA repo (`customer_ai_agent`), both in the voice
+Two compounding defects in the voice-agent repo (`voice_agent`), both in the voice
 turn pipeline around the STT client:
 
 1. **No retry on upstream STT timeout.** `SttClient` issues a single request with a
@@ -30,11 +30,11 @@ turn pipeline around the STT client:
    catch that…") and no escalation path on turn failure.
 
 The upstream STT service's own 20s timeout is outside our control and out of scope;
-the defect is that AICAA handles that failure mode by going silent.
+the defect is that voice-agent handles that failure mode by going silent.
 
 ## Options considered
 
-- **A (recommended):** In `customer_ai_agent`: (i) make `SttClient` retry once on
+- **A (recommended):** In `voice_agent`: (i) make `SttClient` retry once on
   upstream timeout with a shorter (5s) budget; (ii) on terminal STT failure, have
   `TurnProcessor` emit a spoken fallback prompt asking the caller to repeat, and
   after two consecutive failed turns route to the human-escalation flow that already

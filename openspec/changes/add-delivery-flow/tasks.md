@@ -66,11 +66,12 @@
 
 - [ ] 8.1 `evals/delivery-flow-routing/`: directory-state fixtures covering bug/feature/task, recall skipped, validation rerun, REFUTED rerun, each decision-point stop; deterministic JS asserts on `{next_step, decision_point_stop, branch}`; keyless Agent SDK provider
 - [ ] 8.2 `evals/work-type-classifier/`: labeled story plus manifest fixtures (seeded from Olympus answer 8.3 when available); exact-set asserts; 95% bar
-- [ ] 8.3 Run both suites on the target models and commit the results JSON
+- [ ] 8.3 `evals/delivery-flow-e2e/`: seeded fixture repo plus stub adapters; cases for a clean feature to open PR with no stops, a quick-path bug, an unclear triage punch-out, a breaking-contract punch-out, a twice-refuted step and a budget breach; asserts on files produced, validator results, outcome status, punch-out point and one trace record per step
+- [ ] 8.4 Run all three suites on the target models and commit the results JSON
 
 ## 8b. Stage 3 certification and model tiering
 
-- [ ] 8b.1 Create `skills/delivery-flow/steps.yaml` with one entry per task prompt on the pilot path (`backend`, `contracts`, `ux`); mark every other roster agent `certified: false`
+- [ ] 8b.1 Create `skills/delivery-flow/steps.yaml` with one entry per task prompt on the pilot path (`backend`, `contracts`, `ux`) plus an entry for the workflow itself (end-to-end suite); mark every other roster agent `certified: false`
 - [ ] 8b.2 Write `scripts/delivery-flow/check-certification.py`: ≥3 criteria, ≥95% results, provider tier ≤ Sonnet, prompt sha match, ≥90% load-bearing appendix, iteration log ≥2 complete entries, escalation evidence above Sonnet; fixture tests for each failure
 - [ ] 8b.3 Wire certification into the flow (pre-step check, `allow_uncertified`, `certified` trace field) and the report (certified-only end-to-end rate)
 - [ ] 8b.4 Add `model_conformant` to trace records, report the extra cost of non-conformant records, and add the `--status` session-model warning

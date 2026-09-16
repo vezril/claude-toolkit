@@ -46,6 +46,10 @@ The trace hook SHALL exit 0 without reading transcripts or writing files when th
 ### Requirement: End-to-end report
 `delivery-report.py <root>` SHALL aggregate `trace.jsonl` and `outcome.json` files and emit Markdown and CSV. The output SHALL contain: per-item outcome, total tokens and cost; per-step token and cost distribution; per-model totals; and a weekly series of end-to-end rate `completed / (completed + failed)`, with the punch-out rate reported separately. It SHALL state the pricing `as_of` date used.
 
+#### Scenario: Both readings of the rate are reported
+- **WHEN** the reviewers' definition of a run is still unsettled
+- **THEN** the report shows the rate both excluding punch-outs and counting them as unsuccessful runs, each labeled
+
 #### Scenario: Punch-outs are not failures
 - **WHEN** a week has 4 completed, 1 failed and 2 punched-out items
 - **THEN** the report shows an end-to-end rate of 80% and a punch-out rate of 2 of 7 items
