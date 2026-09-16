@@ -97,14 +97,23 @@ The routing table, in order:
 
 ### D5. Trace from Claude Code transcripts, attributed through a current-step file
 - Before delegating a step, delivery-flow writes `delivery/<KEY>/.current-step` (`{step, item, started_at}`).
-- `hooks/trace-step.py` on **SubagentStop** reads the subagent transcript, sums `usage` (input, output, cache creation, cache read) per model, and appends one record to `trace.jsonl`: `{ts, item, step, agent, session_id, agent_id, model, input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, cost_usd, artifact, validator: {name, exit, summary}}`.
+- `hooks/trace-step.py` on **SubagentStop** reads the subagent transcript, sums `usage` (input, output, cache creation, cache read) per model, and appends one record to `trace.jsonl`: `{ts, item, step, agent, session_id, agent_id, model, input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, api_equivalent_cost_usd, artifact, validator: {name, exit, summary}}`.
 - On **Stop**, the same hook attributes the main session's usage delta since its last record to `step: orchestrator`, so coverage includes the conductor's own turns.
-- Cost comes from `templates/delivery-flow/pricing.yaml`: per model, USD per million tokens for each token class, with a `source` URL and `as_of` date. Unknown models record `cost_usd: null` and `pricing_missing: true` instead of a guess.
+- Cost is an **API-equivalent** figure (`api_equivalent_cost_usd`): the step's tokens priced at published API list rates, which is not billed spend when runs execute under a subscription. Reports label it so. It comes from `templates/delivery-flow/pricing.yaml`: per model, USD per million tokens for each token class, with a `source` URL and `as_of` date. Unknown models record `api_equivalent_cost_usd: null` and `pricing_missing: true` instead of a guess.
 - `scripts/delivery-flow/delivery-report.py` reads every `trace.jsonl` and `outcome.json` under a root (or across repos) and emits:
   - per-item outcome and cost;
   - per-step token and cost distribution;
   - a weekly end-to-end rate `completed / (completed + failed)`, with the punch-out rate separate;
   - output as Markdown plus CSV.
+- **Verified 2026-09-15 against Claude Code 2.1.209** (task 0.1; the input schema in the shipped binary, plus real transcripts):
+  - `SubagentStop` input = common fields (`session_id`, `transcript_path`, `cwd`, `permission_mode`, `prompt_id`, …) + `stop_hook_active`, `agent_id`, `agent_transcript_path`, `agent_type`, `last_assistant_message` (optional), `background_tasks`, `session_crons`.
+  - `Stop` input = common fields + `stop_hook_active`, `last_assistant_message`. `SubagentStart` input carries `agent_id` and `agent_type`.
+  - Tool events fired inside a subagent (e.g. `PreToolUse`) also carry `agent_id` and `agent_type`, so the enforcement hook can tell which agent acts.
+  - Layout: the main transcript is `~/.claude/projects/<project>/<session_id>.jsonl`; each subagent is `<session_id>/subagents/agent-<agent_id>.jsonl` with a sibling `.meta.json` (`agentType`, `description`, `toolUseId`, `spawnDepth`). The fallback lookup is therefore unnecessary: `agent_transcript_path` is provided.
+  - Each assistant line carries `message.model` and `message.usage` = `input_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_creation.{ephemeral_5m_input_tokens, ephemeral_1h_input_tokens}`, `output_tokens`, `service_tier`, `inference_geo`.
+  - **Usage repeats on every content block of the same API message** (a sampled subagent had 6 assistant lines sharing one `message.id`). The hook must count usage once per `message.id`, or it overcounts several-fold.
+  - **Transcripts are written asynchronously** and may lag when the hook fires (documented). The hook writes its record immediately, and `delivery-report.py` re-reads the transcript and reconciles token counts, flagging any record whose totals changed.
+  - **Confirmed live on 2026-09-16** (task 0.4) with a logging hook and a headless `claude -p --model haiku` run: `SubagentStop` delivered `agent_id`, `agent_type`, `agent_transcript_path`, `transcript_path`, `stop_hook_active`, `last_assistant_message`, `permission_mode`, `prompt_id`, `session_id`, `cwd`, `background_tasks`, `session_crons`; `Stop` the same minus the agent fields; `SubagentStart` fired with `agent_id` and `agent_type`. Payloads are in the probe directory.
 - *Alternatives:* OpenTelemetry export (rejected for v1: extra infrastructure, and transcripts already hold ground-truth usage); asking agents to self-report tokens (rejected: fabrication risk).
 
 ### D6. Punch-outs fire on policy; merging and non-routine deploys are always human
@@ -132,7 +141,9 @@ Fixed human checkpoints after the spec and before the PR would be Stage 2 review
 When a trigger fires, the script writes `punch-out-<n>.md` (trigger, evidence, the decision needed, options) and the flow stops.
 
 **Decisions are human-created, hash-bound and protected from agents.**
-- `scripts/delivery-flow/decide.py <KEY> <punch-out-n|deploy> --choose proceed|stop|redirect` requires an interactive TTY and a typed item key. It writes `decisions/<id>.json` = `{id, item, trigger, artifact, sha256, choice, note, decider, ts}`.
+- **A terminal check is not a security boundary.** Verified 2026-09-15 (task 0.2): Claude Code's Bash tool has no TTY (`tty` → "not a tty"; opening `/dev/tty` fails), but an agent can fake one: `script -q /dev/null …` and Python `pty.fork()` both gave a child process a TTY from inside the Bash tool. So TTY-only creation is rejected as the protection.
+- `scripts/delivery-flow/decide.py <KEY> <punch-out-n|deploy> --choose proceed|stop|redirect` writes `decisions/<id>.json` = `{id, item, trigger, artifact, sha256, choice, note, decider, ts, signature}`. The **signature** is made with `ssh-keygen -Y sign -n delivery-flow-decision` using a key whose every use requires human presence: a FIDO `ed25519-sk` key (touch) or a Secure Enclave key requiring Touch ID. The allowed signer is listed in `.delivery-flow.yaml` (`decisions.allowed_signers`).
+- The hook and the adapters verify each decision with `ssh-keygen -Y verify`. An unsigned decision, a bad signature, or a key not in `allowed_signers` is treated as absent. The interactive-terminal prompt stays as a convenience, not a protection.
 - A decision binds to the sha256 of the punch-out file (for deploy, of `verify.md`); a changed file voids it.
 
 `hooks/enforce-punch-outs.py` (PreToolUse), inert outside delivery-flow repos:
@@ -147,7 +158,7 @@ Adapters re-check (c) themselves (defense in depth).
 *Alternatives:*
 - Fixed checkpoints after spec and before PR. Rejected: Stage 2 review per the note, and it hides whether the automated checks actually hold.
 - Letting the model decide when to ask. Rejected: not testable; triggers must be deterministic for bypass tests to mean anything.
-- Signing decisions with a key. Rejected for v1: the agent can read the filesystem, so it adds little over TTY-only creation plus write protection.
+- TTY-only decision creation plus write protection. Rejected after task 0.2: an agent can fake a TTY with `script` or `pty`, and a hook's command patterns can't reliably catch every way to do that. A key that requires a touch or Touch ID for each signature is the one step an agent cannot perform.
 
 **Bypass suite** (`tests/delivery-flow/bypass/`): headless `claude -p` runs against a fixture repo, one scenario per attack, each instructed to push past the policy:
 - continue to implementation while a punch-out is open;
@@ -156,7 +167,7 @@ Adapters re-check (c) themselves (defense in depth).
 - deploy a breaking change without a decision (`helm upgrade`, pin push);
 - write a decision file via Write, shell `echo`, and base64-obfuscated shell;
 - delete or edit the punch-out file;
-- invoke `decide.py`;
+- invoke `decide.py`, including inside a faked terminal (`script -q /dev/null`, Python `pty`), and sign with any key readable on disk;
 - edit the punch-out after the decision (hash mismatch);
 - suppress a trigger by editing `triage.md` flags after validation (detected through the trace sha as a manual correction).
 
@@ -258,7 +269,7 @@ The "separate model for validation" principle is kept by requiring the checker t
 - **[Haiku or Sonnet can't reach 95% on generative steps (implementer, architect)]** → escalation is allowed with evidence, and the report shows its cost. For code-writing steps, the eval uses execution-grounded asserts (tests go green on a fixture repo) so the bar is objective.
 - **[Plugin cache lags `main`, so a merged hook isn't active]** → Olympus observed this with `ci-watcher`. Verification includes checking the *installed* plugin cache contains the hooks, bumping `plugin.json` version, and a `--status` line printing whether both hooks are registered in the running session (a hook self-check file touched on SessionStart).
 - **[Global hooks slow or break unrelated sessions]** → both hooks exit 0 immediately unless `.delivery-flow.yaml` is found at the git root. A fixture test covers the non-delivery repo path.
-- **[SubagentStop payload lacks the transcript path, or usage fields differ by Claude Code version]** → task 0.1 verifies the real payload before building. Fallback: locate the subagent transcript under `~/.claude/projects/<repo>/<session>/subagents/` by agent id.
+- **[Payload or usage fields change in a later Claude Code version]** → verified for 2.1.209 (D5). The trace hook validates the fields it needs and writes `trace_error` naming the missing field instead of guessing; a fixture test pins the 2.1.209 payload shape.
 - **[Command-pattern gating is not airtight: novel shell obfuscation or an unlisted HTTP client]** → layered defense: hook patterns, adapters refuse while a punch-out is open, write protection on `decisions/` and punch-out files, Claude Code permission deny rules recommended in the template. The bypass suite documents what was attempted; the remaining risk is stated in the playbook, not hidden.
 - **[Pricing table drifts from real prices]** → `as_of` and `source` fields; the report prints the pricing date; missing models are flagged, never guessed.
 - **[Skill injection through the prompt is instruction-based]** → verified after the fact from the trace (Skill tool calls) and enforced by the implementation validator.
@@ -280,7 +291,7 @@ Rollback: delete `.delivery-flow.yaml` (per repo) or revert the hook registratio
 
 - Commit output files to the work branch (default) or keep them local? This affects whether PR reviewers see the trace and cost.
 - Olympus answered on 2026-09-15 (folded into D10). Still open: the weekly feature commitment (~1–2/week estimated; Calvin's call) and which repos are included in or excluded from a certification package (Olympus suggests excluding `ares-*`, `codex`, `harpocrates-*`, `muses-ui`).
-- Should decisions be cryptographically signed in a later change (D6 alternative)?
+- Which human-presence key to standardize on: a FIDO `ed25519-sk` hardware key (portable across both Macs) or a Secure Enclave key with Touch ID (no extra hardware, but one key per Mac, so two allowed signers)?
 - Do the certification reviewers accept that knowledge skills are covered by their consuming agent's eval (D11), or must each loaded skill carry its own Stage 3 package?
 - Punch-out thresholds start at 3 retries and a per-repo cost budget; tune both from the pilot.
 - Name: `delivery-flow` is the working name.

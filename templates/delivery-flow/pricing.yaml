@@ -1,0 +1,83 @@
+# Model pricing used by delivery-flow's trace hook and report to compute each step's
+# API-EQUIVALENT cost (`api_equivalent_cost_usd`): what the step's tokens would cost at
+# published API list prices. It is NOT necessarily money billed — runs under a Claude
+# subscription are not charged per token. Use it to compare steps and models honestly.
+#
+# Source: Anthropic's published pricing page (Claude API, first-party, global routing).
+# Units: USD per million tokens (MTok).
+# Never fill a value from memory. When prices change, update from the source and bump `as_of`.
+# A model the trace sees that matches no entry records cost_usd: null and pricing_missing: true.
+#
+# Transcript usage fields map to columns like this (verified against Claude Code 2.1.209 transcripts):
+#   usage.input_tokens                                  -> input
+#   usage.cache_creation.ephemeral_5m_input_tokens      -> cache_write_5m
+#   usage.cache_creation.ephemeral_1h_input_tokens      -> cache_write_1h
+#   usage.cache_read_input_tokens                       -> cache_read
+#   usage.output_tokens                                 -> output
+# Count usage once per API message (message.id): transcripts repeat the same usage on every content block.
+
+source: https://platform.claude.com/docs/en/about-claude/pricing
+as_of: 2026-09-15
+currency: USD
+unit: per_million_tokens
+
+# Not modeled here (flagged in the report if seen): Batch API discount, fast mode (Opus 5 / Opus 4.8,
+# $10 input / $50 output), US-only inference (1.1x when usage.inference_geo is "us"), and
+# partner-cloud pricing (Bedrock, Google Cloud).
+
+models:
+  - name: Claude Fable 5.1
+    match: ["claude-fable-5-1"]
+    input: 10.00
+    cache_write_5m: 12.50
+    cache_write_1h: 20.00
+    cache_read: 0.25
+    output: 50.00
+
+  - name: Claude Opus 5
+    match: ["claude-opus-5"]
+    input: 5.00
+    cache_write_5m: 6.25
+    cache_write_1h: 10.00
+    cache_read: 0.50
+    output: 25.00
+
+  - name: Claude Opus 4.8
+    match: ["claude-opus-4-8"]
+    input: 5.00
+    cache_write_5m: 6.25
+    cache_write_1h: 10.00
+    cache_read: 0.50
+    output: 25.00
+
+  - name: Claude Opus 4.7 / 4.6 / 4.5
+    match: ["claude-opus-4-7", "claude-opus-4-6", "claude-opus-4-5"]
+    input: 5.00
+    cache_write_5m: 6.25
+    cache_write_1h: 10.00
+    cache_read: 0.50
+    output: 25.00
+
+  - name: Claude Sonnet 5
+    match: ["claude-sonnet-5"]
+    input: 2.00
+    cache_write_5m: 2.50
+    cache_write_1h: 4.00
+    cache_read: 0.20
+    output: 10.00
+
+  - name: Claude Sonnet 4.6 / 4.5
+    match: ["claude-sonnet-4-6", "claude-sonnet-4-5"]
+    input: 3.00
+    cache_write_5m: 3.75
+    cache_write_1h: 6.00
+    cache_read: 0.30
+    output: 15.00
+
+  - name: Claude Haiku 4.5
+    match: ["claude-haiku-4-5"]
+    input: 1.00
+    cache_write_5m: 1.25
+    cache_write_1h: 2.00
+    cache_read: 0.10
+    output: 5.00
