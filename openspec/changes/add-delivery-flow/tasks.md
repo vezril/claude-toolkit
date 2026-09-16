@@ -3,7 +3,7 @@
 - [x] 0.1 Capture real SubagentStop and Stop hook payloads from the installed Claude Code version; confirm which transcript path fields exist and the `usage` field names in subagent transcripts; record findings in `design.md` D5 (verified from the 2.1.209 input schema plus real transcripts: `agent_transcript_path` present; usage must be de-duplicated by `message.id`)
 - [x] 0.2 Confirm Claude Code's Bash tool runs without a TTY (so `decide.py`'s TTY check blocks agents) and record the check used (no TTY by default, but `script` and Python `pty` fake one, so decisions now require a human-presence signature; see D6)
 - [x] 0.3 Fill `pricing.yaml` from Anthropic's published pricing page with `source` and `as_of`; no remembered numbers
-- [ ] 0.4 Live payload capture: once the headless CLI is re-authenticated (`claude` then `/login`), run the probe (a project-local logging hook plus one `claude -p --model haiku` run that spawns a subagent) and confirm the 2.1.209 schema matches a real `SubagentStop`/`Stop` payload
+- [x] 0.4 Live payload capture: confirmed 2026-09-16 — a real `SubagentStop` carried `agent_id`, `agent_type`, `agent_transcript_path`, `stop_hook_active` and `last_assistant_message`, matching the 2.1.209 schema; `SubagentStart` fires too
 - [ ] 0.5 Choose the human-presence signing key (FIDO `ed25519-sk` or Secure Enclave with Touch ID), and confirm `ssh-keygen -Y sign` prompts for presence on each signature on both Macs
 
 ## 1. Config and templates
@@ -47,7 +47,7 @@
 
 - [ ] 6.1 `hooks/trace-step.py`: SubagentStop per-step records from `agent_transcript_path`, usage de-duplicated by `message.id`, 5m and 1h cache writes priced separately (per-model split), Stop orchestrator delta, `trace_error` on lookup failure, inert outside delivery-flow repos
 - [ ] 6.2 Register the SubagentStop and Stop hooks in `hooks/hooks.json`
-- [ ] 6.3 `scripts/delivery-flow/delivery-report.py`: per-item, per-step and per-model tables, weekly end-to-end and punch-out rates, pricing `as_of`, Markdown and CSV
+- [ ] 6.3 `scripts/delivery-flow/delivery-report.py`: per-item, per-step and per-model tables labeling cost as API-equivalent at list prices, weekly end-to-end and punch-out rates, pricing `as_of`, Markdown and CSV
 - [ ] 6.3a `delivery-report.py backfill`: historical per-session usage from `~/.claude/projects/*/*.jsonl` labeled `source: backfill`, excluded from end-to-end rates; reads committed traces from repo git history so both Macs' runs aggregate
 - [ ] 6.4 Tests: synthetic transcripts → expected trace lines; report math (the 4/1/2 → 80% scenario); non-delivery repo creates no file
 

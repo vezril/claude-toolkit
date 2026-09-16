@@ -97,9 +97,9 @@ The routing table, in order:
 
 ### D5. Trace from Claude Code transcripts, attributed through a current-step file
 - Before delegating a step, delivery-flow writes `delivery/<KEY>/.current-step` (`{step, item, started_at}`).
-- `hooks/trace-step.py` on **SubagentStop** reads the subagent transcript, sums `usage` (input, output, cache creation, cache read) per model, and appends one record to `trace.jsonl`: `{ts, item, step, agent, session_id, agent_id, model, input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, cost_usd, artifact, validator: {name, exit, summary}}`.
+- `hooks/trace-step.py` on **SubagentStop** reads the subagent transcript, sums `usage` (input, output, cache creation, cache read) per model, and appends one record to `trace.jsonl`: `{ts, item, step, agent, session_id, agent_id, model, input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, api_equivalent_cost_usd, artifact, validator: {name, exit, summary}}`.
 - On **Stop**, the same hook attributes the main session's usage delta since its last record to `step: orchestrator`, so coverage includes the conductor's own turns.
-- Cost comes from `templates/delivery-flow/pricing.yaml`: per model, USD per million tokens for each token class, with a `source` URL and `as_of` date. Unknown models record `cost_usd: null` and `pricing_missing: true` instead of a guess.
+- Cost is an **API-equivalent** figure (`api_equivalent_cost_usd`): the step's tokens priced at published API list rates, which is not billed spend when runs execute under a subscription. Reports label it so. It comes from `templates/delivery-flow/pricing.yaml`: per model, USD per million tokens for each token class, with a `source` URL and `as_of` date. Unknown models record `api_equivalent_cost_usd: null` and `pricing_missing: true` instead of a guess.
 - `scripts/delivery-flow/delivery-report.py` reads every `trace.jsonl` and `outcome.json` under a root (or across repos) and emits:
   - per-item outcome and cost;
   - per-step token and cost distribution;
@@ -113,7 +113,7 @@ The routing table, in order:
   - Each assistant line carries `message.model` and `message.usage` = `input_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_creation.{ephemeral_5m_input_tokens, ephemeral_1h_input_tokens}`, `output_tokens`, `service_tier`, `inference_geo`.
   - **Usage repeats on every content block of the same API message** (a sampled subagent had 6 assistant lines sharing one `message.id`). The hook must count usage once per `message.id`, or it overcounts several-fold.
   - **Transcripts are written asynchronously** and may lag when the hook fires (documented). The hook writes its record immediately, and `delivery-report.py` re-reads the transcript and reconciles token counts, flagging any record whose totals changed.
-  - Still pending: a live payload capture from a headless run (task 0.4). The headless CLI's OAuth session had expired, so `claude -p` could not start.
+  - **Confirmed live on 2026-09-16** (task 0.4) with a logging hook and a headless `claude -p --model haiku` run: `SubagentStop` delivered `agent_id`, `agent_type`, `agent_transcript_path`, `transcript_path`, `stop_hook_active`, `last_assistant_message`, `permission_mode`, `prompt_id`, `session_id`, `cwd`, `background_tasks`, `session_crons`; `Stop` the same minus the agent fields; `SubagentStart` fired with `agent_id` and `agent_type`. Payloads are in the probe directory.
 - *Alternatives:* OpenTelemetry export (rejected for v1: extra infrastructure, and transcripts already hold ground-truth usage); asking agents to self-report tokens (rejected: fabrication risk).
 
 ### D6. Punch-outs fire on policy; merging and non-routine deploys are always human
