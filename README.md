@@ -43,6 +43,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **domain-driven-design** — Evans' tactical + strategic DDD, with a modern (microservices / event-sourcing) lens.
 - **event-storming** — Brandolini's workshop technique: notation, facilitation, and the path from the wall to DDD/code.
 - **cqrs-event-sourcing** — the event-driven data/consistency patterns (CQRS, Event Sourcing, Sagas, Domain Events) from Richardson's microservices.io + the CQRS community; why database-per-service forces them, and when not to.
+- **graph-databases** — when a graph is the right data model and how to use one (Wikipedia + primary sources, 2026-09): labeled property graph vs RDF, index-free adjacency and its limits, OLTP vs graph analytics, Cypher/GQL (ISO/IEC 39075:2024), SQL/PGQ, Gremlin and SPARQL side by side, modeling rules (supernodes, relationship-to-node promotion, time), an honest graph-vs-relational checklist, and a dated product landscape (Kuzu archived, RedisGraph → FalkorDB, PostgreSQL 19's SQL/PGQ revert).
 - **modern-java** — Effective Java (3rd ed., all 90 items) on a Java 21 baseline with modern idioms.
 - **cryptography** — Schneier's *Applied Cryptography* (with C examples) updated by *Cryptography Engineering* as the modern authority.
 - **clean-code** — Robert Martin's readable/maintainable-code principles + the smells & heuristics catalog, with a balanced critique.
@@ -381,6 +382,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `github-issue-fix-flow` | 88% | 100% | sonnet | Format-convention floor (--comments intake, fix/issue-N, Closes #N); no patch |
 | `github-new-repo` | 83% | 100% | sonnet | ✅ Shipped (PR #59) — an extra ask never aborts the authorized creation |
 | `godot` |  |  |  |  |
+| `graph-databases` |  |  |  |  |
 | `hackrf-one` |  |  |  |  |
 | `home-assistant` |  |  |  |  |
 | `html-css` |  |  |  |  |
