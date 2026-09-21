@@ -9,8 +9,8 @@ license: MIT
 Neptune is **two products under one name**. **Neptune Database** is a transactional graph database built like Aurora: one writer, read replicas, and a shared multi-AZ storage volume. **Neptune Analytics** is a separate, in-memory engine for whole-graph algorithms and vector search. Most Neptune confusion comes from treating them as one thing, or from assuming Neptune behaves like Neo4j or a stock Gremlin Server. It doesn't, in documented ways. Distilled from `docs.aws.amazon.com`, fetched 2026-09.
 
 Cross-links:
-- [[graph-databases]]: model and language fundamentals.
-- [[apache-tinkerpop]]: standard Gremlin, which this skill describes the Neptune deviations from. Read it first if "should this be a graph?" is still open.
+- [[graph-databases]]: model and language fundamentals. Read it first if "should this be a graph?" is still open.
+- [[apache-tinkerpop]]: standard Gremlin, which this skill describes the Neptune deviations from.
 - [[aws-s3]]: bulk-load source.
 - [[aws-lambda]]: Streams consumers, which poll because there's no native trigger.
 - [[aws-aurora]]: the same cluster, replica and endpoint mental model.
