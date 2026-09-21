@@ -9,6 +9,7 @@ license: MIT
 TinkerPop is a **vendor-neutral graph computing framework**. Its query language, **Gremlin**, is a functional, data-flow traversal language: you describe a walk through the graph as a chain of steps, and the **Gremlin traversal machine** executes it. Any database that implements TinkerPop's interfaces (a *provider*) runs the same Gremlin, which is the portability pitch. Each provider supports a slightly different subset and set of defaults, which is the portability catch. Distilled from `tinkerpop.apache.org` (reference, upgrade notes, recipes, providers), fetched 2026-09.
 
 Cross-links:
+- [[gremlin]]: writing queries day to day (cookbook, semantics pitfalls, per-language syntax, provider dialects). This skill is the framework around it.
 - [[graph-databases]]: model and language choices, and Gremlin vs Cypher/GQL/SPARQL.
 - [[aws-neptune]]: the most common managed Gremlin target, and its documented deviations.
 - [[functional-programming]]: Gremlin's lazy, composable pipeline style.

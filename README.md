@@ -45,6 +45,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **cqrs-event-sourcing** — the event-driven data/consistency patterns (CQRS, Event Sourcing, Sagas, Domain Events) from Richardson's microservices.io + the CQRS community; why database-per-service forces them, and when not to.
 - **graph-databases** — when a graph is the right data model and how to use one (Wikipedia + primary sources, 2026-09): labeled property graph vs RDF, index-free adjacency and its limits, OLTP vs graph analytics, Cypher/GQL (ISO/IEC 39075:2024), SQL/PGQ, Gremlin and SPARQL side by side, modeling rules (supernodes, relationship-to-node promotion, time), an honest graph-vs-relational checklist, and a dated product landscape (Kuzu archived, RedisGraph → FalkorDB, PostgreSQL 19's SQL/PGQ revert).
 - **apache-tinkerpop** — Apache TinkerPop and Gremlin, distilled from tinkerpop.apache.org (2026-09; 3.8.2 stable, 4.0.0-beta.3): Structure vs Process API, embedded / Gremlin Server / remote-provider execution, OLTP vs GraphComputer OLAP, the step catalogue with `P`/`TextP` predicates and `mergeV`/`mergeE` upserts, strategies, GLVs and serialization, remote transactions, recipes and the official anti-patterns, the 3.8.0 breaking changes, and 4.0's HTTP-only / GremlinLang / no-sessions / rollback-on-close shift.
+- **gremlin** — writing Gremlin queries (the query language; apache-tinkerpop is the framework): the anchor → navigate → filter → shape → terminate shape of a good traversal, result shaping (`project`/`elementMap`/`valueMap`), a task cookbook (upserts, batch writes, n-hop, paths, top-k, pagination, aggregation, deletes), the semantics behind wrong answers (laziness, bulk, local vs global scope, `Pop`, unproductive `by()`, cross-type comparisons, cardinality, remote references), the same query in Groovy/Python/JS/.NET/Go, testing against TinkerGraph, and provider dialects (Neptune, Cosmos DB, JanusGraph, TinkerGraph).
 - **modern-java** — Effective Java (3rd ed., all 90 items) on a Java 21 baseline with modern idioms.
 - **cryptography** — Schneier's *Applied Cryptography* (with C examples) updated by *Cryptography Engineering* as the modern authority.
 - **clean-code** — Robert Martin's readable/maintainable-code principles + the smells & heuristics catalog, with a balanced critique.
@@ -387,6 +388,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `github-new-repo` | 83% | 100% | sonnet | ✅ Shipped (PR #59) — an extra ask never aborts the authorized creation |
 | `godot` |  |  |  |  |
 | `graph-databases` |  |  |  |  |
+| `gremlin` |  |  |  |  |
 | `hackrf-one` |  |  |  |  |
 | `home-assistant` |  |  |  |  |
 | `html-css` |  |  |  |  |

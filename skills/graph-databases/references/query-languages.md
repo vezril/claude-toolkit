@@ -94,7 +94,7 @@ SELECT * FROM GRAPH_TABLE (org
 
 ## Gremlin
 
-Full step catalogue, recipes and version notes: [[apache-tinkerpop]].
+Writing queries (cookbook, pitfalls, per-language syntax): [[gremlin]]. Framework, step catalogue and versions: [[apache-tinkerpop]].
 
 ```groovy
 // Friends' names

@@ -1,6 +1,6 @@
 # Querying Neptune: Gremlin, openCypher, SPARQL
 
-For language fundamentals and cross-language translation, see [[graph-databases]] `references/query-languages.md`; for standard Gremlin (steps, mergeV/mergeE, strategies, drivers), see [[apache-tinkerpop]]. This file covers only what's Neptune-specific.
+For language fundamentals and cross-language translation, see [[graph-databases]] `references/query-languages.md`; for standard Gremlin, see [[gremlin]] (writing queries) and [[apache-tinkerpop]] (steps, strategies, drivers). This file covers only what's Neptune-specific.
 
 ## Transports
 
