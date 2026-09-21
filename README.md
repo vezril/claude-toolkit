@@ -118,6 +118,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **aws-cloudfront** — Amazon CloudFront, distilled from AWS's own CloudFront agent skill (2026-09): when CloudFront is the right layer, origin locking (OAC/VPC origins/origin mTLS) as a mandatory pairing for every content control, signed URLs/cookies/geo-restrictions/viewer mTLS/edge token validation, cache policies vs behaviors, and CloudFront Functions vs Lambda@Edge; `references/` carry the depth.
 - **aws-rekognition** — Amazon Rekognition image/video analysis, distilled from docs.aws.amazon.com (2026-09): the sync (Image) vs always-async (Video) API split, `DetectLabels`/`DetectModerationLabels` (the 3-level content-moderation taxonomy and its breaking v6.1→v7 label changes)/`DetectFaces`/`DetectText`/`DetectProtectiveEquipment`, face collections and matching (`IndexFaces`/`SearchFaces*`/`CompareFaces`, the identity-verification pattern), the stored-video SNS/IAM job pattern and segment detection, streaming video and Amazon A2I both flagged closed to new customers, Rekognition Custom Labels, and AWS's own responsible-use guidance for face matching (mandatory human review, the 99%+ confidence bar and specific Service Terms obligations for public-safety use); `references/` carry the depth.
 - **aws-textract** — Amazon Textract document extraction, distilled from docs.aws.amazon.com (2026-09): the four synchronous single-page APIs (`DetectDocumentText`, `AnalyzeDocument`'s per-feature-billed `FeatureTypes` — TABLES/FORMS/QUERIES/SIGNATURES/LAYOUT, `AnalyzeExpense`, `AnalyzeID` — US-only) vs the async `Start*`/`Get*` family that mirrors Rekognition Video's SNS/IAM pattern, the flat `Block`-object response model walked via `Relationships` rather than nested JSON, the `Queries` natural-language feature, a format/size/page quota table (including a real discrepancy in Textract's own docs about the sync size limit worth verifying before relying on either figure), and the same Amazon-A2I-closed-to-new-customers caveat as Rekognition; `references/` carry the depth.
+- **aws-neptune** — Amazon Neptune, distilled from docs.aws.amazon.com (2026-09): Neptune Database (1 writer + 15 replicas on a 3-AZ 128 TiB volume, Serverless NCUs, Standard vs I/O-Optimized, Global Database) vs Neptune Analytics (in-memory m-NCUs, 25+ `CALL neptune.algo.*` algorithms, one HNSW vector index per graph, the store behind Bedrock GraphRAG); Gremlin/openCypher over one property graph vs SPARQL/RDF; Neptune's Gremlin quirks (string IDs, set cardinality, no lambdas/bindings) and Neo4j gaps (no APOC/LOAD CSV/constraints); snapshot vs range-locked isolation with retry-on-`ConcurrentModificationException`; the S3 bulk loader, Streams, VPC/TLS + IAM SigV4 data-access actions; and the 2026-12-04 end of life for all 1.2.x engines.
 
 **Home & IoT**
 
@@ -278,6 +279,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `aws-cognito` |  |  |  |  |
 | `aws-eventbridge` |  |  |  |  |
 | `aws-lambda` |  |  |  |  |
+| `aws-neptune` |  |  |  |  |
 | `aws-rds` |  |  |  |  |
 | `aws-rekognition` |  |  |  |  |
 | `aws-s3` |  |  |  |  |
