@@ -94,6 +94,8 @@ SELECT * FROM GRAPH_TABLE (org
 
 ## Gremlin
 
+Full step catalogue, recipes and version notes: [[apache-tinkerpop]].
+
 ```groovy
 // Friends' names
 g.V().has('Person','name','Alice').out('KNOWS').values('name')
