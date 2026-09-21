@@ -3,6 +3,10 @@
 ### Requirement: Step registry
 Every LLM task prompt the flow can run (orchestrator, triage, work-type classifier, the SDLC agents on the flow's paths, adversarial validator, PR description, post-back summary, delivery recall, and each enabled roster reviewer or architect) SHALL have an entry in `steps.yaml` declaring its prompt path, runtime model tier, eval suite path, certified results path, prompt sha256 at certification, criteria list, iteration log path, and escalation evidence when the tier is above Sonnet.
 
+#### Scenario: The workflow itself is registered and certified end to end
+- **WHEN** `check-certification.py delivery-flow` runs
+- **THEN** it requires an end-to-end suite whose cases run a seeded item from intake to a terminal state and assert on the files produced, the outcome, the punch-out point and the trace, not only on routing decisions
+
 #### Scenario: Unregistered step refused
 - **WHEN** the flow is about to delegate to an agent that has no `steps.yaml` entry
 - **THEN** it refuses the delegation and names the missing registry entry
