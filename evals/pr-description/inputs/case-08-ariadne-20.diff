@@ -1,0 +1,117 @@
+diff --git a/server/src/main/scala/me/cference/ariadne/ingest/flipp/FlyerLedger.scala b/server/src/main/scala/me/cference/ariadne/ingest/flipp/FlyerLedger.scala
+index b248ea9..9cf61a1 100644
+--- a/server/src/main/scala/me/cference/ariadne/ingest/flipp/FlyerLedger.scala
++++ b/server/src/main/scala/me/cference/ariadne/ingest/flipp/FlyerLedger.scala
+@@ -4,6 +4,7 @@ import io.r2dbc.spi.{ConnectionFactory, Row}
+ import org.reactivestreams.Publisher
+ 
+ import java.time.Instant
++import java.time.temporal.ChronoUnit
+ import scala.concurrent.duration.*
+ import scala.concurrent.{ExecutionContext, Future, Promise}
+ 
+@@ -37,10 +38,33 @@ object FlyerLedger {
+     recorded match {
+       case None => true
+       case Some(entry) =>
+-        val windowChanged = entry.windowFrom != flyer.validFrom || entry.windowTo != flyer.validTo
++        // Compare at STORAGE precision, not in-memory precision.
++        //
++        // Postgres timestamptz keeps microseconds; Instant keeps nanoseconds, and on Linux
++        // it actually populates them — macOS does not, which is why this was invisible
++        // locally and only failed on CI. A round trip therefore truncates, so a raw != between
++        // a stored window and an in-memory one is ALWAYS true: every flyer looks re-issued,
++        // every flyer is re-fetched every day, and the ledger silently becomes a no-op. That is
++        // ~9x the load against an upstream that bot-walls — precisely the failure this function
++        // exists to prevent, arriving as a successful-looking run.
++        val windowChanged =
++          truncate(entry.windowFrom) != truncate(flyer.validFrom) ||
++            truncate(entry.windowTo) != truncate(flyer.validTo)
+         val stale = entry.fetchedAt.plusMillis(maxAge.toMillis).isBefore(now)
+         windowChanged || stale
+     }
++
++  /**
++   * The precision the database can actually hold.
++   *
++   * Applied on the WAY IN as well as on comparison, and that ordering is the fix. Postgres does not
++   * truncate sub-microsecond input, it ROUNDS it: `.452136537` is stored as `.452137`, while
++   * truncating floors to `.452136`. Trying to reproduce the rounding on this side would be guessing
++   * at driver and server behaviour. Pre-truncating instead means the value written is already at
++   * storage precision, the round trip is lossless, and the comparison is exact rather than
++   * approximately right.
++   */
++  private[flipp] def truncate(i: Instant): Instant = i.truncatedTo(ChronoUnit.MICROS)
+ }
+ 
+ /**
+@@ -82,9 +106,10 @@ final class PostgresFlyerLedger(
+            fetched_at = EXCLUDED.fetched_at,
+            raw_response_id = EXCLUDED.raw_response_id""",
+       java.lang.Long.valueOf(flyerId.value),
+-      windowFrom,
+-      windowTo,
+-      at,
++      // Truncated on the way IN, so what is stored is exactly what gets compared.
++      FlyerLedger.truncate(windowFrom),
++      FlyerLedger.truncate(windowTo),
++      FlyerLedger.truncate(at),
+       java.lang.Long.valueOf(rawResponseId)
+     )
+ 
+diff --git a/server/src/test/scala/me/cference/ariadne/ingest/flipp/FlyerLedgerSpec.scala b/server/src/test/scala/me/cference/ariadne/ingest/flipp/FlyerLedgerSpec.scala
+index b9dee01..eb620b6 100644
+--- a/server/src/test/scala/me/cference/ariadne/ingest/flipp/FlyerLedgerSpec.scala
++++ b/server/src/test/scala/me/cference/ariadne/ingest/flipp/FlyerLedgerSpec.scala
+@@ -11,6 +11,7 @@ import org.scalatest.time.{Millis, Seconds, Span}
+ import org.scalatest.wordspec.AnyWordSpec
+ 
+ import java.time.Instant
++import java.time.temporal.ChronoUnit
+ import scala.concurrent.ExecutionContext.Implicits.global
+ import scala.concurrent.duration.*
+ 
+@@ -47,7 +48,13 @@ final class FlyerLedgerSpec
+ 
+   // Clock-relative, never literal — demeter's DailyRunSpec went red at midnight on a
+   // hardcoded window, on a docs-only PR, taking five tests with it.
+-  private val now = Instant.now()
++  // Clock-relative, never literal — demeter's DailyRunSpec went red at midnight on a
++  // hardcoded window. But ALSO carrying sub-microsecond nanoseconds on purpose:
++  // Postgres timestamptz truncates to microseconds, and Instant.now() populates nanos
++  // on Linux while macOS does not. Using the bare clock made this suite pass locally and
++  // fail on CI. Forcing the nanos makes the truncation behaviour deterministic on every
++  // platform instead of depending on the host's clock resolution.
++  private val now = Instant.now().truncatedTo(ChronoUnit.MICROS).plusNanos(537)
+ 
+   private def flyer(
+       id: Long,
+@@ -131,7 +138,8 @@ final class FlyerLedgerSpec
+ 
+       val entries = ledger.entriesFor(List(FlyerId(103))).futureValue
+       entries should have size 1
+-      entries(FlyerId(103)).windowFrom shouldBe reissued.validFrom
++      // Compared at storage precision: the database cannot hold the nanoseconds.
++      entries(FlyerId(103)).windowFrom shouldBe FlyerLedger.truncate(reissued.validFrom)
+     }
+ 
+     "re-select a flyer whose window moved, using the stored window" in {
+@@ -143,6 +151,18 @@ final class FlyerLedgerSpec
+       ledger.selectToFetch(List(reissued), now).futureValue.map(_.id) shouldBe List(FlyerId(104))
+     }
+ 
++    "NOT re-select a flyer whose window survived a Postgres round trip" in {
++      // The bug CI caught and macOS hid. Postgres keeps microseconds, Instant keeps
++      // nanoseconds; a raw != between the stored window and the in-memory one is always
++      // true, so every flyer looks re-issued and gets re-fetched daily. That is ~9x the
++      // load against a bot-walled upstream, arriving as a completely successful run —
++      // the ledger silently doing nothing while reporting that it worked.
++      val f = flyer(105)
++      f.validFrom.getNano % 1000 should not be 0 // the fixture really does carry sub-micro nanos
++      ledger.markFetched(f.id, f.validFrom, f.validTo, archived(), now).futureValue
++      ledger.selectToFetch(List(f), now).futureValue shouldBe Nil
++    }
++
+     "return nothing for an empty listing without hitting the database" in {
+       ledger.entriesFor(Nil).futureValue shouldBe empty
+     }

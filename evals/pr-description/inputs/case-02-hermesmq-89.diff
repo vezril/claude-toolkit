@@ -1,0 +1,68 @@
+diff --git a/client/src/test/scala/me/cference/hermesmq/client/HermesClientSpec.scala b/client/src/test/scala/me/cference/hermesmq/client/HermesClientSpec.scala
+index d1826ea..61411d6 100644
+--- a/client/src/test/scala/me/cference/hermesmq/client/HermesClientSpec.scala
++++ b/client/src/test/scala/me/cference/hermesmq/client/HermesClientSpec.scala
+@@ -244,6 +244,12 @@ final class HermesClientSpec extends ScalaTestWithActorTestKit with AnyWordSpecL
+       val _    = subs.map(_.subscriptionId.value) shouldBe List("s1")
+       subs.head.backlog shouldBe 3
+     }
++    "surface an unreachable listing as an error and never as an empty result" in {
++      // "couldn't ask" must stay distinguishable from "nobody is listening":
++      // a caller alarming on zero subscribers must not see unknown as 0.
++      val broken = HermesClient(s"http://localhost:${binding.localAddress.getPort}/nope")(using system)
++      broken.listSubscriptions().failed.futureValue shouldBe a[HermesClientException]
++    }
+     "fail when publishing to a missing topic" in {
+       client.publish(tid("ghost"), "x").failed.futureValue shouldBe a[HermesClientException]
+     }
+diff --git a/clients/README.md b/clients/README.md
+index 081d509..bfc34e5 100644
+--- a/clients/README.md
++++ b/clients/README.md
+@@ -35,5 +35,10 @@ update **all three** (and each client's stub-server tests) in the same PR:
+   found in the wild by demeter-service). Each suite has an explicit test for this.
+ - **Auth**: optional constructor token → `Authorization: Bearer`; optional api key → `X-API-Key`;
+   neither sent by default.
++- **Unknown is never zero**: a listing/count that cannot be determined surfaces as the typed
++  error — never as an empty list or `0`. "I couldn't ask" and "nobody is listening" demand opposite
++  responses from callers (a drift alarm must fire on a definite zero audience and hold on unknown —
++  demeter-service's rule). Each suite has an explicit test that a failed listing raises rather than
++  returning empty.
+ - **Tests**: hermetic (in-process stub server, no live broker), asserting request wire-shapes
+   (bodies, headers) as well as response parsing.
+diff --git a/clients/js/test/client.test.js b/clients/js/test/client.test.js
+index 2b0bfb8..6d710c2 100644
+--- a/clients/js/test/client.test.js
++++ b/clients/js/test/client.test.js
+@@ -198,6 +198,13 @@ describe("publish & consume", () => {
+     expect(last.body).toEqual({ ackIds: ["a1"], ackDeadlineSeconds: 30 });
+   });
+ 
++  it("surfaces an unreachable listing as an error, never an empty result", async () => {
++    // "couldn't ask" must stay distinguishable from "nobody is listening".
++    const broken = new HermesClient(`${baseUrl}/nope`);
++    const err = await broken.listSubscriptions().catch((e) => e);
++    expect(err).toBeInstanceOf(HermesClientError);
++  });
++
+   it("lists subscriptions with stats", async () => {
+     const subs = await client.listSubscriptions();
+     expect(subs[0].subscriptionId).toBe("s1");
+diff --git a/clients/python/tests/test_client.py b/clients/python/tests/test_client.py
+index d0c8421..78a856e 100644
+--- a/clients/python/tests/test_client.py
++++ b/clients/python/tests/test_client.py
+@@ -106,6 +106,13 @@ def test_list_subscriptions(self, client: HermesClient) -> None:
+         assert subs[0].backlog == 3
+ 
+ 
++    def test_unreachable_listing_raises_never_returns_empty(self, base_url: str) -> None:
++        # "couldn't ask" must stay distinguishable from "nobody is listening".
++        with HermesClient(base_url + "/nope") as broken:
++            with pytest.raises(HermesClientError):
++                broken.list_subscriptions()
++
++
+ class TestObservabilityAndAuth:
+     def test_health(self, client: HermesClient) -> None:
+         health = client.health()

@@ -1,70 +1,85 @@
 # yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
-description: "pr-description on Sonnet - format, full coverage of the diff, nothing invented"
-# NOTE: this skill lives in ~/.claude/skills/pr-description; cases/skill-snapshot.md
-# is the frozen copy this suite tests.
+description: "pr-description: contract, coverage, fidelity on 10 PRs (9 real)"
+# The prompt under test is the pr-description skill. run.sh copies prompts/prompt_vN.md to current.md;
+# the certified version is copied verbatim to skills/pr-description/SKILL.md.
+# No working_dir is set, so the agent runs in an empty temp dir with NO tools: it cannot
+# run git against this repo and must work from the diff it is given.
 prompts:
   - file://prompt.txt
 providers:
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config:
+      model: haiku
+      apiKeyRequired: false
+      max_turns: 3
   - id: anthropic:claude-agent-sdk
     label: sonnet
     config:
       model: sonnet
       apiKeyRequired: false
-      max_turns: 5
+      max_turns: 3
 defaultTest:
   vars:
-    skill: file://cases/skill-snapshot.md
-  options:
-    provider:
-      id: anthropic:claude-agent-sdk
-      config:
-        model: sonnet
-        apiKeyRequired: false
-        max_turns: 5
+    skill: file://prompts/current.md
+  assert:
+    - type: javascript
+      metric: contract
+      value: file://asserts/contract.js
+    - type: javascript
+      metric: coverage
+      value: file://asserts/coverage.js
+    - type: javascript
+      metric: fidelity
+      value: file://asserts/fidelity.js
 tests:
-  - description: "retry-policy branch - modified, deleted, and added files all covered"
+  - description: "case-01-retry: synthetic: modified, deleted and added files"
     vars:
-      branch: fix/retry-backoff-cap
-      commits: |
-        - Cap exponential backoff at MAX_DELAY and raise retry budget
-        - Remove unused legacy linear backoff
-      diff: file://cases/retry-diff.txt
-    assert:
-      - type: javascript
-        metric: contract
-        value: |
-          const problems = [];
-          for (const s of ['## What', '## Why', '## Changes']) {
-            if (!output.includes(s)) problems.push('missing section ' + s);
-          }
-          const what = (output.split('## What')[1] || '').split('##')[0].trim();
-          const sentences = what.split(/[.!?]+\s/).filter(x => x.trim().length > 3);
-          if (sentences.length > 2) problems.push('## What is ' + sentences.length + ' sentences (should be ~1)');
-          if (problems.length) return { pass: false, score: 0, reason: problems.join('; ') };
-          return { pass: true, score: 1, reason: 'format ok' };
-      # Coverage: every file in the diff appears; the deletion is called out.
-      - type: javascript
-        metric: coverage
-        value: |
-          const problems = [];
-          for (const f of ['backoff.py', 'legacy_backoff.py']) {
-            if (!output.includes(f)) problems.push('file not mentioned: ' + f);
-          }
-          // The skill requires naming deleted/renamed files; new tests may be
-          // described without the filename.
-          if (!/\btests?\b/i.test(output)) problems.push('added tests not mentioned at all');
-          if (!/delet|remov/i.test(output)) problems.push('deletion not called out');
-          if (problems.length) return { pass: false, score: 0, reason: problems.join('; ') };
-          return { pass: true, score: 1, reason: 'all files covered, deletion noted' };
-      - type: llm-rubric
-        metric: fidelity
-        value: >-
-          Every bullet in ## Changes traces to something actually in the diff
-          (jitter 0.2 to 0.35, retries 3 to 5, delay cap via MAX_DELAY, debug
-          logging, exhausted_message property, legacy file deleted, new tests).
-          Nothing is invented: no claims about performance results, tickets,
-          reviews, or behavior the diff does not show. The ## Why is plausible
-          from the diff and commits without fabricating incident details. Note:
-          the deleted file's docstring says "unused since the v2 client", so
-          mentioning the v2 client or the file being dead code IS grounded in
-          the diff, not fabricated.
+      case: case-01-retry
+      meta: file://inputs/case-01-retry.meta
+      diff: file://inputs/case-01-retry.diff
+  - description: "case-02-hermesmq-89: tests + README only across three client suites; no client source change (naming HermesClient.scala is an invented file)"
+    vars:
+      case: case-02-hermesmq-89
+      meta: file://inputs/case-02-hermesmq-89.meta
+      diff: file://inputs/case-02-hermesmq-89.diff
+  - description: "case-03-dionysus-6: Docker volume fix spanning build, Helm chart and app config"
+    vars:
+      case: case-03-dionysus-6
+      meta: file://inputs/case-03-dionysus-6.meta
+      diff: file://inputs/case-03-dionysus-6.diff
+  - description: "case-04-apollo-29: one dependency plus a regression test"
+    vars:
+      case: case-04-apollo-29
+      meta: file://inputs/case-04-apollo-29.meta
+      diff: file://inputs/case-04-apollo-29.diff
+  - description: "case-05-dionysus-7: behaviour change with spec, repository, route and tests"
+    vars:
+      case: case-05-dionysus-7
+      meta: file://inputs/case-05-dionysus-7.meta
+      diff: file://inputs/case-05-dionysus-7.diff
+  - description: "case-06-hermesmq-88: client hardening across Scala source and three test suites"
+    vars:
+      case: case-06-hermesmq-88
+      meta: file://inputs/case-06-hermesmq-88.meta
+      diff: file://inputs/case-06-hermesmq-88.diff
+  - description: "case-07-artemis-69: OpenSpec archive: five renames plus one new spec; no code change"
+    vars:
+      case: case-07-artemis-69
+      meta: file://inputs/case-07-artemis-69.meta
+      diff: file://inputs/case-07-artemis-69.diff
+  - description: "case-08-ariadne-20: subtle precision fix with a regression test"
+    vars:
+      case: case-08-ariadne-20
+      meta: file://inputs/case-08-ariadne-20.meta
+      diff: file://inputs/case-08-ariadne-20.diff
+  - description: "case-09-hephaestus-9: logging toggle across build and logback config"
+    vars:
+      case: case-09-hephaestus-9
+      meta: file://inputs/case-09-hephaestus-9.meta
+      diff: file://inputs/case-09-hephaestus-9.diff
+  - description: "case-10-demeter-deps: Dependabot action bump; the diff states nothing about why beyond the version"
+    vars:
+      case: case-10-demeter-deps
+      meta: file://inputs/case-10-demeter-deps.meta
+      diff: file://inputs/case-10-demeter-deps.diff

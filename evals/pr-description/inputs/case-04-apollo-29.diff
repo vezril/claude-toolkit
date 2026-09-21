@@ -1,0 +1,51 @@
+diff --git a/build.sbt b/build.sbt
+index 11f45af..a59a80a 100644
+--- a/build.sbt
++++ b/build.sbt
+@@ -131,6 +131,10 @@ lazy val server = (project in file("server"))
+       // Align pekko-discovery (pulled transitively by pekko-grpc) with pekkoVersion;
+       // Pekko forbids mixed artifact versions.
+       "org.apache.pekko" %% "pekko-discovery" % pekkoVersion,
++      // The kubernetes-api discovery implementation for Cluster Bootstrap in k8s
++      // (DISCOVERY_METHOD=kubernetes-api). Without it, Bootstrap throws at startup — local/compose
++      // use the `config` method so this path was never exercised until the first k8s deploy.
++      "org.apache.pekko" %% "pekko-discovery-kubernetes-api" % pekkoManagementVersion,
+       "ch.qos.logback" % "logback-classic" % logbackVersion,
+       // Structured (JSON) logs for Loki + the self-healing loop (add-structured-logging).
+       "net.logstash.logback" % "logstash-logback-encoder" % "8.0",
+diff --git a/server/src/test/scala/apollostorage/KubernetesDiscoverySpec.scala b/server/src/test/scala/apollostorage/KubernetesDiscoverySpec.scala
+new file mode 100644
+index 0000000..aa7e98e
+--- /dev/null
++++ b/server/src/test/scala/apollostorage/KubernetesDiscoverySpec.scala
+@@ -0,0 +1,30 @@
++package apollostorage
++
++import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
++import org.scalatest.matchers.should.Matchers
++import org.scalatest.wordspec.AnyWordSpecLike
++
++/**
++ * Deploy regression (v0.12.1): in Kubernetes the chart selects `DISCOVERY_METHOD=kubernetes-api`
++ * for Cluster Bootstrap, so the `kubernetes-api` service-discovery method MUST resolve to a real
++ * implementation — i.e. the `pekko-discovery-kubernetes-api` artifact and its reference.conf are on
++ * the classpath. Without that dependency, `loadServiceDiscovery("kubernetes-api")` throws
++ * `IllegalArgumentException: pekko.discovery.kubernetes-api.class must point to a FQN …`, which
++ * crash-looped apollo-0 the first time Cluster Bootstrap ran (local/tests only ever used the
++ * `config` method, so it was never exercised).
++ */
++final class KubernetesDiscoverySpec
++    extends ScalaTestWithActorTestKit
++    with AnyWordSpecLike
++    with Matchers:
++
++  "kubernetes-api service discovery" should {
++    // Assert the method is configured (its reference.conf is present) and the implementation class is
++    // on the classpath — the two things the missing artifact provided. We do NOT instantiate it, since
++    // KubernetesApiServiceDiscovery's constructor reads in-pod files (/var/run/secrets/...) absent off-cluster.
++    "be configured and present on the classpath" in {
++      val fqn = system.settings.config.getString("pekko.discovery.kubernetes-api.class")
++      fqn should include("Kubernetes")
++      noException should be thrownBy Class.forName(fqn)
++    }
++  }

@@ -1,0 +1,158 @@
+diff --git a/openspec/specs/ingredient-catalog/spec.md b/openspec/specs/ingredient-catalog/spec.md
+index c3f8504..922b4f7 100644
+--- a/openspec/specs/ingredient-catalog/spec.md
++++ b/openspec/specs/ingredient-catalog/spec.md
+@@ -48,3 +48,18 @@ The system SHALL assign each ingredient a unique system-generated ID at creation
+ #### Scenario: Two ingredients with the same name are distinct
+ - **WHEN** a client creates two ingredients both named "Onion" with different nutrition data
+ - **THEN** the system creates two distinct ingredients with distinct IDs, and each is referenced independently
++
++### Requirement: Deleting an ingredient requires no dependent references
++The system SHALL reject deletion of an ingredient that is referenced by at least one recipe line or one meal direct-consumable line, to avoid leaving a dangling reference that would break nutrition resolution for that recipe or meal.
++
++#### Scenario: Deleting an unreferenced ingredient
++- **WHEN** a client deletes an ingredient that no recipe line or meal line references
++- **THEN** the system deletes the ingredient
++
++#### Scenario: Deleting an ingredient referenced by a recipe is rejected
++- **WHEN** a client attempts to delete an ingredient that at least one recipe line references
++- **THEN** the system rejects the request with a validation error, and the ingredient still exists afterward
++
++#### Scenario: Deleting an ingredient referenced by a meal is rejected
++- **WHEN** a client attempts to delete an ingredient that at least one meal's direct-consumable line references
++- **THEN** the system rejects the request with a validation error
+diff --git a/server/src/main/scala/me/cference/dionysus/db/ingredient/IngredientRepository.scala b/server/src/main/scala/me/cference/dionysus/db/ingredient/IngredientRepository.scala
+index ee7acb5..396b929 100644
+--- a/server/src/main/scala/me/cference/dionysus/db/ingredient/IngredientRepository.scala
++++ b/server/src/main/scala/me/cference/dionysus/db/ingredient/IngredientRepository.scala
+@@ -22,8 +22,26 @@ final class IngredientRepository(db: Database)(using ExecutionContext):
+   def update(id: Long, ingredient: Ingredient): Future[Boolean] =
+     db.run(ingredients.filter(_.id === id).update(toRow(ingredient).copy(id = Some(id)))).map(_ > 0)
+ 
+-  def delete(id: Long): Future[Boolean] =
+-    db.run(ingredients.filter(_.id === id).delete).map(_ > 0)
++  /**
++   * Rejects (without deleting) if any recipe line or meal direct-consumable line still references
++   * this ingredient — deleting it out from under a reference left `GET /api/recipes` (which
++   * resolves every line's ingredient to compute nutrition) throwing a 500 for any recipe still
++   * pointing at the now-missing row. Mirrors `BatchRepository.delete`'s same discipline.
++   */
++  def delete(id: Long): Future[Either[String, Unit]] =
++    isReferenced(id).flatMap {
++      case true =>
++        Future.successful(Left("cannot delete an ingredient referenced by a recipe or meal"))
++      case false => db.run(ingredients.filter(_.id === id).delete).map(_ => Right(()))
++    }
++
++  private def isReferenced(id: Long): Future[Boolean] =
++    db.run(
++      sql"""SELECT
++              (EXISTS(SELECT 1 FROM recipe_line WHERE ingredient_id = $id))
++              OR (EXISTS(SELECT 1 FROM meal_line WHERE ingredient_id = $id))"""
++        .as[Boolean]
++    ).map(_.head)
+ 
+   /**
+    * True if `id` refers to an ingredient flagged `directlyLoggable`. Used by meal-logging to
+diff --git a/server/src/main/scala/me/cference/dionysus/http/IngredientRoutes.scala b/server/src/main/scala/me/cference/dionysus/http/IngredientRoutes.scala
+index 4e70ee0..0542fbf 100644
+--- a/server/src/main/scala/me/cference/dionysus/http/IngredientRoutes.scala
++++ b/server/src/main/scala/me/cference/dionysus/http/IngredientRoutes.scala
+@@ -135,8 +135,8 @@ object IngredientRoutes extends JsonSupport:
+             },
+             delete {
+               onSuccess(repo.delete(id)) {
+-                case true => complete(StatusCodes.NoContent)
+-                case false => complete(StatusCodes.NotFound)
++                case Left(err) => complete(StatusCodes.BadRequest -> ErrorResponse(err))
++                case Right(()) => complete(StatusCodes.NoContent)
+               }
+             }
+           )
+diff --git a/server/src/test/scala/me/cference/dionysus/http/IngredientRoutesSpec.scala b/server/src/test/scala/me/cference/dionysus/http/IngredientRoutesSpec.scala
+index a968194..b8be672 100644
+--- a/server/src/test/scala/me/cference/dionysus/http/IngredientRoutesSpec.scala
++++ b/server/src/test/scala/me/cference/dionysus/http/IngredientRoutesSpec.scala
+@@ -1,7 +1,14 @@
+ package me.cference.dionysus.http
+ 
+ import me.cference.dionysus.db.TestDb
++import me.cference.dionysus.db.batch.BatchRepository
+ import me.cference.dionysus.db.ingredient.IngredientRepository
++import me.cference.dionysus.db.meal.MealRepository
++import me.cference.dionysus.db.pantry.PantryRepository
++import me.cference.dionysus.db.recipe.RecipeRepository
++import me.cference.dionysus.domain.ingredient.{Ingredient, Nutrition}
++import me.cference.dionysus.domain.meal.{Meal, MealLine}
++import me.cference.dionysus.domain.recipe.{Recipe, RecipeLine}
+ import me.cference.dionysus.http.IngredientRoutes.IngredientJson
+ import org.apache.pekko.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
+ import org.apache.pekko.http.scaladsl.server.Route
+@@ -9,6 +16,10 @@ import org.apache.pekko.http.scaladsl.testkit.ScalatestRouteTest
+ import org.scalatest.funsuite.AnyFunSuite
+ import org.scalatest.matchers.should.Matchers
+ 
++import java.time.Instant
++import scala.concurrent.Await
++import scala.concurrent.duration.DurationInt
++
+ final class IngredientRoutesSpec
+     extends AnyFunSuite
+     with Matchers
+@@ -120,3 +131,56 @@ final class IngredientRoutesSpec
+       status shouldBe StatusCodes.NotFound
+     }
+   }
++
++  // Regression: deleting an ingredient still referenced by a recipe line left `GET /api/recipes`
++  // throwing a 500 the next time it tried to resolve that line's nutrition (discovered live on
++  // the homelab deployment — a test-data cleanup deleted a referenced ingredient).
++  test("DELETE /api/ingredients/{id} is rejected when a recipe line references it") {
++    val db = freshDb()
++    val ingredientRepo = new IngredientRepository(db)
++    val recipeRepo = new RecipeRepository(db, ingredientRepo)
++    val routes = Route.seal(IngredientRoutes(ingredientRepo))
++
++    val onion = Ingredient("Onion", Nutrition(40, 1, 9, 0, 4).toOption.get).toOption.get
++    val id = Await.result(ingredientRepo.create(onion), 5.seconds).id.get
++    Await.result(
++      recipeRepo.create(Recipe("Soup", servings = 4, List(RecipeLine(id, 200, "g"))).toOption.get),
++      5.seconds
++    )
++
++    Delete(s"/api/ingredients/$id") ~> routes ~> check {
++      status shouldBe StatusCodes.BadRequest
++    }
++    Get(s"/api/ingredients/$id") ~> routes ~> check {
++      status shouldBe StatusCodes.OK
++    }
++  }
++
++  test(
++    "DELETE /api/ingredients/{id} is rejected when a meal's direct-consumable line references it"
++  ) {
++    val db = freshDb()
++    val ingredientRepo = new IngredientRepository(db)
++    val recipeRepo = new RecipeRepository(db, ingredientRepo)
++    val pantryRepo = new PantryRepository(db)
++    val batchRepo = new BatchRepository(db, recipeRepo, pantryRepo)
++    val mealRepo = new MealRepository(db, batchRepo, recipeRepo, ingredientRepo)
++    val routes = Route.seal(IngredientRoutes(ingredientRepo))
++
++    val wine = Ingredient(
++      "Wine",
++      Nutrition(125, 0, 4, 0, 5).toOption.get,
++      directlyLoggable = true
++    ).toOption.get
++    val id = Await.result(ingredientRepo.create(wine), 5.seconds).id.get
++    Await.result(
++      mealRepo.create(
++        Meal(Instant.EPOCH, List(MealLine.DirectConsumableLine(id, 1, "each"))).toOption.get
++      ),
++      5.seconds
++    )
++
++    Delete(s"/api/ingredients/$id") ~> routes ~> check {
++      status shouldBe StatusCodes.BadRequest
++    }
++  }
