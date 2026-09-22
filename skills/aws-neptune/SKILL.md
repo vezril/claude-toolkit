@@ -11,10 +11,12 @@ Neptune is **two products under one name**. **Neptune Database** is a transactio
 Cross-links:
 - [[graph-databases]]: model and language fundamentals. Read it first if "should this be a graph?" is still open.
 - [[apache-tinkerpop]]: standard Gremlin, which this skill describes the Neptune deviations from.
+- [[opencypher]]: standard openCypher, which Neptune's openCypher deviates from (see the Neo4j gaps below).
 - [[aws-s3]]: bulk-load source.
 - [[aws-lambda]]: Streams consumers, which poll because there's no native trigger.
 - [[aws-aurora]]: the same cluster, replica and endpoint mental model.
 - [[aws-rds]]: shared account limits.
+- [[nx-neptune]]: the awslabs Python library that drives Neptune Analytics from NetworkX or from data-lake tables via Athena.
 - [[secure-coding]]: the IAM and KMS posture.
 - [[vault-graphrag]]: GraphRAG concepts.
 
