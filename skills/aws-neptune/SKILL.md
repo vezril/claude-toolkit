@@ -15,6 +15,7 @@ Cross-links:
 - [[aws-lambda]]: Streams consumers, which poll because there's no native trigger.
 - [[aws-aurora]]: the same cluster, replica and endpoint mental model.
 - [[aws-rds]]: shared account limits.
+- [[nx-neptune]]: the awslabs Python library that drives Neptune Analytics from NetworkX or from data-lake tables via Athena.
 - [[secure-coding]]: the IAM and KMS posture.
 - [[vault-graphrag]]: GraphRAG concepts.
 
