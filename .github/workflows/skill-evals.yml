@@ -1,0 +1,86 @@
+name: skill-evals
+
+# Behavioral regression tests for skills (promptfoo). See evals/README.md.
+#
+# Design notes, both deliberate:
+#
+# 1. Auto-discovery + matrix. A `discover` job finds every evals/*/promptfooconfig.yaml and
+#    fans them out, so adding evals/<skill>/ runs in CI with no workflow edit, and each skill
+#    is its own check (you see WHICH skill regressed, not just "the suite").
+#
+# 2. The official ACTION, not the bare CLI. Model-graded asserts are sampled, not absolute.
+#    The action supports `repeat` + `repeat-min-pass` (require the behavior in 2 of 3 runs);
+#    the CLI does not — `promptfoo eval --repeat` reruns tests but requires ALL runs to pass,
+#    which makes a flaky judge *more* likely to redden the suite.
+#
+# The suites run on the anthropic:claude-agent-sdk provider, so the job needs an
+# ANTHROPIC_API_KEY repo secret. Forked PRs can't read secrets, so the jobs are skipped there
+# rather than failing red for a reason the contributor can't fix.
+
+on:
+  pull_request:
+    paths:
+      - 'skills/**'
+      - 'evals/**'
+      - '.github/workflows/skill-evals.yml'
+  workflow_dispatch:
+
+jobs:
+  discover:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      configs: ${{ steps.find.outputs.configs }}
+      any: ${{ steps.find.outputs.any }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: find
+        name: Discover eval suites
+        run: |
+          configs=$(find evals -mindepth 2 -name promptfooconfig.yaml | sort | jq -R . | jq -cs .)
+          echo "configs=$configs" >> "$GITHUB_OUTPUT"
+          if [ "$configs" = "[]" ]; then echo "any=false" >> "$GITHUB_OUTPUT"; else echo "any=true" >> "$GITHUB_OUTPUT"; fi
+          echo "Found: $configs"
+
+  eval:
+    needs: discover
+    if: needs.discover.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config: ${{ fromJSON(needs.discover.outputs.configs) }}
+    permissions:
+      contents: read
+      pull-requests: write # required to post the results comment
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require the Anthropic key
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::ANTHROPIC_API_KEY secret is not set — skill evals cannot run."
+            exit 1
+          fi
+
+      # Cache provider responses so unchanged prompt/provider/test combos don't re-hit the API.
+      # With repeat: 3 this is what keeps the suite cheap.
+      - name: Cache promptfoo
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/promptfoo
+          key: ${{ runner.os }}-promptfoo-${{ hashFiles('skills/**/SKILL.md', 'evals/**') }}
+          restore-keys: ${{ runner.os }}-promptfoo-
+
+      - name: "Eval: ${{ matrix.config }}"
+        uses: promptfoo/promptfoo-action@v1
+        with:
+          config: ${{ matrix.config }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache-path: ~/.cache/promptfoo
+          repeat: 3 # flake control: require each
+          repeat-min-pass: 2 # behavior in 2 of 3 samples
+          fail-on-threshold: 100 # suite gate: pass rate (%)
