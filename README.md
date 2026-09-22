@@ -43,6 +43,9 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **domain-driven-design** — Evans' tactical + strategic DDD, with a modern (microservices / event-sourcing) lens.
 - **event-storming** — Brandolini's workshop technique: notation, facilitation, and the path from the wall to DDD/code.
 - **cqrs-event-sourcing** — the event-driven data/consistency patterns (CQRS, Event Sourcing, Sagas, Domain Events) from Richardson's microservices.io + the CQRS community; why database-per-service forces them, and when not to.
+- **graph-databases** — when a graph is the right data model and how to use one (Wikipedia + primary sources, 2026-09): labeled property graph vs RDF, index-free adjacency and its limits, OLTP vs graph analytics, Cypher/GQL (ISO/IEC 39075:2024), SQL/PGQ, Gremlin and SPARQL side by side, modeling rules (supernodes, relationship-to-node promotion, time), an honest graph-vs-relational checklist, and a dated product landscape (Kuzu archived, RedisGraph → FalkorDB, PostgreSQL 19's SQL/PGQ revert).
+- **apache-tinkerpop** — Apache TinkerPop and Gremlin, distilled from tinkerpop.apache.org (2026-09; 3.8.2 stable, 4.0.0-beta.3): Structure vs Process API, embedded / Gremlin Server / remote-provider execution, OLTP vs GraphComputer OLAP, the step catalogue with `P`/`TextP` predicates and `mergeV`/`mergeE` upserts, strategies, GLVs and serialization, remote transactions, recipes and the official anti-patterns, the 3.8.0 breaking changes, and 4.0's HTTP-only / GremlinLang / no-sessions / rollback-on-close shift.
+- **gremlin** — writing Gremlin queries (the query language; apache-tinkerpop is the framework): the anchor → navigate → filter → shape → terminate shape of a good traversal, result shaping (`project`/`elementMap`/`valueMap`), a task cookbook (upserts, batch writes, n-hop, paths, top-k, pagination, aggregation, deletes), the semantics behind wrong answers (laziness, bulk, local vs global scope, `Pop`, unproductive `by()`, cross-type comparisons, cardinality, remote references), the same query in Groovy/Python/JS/.NET/Go, testing against TinkerGraph, and provider dialects (Neptune, Cosmos DB, JanusGraph, TinkerGraph).
 - **modern-java** — Effective Java (3rd ed., all 90 items) on a Java 21 baseline with modern idioms.
 - **cryptography** — Schneier's *Applied Cryptography* (with C examples) updated by *Cryptography Engineering* as the modern authority.
 - **clean-code** — Robert Martin's readable/maintainable-code principles + the smells & heuristics catalog, with a balanced critique.
@@ -117,6 +120,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **aws-cloudfront** — Amazon CloudFront, distilled from AWS's own CloudFront agent skill (2026-09): when CloudFront is the right layer, origin locking (OAC/VPC origins/origin mTLS) as a mandatory pairing for every content control, signed URLs/cookies/geo-restrictions/viewer mTLS/edge token validation, cache policies vs behaviors, and CloudFront Functions vs Lambda@Edge; `references/` carry the depth.
 - **aws-rekognition** — Amazon Rekognition image/video analysis, distilled from docs.aws.amazon.com (2026-09): the sync (Image) vs always-async (Video) API split, `DetectLabels`/`DetectModerationLabels` (the 3-level content-moderation taxonomy and its breaking v6.1→v7 label changes)/`DetectFaces`/`DetectText`/`DetectProtectiveEquipment`, face collections and matching (`IndexFaces`/`SearchFaces*`/`CompareFaces`, the identity-verification pattern), the stored-video SNS/IAM job pattern and segment detection, streaming video and Amazon A2I both flagged closed to new customers, Rekognition Custom Labels, and AWS's own responsible-use guidance for face matching (mandatory human review, the 99%+ confidence bar and specific Service Terms obligations for public-safety use); `references/` carry the depth.
 - **aws-textract** — Amazon Textract document extraction, distilled from docs.aws.amazon.com (2026-09): the four synchronous single-page APIs (`DetectDocumentText`, `AnalyzeDocument`'s per-feature-billed `FeatureTypes` — TABLES/FORMS/QUERIES/SIGNATURES/LAYOUT, `AnalyzeExpense`, `AnalyzeID` — US-only) vs the async `Start*`/`Get*` family that mirrors Rekognition Video's SNS/IAM pattern, the flat `Block`-object response model walked via `Relationships` rather than nested JSON, the `Queries` natural-language feature, a format/size/page quota table (including a real discrepancy in Textract's own docs about the sync size limit worth verifying before relying on either figure), and the same Amazon-A2I-closed-to-new-customers caveat as Rekognition; `references/` carry the depth.
+- **aws-neptune** — Amazon Neptune, distilled from docs.aws.amazon.com (2026-09): Neptune Database (1 writer + 15 replicas on a 3-AZ 128 TiB volume, Serverless NCUs, Standard vs I/O-Optimized, Global Database) vs Neptune Analytics (in-memory m-NCUs, 25+ `CALL neptune.algo.*` algorithms, one HNSW vector index per graph, the store behind Bedrock GraphRAG); Gremlin/openCypher over one property graph vs SPARQL/RDF; Neptune's Gremlin quirks (string IDs, set cardinality, no lambdas/bindings) and Neo4j gaps (no APOC/LOAD CSV/constraints); snapshot vs range-locked isolation with retry-on-`ConcurrentModificationException`; the S3 bulk loader, Streams, VPC/TLS + IAM SigV4 data-access actions; and the 2026-12-04 end of life for all 1.2.x engines.
 
 **Home & IoT**
 
@@ -269,6 +273,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `akka-utilities` |  |  |  |  |
 | `alpakka` |  |  |  |  |
 | `ansible` |  |  |  |  |
+| `apache-tinkerpop` |  |  |  |  |
 | `apple-dev` |  |  |  |  |
 | `aws-amplify` |  |  |  |  |
 | `aws-api-gateway` |  |  |  |  |
@@ -277,6 +282,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `aws-cognito` |  |  |  |  |
 | `aws-eventbridge` |  |  |  |  |
 | `aws-lambda` |  |  |  |  |
+| `aws-neptune` |  |  |  |  |
 | `aws-rds` |  |  |  |  |
 | `aws-rekognition` |  |  |  |  |
 | `aws-s3` |  |  |  |  |
@@ -381,6 +387,8 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `github-issue-fix-flow` | 88% | 100% | sonnet | Format-convention floor (--comments intake, fix/issue-N, Closes #N); no patch |
 | `github-new-repo` | 83% | 100% | sonnet | ✅ Shipped (PR #59) — an extra ask never aborts the authorized creation |
 | `godot` |  |  |  |  |
+| `graph-databases` |  |  |  |  |
+| `gremlin` |  |  |  |  |
 | `hackrf-one` |  |  |  |  |
 | `home-assistant` |  |  |  |  |
 | `html-css` |  |  |  |  |
