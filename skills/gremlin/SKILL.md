@@ -9,6 +9,7 @@ license: MIT
 This is the working skill for **authoring Gremlin**. The framework around it (architecture, Gremlin Server, drivers, serialization, strategies, the 3.8 and 4.0 upgrade notes) is in [[apache-tinkerpop]], and its `references/gremlin-steps.md` is the step catalogue this skill assumes. Cross-links:
 - [[graph-databases]]: whether a graph fits, modeling, and Gremlin vs Cypher/GQL/SPARQL.
 - [[aws-neptune]]: the most common managed Gremlin target.
+- [[opencypher]]: the declarative alternative, for translating Cypher in either direction.
 - [[functional-programming]]: Gremlin is a lazy, composable pipeline.
 - [[secure-coding]]: never build scripts from user input.
 - [[tdd]]: test queries like code.
