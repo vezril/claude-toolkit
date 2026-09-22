@@ -39,6 +39,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **lambda-calculus** — Church's model of computation and the theory beneath FP (*Michaelson*): syntax, α/β/η-reduction, normal vs applicative order & Church–Rosser, currying, Church encodings, the Y combinator, and types.
 - **scala** — Scala 2.13 idioms & gotchas (incl. the `sealed abstract case class` smart-constructor pattern).
 - **python** — idiomatic, modern Python 3.x from *Effective Python*, *Fluent Python*, and *Automate the Boring Stuff*: the data model/dunders, comprehensions & generators, EAFP, dataclasses/type hints, the GIL & asyncio, stdlib + automation, and tooling (venv/ruff/black/mypy/pytest), with a Scala/FP comparison lens.
+- **python-networkx** — NetworkX 3.7 (Python ≥ 3.12), distilled from the networkx.org reference with every flagged behaviour checked by running 3.7: the dict-of-dict-of-dict model and choosing Graph/DiGraph/MultiGraph/MultiDiGraph, live views and the copy/view/subgraph aliasing rules, a task-to-function catalogue across every algorithm family (shortest paths decision table, centrality, Louvain vs the new native Leiden, flows, DAGs, matching, isomorphism/VF2++, approximation, bipartite), conversion to/from NumPy/SciPy/pandas, file formats and their traps, the 3.5+ `nx.display` drawing API, seed semantics, and backend dispatch (`backend=`, `nx.config`, nx-parallel/nx-cugraph/nx-neptune); flags the inconsistent `weight` defaults, Dijkstra's silent wrong answers on negative weights, `node_link_graph`'s MultiGraph default and the 3.6 `"links"`→`"edges"` JSON break.
 - **design-patterns** — the 23 Gang-of-Four patterns with Scala/FP mappings and a modern critique.
 - **domain-driven-design** — Evans' tactical + strategic DDD, with a modern (microservices / event-sourcing) lens.
 - **event-storming** — Brandolini's workshop technique: notation, facilitation, and the path from the wall to DDD/code.
@@ -431,6 +432,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `prompt-edd` |  |  |  |  |
 | `promptfoo` |  |  |  |  |
 | `python` | 71% | 100% | sonnet | Modern-idiom contract lift (pathlib, hints, EAFP); no patch |
+| `python-networkx` |  |  |  |  |
 | `python-package` |  |  |  |  |
 | `python-tests` |  |  |  |  |
 | `python-uv-build` |  |  |  |  |
