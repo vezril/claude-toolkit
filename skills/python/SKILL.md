@@ -7,7 +7,7 @@ description: Writing idiomatic, modern, effective Python (3.x), distilled from S
 
 How to write **idiomatic, modern, effective Python (3.x)** — "Pythonic" code that's readable, correct, and leverages what the language actually offers. Distilled from **Effective Python** (best-practice items), **Fluent Python** (the deep data model / idioms), and **Automate the Boring Stuff** (practical scripting). Comprehensive, with a **Scala/FP comparison lens** since that's the toolkit's home stack.
 
-Cross-links: [[clean-code]] / [[software-design]] (readability & design apply everywhere), [[tdd]] (pytest), [[functional-programming]] (Python's functional features and where they differ), [[secure-coding]] (input/deserialization safety), [[information-theory]]/[[operating-systems]] (Python as the lingua franca for tooling/scripts).
+Cross-links: [[clean-code]] / [[software-design]] (readability & design apply everywhere), [[tdd]] (pytest), [[functional-programming]] (Python's functional features and where they differ), [[secure-coding]] (input/deserialization safety), [[information-theory]]/[[operating-systems]] (Python as the lingua franca for tooling/scripts), [[python-networkx]] (graph and network analysis with NetworkX).
 
 ## Pythonic philosophy
 

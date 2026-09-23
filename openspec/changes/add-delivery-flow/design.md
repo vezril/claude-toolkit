@@ -195,7 +195,8 @@ Hand-editing a validated output file is detected by comparing its sha to the tra
 
 ### D9. Evals via promptfoo on the keyless Claude Agent SDK provider
 Same setup as the private defect-flow suites (`anthropic:claude-agent-sdk`, `apiKeyRequired: false`).
-- `evals/delivery-flow-routing/`: fixtures are directory states, and the expected result is `{next_step, decision_point_stop, branch}`. Covers every branch: bug/feature/task, recall skipped without a vault, REFUTED rerun, failed validation rerun, and the stop at each decision point.
+- `evals/delivery-flow-routing/`: fixtures are directory states, and the expected result is `{next_step, decision_point_stop, branch}`. Covers every branch: bug/feature/task, recall skipped without a vault, REFUTED rerun, failed validation rerun, and each punch-out trigger.
+- `evals/delivery-flow-e2e/`: **the workflow as a whole is a Stage 3 prompt**, so routing alone is not enough (Calvin's reading, 2026-09-16). Each case runs a seeded fixture repo and item from intake to a terminal state against stub adapters (no remote calls) and a tiny test suite, then asserts on the *whole run*: the files produced, their validator results, the outcome status, where it punched out, and a complete trace with one record per step. Cases: a clean feature that reaches an open PR with no stops; a bug on the quick path; an item whose triage is unclear (punches out at step 2); a breaking contract change (punches out before implementation); a step refuted twice; a budget breach.
 - `evals/work-type-classifier/`: fixtures are story files plus repo manifests, with the expected `Domains:` set. Asserts are exact-set precision/recall against deterministic JS, with a 95% suite bar.
 
 ### D10. Grounded in Olympus's actual practice (answers from 2026-09-15)
@@ -219,7 +220,7 @@ Stage 4 requires that "every agent passes its Stage 3 quality bar", and an uncer
 - delivery recall;
 - every reviewer in the roster entries that are enabled.
 
-*Knowledge skills* loaded as context (`scala`, `react`, `terraform`…) are not task prompts. They are covered by the eval of the agent consuming them, with the skill injected as in production. This is an interpretation of the Stage 3 criteria and needs confirming with the certification reviewers (open question).
+*Knowledge skills* loaded as context (`scala`, `react`, `terraform`…) are not task prompts. They are covered by the eval of the agent consuming them, with the skill injected as in production. **Working assumption confirmed by Calvin 2026-09-16**: knowledge skills are not separately certified — they are reference material, not prompts with an output contract, so there is nothing to score them against. If the reviewers disagree, scope grows from ~15 task prompts to 50+ and this becomes a project of its own.
 
 **Registry.** `skills/delivery-flow/steps.yaml`, one entry per task prompt:
 
@@ -291,6 +292,8 @@ Rollback: delete `.delivery-flow.yaml` (per repo) or revert the hook registratio
 
 - Commit output files to the work branch (default) or keep them local? This affects whether PR reviewers see the trace and cost.
 - Olympus answered on 2026-09-15 (folded into D10). Still open: the weekly feature commitment (~1–2/week estimated; Calvin's call) and which repos are included in or excluded from a certification package (Olympus suggests excluding `ares-*`, `codex`, `harpocrates-*`, `muses-ui`).
+- Does an end-to-end eval of the workflow satisfy the "the workflow is itself a Stage 3 prompt" requirement, or do the reviewers want something else? Calvin reads it as end-to-end (2026-09-16).
+- For the success rate, is a "run" one work item, and do punch-outs count against it or sit outside it? Unresolved; ask the reviewers. The report emits both figures until then.
 - Which human-presence key to standardize on: a FIDO `ed25519-sk` hardware key (portable across both Macs) or a Secure Enclave key with Touch ID (no extra hardware, but one key per Mac, so two allowed signers)?
 - Do the certification reviewers accept that knowledge skills are covered by their consuming agent's eval (D11), or must each loaded skill carry its own Stage 3 package?
 - Punch-out thresholds start at 3 retries and a per-repo cost budget; tune both from the pilot.
