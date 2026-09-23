@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+# STAGE 2 — the prompt under test becomes a VARIABLE.
+# The config stops being about one hard-coded instruction and becomes a rig you
+# can point at any version of the skill. This one line is what makes
+# "v1 vs v10, same suite" possible.
+#   cd demo/stage2-skill-as-var && npx promptfoo eval
+#   …then change `skill:` to prompt_v10.md and run it again.
+description: "demo stage 2: the skill is a variable"
+
+prompts:
+  - file://prompt.txt        # a neutral wrapper: {{skill}} + {{request}}
+
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config:
+      model: haiku
+      apiKeyRequired: false
+      max_turns: 3
+
+defaultTest:
+  vars:
+    # ⇦ THE DEMO LINE. Swap v1 for v10 and nothing else changes.
+    skill: file://../../prompts/prompt_v1.md
+
+tests:
+  - description: "w-01-winter"
+    vars:
+      request: Write a haiku about winter.
+    assert:
+      - type: not-contains
+        value: "Here's a haiku"

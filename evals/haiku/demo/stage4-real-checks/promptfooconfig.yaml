@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+# STAGE 4 — deterministic JavaScript checks, with named metrics.
+# Two changes that matter:
+#   1. `metric:` groups asserts into criteria, so the score splits into
+#      contract / craft / knowledge instead of one blended number.
+#   2. the check returns a REASON, so a failure is readable in the results
+#      ("preamble: Here's a haiku about winter:") without rerunning anything.
+#   cd demo/stage4-real-checks && npx promptfoo eval --repeat 3
+description: "demo stage 4: deterministic checks, named metrics"
+
+prompts:
+  - file://../stage2-skill-as-var/prompt.txt
+
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config:
+      model: haiku
+      apiKeyRequired: false
+      max_turns: 3
+
+defaultTest:
+  vars:
+    skill: file://../../prompts/prompt_v1.md
+
+tests:
+  - description: "w-01-winter"
+    vars:
+      request: Write a haiku about winter.
+    assert:
+      - { type: javascript, metric: contract, value: file://asserts/poem-only.js }
+      # craft, as a check on the poem rather than on the words in it:
+      # 5-7-5 padding lands at 17 syllables; English practice is ~10-14.
+      - { type: javascript, metric: craft, value: file://asserts/not-575.js }
+
+  - description: "w-03-grandmother"
+    vars:
+      request: Write a haiku about missing my late grandmother.
+    assert:
+      - { type: javascript, metric: contract, value: file://asserts/poem-only.js }
+      - { type: javascript, metric: craft, value: file://asserts/not-575.js }
+
+# Next: the real suite pairs these with ground truth per case (expected/*.json),
+# so a check knows what THIS case is supposed to contain. See stage 5.

@@ -1,0 +1,77 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+# STAGE 5 — the certification shape. Four additions over stage 4:
+#   1. TWO providers, same suite → "the cheapest model that clears 95%" becomes
+#      one number instead of an argument.
+#   2. GROUND TRUTH per case: the asserts read expected/<case>.json via
+#      vars.case, so a check knows what THIS case is supposed to contain
+#      (w-01 wants a winter kigo: frost, sleet, verglas, woodstove…).
+#   3. Each case carries only the criteria its spec defines — no free passes.
+#   4. The real asserts, which own one criterion each and never overlap:
+#      contract = every formatting penalty, craft = the poem, knowledge = the claims.
+#
+# This is a trimmed copy of ../../promptfooconfig.yaml (13 cases) kept to 4 so it
+# runs in about a minute on stage. The real suite is the one that was certified.
+#   cd demo/stage5-certification && npx promptfoo eval --repeat 3
+description: "demo stage 5: the certification shape (4 of 13 cases)"
+
+prompts:
+  - file://../../prompt.txt
+
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config:
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 3
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config:
+      model: haiku
+      apiKeyRequired: false
+      max_turns: 3
+
+defaultTest:
+  vars:
+    # Point this at prompt_v1.md for the Red run, prompt_v10.md for the certified one.
+    skill: file://../../prompts/prompt_v10.md
+
+tests:
+  - description: "w-01-winter: plain request (5-7-5 padding, telling, rhyme, chat framing)"
+    vars:
+      case: w-01-winter
+      request: Write a haiku about winter.
+    assert:
+      - { type: javascript, metric: contract, value: file://../../asserts/contract.js }
+      - { type: javascript, metric: craft, value: file://../../asserts/craft.js }
+
+  - description: "w-05-575-lighthouse: explicit 5-7-5 (comply, mention practice once)"
+    vars:
+      case: w-05-575-lighthouse
+      request: Write a strict 5-7-5 haiku about a lighthouse.
+    assert:
+      - { type: javascript, metric: contract, value: file://../../asserts/contract.js }
+      - { type: javascript, metric: craft, value: file://../../asserts/craft.js }
+      - { type: javascript, metric: knowledge, value: file://../../asserts/knowledge.js }
+
+  - description: "c-07-critique-weak: the bad draft (one revision, name the flaws)"
+    vars:
+      case: c-07-critique-weak
+      request: |
+        Critique this haiku draft and help me improve it:
+
+        The autumn leaves fall
+        I feel so sad and lonely
+        Nature is so sad
+    assert:
+      - { type: javascript, metric: contract, value: file://../../asserts/contract.js }
+      - { type: javascript, metric: craft, value: file://../../asserts/craft.js }
+      - { type: javascript, metric: knowledge, value: file://../../asserts/knowledge.js }
+
+  - description: "k-10-575-myth: the question the whole talk opens with"
+    vars:
+      case: k-10-575-myth
+      request: Does a haiku have to be 5-7-5 syllables?
+    assert:
+      - { type: javascript, metric: contract, value: file://../../asserts/contract.js }
+      - { type: javascript, metric: knowledge, value: file://../../asserts/knowledge.js }

@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+# STAGE 3 — more cases, each planting ONE trap, and repeats.
+# The suite starts to look like a test plan. The checks are still string
+# matching, which is where this stage shows its own limits (see the comments).
+#   cd demo/stage3-cases && npx promptfoo eval --repeat 3
+description: "demo stage 3: cases with planted traps"
+
+prompts:
+  - file://../stage2-skill-as-var/prompt.txt
+
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config:
+      model: haiku
+      apiKeyRequired: false
+      max_turns: 3
+
+defaultTest:
+  vars:
+    skill: file://../../prompts/prompt_v1.md
+
+tests:
+  - description: "w-01-winter: plain request (chat framing, 5-7-5 padding)"
+    vars:
+      request: Write a haiku about winter.
+    assert:
+      - type: not-contains
+        value: "Here's a haiku"
+      # Brittle on purpose: a poem is 3 lines, but "3 newlines" is not that check.
+      - type: javascript
+        value: output.trim().split('\n').length === 3
+
+  - description: "w-03-grandmother: grief (the pull to NAME the feeling)"
+    vars:
+      request: Write a haiku about missing my late grandmother.
+    assert:
+      # Every telling word needs its own line here. This does not scale, and
+      # it misses "sorrow", "grief", "aches"… which is the argument for stage 4.
+      - type: not-icontains-any
+        value: ["I feel", "so sad", "lonely", "beautiful"]
+
+  - description: "k-10-575-myth: does it repeat the 5-7-5 myth?"
+    vars:
+      request: Does a haiku have to be 5-7-5?
+    assert:
+      # A keyword check can't tell "no, that's a misconception" from
+      # "yes, 5-7-5 is the standard". Both contain "5-7-5".
+      - type: icontains
+        value: "5-7-5"
+
+# What this stage teaches: string asserts are quick to write, but they measure
+# the presence of words rather than the property you care about. Next stage
+# replaces them with real checks.
