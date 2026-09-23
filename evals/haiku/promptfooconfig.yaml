@@ -1,0 +1,153 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "haiku: contract, craft, knowledge on 13 requests (write / critique / know)"
+# The prompt under test is the haiku skill. run.sh copies prompts/prompt_vN.md to
+# current.md; the certified version is copied verbatim to skills/haiku/SKILL.md.
+# No working_dir is set, so the agent runs in an empty temp dir with no tools.
+# Each test carries only the criteria its spec (expected/<case>.json) defines.
+prompts:
+  - file://prompt.txt
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config:
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 3
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config:
+      model: haiku
+      apiKeyRequired: false
+      max_turns: 3
+defaultTest:
+  vars:
+    skill: file://prompts/current.md
+tests:
+  # ── write ────────────────────────────────────────────────────────────────
+  - description: "w-01-winter: plain request (5-7-5 padding, telling, rhyme, chat framing)"
+    vars:
+      case: w-01-winter
+      request: Write a haiku about winter.
+    assert:
+      - { type: javascript, metric: contract, value: file://asserts/contract.js }
+      - { type: javascript, metric: craft, value: file://asserts/craft.js }
+
+  - description: "w-02-coffee: no season asked for; invites simile and cosy telling words"
+    vars:
+      case: w-02-coffee
+      request: Write a haiku about my morning coffee.
+    assert:
+      - { type: javascript, metric: contract, value: file://asserts/contract.js }
+      - { type: javascript, metric: craft, value: file://asserts/craft.js }
+
+  - description: "w-03-grandmother: grief request (the pull to name the feeling)"
+    vars:
+      case: w-03-grandmother
+      request: Write a haiku about missing my late grandmother.
+    assert:
+      - { type: javascript, metric: contract, value: file://asserts/contract.js }
+      - { type: javascript, metric: craft, value: file://asserts/craft.js }
+
+  - description: "w-04-montreal-march: local climate, not the Kyoto calendar"
+    vars:
+      case: w-04-montreal-march
+      request: I live in Montreal. Write a haiku for late March.
+    assert:
+      - { type: javascript, metric: contract, value: file://asserts/contract.js }
+      - { type: javascript, metric: craft, value: file://asserts/craft.js }
+
+  - description: "w-05-575-lighthouse: explicit 5-7-5 (comply, mention practice once)"
+    vars:
+      case: w-05-575-lighthouse
+      request: Write a strict 5-7-5 haiku about a lighthouse.
+    assert:
+      - { type: javascript, metric: contract, value: file://asserts/contract.js }
+      - { type: javascript, metric: craft, value: file://asserts/craft.js }
+      - { type: javascript, metric: knowledge, value: file://asserts/knowledge.js }
+
+  - description: "w-06-first-snow-annotated: annotation requested (poem first, kigo + cut)"
+    vars:
+      case: w-06-first-snow-annotated
+      request: Write a haiku about the first snow, then explain your season word and where the cut is.
+    assert:
+      - { type: javascript, metric: contract, value: file://asserts/contract.js }
+      - { type: javascript, metric: craft, value: file://asserts/craft.js }
+      - { type: javascript, metric: knowledge, value: file://asserts/knowledge.js }
+
+  # ── critique ─────────────────────────────────────────────────────────────
+  - description: "c-07-critique-weak: stated emotion, abstraction, padding; one revision"
+    vars:
+      case: c-07-critique-weak
+      request: |
+        Critique this haiku draft and help me improve it:
+
+        The autumn leaves fall
+        I feel so sad and lonely
+        Nature is so sad
+    assert:
+      - { type: javascript, metric: contract, value: file://asserts/contract.js }
+      - { type: javascript, metric: craft, value: file://asserts/craft.js }
+      - { type: javascript, metric: knowledge, value: file://asserts/knowledge.js }
+
+  - description: "c-08-critique-strong: a good haiku (see the cut; don't push 5-7-5)"
+    vars:
+      case: c-08-critique-strong
+      request: |
+        Critique this haiku:
+
+        first frost
+        the dog's breath lingers
+        at the gate
+    assert:
+      - { type: javascript, metric: contract, value: file://asserts/contract.js }
+      - { type: javascript, metric: knowledge, value: file://asserts/knowledge.js }
+
+  # ── knowledge ────────────────────────────────────────────────────────────
+  - description: "k-09-kigo-moon: 'moon' alone is autumn"
+    vars:
+      case: k-09-kigo-moon
+      request: In haiku, what season does the word 'moon' on its own signal?
+    assert:
+      - { type: javascript, metric: contract, value: file://asserts/contract.js }
+      - { type: javascript, metric: knowledge, value: file://asserts/knowledge.js }
+
+  - description: "k-10-575-myth: no, and why (on vs syllables)"
+    vars:
+      case: k-10-575-myth
+      request: Does a haiku have to be 5-7-5 syllables?
+    assert:
+      - { type: javascript, metric: contract, value: file://asserts/contract.js }
+      - { type: javascript, metric: knowledge, value: file://asserts/knowledge.js }
+
+  - description: "k-11-classify-senryu: office comedy, no season"
+    vars:
+      case: k-11-classify-senryu
+      request: |
+        Is this a haiku or a senryu?
+
+        budget meeting
+        everyone nodding
+        at the wrong slide
+    assert:
+      - { type: javascript, metric: contract, value: file://asserts/contract.js }
+      - { type: javascript, metric: knowledge, value: file://asserts/knowledge.js }
+
+  - description: "k-12-classify-haiku: summer kigo, nature image"
+    vars:
+      case: k-12-classify-haiku
+      request: |
+        Haiku or senryu?
+
+        evening downpour
+        a heron lifts
+        from the rice field
+    assert:
+      - { type: javascript, metric: contract, value: file://asserts/contract.js }
+      - { type: javascript, metric: knowledge, value: file://asserts/knowledge.js }
+
+  - description: "k-13-basho-frog: public-domain original, not only a remembered translation"
+    vars:
+      case: k-13-basho-frog
+      request: Show me Bashō's famous frog haiku.
+    assert:
+      - { type: javascript, metric: knowledge, value: file://asserts/knowledge.js }
