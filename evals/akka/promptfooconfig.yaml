@@ -1,0 +1,166 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+#
+# Behavioral regression tests for skills/akka/SKILL.md (the Akka meta/routing skill).
+#
+# The skill is loaded as context (prompt.txt); each test sends a user query and asserts a
+# PROPERTY of the reply — never its exact prose. Three tiers, cheapest first:
+#   routing   — which module does it reach for? (classification; deterministic, free)
+#   accuracy  — hard claims that must not rot (BSL, Typed, Jackson; deterministic, free)
+#   restraint — judgment calls (over-engineering, deferral); model-graded, thresholded
+#
+# Runs on the Claude Agent SDK provider (same as the other evals in this repo): the model
+# that will actually read this skill in real use. No external API key needed locally; in
+# CI the skill-evals workflow supplies ANTHROPIC_API_KEY.
+#
+# Run: npx promptfoo@latest eval -c evals/akka/promptfooconfig.yaml
+description: "akka meta-skill — routing, hard facts, and restraint"
+prompts:
+  - file://prompt.txt
+providers:
+  # The system under test: can Sonnet run this skill reliably.
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config:
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 5
+defaultTest:
+  vars:
+    skill: file://../../skills/akka/SKILL.md
+  options:
+    # Pin the GRADER separately from the model under test so grading stays stable even when
+    # generation doesn't — and so swapping the model under test doesn't silently change the
+    # judge too.
+    provider:
+      id: anthropic:claude-agent-sdk
+      config:
+        model: sonnet
+        apiKeyRequired: false
+        max_turns: 5
+tests:
+  # ── TIER 1: ROUTING ───────────────────────────────────────────────────────
+  # The meta-skill's whole job is "which module do I reach for". That's a
+  # classification task — it has a right answer — so it asserts deterministically.
+
+  - description: "partition tolerance routes to cluster + split-brain resolver"
+    vars:
+      request: "We run 5 Akka nodes and keep getting split brains when the network flaps. Where do I look?"
+    assert:
+      - { type: icontains, value: "akka-cluster", metric: routing }
+      - { type: icontains, value: "split brain", metric: routing }
+
+  - description: "durable aggregate state routes to persistence (not streams)"
+    vars:
+      request: "My actor holds order state and loses everything on restart. What should I be using?"
+    assert:
+      - { type: icontains, value: "akka-persistence", metric: routing }
+      - { type: not-icontains, value: "akka-streams", metric: routing }
+
+  - description: "read-side / queryable model routes to projections"
+    vars:
+      request: "I'm event-sourcing orders and now I need a queryable read model for the UI."
+    assert:
+      - { type: icontains, value: "akka-projections", metric: routing }
+
+  - description: "fast producer / slow consumer routes to streams or alpakka"
+    vars:
+      request: "Kafka produces faster than my consumer handles and the JVM OOMs. What in Akka fixes this?"
+    assert:
+      - { type: contains-any, value: ["akka-streams", "alpakka"], metric: routing }
+
+  - description: "event storage backend routes to persistence-plugins (R2DBC)"
+    vars:
+      request: "Where do my Akka Persistence events actually get stored? What backend should I pick?"
+    assert:
+      - { type: icontains, value: "r2dbc", metric: routing }
+
+  - description: "forming a cluster on Kubernetes routes to management/bootstrap"
+    vars:
+      request: "How do I form an Akka cluster on Kubernetes without hardcoding seed nodes?"
+    assert:
+      - { type: contains-any, value: ["akka-management", "Cluster Bootstrap", "akka-discovery"], metric: routing }
+
+  # ── TIER 2: HARD FACTS ────────────────────────────────────────────────────
+  # Specific claims the skill makes. If a refactor silently drops one, that's a
+  # real regression — and every one of these is a free substring check.
+
+  - description: "BSL licensing is surfaced for commercial adoption"
+    vars:
+      request: "We're a 200-person company about to adopt Akka in production. Anything we should know before committing?"
+    assert:
+      - { type: regex, value: "BSL|Business Source", metric: accuracy }
+      - type: llm-rubric
+        value: "Warns that Akka is BSL-licensed and that a commercial license is required above usage thresholds."
+        metric: accuracy
+
+  - description: "prefers Akka Typed and names Classic as legacy"
+    vars:
+      request: "Getting started with Akka actors in Scala — which API should I use?"
+    assert:
+      - { type: icontains, value: "typed", metric: accuracy }
+      - type: llm-rubric
+        value: "Recommends Akka Typed and indicates Classic is legacy. Must NOT recommend Classic over Typed."
+        metric: accuracy
+
+  - description: "serialization guidance survives (Jackson; Java serialization off)"
+    vars:
+      request: "How should I serialize messages between Akka cluster nodes?"
+    assert:
+      - { type: icontains, value: "jackson", metric: accuracy }
+      - type: llm-rubric
+        value: "Indicates Java serialization is disabled by default and should not be enabled."
+        metric: accuracy
+
+  - description: "cluster non-negotiables (SBR + a real serializer)"
+    vars:
+      request: "I'm about to run my first Akka cluster in production. What must I not forget?"
+    assert:
+      - { type: regex, value: "(?i)split.brain|SBR", metric: accuracy }
+      - { type: icontains, value: "serial", metric: accuracy }
+
+  - description: "version alignment — pin all akka-* artifacts together"
+    vars:
+      request: "My build has akka-actor 2.10.0 and akka-http pulling a different Akka version. Is that a problem?"
+    assert:
+      - type: llm-rubric
+        value: "Says all akka-* artifacts must be pinned to one consistent Akka version and that mixing versions is a problem."
+        metric: accuracy
+
+  # ── TIER 3: JUDGMENT ──────────────────────────────────────────────────────
+  # Genuinely fuzzy properties. Judge-graded with a threshold so one borderline
+  # grade doesn't flip the suite. (CI adds repeat/repeat-min-pass for N-of-M.)
+
+  - description: "resists over-engineering (always-apply default #5)"
+    vars:
+      request: "I'm building a todo app for my team of three. Should I set up cluster sharding and event sourcing?"
+    assert:
+      - type: llm-rubric
+        value: >
+          Pushes back on premature complexity: advises matching the tool to the real problem rather than
+          enthusiastically setting up sharding/persistence for a trivial app. Enthusiastic agreement to
+          shard a three-user todo app is a FAIL.
+        metric: restraint
+        threshold: 0.7
+
+  - description: "defers to the module skill rather than bluffing deep API detail"
+    vars:
+      request: "Give me the exact signature of Behaviors.receiveMessage and every overload it has."
+    assert:
+      - type: llm-rubric
+        value: >
+          Points toward the akka-actors module skill or the official Akka docs for concrete API detail
+          rather than confidently inventing exact signatures/overloads. Fabricating a precise overload
+          list with no deferral is a FAIL.
+        metric: honesty
+        threshold: 0.7
+
+  - description: "recommends modelling the domain before wiring infrastructure"
+    vars:
+      request: "Greenfield reactive microservice in Akka. What's the first thing I should do?"
+    assert:
+      - type: llm-rubric
+        value: >
+          Recommends modelling the domain (DDD / EventStorming / bounded contexts and aggregates) before
+          wiring up sharding, persistence, and projections.
+        metric: restraint
+        threshold: 0.7
