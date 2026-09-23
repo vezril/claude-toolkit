@@ -1,0 +1,223 @@
+diff --git a/client/src/main/scala/me/cference/hermesmq/client/HermesClient.scala b/client/src/main/scala/me/cference/hermesmq/client/HermesClient.scala
+index 8a9f968..e84ae07 100644
+--- a/client/src/main/scala/me/cference/hermesmq/client/HermesClient.scala
++++ b/client/src/main/scala/me/cference/hermesmq/client/HermesClient.scala
+@@ -122,6 +122,14 @@ final class HermesClient(baseUri: String, token: Option[String] = None, apiKey:
+     token.map(t => RawHeader("Authorization", s"Bearer $t")).toList ++
+       apiKey.map(k => RawHeader("X-API-Key", k)).toList
+ 
++  /** Re-label the entity as JSON before unmarshalling: success is decided by the
++    * HTTP status alone, so a 2xx whose body is JSON under an unexpected
++    * content-type header must still parse rather than surface as a transport
++    * failure (that misread turns delivered publishes into retries/dupes).
++    */
++  private def asJson(entity: ResponseEntity): ResponseEntity =
++    entity.withContentType(ContentTypes.`application/json`)
++
+   private def request(method: HttpMethod, uri: String, entity: RequestEntity = HttpEntity.Empty): Future[HttpResponse] =
+     http.singleRequest(HttpRequest(method, uri, headers = authHeaders, entity = entity))
+ 
+@@ -136,7 +144,7 @@ final class HermesClient(baseUri: String, token: Option[String] = None, apiKey:
+     request(HttpMethods.GET, s"$base/v1/topics/${topicId.value}").flatMap { resp =>
+       resp.status match
+         case StatusCodes.OK =>
+-          Unmarshal(resp.entity).to[TopicResponse].map(r => Some(TopicInfo(TopicId.from(r.topicId).toOption.get, r.labels)))
++          Unmarshal(asJson(resp.entity)).to[TopicResponse].map(r => Some(TopicInfo(TopicId.from(r.topicId).toOption.get, r.labels)))
+         case StatusCodes.NotFound =>
+           val _ = resp.discardEntityBytes(system); Future.successful(None)
+         case _ => fail(resp)
+@@ -156,7 +164,7 @@ final class HermesClient(baseUri: String, token: Option[String] = None, apiKey:
+     request(HttpMethods.GET, s"$base/v1/topics").flatMap { resp =>
+       resp.status match
+         case StatusCodes.OK =>
+-          Unmarshal(resp.entity)
++          Unmarshal(asJson(resp.entity))
+             .to[List[TopicStatsJson]]
+             .map(_.map(t => TopicStats(TopicId.from(t.topicId).toOption.get, t.publishedTotal, t.deleted)))
+         case _ => fail(resp)
+@@ -175,7 +183,7 @@ final class HermesClient(baseUri: String, token: Option[String] = None, apiKey:
+       resp   <- request(HttpMethods.POST, s"$base/v1/topics/${topicId.value}/messages", entity)
+       result <- resp.status match
+         case StatusCodes.Accepted | StatusCodes.Created =>
+-          Unmarshal(resp.entity)
++          Unmarshal(asJson(resp.entity))
+             .to[PublishResponse]
+             .map(r => PublishResult(MessageId.from(r.messageId).toOption.get, r.deduplicated.getOrElse(false)))
+         case _ => fail(resp)
+@@ -196,7 +204,7 @@ final class HermesClient(baseUri: String, token: Option[String] = None, apiKey:
+     request(HttpMethods.GET, s"$base/v1/subscriptions").flatMap { resp =>
+       resp.status match
+         case StatusCodes.OK =>
+-          Unmarshal(resp.entity)
++          Unmarshal(asJson(resp.entity))
+             .to[List[SubscriptionStatsJson]]
+             .map(_.map { s =>
+               SubscriptionStats(
+@@ -217,7 +225,7 @@ final class HermesClient(baseUri: String, token: Option[String] = None, apiKey:
+       resp   <- request(HttpMethods.POST, s"$base/v1/subscriptions/${subscriptionId.value}/pull", entity)
+       messages <- resp.status match
+         case StatusCodes.OK =>
+-          Unmarshal(resp.entity).to[PullResponse].map(_.messages.map(toReceived))
++          Unmarshal(asJson(resp.entity)).to[PullResponse].map(_.messages.map(toReceived))
+         case _ => fail(resp)
+     yield messages
+ 
+@@ -227,7 +235,7 @@ final class HermesClient(baseUri: String, token: Option[String] = None, apiKey:
+       resp   <- request(HttpMethods.POST, s"$base/v1/subscriptions/${subscriptionId.value}/ack", entity)
+       result <- resp.status match
+         case StatusCodes.OK =>
+-          Unmarshal(resp.entity).to[AckResponseJson].map(r => AckResult(r.acknowledged, r.unknown))
++          Unmarshal(asJson(resp.entity)).to[AckResponseJson].map(r => AckResult(r.acknowledged, r.unknown))
+         case _ => fail(resp)
+     yield result
+ 
+@@ -241,7 +249,7 @@ final class HermesClient(baseUri: String, token: Option[String] = None, apiKey:
+       resp   <- request(HttpMethods.POST, s"$base/v1/subscriptions/${subscriptionId.value}/modifyAckDeadline", entity)
+       result <- resp.status match
+         case StatusCodes.OK =>
+-          Unmarshal(resp.entity).to[ModifyAckDeadlineResponseJson].map(r => ModifyAckDeadlineResult(r.modified, r.unknown))
++          Unmarshal(asJson(resp.entity)).to[ModifyAckDeadlineResponseJson].map(r => ModifyAckDeadlineResult(r.modified, r.unknown))
+         case _ => fail(resp)
+     yield result
+ 
+@@ -249,7 +257,7 @@ final class HermesClient(baseUri: String, token: Option[String] = None, apiKey:
+     request(HttpMethods.GET, s"$base/health").flatMap { resp =>
+       resp.status match
+         case StatusCodes.OK =>
+-          Unmarshal(resp.entity).to[HealthJson].map(h => HealthInfo(h.status, h.service, h.version))
++          Unmarshal(asJson(resp.entity)).to[HealthJson].map(h => HealthInfo(h.status, h.service, h.version))
+         case _ => fail(resp)
+     }
+ 
+diff --git a/client/src/test/scala/me/cference/hermesmq/client/HermesClientSpec.scala b/client/src/test/scala/me/cference/hermesmq/client/HermesClientSpec.scala
+index 89c6c1b..d1826ea 100644
+--- a/client/src/test/scala/me/cference/hermesmq/client/HermesClientSpec.scala
++++ b/client/src/test/scala/me/cference/hermesmq/client/HermesClientSpec.scala
+@@ -66,6 +66,15 @@ final class HermesClientSpec extends ScalaTestWithActorTestKit with AnyWordSpecL
+               entity(as[String]) { body =>
+                 lastPublishBody = body
+                 if id == "ghost" then complete(StatusCodes.NotFound)
++                else if id == "plaintype" then
++                  // 2xx with JSON body but a non-JSON content-type label — the
++                  // Demeter trap: delivery must be judged by status, not label.
++                  complete(
++                    (
++                      StatusCodes.Accepted,
++                      HttpEntity(ContentTypes.`text/plain(UTF-8)`, """{"messageId":"m-plain","deduplicated":false}""")
++                    )
++                  )
+                 else if body.contains("\"idem-1\"") then
+                   jsonStatus(StatusCodes.Accepted, """{"messageId":"m-orig","deduplicated":true}""")
+                 else jsonStatus(StatusCodes.Accepted, """{"messageId":"m-123","deduplicated":false}""")
+@@ -191,6 +200,11 @@ final class HermesClientSpec extends ScalaTestWithActorTestKit with AnyWordSpecL
+       val _      = result.messageId.value shouldBe "m-orig"
+       result.deduplicated shouldBe true
+     }
++    "count a 2xx publish as delivered even when the content type is not JSON" in {
++      val result = client.publish(tid("plaintype"), "hello").futureValue
++      val _      = result.messageId.value shouldBe "m-plain"
++      result.deduplicated shouldBe false
++    }
+     "create a subscription (201 → success)" in {
+       client.createSubscription(sid("s1"), tid("orders")).futureValue
+       succeed
+diff --git a/clients/README.md b/clients/README.md
+index aae0644..081d509 100644
+--- a/clients/README.md
++++ b/clients/README.md
+@@ -29,6 +29,10 @@ update **all three** (and each client's stub-server tests) in the same PR:
+ - **Observability**: health (`status`/`service`/`version`).
+ - **Error model**: one typed error carrying HTTP status + body; *get-topic on 404 returns
+   empty/None/null* (a missing read is normal); everything else non-2xx raises/rejects.
++- **Status decides success, not the body's content-type label**: a 2xx whose JSON body arrives
++  under an unexpected `Content-Type` still parses and counts as delivered — never surfaced as a
++  transport failure (misreading a delivered publish as failed causes retries/duplicate alerts;
++  found in the wild by demeter-service). Each suite has an explicit test for this.
+ - **Auth**: optional constructor token → `Authorization: Bearer`; optional api key → `X-API-Key`;
+   neither sent by default.
+ - **Tests**: hermetic (in-process stub server, no live broker), asserting request wire-shapes
+diff --git a/clients/js/test/client.test.js b/clients/js/test/client.test.js
+index 51488ed..2b0bfb8 100644
+--- a/clients/js/test/client.test.js
++++ b/clients/js/test/client.test.js
+@@ -44,7 +44,12 @@ beforeAll(async () => {
+         res.writeHead(204).end();
+       } else if (method === "POST" && /^\/v1\/topics\/[^/]+\/messages$/.test(url)) {
+         if (url.includes("/ghost/")) json(res, 404, { error: "no such topic" });
+-        else if (body.idempotencyKey === "idem-1")
++        else if (url.includes("/plaintype/")) {
++          // 2xx, JSON body, non-JSON content-type label — delivery must be
++          // judged by status, not the label (the Demeter trap).
++          res.writeHead(202, { "content-type": "text/plain" });
++          res.end(JSON.stringify({ messageId: "m-plain", deduplicated: false }));
++        } else if (body.idempotencyKey === "idem-1")
+           json(res, 202, { messageId: "m-orig", deduplicated: true });
+         else json(res, 202, { messageId: "m-123", deduplicated: false });
+       } else if (method === "POST" && url === "/v1/subscriptions") {
+@@ -152,6 +157,11 @@ describe("publish & consume", () => {
+     expect(result).toEqual({ messageId: "m-orig", deduplicated: true });
+   });
+ 
++  it("counts a 2xx publish as delivered even when the content type is not JSON", async () => {
++    const result = await client.publish("plaintype", "hello");
++    expect(result).toEqual({ messageId: "m-plain", deduplicated: false });
++  });
++
+   it("rejects publishing to a missing topic", async () => {
+     const err = await client.publish("ghost", "x").catch((e) => e);
+     expect(err).toBeInstanceOf(HermesClientError);
+diff --git a/clients/python/tests/conftest.py b/clients/python/tests/conftest.py
+index d30edd3..a8ba19c 100644
+--- a/clients/python/tests/conftest.py
++++ b/clients/python/tests/conftest.py
+@@ -37,13 +37,15 @@ def _record(self, body: dict[str, Any]) -> None:
+             "x_api_key": self.headers.get("X-API-Key", ""),
+         }
+ 
+-    def _send(self, status: int, payload: Any | None = None) -> None:
++    def _send(
++        self, status: int, payload: Any | None = None, content_type: str = "application/json"
++    ) -> None:
+         self.send_response(status)
+         if payload is None:
+             self.end_headers()
+             return
+         data = json.dumps(payload).encode()
+-        self.send_header("Content-Type", "application/json")
++        self.send_header("Content-Type", content_type)
+         self.send_header("Content-Length", str(len(data)))
+         self.end_headers()
+         self.wfile.write(data)
+@@ -86,6 +88,14 @@ def do_POST(self) -> None:  # noqa: N802
+         elif m := re.fullmatch(r"/v1/topics/([^/]+)/messages", self.path):
+             if m.group(1) == "ghost":
+                 self._send(404, {"error": "no such topic"})
++            elif m.group(1) == "plaintype":
++                # 2xx, JSON body, non-JSON content-type label — delivery must be
++                # judged by status, not the label (the Demeter trap).
++                self._send(
++                    202,
++                    {"messageId": "m-plain", "deduplicated": False},
++                    content_type="text/plain",
++                )
+             elif body.get("idempotencyKey") == "idem-1":
+                 self._send(202, {"messageId": "m-orig", "deduplicated": True})
+             else:
+diff --git a/clients/python/tests/test_client.py b/clients/python/tests/test_client.py
+index 5ade191..d0c8421 100644
+--- a/clients/python/tests/test_client.py
++++ b/clients/python/tests/test_client.py
+@@ -58,6 +58,13 @@ def test_deduplicated_publish_surfaced(self, client: HermesClient) -> None:
+         assert result.message_id == "m-orig"
+         assert result.deduplicated is True
+ 
++    def test_2xx_with_non_json_content_type_still_counts_as_delivered(
++        self, client: HermesClient
++    ) -> None:
++        result = client.publish("plaintype", "hello")
++        assert result.message_id == "m-plain"
++        assert result.deduplicated is False
++
+     def test_publish_to_missing_topic_raises(self, client: HermesClient) -> None:
+         with pytest.raises(HermesClientError) as e:
+             client.publish("ghost", "x")

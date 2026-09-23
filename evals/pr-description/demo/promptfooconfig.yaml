@@ -1,11 +1,11 @@
 # yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
-description: "pr-description: contract, coverage, fidelity on 10 PRs (9 real)"
-# The prompt under test is the pr-description skill. run.sh copies prompts/prompt_vN.md to current.md;
-# the certified version is copied verbatim to skills/pr-description/SKILL.md.
-# No working_dir is set, so the agent runs in an empty temp dir with NO tools: it cannot
-# run git against this repo and must work from the diff it is given.
+description: "Town hall demo: pr-description v2 -> v3 on Haiku (record live, replay on stage)"
+# Record (real Haiku calls):  ./demo.sh record v2
+# Replay (no model calls):    ./demo.sh replay v2
+# Same prompt template, asserts and inputs as the certification suite (../promptfooconfig.yaml).
+# demo.sh copies ../prompts/prompt_<v>.md to skill.md, so ../prompts/current.md is never touched.
 prompts:
-  - file://prompt.txt
+  - file://../prompt.txt
 providers:
   - id: anthropic:claude-agent-sdk
     label: haiku
@@ -13,73 +13,67 @@ providers:
       model: haiku
       apiKeyRequired: false
       max_turns: 3
-  - id: anthropic:claude-agent-sdk
-    label: sonnet
-    config:
-      model: sonnet
-      apiKeyRequired: false
-      max_turns: 3
 defaultTest:
   vars:
-    skill: file://prompts/current.md
+    skill: file://skill.md
   assert:
     - type: javascript
       metric: contract
-      value: file://asserts/contract.js
+      value: file://../asserts/contract.js
     - type: javascript
       metric: coverage
-      value: file://asserts/coverage.js
+      value: file://../asserts/coverage.js
     - type: javascript
       metric: fidelity
-      value: file://asserts/fidelity.js
+      value: file://../asserts/fidelity.js
 tests:
   - description: "case-01-retry: synthetic: modified, deleted and added files"
     vars:
       case: case-01-retry
-      meta: file://inputs/case-01-retry.meta
-      diff: file://inputs/case-01-retry.diff
+      meta: file://../inputs/case-01-retry.meta
+      diff: file://../inputs/case-01-retry.diff
   - description: "case-02-hermesmq-89: tests + README only across three client suites; no client source change (naming HermesClient.scala is an invented file)"
     vars:
       case: case-02-hermesmq-89
-      meta: file://inputs/case-02-hermesmq-89.meta
-      diff: file://inputs/case-02-hermesmq-89.diff
+      meta: file://../inputs/case-02-hermesmq-89.meta
+      diff: file://../inputs/case-02-hermesmq-89.diff
   - description: "case-03-dionysus-6: Docker volume fix spanning build, Helm chart and app config"
     vars:
       case: case-03-dionysus-6
-      meta: file://inputs/case-03-dionysus-6.meta
-      diff: file://inputs/case-03-dionysus-6.diff
+      meta: file://../inputs/case-03-dionysus-6.meta
+      diff: file://../inputs/case-03-dionysus-6.diff
   - description: "case-04-apollo-29: one dependency plus a regression test"
     vars:
       case: case-04-apollo-29
-      meta: file://inputs/case-04-apollo-29.meta
-      diff: file://inputs/case-04-apollo-29.diff
+      meta: file://../inputs/case-04-apollo-29.meta
+      diff: file://../inputs/case-04-apollo-29.diff
   - description: "case-05-dionysus-7: behaviour change with spec, repository, route and tests"
     vars:
       case: case-05-dionysus-7
-      meta: file://inputs/case-05-dionysus-7.meta
-      diff: file://inputs/case-05-dionysus-7.diff
+      meta: file://../inputs/case-05-dionysus-7.meta
+      diff: file://../inputs/case-05-dionysus-7.diff
   - description: "case-06-hermesmq-88: client hardening across Scala source and three test suites"
     vars:
       case: case-06-hermesmq-88
-      meta: file://inputs/case-06-hermesmq-88.meta
-      diff: file://inputs/case-06-hermesmq-88.diff
+      meta: file://../inputs/case-06-hermesmq-88.meta
+      diff: file://../inputs/case-06-hermesmq-88.diff
   - description: "case-07-artemis-69: OpenSpec archive: five renames plus one new spec; no code change"
     vars:
       case: case-07-artemis-69
-      meta: file://inputs/case-07-artemis-69.meta
-      diff: file://inputs/case-07-artemis-69.diff
+      meta: file://../inputs/case-07-artemis-69.meta
+      diff: file://../inputs/case-07-artemis-69.diff
   - description: "case-08-ariadne-20: subtle precision fix with a regression test"
     vars:
       case: case-08-ariadne-20
-      meta: file://inputs/case-08-ariadne-20.meta
-      diff: file://inputs/case-08-ariadne-20.diff
+      meta: file://../inputs/case-08-ariadne-20.meta
+      diff: file://../inputs/case-08-ariadne-20.diff
   - description: "case-09-hephaestus-9: logging toggle across build and logback config"
     vars:
       case: case-09-hephaestus-9
-      meta: file://inputs/case-09-hephaestus-9.meta
-      diff: file://inputs/case-09-hephaestus-9.diff
+      meta: file://../inputs/case-09-hephaestus-9.meta
+      diff: file://../inputs/case-09-hephaestus-9.diff
   - description: "case-10-demeter-deps: Dependabot action bump; the diff states nothing about why beyond the version"
     vars:
       case: case-10-demeter-deps
-      meta: file://inputs/case-10-demeter-deps.meta
-      diff: file://inputs/case-10-demeter-deps.diff
+      meta: file://../inputs/case-10-demeter-deps.meta
+      diff: file://../inputs/case-10-demeter-deps.diff

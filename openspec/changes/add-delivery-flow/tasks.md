@@ -72,12 +72,12 @@
 ## 8b. Stage 3 certification and model tiering
 
 - [ ] 8b.1 Create `skills/delivery-flow/steps.yaml` with one entry per task prompt on the pilot path (`backend`, `contracts`, `ux`) plus an entry for the workflow itself (end-to-end suite); mark every other roster agent `certified: false`
-- [ ] 8b.2 Write `scripts/delivery-flow/check-certification.py`: ≥3 criteria, ≥95% results, provider tier ≤ Sonnet, prompt sha match, ≥90% load-bearing appendix, iteration log ≥2 complete entries, escalation evidence above Sonnet; fixture tests for each failure
+- [x] 8b.2 Write `scripts/delivery-flow/check-certification.py` (stdlib-only; also binds results to the certified prompt text): ≥3 criteria, ≥95% results, provider tier ≤ Sonnet, prompt sha match, ≥90% load-bearing appendix, iteration log ≥2 complete entries, escalation evidence above Sonnet; fixture tests for each failure
 - [ ] 8b.3 Wire certification into the flow (pre-step check, `allow_uncertified`, `certified` trace field) and the report (certified-only end-to-end rate)
 - [ ] 8b.4 Add `model_conformant` to trace records, report the extra cost of non-conformant records, and add the `--status` session-model warning
 - [ ] 8b.5 Pin `agents/adversarial-validator.md` to `model: sonnet` (currently inherits); record escalation evidence if its suite later requires Opus
 - [ ] 8b.6 Mine real-work fixtures from Olympus's archived OpenSpec changes (dionysus-planner, hermesmq, artemis-service, apollo-storage, hephaestus-service; exclude `ares-*`, `codex`, `harpocrates-*`, `muses-ui`), anonymizing nothing secret-adjacent
-- [ ] 8b.7 Using `prompt-edd`, certify on Haiku first, then Sonnet, each with a baseline, ≥2 iterations, results and a load-bearing appendix: triage, work-type classifier (8.2), delivery-flow routing (8.1), intake digest, post-back summary, `pr-description` (extend its existing suite to ≥3 criteria if needed), delivery recall
+- [ ] 8b.7 Using `prompt-edd`, certify on Haiku first, then Sonnet (done: `pr-description` v5 on Haiku, 89/90), each with a baseline, ≥2 iterations, results and a load-bearing appendix: triage, work-type classifier (8.2), delivery-flow routing (8.1), intake digest, post-back summary, `pr-description` (extend its existing suite to ≥3 criteria if needed), delivery recall
 - [ ] 8b.8 Certify on Sonnet (execution-grounded asserts for code-writing steps: tests green on a fixture repo): `sdlc-orchestrator`, `requirements-analyst`, `solution-architect`, `story-planner`, `test-writer`, `implementer`, `qa-test-architect`, `adversarial-validator`, and the pilot reviewers (`scala-fp-reviewer`, `frontend-reviewer`, `git-and-ci-reviewer`)
 - [ ] 8b.9 For any step failing 95% on Sonnet, commit the Sonnet results as escalation evidence before declaring a higher tier; record the decision in the step's iteration log
 - [ ] 8b.10 Run `check-certification.py --all`; every pilot-path step exits 0

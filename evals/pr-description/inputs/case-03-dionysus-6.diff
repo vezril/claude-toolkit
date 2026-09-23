@@ -1,0 +1,97 @@
+diff --git a/README.md b/README.md
+index 8058dff..a27a433 100644
+--- a/README.md
++++ b/README.md
+@@ -16,7 +16,8 @@ HealthKit bridge yet (future phases).
+ 
+ - **Layout**: `core/` (pure domain, no Pekko — types + math for ingredients, recipes, batches,
+   meals, day rollups) and `server/` (Pekko HTTP routes, Slick/SQLite persistence, Docker).
+-- **Data**: SQLite, file path from `dionysus.database.sqlite-path` (default `./data/dionysus.db`,
++- **Data**: SQLite, file path from `dionysus.database.sqlite-path` (default `/data/dionysus.db` in
++  the Docker image — `/data` is a declared `VOLUME`, writable by the non-root runtime user;
+   override via `DIONYSUS_DB_PATH`). Schema is Flyway-migrated on startup from
+   `server/src/main/resources/db/migration/`. Single-writer, single-instance by design — this is a
+   personal app, not a multi-tenant service.
+diff --git a/build.sbt b/build.sbt
+index 6cf7171..ee82599 100644
+--- a/build.sbt
++++ b/build.sbt
+@@ -114,13 +114,27 @@ lazy val server = (project in file("server"))
+     Docker / daemonUser := "dionysus",
+     // HEALTHCHECK uses bash's /dev/tcp so no extra packages (wget/curl) are
+     // needed. bash expands the HTTP_PORT override at runtime.
+-    dockerCommands ++= Seq(
+-      Cmd(
+-        "HEALTHCHECK",
+-        "--interval=10s --timeout=3s --start-period=20s --retries=5 CMD " +
+-          """["bash","-c","exec 3<>/dev/tcp/127.0.0.1/${HTTP_PORT:-8080}; """ +
+-          """printf 'GET /health HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3; """ +
+-          """grep -q '200 OK' <&3"]"""
+-      )
++    //
++    // /data is created + chowned to the app user (as root, before the USER
++    // switch) and declared as a VOLUME. Without this, the app's default
++    // SQLite path resolves under /opt/docker, which sbt-native-packager
++    // hardens to read-only (u=rX,g=rX, no write bit) for the non-root
++    // runtime user — `mkdirs()` fails silently there, and Flyway's
++    // subsequent connection attempt fails with a confusing "path does not
++    // exist" error. A Kubernetes PVC mounted over that path masks the
++    // problem (the mount replaces the read-only directory with a writable
++    // one), which is why this only surfaced in a plain `docker run` with no
++    // volume — discovered via dionysus-planner's e2e-meal-log CI job.
++    dockerCommands := dockerCommands.value.flatMap {
++      case cmd @ Cmd("USER", "1001:0") =>
++        Seq(Cmd("RUN", "mkdir -p /data && chown dionysus:root /data"), Cmd("VOLUME", "/data"), cmd)
++      case other => Seq(other)
++    },
++    dockerCommands += Cmd(
++      "HEALTHCHECK",
++      "--interval=10s --timeout=3s --start-period=20s --retries=5 CMD " +
++        """["bash","-c","exec 3<>/dev/tcp/127.0.0.1/${HTTP_PORT:-8080}; """ +
++        """printf 'GET /health HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3; """ +
++        """grep -q '200 OK' <&3"]"""
+     )
+   )
+diff --git a/charts/dionysus-service/values.yaml b/charts/dionysus-service/values.yaml
+index e74e195..da0be6f 100644
+--- a/charts/dionysus-service/values.yaml
++++ b/charts/dionysus-service/values.yaml
+@@ -21,10 +21,10 @@ image:
+ 
+ env:
+   # Path inside the container the SQLite file lives at — must match
+-  # persistence.mountPath below (the image's working directory is
+-  # /opt/docker, so the default DIONYSUS_DB_PATH of ./data/dionysus.db
+-  # resolves to /opt/docker/data/dionysus.db).
+-  dbPath: /opt/docker/data/dionysus.db
++  # persistence.mountPath below. /data is a dedicated Docker VOLUME
++  # (build.sbt) distinct from the app's own read-only WORKDIR
++  # (/opt/docker) — see build.sbt's dockerCommands comment for why.
++  dbPath: /data/dionysus.db
+ 
+ persistence:
+   # k3s's bundled dynamic provisioner. A different StorageClass may be
+@@ -33,7 +33,7 @@ persistence:
+   storageClass: local-path
+   size: 1Gi
+   accessMode: ReadWriteOnce
+-  mountPath: /opt/docker/data
++  mountPath: /data
+ 
+ service:
+   type: ClusterIP
+diff --git a/server/src/main/resources/application.conf b/server/src/main/resources/application.conf
+index d9e9524..0265dfc 100644
+--- a/server/src/main/resources/application.conf
++++ b/server/src/main/resources/application.conf
+@@ -10,7 +10,9 @@ dionysus {
+     port = ${?HTTP_PORT}
+   }
+   database {
+-    sqlite-path = "./data/dionysus.db"
++    # /data is a dedicated, writable Docker VOLUME (build.sbt) — the app's
++    # own WORKDIR (/opt/docker) is read-only for the non-root runtime user.
++    sqlite-path = "/data/dionysus.db"
+     sqlite-path = ${?DIONYSUS_DB_PATH}
+   }
+ }

@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Step registry
-Every LLM task prompt the flow can run (orchestrator, triage, work-type classifier, the SDLC agents on the flow's paths, adversarial validator, PR description, post-back summary, delivery recall, and each enabled roster reviewer or architect) SHALL have an entry in `steps.yaml` declaring its prompt path, runtime model tier, eval suite path, certified results path, prompt sha256 at certification, criteria list, iteration log path, and escalation evidence when the tier is above Sonnet.
+Every LLM task prompt the flow can run (orchestrator, triage, work-type classifier, the SDLC agents on the flow's paths, adversarial validator, PR description, post-back summary, delivery recall, and each enabled roster reviewer or architect) SHALL have an entry in `steps.yaml` declaring its prompt path, the certified version file, runtime model tier, eval suite path, certified results path, prompt sha256 at certification, criteria list, load-bearing map path, iteration log path, and escalation evidence when the tier is above Sonnet.
 
 #### Scenario: The workflow itself is registered and certified end to end
 - **WHEN** `check-certification.py delivery-flow` runs
@@ -16,8 +16,9 @@ Every LLM task prompt the flow can run (orchestrator, triage, work-type classifi
 - the entry lists at least 3 distinct criteria;
 - the results file shows at least 95% of asserts passing;
 - the results were produced by a provider whose model tier is Sonnet or lower;
-- the prompt file's current sha256 equals the recorded `prompt_sha256`;
-- the prompt carries a load-bearing appendix mapping at least 90% of its instructions to criteria;
+- the prompt file's current sha256 equals the recorded `prompt_sha256` and matches the certified version file;
+- every scored row in the results was rendered with the certified prompt text, so an older run cannot certify an edited prompt;
+- a load-bearing map file (kept beside the suite, not sent to the model) maps at least 90% of the prompt's instructions to criteria;
 - the iteration log has at least 2 entries, each containing baseline, hypothesis, change, result and reasoning.
 
 Otherwise it SHALL exit 1 naming each unmet condition.
@@ -29,6 +30,10 @@ Otherwise it SHALL exit 1 naming each unmet condition.
 #### Scenario: Frontier-model eval does not count
 - **WHEN** a step's certified results were produced with an Opus provider
 - **THEN** `check-certification.py` exits 1 stating evals must run on Sonnet or lower
+
+#### Scenario: Results from another prompt version are rejected
+- **WHEN** the registry points at a results file produced with an earlier prompt version
+- **THEN** `check-certification.py` exits 1 naming the rows not produced with the certified prompt
 
 #### Scenario: Below the bar
 - **WHEN** a step's results show 22 of 24 asserts passing
