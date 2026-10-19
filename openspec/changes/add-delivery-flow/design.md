@@ -62,7 +62,7 @@ The routing table, in order:
 | 1 | `item.json` | structured | tracker adapter (script) |
 | 2 | `triage.json` | structured | triage **node**: type, path, domains, flags, rationale |
 | 3 | `project-context.json` | structured | vault delivery recall (optional) |
-| 4 | `breakdown.yaml` | structured | breakdown **node**: epics → stories → acceptance criteria |
+| 4 | `breakdown.json` | structured | breakdown **node**: epics → stories → acceptance criteria |
 | 5 | `challenge-breakdown.json` | structured | adversarial validator **node** (verdict + findings) |
 | 6 | `spec-ready.json` | structured | SDLC Planning+Solutioning receipt: change name, lint and validate exits |
 | 7 | `implementation.json` | structured | per-story receipts: tests, reviewer verdicts, skills loaded |
@@ -179,7 +179,7 @@ Adapters re-check (c) themselves (defense in depth).
 Each attempt must be blocked or detected. Results go to `bypass-report.md` with the deny reasons. This is the Stage 4 punch-out evidence.
 
 ### D7. Edges are hooks that fire after the write, not calls the model makes
-The course is specific: the check needs the work already on disk ("pre-action: breakdown.yaml doesn't exist yet; nothing to check against"), so it belongs on **PostToolUse**, and it runs as code. An orchestrator-invoked validator fails this: if the model never calls it, nothing happens.
+The course is specific: the check needs the work already on disk ("pre-action: breakdown.json doesn't exist yet; nothing to check against"), so it belongs on **PostToolUse**, and it runs as code. An orchestrator-invoked validator fails this: if the model never calls it, nothing happens.
 
 `hooks/check-edge.py` fires on PostToolUse for Write/Edit/MultiEdit and for Bash commands that write under `delivery/<KEY>/`. For the artifact just written it checks, in order:
 
@@ -283,7 +283,7 @@ Deterministic code can check "does this match schema"; it cannot check "is this 
 - `schemas/<artifact>.schema.json` holds a JSON Schema subset (types, required keys, enums, array item shapes, counts), validated by a stdlib checker in `validate-artifact.py`, so there is no new dependency on either Mac.
 - Each schema names `produced_by` and `consumed_by`, which is what makes D14's compatibility check possible and keeps the workflow definition honest.
 - `triage.json` carries the fields the policy check already needs (`type`, `path`, `domains[]`, `architecture_change`, `breaking_change`, `handoff`), which turns punch-out triggers into field reads instead of markdown scraping.
-- `breakdown.yaml` is the course's own example: epics → stories → acceptance criteria against a fixed schema.
+- `breakdown.json` is the course's own example: epics → stories → acceptance criteria against a fixed schema. The course writes that example in YAML; JSON carries the same contract without putting a YAML parser on every machine that runs a check, and the schema is what the edge enforces either way.
 - *Alternative:* keep markdown with section checks. Rejected: section headings are not a contract, and the course names this exact substitution as the thing that doesn't count.
 
 ### D13. Sentinels: the node's claim, tested against reality

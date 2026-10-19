@@ -23,14 +23,14 @@
 
 ## 3. Contracts, sentinels and edges
 
-- [ ] 3.1 Write `schemas/` for every structured artifact (`item`, `triage`, `project-context`, `breakdown`, `challenge`, `spec-ready`, `implementation`, `verify`, `pr-opened`, `posted`, `outcome`, `vault-updated`), each naming `produced_by` and `consumed_by`; `breakdown` is epics → stories → acceptance criteria
-- [ ] 3.2 `scripts/delivery-flow/validate-artifact.py`: stdlib JSON Schema subset checker (types, required, enums, array shapes, counts) plus the terminal-prose checks for `pr.md` / `post.md`; exit 0/1 with a report
-- [ ] 3.3 `scripts/delivery-flow/write-sentinel.py`: writes `<artifact>.sentinel.json` (path, sha256, claimed counts, status, step, ts); nodes call it as their last action
-- [ ] 3.4 `hooks/check-edge.py` (PostToolUse): file parses, sha matches sentinel, schema conforms, sentinel counts match reality, artifact satisfies the consuming step's input contract; exit 2 with the report on failure; append `edge` to `trace.jsonl` either way; inert outside delivery-flow repos
-- [ ] 3.5 Register the PostToolUse hook in `hooks/hooks.json` (Write/Edit/MultiEdit/NotebookEdit and Bash writes under `delivery/`)
+- [x] 3.1 Write `schemas/` for every structured artifact (`item`, `triage`, `project-context`, `breakdown`, `challenge`, `spec-ready`, `implementation`, `verify`, `pr-opened`, `posted`, `outcome`, `vault-updated`), each naming `produced_by` and `consumed_by`; `breakdown` is epics → stories → acceptance criteria
+- [x] 3.2 `scripts/delivery-flow/validate-artifact.py`: stdlib JSON Schema subset checker (types, required, enums, array shapes, counts) plus the terminal-prose checks for `pr.md` / `post.md`; exit 0/1 with a report
+- [x] 3.3 `scripts/delivery-flow/write-sentinel.py`: writes `<artifact>.sentinel.json` (path, sha256, claimed counts, status, step, ts); nodes call it as their last action
+- [x] 3.4 `hooks/check-edge.py` (PostToolUse): file parses, sha matches sentinel, schema conforms, sentinel counts match reality, artifact satisfies the consuming step's input contract; exit 2 with the report on failure; append `edge` to `trace.jsonl` either way; inert outside delivery-flow repos
+- [x] 3.5 Register the PostToolUse hook in `hooks/hooks.json` (Write/Edit/MultiEdit/NotebookEdit and Bash writes under `delivery/`)
 - [ ] 3.6 Orchestrator rule: read the latest `edge` result from the trace, refuse to advance on failure, bounded rerun (3) then punch-out
 - [ ] 3.7 Manual-correction detection: compare an artifact's current sha to its trace record
-- [ ] 3.8 Fixture tests: valid artifact passes; schema violation fails; sentinel count mismatch fails while the schema still passes; missing sentinel fails; downstream input-contract violation fails at the producing handoff; a write in a non-delivery repo is untouched
+- [x] 3.8 Fixture tests: valid artifact passes; schema violation fails; sentinel count mismatch fails while the schema still passes; missing sentinel fails; downstream input-contract violation fails at the producing handoff; a write in a non-delivery repo is untouched
 
 ## 4. Work-type routing
 

@@ -5,7 +5,7 @@ Every artifact that another step consumes SHALL be structured data (JSON or YAML
 
 #### Scenario: Breakdown is schema-checked data
 - **WHEN** the breakdown node produces its epics, stories and acceptance criteria
-- **THEN** it writes `breakdown.yaml` conforming to `schemas/breakdown.schema.json`, not a written summary
+- **THEN** it writes `breakdown.json` conforming to `schemas/breakdown.schema.json`, not a written summary
 
 #### Scenario: Terminal prose is allowed
 - **WHEN** the PR description node writes `pr.md`
@@ -15,8 +15,8 @@ Every artifact that another step consumes SHALL be structured data (JSON or YAML
 A node that writes a structured artifact SHALL also write `<artifact>.sentinel.json` containing the artifact path, its sha256, the counts the node claims it produced, the status it claims, the step, and a timestamp. A missing sentinel SHALL fail the edge.
 
 #### Scenario: Sentinel accompanies the artifact
-- **WHEN** the breakdown node writes `breakdown.yaml` with 3 epics and 8 stories
-- **THEN** `breakdown.yaml.sentinel.json` records that sha256 and those counts
+- **WHEN** the breakdown node writes `breakdown.json` with 3 epics and 8 stories
+- **THEN** `breakdown.json.sentinel.json` records that sha256 and those counts
 
 #### Scenario: Missing sentinel fails the edge
 - **WHEN** an artifact is written with no sentinel beside it
@@ -30,7 +30,7 @@ Edge checks SHALL run from a PostToolUse hook on writes under `delivery/<KEY>/`,
 - **THEN** the edge hook validates it anyway and records the result in the trace
 
 #### Scenario: Sentinel claim contradicted by the file
-- **WHEN** `breakdown.yaml.sentinel.json` claims 8 stories and the file contains 5
+- **WHEN** `breakdown.json.sentinel.json` claims 8 stories and the file contains 5
 - **THEN** the edge fails naming the count mismatch, even though the file conforms to its schema
 
 #### Scenario: Inert outside delivery-flow repositories
@@ -52,7 +52,7 @@ The orchestrator SHALL read the latest `edge` result for an artifact from `trace
 Each registry entry SHALL declare the artifacts a step consumes. The edge check SHALL verify the produced artifact against the consuming step's input contract, so an artifact that is valid in isolation but unusable downstream fails at the handoff.
 
 #### Scenario: Output missing a field the next node needs
-- **WHEN** `breakdown.yaml` validates against its own schema but omits acceptance criteria, which the implementation step requires
+- **WHEN** `breakdown.json` validates against its own schema but omits acceptance criteria, which the implementation step requires
 - **THEN** the edge fails at the breakdown handoff, not inside the implementation step
 
 ### Requirement: Adversarial review is a node, with harness rules

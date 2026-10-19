@@ -33,12 +33,12 @@ Triage SHALL classify each item as `bug`, `feature` or `task` and assign `quick`
 Edge checks SHALL be fired by the PostToolUse hook, not invoked by the flow (see `node-contracts-and-edges`). The flow SHALL read each artifact's latest `edge` result from the trace and SHALL NOT advance past a failed one, rerunning the producing step at most 3 times before stopping with `outcome: punched-out`. An adversarial review SHALL be mandatory after the breakdown (`challenge-breakdown.json`) and after verify (`challenge-implementation.json`), and a REFUTED verdict SHALL rerun the producing step with the findings as input.
 
 #### Scenario: Failed edge blocks advance
-- **WHEN** the latest `edge` result for `delivery/DEM-12/breakdown.yaml` is a failure
+- **WHEN** the latest `edge` result for `delivery/DEM-12/breakdown.json` is a failure
 - **THEN** the flow reruns the breakdown step with the edge report and does not run the step that consumes it
 
 #### Scenario: Refuted breakdown reruns
 - **WHEN** `challenge-breakdown.json` carries verdict REFUTED
-- **THEN** the flow reruns the breakdown step with the refutation findings, regenerating `breakdown.yaml` and invalidating any later artifacts
+- **THEN** the flow reruns the breakdown step with the refutation findings, regenerating `breakdown.json` and invalidating any later artifacts
 
 ### Requirement: Outcome recording
 Every item that reaches a terminal state SHALL have `outcome.json` with status `completed`, `punched-out`, `failed` or `abandoned`, a reason, and the step it ended at. A validated output file whose sha no longer matches its trace record SHALL mark the item `failed` with reason `manual-correction`.
