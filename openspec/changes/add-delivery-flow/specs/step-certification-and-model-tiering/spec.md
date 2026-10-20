@@ -11,6 +11,27 @@ Every LLM task prompt the flow can run (orchestrator, triage, work-type classifi
 - **WHEN** the flow is about to delegate to an agent that has no `steps.yaml` entry
 - **THEN** it refuses the delegation and names the missing registry entry
 
+### Requirement: The certifiable chain
+The registry SHALL mark which steps form the certified chain. The chain SHALL consist of nodes connected by schema-backed edges, and every node in it SHALL carry a Stage 3 package. Steps outside the chain SHALL be marked `certified: false` and excluded from the certified-only end-to-end rate. A node whose output no other node consumes (terminal prose, such as the PR description) MAY be certified but SHALL NOT be counted as chain evidence.
+
+#### Scenario: Terminal prose node is not chain evidence
+- **WHEN** `pr-description` is certified and the evidence package is built
+- **THEN** the package lists it as a certified step outside the chain, and the chain's evidence comes from the nodes with schema-backed edges
+
+### Requirement: Three consecutive runs
+A step's certified results SHALL show at least 95% of asserts passing in each of 3 consecutive runs of its suite, not only in aggregate. `check-certification.py` SHALL fail an entry whose results contain a run below the bar.
+
+#### Scenario: One weak run fails certification
+- **WHEN** a step's three runs score 100%, 96.7% and 93.3%
+- **THEN** `check-certification.py` exits 1 naming the run below the bar, even though the aggregate is above it
+
+### Requirement: Evidence package
+`package-evidence.py` SHALL build a submission archive with one directory per examined criterion — workflow definition, guardrails, punch-out evidence, end-to-end success rate, audit trail — plus a README mapping each directory to its criterion. It SHALL refuse to build when any chain step fails `check-certification.py`.
+
+#### Scenario: Package refuses uncertified chain
+- **WHEN** a chain node's prompt changed since certification
+- **THEN** `package-evidence.py` exits non-zero naming that node, and writes no archive
+
 ### Requirement: Stage 3 bar per step
 `check-certification.py <step>` SHALL exit 0 only when all of the following hold:
 - the entry lists at least 3 distinct criteria;
