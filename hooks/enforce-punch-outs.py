@@ -29,9 +29,18 @@ HELPERS = Path(__file__).resolve().parents[1] / "scripts" / "delivery-flow"
 
 DECISION_PATHS = re.compile(r"delivery/[^/\s]+/decisions/|punch-out-\d+\.(?:md|json)|decide\.py")
 MERGE = re.compile(r"\bgh\s+pr\s+merge\b|\bgh\s+api\b[^|;]*\bpulls/\d+/merge\b|\bgit\s+push\b[^|;]*\b(?:main|master)\b")
+# Outward actions, in any argument order: `gh api -X POST …/issues/…` and
+# `gh api …/issues/… -X POST` are the same thing, and a breach found both.
+GH_API_WRITE = re.compile(r"\bgh\s+api\b(?=[^|;]*-X\s*(?:POST|PATCH|PUT|DELETE))"
+                          r"(?=[^|;]*(?:issues|pulls|comments|merge))")
+HTTP_WRITE = re.compile(r"\b(?:curl|wget|http|httpie)\b(?=[^|;]*https?://)"
+                        r"(?=[^|;]*(?:-X\s*(?:POST|PATCH|PUT|DELETE)|--data|-d\b|--upload-file))")
 OUTWARD = re.compile(r"\bgh\s+pr\s+create\b|\bgh\s+issue\s+(?:comment|edit|close)\b"
-                     r"|\bgh\s+api\b[^|;]*(?:issues|pulls)\b[^|;]*(?:-X\s*(?:POST|PATCH|PUT))"
                      r"|\b(?:open-pr|comment|transition)\b")
+
+
+def outward(cmd: str) -> bool:
+    return bool(OUTWARD.search(cmd) or GH_API_WRITE.search(cmd) or HTTP_WRITE.search(cmd))
 DEFAULT_DEPLOY = [r"helm\s+(?:upgrade|install)", r"flux\s+reconcile", r"docker\s+push", r"git\s+push\s+--tags"]
 
 
@@ -47,7 +56,8 @@ def main() -> int:
     # Cheap bail-out, but a delegation carries no paths: it must still reach the check below.
     if ("delivery/" not in raw
             and not re.search(r'"tool_name":\s*"(?:Task|Agent)"', raw)
-            and not re.search(r"gh |helm |flux |docker push|git push|decide\.py", raw)):
+            and not re.search(r"gh |helm |flux |docker push|git push|decide\.py"
+                              r"|curl|wget|httpie|\bhttp\b", raw)):
         return 0
     try:
         payload = json.loads(raw)
@@ -139,7 +149,7 @@ def main() -> int:
             elif dec.get("choice") != "proceed":
                 open_ones.append(f"{p.name} (decided: {dec.get('choice')})")
         if open_ones:
-            blocking = (tool in ("Task", "Agent")) or (cmd and OUTWARD.search(cmd))
+            blocking = (tool in ("Task", "Agent")) or (cmd and outward(cmd))
             if blocking:
                 return deny(f"{item} is waiting on a human: {', '.join(open_ones)}. "
                             f"Nothing continues past an open punch-out — not a PR, not a tracker "

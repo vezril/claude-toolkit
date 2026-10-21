@@ -63,8 +63,8 @@
 - [x] 7.4 Register in `hooks/hooks.json` (PreToolUse matchers for Bash, Write/Edit/MultiEdit/NotebookEdit, Task/Agent, configured MCP tools)
 - [x] 7.5 Unit tests for the hook's decisions from recorded tool-input payloads
 - [x] 7.6 `deploy` rule: configurable deploy action patterns plus the `auto_roll` rule (routine non-breaking bumps skip; API/schema/breaking/first-deploy/exposure do not), with policy-decision trace records; seed defaults from `codex/docs/session-coordination.md`
-- [ ] 7.7 `tests/delivery-flow/bypass/`: fixture repo plus one headless `claude -p` scenario per attack in design D6 (continue past a punch-out, open PR or post during a punch-out, merge, deploy a breaking change, write or clear decisions and punch-outs, invoke `decide.py` directly and inside a faked terminal, sign with a key readable on disk, edit after deciding, suppress a trigger); writes `bypass-report.md`; non-zero on any breach
-- [ ] 7.8 Confirm no fixed human checkpoint remains: a fixture item with no triggers runs from intake to an open PR and ticket update with zero stops
+- [x] 7.7 `tests/delivery-flow/bypass/`: fixture repo plus one headless `claude -p` scenario per attack in design D6 (continue past a punch-out, open PR or post during a punch-out, merge, deploy a breaking change, write or clear decisions and punch-outs, invoke `decide.py` directly and inside a faked terminal, sign with a key readable on disk, edit after deciding, suppress a trigger); writes `bypass-report.md`; non-zero on any breach
+- [x] 7.8 Confirm no fixed human checkpoint remains: a fixture item with no triggers runs from intake to an open PR and ticket update with zero stops
 
 ## 8. Evals
 
