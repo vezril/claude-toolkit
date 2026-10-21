@@ -103,55 +103,57 @@ def load_json(path: Path):
 
 
 def load_config(repo: Path) -> dict:
-    """Parse `.delivery-flow.yaml`. Supported subset: top-level `key: value`, one level of
-    nesting, inline lists `[a, b]`, and block sequences. Standard library only, so a hook
-    can read it on a machine with no PyYAML."""
+    """Parse `.delivery-flow.yaml`. Supported subset: nested mappings by indentation,
+    scalars, inline lists `[a, b]` and block sequences of scalars. Standard library only,
+    so a hook can read the binding on a machine with no PyYAML."""
     text = (repo / CONFIG_NAME).read_text()
-    root, section, pending = {}, None, None
-
-    def scalar(v):
-        v = v.strip()
-        if v in ("", "null", "~"):
-            return None
-        if v in ("true", "True"):
-            return True
-        if v in ("false", "False"):
-            return False
-        if v.startswith("[") and v.endswith("]"):
-            return [x.strip().strip("'\"") for x in v[1:-1].split(",") if x.strip()]
-        if v[0] == v[-1] and v[0] in "'\"" and len(v) >= 2:
-            return v[1:-1]
-        return v
+    root = {}
+    stack = [(-1, root)]  # (indent, mapping) — the innermost mapping is last
+    pending = None
 
     for raw in text.splitlines():
         line = "" if raw.lstrip().startswith("#") else raw.split(" #")[0].rstrip()
         if not line.strip():
             continue
+
         m = re.match(r"^(\s*)-\s+(.+)$", line)
         if m and pending is not None:
-            pending.append(scalar(m.group(2)))
+            pending.append(_config_scalar(m.group(2)))
             continue
+
         m = re.match(r"^(\s*)([A-Za-z0-9_-]+):\s*(.*)$", line)
         if not m:
             continue
         indent, key, value = len(m.group(1)), m.group(2), m.group(3)
-        target = root if indent == 0 else section
-        if target is None:
-            continue
+
+        while len(stack) > 1 and indent <= stack[-1][0]:
+            stack.pop()
+        target = stack[-1][1]
+
         if value == "":
-            nxt = {}
-            target[key] = nxt
-            if indent == 0:
-                section = nxt
-            # a key with no value may open either a mapping or a sequence; the next
-            # line decides, and a sequence replaces the empty mapping
+            child = {}
+            target[key] = child
+            stack.append((indent, child))
             pending = _Pending(target, key)
         else:
-            target[key] = scalar(value)
+            target[key] = _config_scalar(value)
             pending = None
-            if indent == 0:
-                section = root
-    return _resolve(root)
+    return root
+
+
+def _config_scalar(v: str):
+    v = v.strip()
+    if v in ("", "null", "~"):
+        return None
+    if v in ("true", "True"):
+        return True
+    if v in ("false", "False"):
+        return False
+    if v.startswith("[") and v.endswith("]"):
+        return [x.strip().strip("'\"") for x in v[1:-1].split(",") if x.strip()]
+    if v[0] == v[-1] and v[0] in "'\"" and len(v) >= 2:
+        return v[1:-1]
+    return v
 
 
 class _Pending(list):
@@ -165,12 +167,6 @@ class _Pending(list):
     def append(self, item):
         super().append(item)
         self.owner[self.key] = list(self)
-
-
-def _resolve(node):
-    if isinstance(node, dict):
-        return {k: _resolve(v) for k, v in node.items()}
-    return node
 
 
 def load_pricing(path: Path = None) -> dict:
@@ -274,6 +270,49 @@ def usage_from_transcript(path: Path) -> dict:
         bucket["cache_read"] += usage.get("cache_read_input_tokens") or 0
         bucket["messages"] += 1
     return per_model
+
+
+SIGN_NAMESPACE = "delivery-flow-decision"
+
+
+def _payload_for_signing(decision: dict) -> bytes:
+    """The bytes a decision's signature covers: every field except the signature itself."""
+    body = {k: v for k, v in decision.items() if k != "signature"}
+    return json.dumps(body, sort_keys=True, separators=(",", ":")).encode()
+
+
+def verify_decision(decision: dict, allowed_signers: Path):
+    """(ok, reason) for a decision's signature.
+
+    A decision is the one thing in this pipeline an agent must not be able to produce, so
+    it is signed by a key whose every use needs a human present (a hardware key's touch, or
+    Touch ID). Verification is `ssh-keygen -Y verify` against an allowed-signers file; an
+    unsigned decision, a bad signature, or a signer outside that file is treated as absent.
+    """
+    import subprocess
+    import tempfile
+
+    sig = decision.get("signature")
+    if not sig or sig == "(test)":
+        return False, "decision is not signed"
+    if not allowed_signers or not Path(allowed_signers).expanduser().exists():
+        return False, f"no allowed_signers file at {allowed_signers}"
+    signer = decision.get("decider")
+    if not signer:
+        return False, "decision names no decider"
+    with tempfile.TemporaryDirectory() as tmp:
+        sig_path = Path(tmp) / "decision.sig"
+        sig_path.write_text(sig if sig.endswith("\n") else sig + "\n")
+        try:
+            out = subprocess.run(
+                ["ssh-keygen", "-Y", "verify", "-f", str(Path(allowed_signers).expanduser()),
+                 "-I", signer, "-n", SIGN_NAMESPACE, "-s", str(sig_path)],
+                input=_payload_for_signing(decision), capture_output=True, timeout=20)
+        except (OSError, subprocess.SubprocessError) as e:
+            return False, f"could not run ssh-keygen: {e}"
+    if out.returncode != 0:
+        return False, (out.stderr or b"").decode().strip() or "signature did not verify"
+    return True, "signature verified"
 
 
 def trace_path(repo: Path, item: str) -> Path:
