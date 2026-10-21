@@ -1,0 +1,1630 @@
+{
+  "evalId": "eval-ELD-2026-10-21T02:23:03",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-21T02:23:03.715Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item:\n\n{{item}}\n\nIts triage artifact:\n\n{{triage}}",
+        "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item:\n\n{{item}}\n\nIts triage artifact:\n\n{{triage}}",
+        "id": "3a12fdf74269fd61d2979dbd5744ec83c137e727091385ebc597dacb4d2cf5bb",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 6,
+          "testPassCount": 6,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 24,
+          "assertFailCount": 0,
+          "totalLatencyMs": 322160,
+          "tokenUsage": {
+            "prompt": 20,
+            "completion": 32436,
+            "cached": 0,
+            "total": 32456,
+            "numRequests": 6,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "schema": 6,
+            "coverage": 6,
+            "acceptance": 6,
+            "scope": 6
+          },
+          "namedScoresCount": {
+            "schema": 6,
+            "coverage": 6,
+            "acceptance": 6,
+            "scope": 6
+          },
+          "namedScoreWeights": {
+            "schema": 6,
+            "coverage": 6,
+            "acceptance": 6,
+            "scope": 6
+          },
+          "cost": 1.7884938
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0.3780555,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "schema": 1,
+            "coverage": 1,
+            "acceptance": 1,
+            "scope": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "coverage": 1,
+            "acceptance": 1,
+            "scope": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to breakdown.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "all 5 deliverables covered",
+              "assertion": {
+                "type": "javascript",
+                "metric": "coverage",
+                "value": "file://asserts/coverage.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "5 stories, criteria distinct and specific",
+              "assertion": {
+                "type": "javascript",
+                "metric": "acceptance",
+                "value": "file://asserts/acceptance.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "5 stories, domains within triage's, nothing invented",
+              "assertion": {
+                "type": "javascript",
+                "metric": "scope",
+                "value": "file://asserts/scope.js"
+              }
+            }
+          ]
+        },
+        "id": "1fd193a4-4a91-4aaf-9e09-53d4ff9ce05b",
+        "latencyMs": 87362,
+        "namedScores": {
+          "schema": 1,
+          "coverage": 1,
+          "acceptance": 1,
+          "scope": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-breakdown\ndescription: Break a triaged work item into epics, stories and acceptance criteria. Emits breakdown.json.\n---\n\n# Role\nYou are the planning node of a delivery pipeline. You turn one work item into the unit of\nwork the implementers build from: epics, the stories inside them, and the acceptance criteria\nthat say when a story is done. You plan what the item asks for; you do not design the\nsolution, choose libraries, or add work the item never requested.\n\n# Task\nRead the item and its triage artifact, and write the breakdown.\n\n# Context\nYour reply is written straight to `breakdown.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. The stories you write are\ndispatched to specialists by their `domains`, and the acceptance criteria become the tests, so\na criterion that asserts nothing testable becomes a test that proves nothing.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last is\n`}`: no preamble, no commentary, no code fence. Your reply is written straight to\n`breakdown.json` and parsed by `json.loads` with no cleanup step, so a ```json fence, or any\nsentence before or after the object, is a parse error and the step fails. Begin with `{`.\n\nA correct reply begins exactly like this, with no line above it:\n\n{\"item\":\"ABC-1\",\"epics\":[{\"id\":\"E1\",\"title\":\"Operator can browse the queue\",\"stories\":[…]}]}\n\nUse exactly this shape, with exactly these keys and no others:\n\n```\n{\n  \"item\": string,                       the item's key, copied exactly\n  \"epics\": [\n    {\n      \"id\": \"E1\",                       E followed by digits\n      \"title\": string,\n      \"stories\": [\n        {\n          \"id\": \"S1\",                   S followed by digits\n          \"statement\": string,\n          \"domains\": [string],\n          \"acceptance_criteria\": [\n            {\"id\": \"AC1\", \"given\": string, \"when\": string, \"then\": string}\n          ]\n        }\n      ]\n    }\n  ]\n}\n```\n\nIds match those patterns exactly: `E1`, `S1`, `AC1` — no prefixes, no dots, no `EPIC-1`.\n\n# Constraints\n\n## Covering the item\nWork through the item and account for everything it asks for. Every change it names — each\nfield, each screen, each endpoint, each toggle, each stated rule about how something must\nbehave — belongs to some story. A detail mentioned once in passing still counts: if the item\nsays the work must be idempotent, or that a component becomes a client component, that is a\nstory or an acceptance criterion, not something to leave out because it is small.\n\nName things the way the item names them. Do not introduce files, services or tickets it does\nnot mention.\n\n## Stories\nEvery epic has at least one story, every story at least one acceptance criterion. A story is a\npiece of work someone can finish and demonstrate: not one story for the whole item, and not a\nstory per line of code. Two stories should not restate the same work.\n\n## Domains\nA story's `domains` says which kinds of work it touches, using only these words:\n`ux`, `frontend`, `backend`, `contracts`, `infra`, `data`, `mobile`, `docs`.\n\nDraw them from the `domains` the triage artifact already found: a story may touch fewer than\ntriage listed, never more. A technology is not a domain — authentication, clustering and\nlogging are `backend` or `infra` work, not domains of their own.\n\n## Acceptance criteria\nEach criterion is one given / when / then, and the `then` states an outcome someone could\nobserve and check: a status code, a stored value, a rendered state, a rejected request. \"It\nworks\" is not an outcome.\n\nTwo criteria may share an outcome when their preconditions differ — a missing token and an\nexpired token can both end in a rejected request. What they may not be is the same criterion\nwritten twice: the same given, when and then.\n</skill>\n\nThe work item:\n\n{\n  \"key\": \"DP-61\",\n  \"title\": \"Stock the pantry with real branded products\",\n  \"body\": \"Calvin wants to stock the pantry with real branded products (\\\"Ritz crackers\\\"), not just generic ingredients \\u2014 created in one step from the pantry page, with product identity captured (barcode above all). A product you're temporarily out of is still your product: running out must not erase it from the pantry.\\n\\nToday this takes two disconnected steps (create a custom ingredient at /ingredients/new, then add it at /pantry), captures no product identity (no barcode/brand/package size anywhere in the model), and a pantry row at zero quantity can't exist (quantity > 0 is enforced).\\n\\nWhat should change: ingredient gains optional product-identity fields (brand, barcode unique when present, packageQuantity + packageUnit). A \\\"Create custom item\\\" button on /pantry opens a one-step form that creates the custom ingredient and its pantry row in one Server Action. Zero-quantity pantry rows become valid and render an \\\"out of stock\\\" state. The ingredient form gains the same optional fields, and /pantry/[id] shows them when present.\",\n  \"type_hint\": null,\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/DP-61\",\n  \"source\": \"local-markdown\",\n  \"labels\": [],\n  \"links\": []\n}\n\nIts triage artifact:\n\n{\n  \"item\": \"DP-61\",\n  \"type\": \"feature\",\n  \"path\": \"standard\",\n  \"domains\": [\n    \"ux\",\n    \"backend\"\n  ],\n  \"summary\": \"Stock the pantry with real branded products\",\n  \"rationale\": \"new capability across the Next.js UI and the data model; no new service boundary, no external contract broken\",\n  \"handoff\": false,\n  \"handoff_reason\": null,\n  \"architecture_change\": false,\n  \"breaking_change\": false\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item:\n\n{{item}}\n\nIts triage artifact:\n\n{{triage}}",
+          "config": {}
+        },
+        "promptId": "3a12fdf74269fd61d2979dbd5744ec83c137e727091385ebc597dacb4d2cf5bb",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"DP-61\",\"epics\":[{\"id\":\"E1\",\"title\":\"Ingredients capture product identity (brand, barcode, package size)\",\"stories\":[{\"id\":\"S1\",\"statement\":\"Ingredient model stores optional product-identity fields — brand, barcode (unique when present), packageQuantity and packageUnit.\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"a new ingredient is created with brand, barcode, packageQuantity and packageUnit set\",\"when\":\"the ingredient is saved\",\"then\":\"all four fields are persisted on the ingredient record\"},{\"id\":\"AC2\",\"given\":\"an ingredient already exists with a given barcode\",\"when\":\"another ingredient is created or updated with the same barcode\",\"then\":\"the request is rejected for violating barcode uniqueness\"},{\"id\":\"AC3\",\"given\":\"an ingredient is created without a barcode\",\"when\":\"the ingredient is saved\",\"then\":\"the save succeeds, since barcode and the other product-identity fields are optional\"}]},{\"id\":\"S2\",\"statement\":\"The ingredient form at /ingredients/new gains the same optional product-identity fields.\",\"domains\":[\"ux\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"the operator opens /ingredients/new\",\"when\":\"the form renders\",\"then\":\"it shows optional inputs for brand, barcode, packageQuantity and packageUnit alongside the existing fields\"},{\"id\":\"AC2\",\"given\":\"the operator fills in brand, barcode, packageQuantity and packageUnit and submits the form\",\"when\":\"the ingredient is created\",\"then\":\"the new ingredient's detail reflects the entered product-identity values\"},{\"id\":\"AC3\",\"given\":\"the operator leaves the product-identity fields blank and submits the form\",\"when\":\"the ingredient is created\",\"then\":\"creation succeeds without requiring those fields\"}]}]},{\"id\":\"E2\",\"title\":\"Create a custom pantry item in one step\",\"stories\":[{\"id\":\"S3\",\"statement\":\"A \\\"Create custom item\\\" button on /pantry opens a one-step form that creates the custom ingredient and its pantry row together.\",\"domains\":[\"ux\",\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"the operator is on /pantry\",\"when\":\"they click \\\"Create custom item\\\"\",\"then\":\"a form opens for entering the ingredient name, optional product-identity fields (brand, barcode, packageQuantity, packageUnit) and an initial pantry quantity\"},{\"id\":\"AC2\",\"given\":\"the operator fills in the one-step form and submits it\",\"when\":\"the form is submitted\",\"then\":\"a single Server Action creates both the custom ingredient and its pantry row, and the new row appears on /pantry\"},{\"id\":\"AC3\",\"given\":\"the operator submits the one-step form with a barcode that already belongs to another ingredient\",\"when\":\"the form is submitted\",\"then\":\"the request is rejected and no ingredient or pantry row is created\"}]}]},{\"id\":\"E3\",\"title\":\"Pantry rows survive running out\",\"stories\":[{\"id\":\"S4\",\"statement\":\"A pantry row at zero quantity is valid and renders an \\\"out of stock\\\" state instead of being deleted or rejected.\",\"domains\":[\"backend\",\"ux\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"an existing pantry row's quantity is reduced to 0\",\"when\":\"the update is saved\",\"then\":\"the save succeeds and the row remains in the pantry rather than being removed\"},{\"id\":\"AC2\",\"given\":\"a pantry row is created with an initial quantity of 0\",\"when\":\"it is saved\",\"then\":\"the save succeeds instead of being rejected by the old quantity greater than 0 rule\"},{\"id\":\"AC3\",\"given\":\"a pantry row has quantity 0\",\"when\":\"it is rendered on /pantry\",\"then\":\"it displays an \\\"out of stock\\\" state rather than a numeric quantity of zero\"}]}]},{\"id\":\"E4\",\"title\":\"Pantry item detail shows product identity\",\"stories\":[{\"id\":\"S5\",\"statement\":\"/pantry/[id] shows the ingredient's product-identity fields when they are present.\",\"domains\":[\"ux\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"a pantry row's ingredient has brand, barcode, packageQuantity and packageUnit set\",\"when\":\"the operator views /pantry/[id]\",\"then\":\"those fields are displayed on the page\"},{\"id\":\"AC2\",\"given\":\"a pantry row's ingredient has none of the product-identity fields set\",\"when\":\"the operator views /pantry/[id]\",\"then\":\"the page omits those fields rather than showing them blank\"}]}]}]}",
+          "tokenUsage": {
+            "prompt": 4,
+            "completion": 8704,
+            "total": 8708
+          },
+          "cost": 0.3780555,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":85965,\"duration_api_ms\":82200,\"ttft_ms\":70882,\"ttft_stream_ms\":1459,\"time_to_request_ms\":39,\"num_turns\":2,\"result\":\"{\\\"item\\\":\\\"DP-61\\\",\\\"epics\\\":[{\\\"id\\\":\\\"E1\\\",\\\"title\\\":\\\"Ingredients capture product identity (brand, barcode, package size)\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S1\\\",\\\"statement\\\":\\\"Ingredient model stores optional product-identity fields — brand, barcode (unique when present), packageQuantity and packageUnit.\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"a new ingredient is created with brand, barcode, packageQuantity and packageUnit set\\\",\\\"when\\\":\\\"the ingredient is saved\\\",\\\"then\\\":\\\"all four fields are persisted on the ingredient record\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"an ingredient already exists with a given barcode\\\",\\\"when\\\":\\\"another ingredient is created or updated with the same barcode\\\",\\\"then\\\":\\\"the request is rejected for violating barcode uniqueness\\\"},{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"an ingredient is created without a barcode\\\",\\\"when\\\":\\\"the ingredient is saved\\\",\\\"then\\\":\\\"the save succeeds, since barcode and the other product-identity fields are optional\\\"}]},{\\\"id\\\":\\\"S2\\\",\\\"statement\\\":\\\"The ingredient form at /ingredients/new gains the same optional product-identity fields.\\\",\\\"domains\\\":[\\\"ux\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"the operator opens /ingredients/new\\\",\\\"when\\\":\\\"the form renders\\\",\\\"then\\\":\\\"it shows optional inputs for brand, barcode, packageQuantity and packageUnit alongside the existing fields\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"the operator fills in brand, barcode, packageQuantity and packageUnit and submits the form\\\",\\\"when\\\":\\\"the ingredient is created\\\",\\\"then\\\":\\\"the new ingredient's detail reflects the entered product-identity values\\\"},{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"the operator leaves the product-identity fields blank and submits the form\\\",\\\"when\\\":\\\"the ingredient is created\\\",\\\"then\\\":\\\"creation succeeds without requiring those fields\\\"}]}]},{\\\"id\\\":\\\"E2\\\",\\\"title\\\":\\\"Create a custom pantry item in one step\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S3\\\",\\\"statement\\\":\\\"A \\\\\\\"Create custom item\\\\\\\" button on /pantry opens a one-step form that creates the custom ingredient and its pantry row together.\\\",\\\"domains\\\":[\\\"ux\\\",\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"the operator is on /pantry\\\",\\\"when\\\":\\\"they click \\\\\\\"Create custom item\\\\\\\"\\\",\\\"then\\\":\\\"a form opens for entering the ingredient name, optional product-identity fields (brand, barcode, packageQuantity, packageUnit) and an initial pantry quantity\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"the operator fills in the one-step form and submits it\\\",\\\"when\\\":\\\"the form is submitted\\\",\\\"then\\\":\\\"a single Server Action creates both the custom ingredient and its pantry row, and the new row appears on /pantry\\\"},{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"the operator submits the one-step form with a barcode that already belongs to another ingredient\\\",\\\"when\\\":\\\"the form is submitted\\\",\\\"then\\\":\\\"the request is rejected and no ingredient or pantry row is created\\\"}]}]},{\\\"id\\\":\\\"E3\\\",\\\"title\\\":\\\"Pantry rows survive running out\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S4\\\",\\\"statement\\\":\\\"A pantry row at zero quantity is valid and renders an \\\\\\\"out of stock\\\\\\\" state instead of being deleted or rejected.\\\",\\\"domains\\\":[\\\"backend\\\",\\\"ux\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"an existing pantry row's quantity is reduced to 0\\\",\\\"when\\\":\\\"the update is saved\\\",\\\"then\\\":\\\"the save succeeds and the row remains in the pantry rather than being removed\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"a pantry row is created with an initial quantity of 0\\\",\\\"when\\\":\\\"it is saved\\\",\\\"then\\\":\\\"the save succeeds instead of being rejected by the old quantity greater than 0 rule\\\"},{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"a pantry row has quantity 0\\\",\\\"when\\\":\\\"it is rendered on /pantry\\\",\\\"then\\\":\\\"it displays an \\\\\\\"out of stock\\\\\\\" state rather than a numeric quantity of zero\\\"}]}]},{\\\"id\\\":\\\"E4\\\",\\\"title\\\":\\\"Pantry item detail shows product identity\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S5\\\",\\\"statement\\\":\\\"/pantry/[id] shows the ingredient's product-identity fields when they are present.\\\",\\\"domains\\\":[\\\"ux\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"a pantry row's ingredient has brand, barcode, packageQuantity and packageUnit set\\\",\\\"when\\\":\\\"the operator views /pantry/[id]\\\",\\\"then\\\":\\\"those fields are displayed on the page\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"a pantry row's ingredient has none of the product-identity fields set\\\",\\\"when\\\":\\\"the operator views /pantry/[id]\\\",\\\"then\\\":\\\"the page omits those fields rather than showing them blank\\\"}]}]}]}\",\"stop_reason\":\"end_turn\",\"session_id\":\"f19a4bdf-cea8-4c95-bed5-d232c53b706a\",\"total_cost_usd\":0.3780555,\"usage\":{\"input_tokens\":4,\"cache_creation_input_tokens\":37996,\"cache_read_input_tokens\":65025,\"output_tokens\":8704,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":37996,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":1516,\"cache_read_input_tokens\":47913,\"cache_creation_input_tokens\":7195,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":7195},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":4,\"outputTokens\":8704,\"cacheReadInputTokens\":65025,\"cacheCreationInputTokens\":37996,\"webSearchRequests\":0,\"costUSD\":0.3780555,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"1918c86b-8941-4a29-bbd8-6600be459921\"}",
+          "sessionId": "f19a4bdf-cea8-4c95-bed5-d232c53b706a",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [
+              {
+                "id": "toolu_01L4hdavKU7FPdQAx2AVcJ48",
+                "name": "Bash",
+                "input": {
+                  "command": "echo noop",
+                  "description": "placeholder, not actually needed"
+                },
+                "output": "noop",
+                "is_error": false,
+                "parentToolUseId": null
+              }
+            ],
+            "numTurns": 2,
+            "durationMs": 85965,
+            "durationApiMs": 82200,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 4,
+                "outputTokens": 8704,
+                "cacheReadInputTokens": 65025,
+                "cacheCreationInputTokens": 37996,
+                "webSearchRequests": 0,
+                "costUSD": 0.3780555,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-01-pantry-items",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-01-pantry-items",
+            "item": "file://inputs/case-01-pantry-items.item.json",
+            "triage": "file://inputs/case-01-pantry-items.triage.json",
+            "sessionId": "f19a4bdf-cea8-4c95-bed5-d232c53b706a"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "coverage",
+              "value": "file://asserts/coverage.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "acceptance",
+              "value": "file://asserts/acceptance.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "scope",
+              "value": "file://asserts/scope.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 4,
+          "completion": 8704,
+          "cached": 0,
+          "total": 8708,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-01-pantry-items",
+          "item": "file://inputs/case-01-pantry-items.item.json",
+          "triage": "file://inputs/case-01-pantry-items.triage.json",
+          "sessionId": "f19a4bdf-cea8-4c95-bed5-d232c53b706a"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [
+            {
+              "id": "toolu_01L4hdavKU7FPdQAx2AVcJ48",
+              "name": "Bash",
+              "input": {
+                "command": "echo noop",
+                "description": "placeholder, not actually needed"
+              },
+              "output": "noop",
+              "is_error": false,
+              "parentToolUseId": null
+            }
+          ],
+          "numTurns": 2,
+          "durationMs": 85965,
+          "durationApiMs": 82200,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 4,
+              "outputTokens": 8704,
+              "cacheReadInputTokens": 65025,
+              "cacheCreationInputTokens": 37996,
+              "webSearchRequests": 0,
+              "costUSD": 0.3780555,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "f19a4bdf-cea8-4c95-bed5-d232c53b706a"
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.24783329999999998,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "schema": 1,
+            "coverage": 1,
+            "acceptance": 1,
+            "scope": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "coverage": 1,
+            "acceptance": 1,
+            "scope": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to breakdown.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "all 4 deliverables covered",
+              "assertion": {
+                "type": "javascript",
+                "metric": "coverage",
+                "value": "file://asserts/coverage.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "3 stories, criteria distinct and specific",
+              "assertion": {
+                "type": "javascript",
+                "metric": "acceptance",
+                "value": "file://asserts/acceptance.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "3 stories, domains within triage's, nothing invented",
+              "assertion": {
+                "type": "javascript",
+                "metric": "scope",
+                "value": "file://asserts/scope.js"
+              }
+            }
+          ]
+        },
+        "id": "f969dcd9-755f-450e-ac0e-979f3f396f2e",
+        "latencyMs": 29340,
+        "namedScores": {
+          "schema": 1,
+          "coverage": 1,
+          "acceptance": 1,
+          "scope": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-breakdown\ndescription: Break a triaged work item into epics, stories and acceptance criteria. Emits breakdown.json.\n---\n\n# Role\nYou are the planning node of a delivery pipeline. You turn one work item into the unit of\nwork the implementers build from: epics, the stories inside them, and the acceptance criteria\nthat say when a story is done. You plan what the item asks for; you do not design the\nsolution, choose libraries, or add work the item never requested.\n\n# Task\nRead the item and its triage artifact, and write the breakdown.\n\n# Context\nYour reply is written straight to `breakdown.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. The stories you write are\ndispatched to specialists by their `domains`, and the acceptance criteria become the tests, so\na criterion that asserts nothing testable becomes a test that proves nothing.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last is\n`}`: no preamble, no commentary, no code fence. Your reply is written straight to\n`breakdown.json` and parsed by `json.loads` with no cleanup step, so a ```json fence, or any\nsentence before or after the object, is a parse error and the step fails. Begin with `{`.\n\nA correct reply begins exactly like this, with no line above it:\n\n{\"item\":\"ABC-1\",\"epics\":[{\"id\":\"E1\",\"title\":\"Operator can browse the queue\",\"stories\":[…]}]}\n\nUse exactly this shape, with exactly these keys and no others:\n\n```\n{\n  \"item\": string,                       the item's key, copied exactly\n  \"epics\": [\n    {\n      \"id\": \"E1\",                       E followed by digits\n      \"title\": string,\n      \"stories\": [\n        {\n          \"id\": \"S1\",                   S followed by digits\n          \"statement\": string,\n          \"domains\": [string],\n          \"acceptance_criteria\": [\n            {\"id\": \"AC1\", \"given\": string, \"when\": string, \"then\": string}\n          ]\n        }\n      ]\n    }\n  ]\n}\n```\n\nIds match those patterns exactly: `E1`, `S1`, `AC1` — no prefixes, no dots, no `EPIC-1`.\n\n# Constraints\n\n## Covering the item\nWork through the item and account for everything it asks for. Every change it names — each\nfield, each screen, each endpoint, each toggle, each stated rule about how something must\nbehave — belongs to some story. A detail mentioned once in passing still counts: if the item\nsays the work must be idempotent, or that a component becomes a client component, that is a\nstory or an acceptance criterion, not something to leave out because it is small.\n\nName things the way the item names them. Do not introduce files, services or tickets it does\nnot mention.\n\n## Stories\nEvery epic has at least one story, every story at least one acceptance criterion. A story is a\npiece of work someone can finish and demonstrate: not one story for the whole item, and not a\nstory per line of code. Two stories should not restate the same work.\n\n## Domains\nA story's `domains` says which kinds of work it touches, using only these words:\n`ux`, `frontend`, `backend`, `contracts`, `infra`, `data`, `mobile`, `docs`.\n\nDraw them from the `domains` the triage artifact already found: a story may touch fewer than\ntriage listed, never more. A technology is not a domain — authentication, clustering and\nlogging are `backend` or `infra` work, not domains of their own.\n\n## Acceptance criteria\nEach criterion is one given / when / then, and the `then` states an outcome someone could\nobserve and check: a status code, a stored value, a rendered state, a rejected request. \"It\nworks\" is not an outcome.\n\nTwo criteria may share an outcome when their preconditions differ — a missing token and an\nexpired token can both end in a rejected request. What they may not be is the same criterion\nwritten twice: the same given, when and then.\n</skill>\n\nThe work item:\n\n{\n  \"key\": \"DP-24\",\n  \"title\": \"Move navigation from a top bar to a left sidebar\",\n  \"body\": \"The top bar feels wrong for the retheme's HUD aesthetic. Owner wants a left sidebar instead.\\n\\nMainNav moves from a top bar to a persistent left sidebar, full labels always visible (no icon-only collapse, no drawer), narrower on mobile than desktop. The active route gets a glowing highlight, which requires MainNav to become a Client Component. The layout flips from flex-col to flex-row in app/layout.tsx. No route, testid or behavior changes.\",\n  \"type_hint\": null,\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/DP-24\",\n  \"source\": \"local-markdown\",\n  \"labels\": [],\n  \"links\": []\n}\n\nIts triage artifact:\n\n{\n  \"item\": \"DP-24\",\n  \"type\": \"feature\",\n  \"path\": \"standard\",\n  \"domains\": [\n    \"ux\"\n  ],\n  \"summary\": \"Move navigation from a top bar to a left sidebar\",\n  \"rationale\": \"UI-only change to the navigation shell\",\n  \"handoff\": false,\n  \"handoff_reason\": null,\n  \"architecture_change\": false,\n  \"breaking_change\": false\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item:\n\n{{item}}\n\nIts triage artifact:\n\n{{triage}}",
+          "config": {}
+        },
+        "promptId": "3a12fdf74269fd61d2979dbd5744ec83c137e727091385ebc597dacb4d2cf5bb",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"DP-24\",\"epics\":[{\"id\":\"E1\",\"title\":\"Navigation moves from a top bar to a persistent left sidebar\",\"stories\":[{\"id\":\"S1\",\"statement\":\"Replace the top bar with a persistent left sidebar in the app shell, with full labels always visible and no collapsed or drawer state\",\"domains\":[\"ux\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"the app shell is rendered\",\"when\":\"the page loads on desktop\",\"then\":\"MainNav is rendered as a left sidebar and app/layout.tsx uses flex-row instead of flex-col\"},{\"id\":\"AC2\",\"given\":\"the sidebar is rendered\",\"when\":\"the viewport is any size the sidebar supports\",\"then\":\"every nav item shows its full text label, with no icon-only state available\"},{\"id\":\"AC3\",\"given\":\"the sidebar is rendered\",\"when\":\"the user looks for a way to hide or reveal navigation\",\"then\":\"no collapse toggle or drawer/overlay mechanism exists for the sidebar\"},{\"id\":\"AC4\",\"given\":\"the sidebar is rendered on a mobile-width viewport versus a desktop-width viewport\",\"when\":\"the sidebar widths are compared\",\"then\":\"the sidebar is narrower on the mobile-width viewport than on the desktop-width viewport\"}]},{\"id\":\"S2\",\"statement\":\"Highlight the active route in the sidebar with a glowing style, implemented via a Client Component\",\"domains\":[\"ux\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"a route is the currently active route\",\"when\":\"MainNav renders the sidebar\",\"then\":\"the nav item for that route is shown with a glowing highlight style\"},{\"id\":\"AC2\",\"given\":\"the active route changes\",\"when\":\"MainNav determines which item to highlight\",\"then\":\"MainNav is implemented as a Client Component so the glow updates for the active route\"}]},{\"id\":\"S3\",\"statement\":\"Preserve existing routes, test ids and navigation behavior through the sidebar migration\",\"domains\":[\"ux\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"the navigation has moved from top bar to sidebar\",\"when\":\"the set of routes exposed by MainNav is compared before and after\",\"then\":\"no route paths have changed\"},{\"id\":\"AC2\",\"given\":\"the navigation has moved from top bar to sidebar\",\"when\":\"nav elements are queried by their existing testids\",\"then\":\"each existing testid is still present and attached to the same logical nav item\"},{\"id\":\"AC3\",\"given\":\"the navigation has moved from top bar to sidebar\",\"when\":\"a user clicks a nav item\",\"then\":\"the browser navigates to the same route it did before the migration\"}]}]}]}",
+          "tokenUsage": {
+            "prompt": 4,
+            "completion": 2380,
+            "total": 2384
+          },
+          "cost": 0.24783329999999998,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":27925,\"duration_api_ms\":23910,\"ttft_ms\":14991,\"ttft_stream_ms\":651,\"time_to_request_ms\":30,\"num_turns\":2,\"result\":\"{\\\"item\\\":\\\"DP-24\\\",\\\"epics\\\":[{\\\"id\\\":\\\"E1\\\",\\\"title\\\":\\\"Navigation moves from a top bar to a persistent left sidebar\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S1\\\",\\\"statement\\\":\\\"Replace the top bar with a persistent left sidebar in the app shell, with full labels always visible and no collapsed or drawer state\\\",\\\"domains\\\":[\\\"ux\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"the app shell is rendered\\\",\\\"when\\\":\\\"the page loads on desktop\\\",\\\"then\\\":\\\"MainNav is rendered as a left sidebar and app/layout.tsx uses flex-row instead of flex-col\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"the sidebar is rendered\\\",\\\"when\\\":\\\"the viewport is any size the sidebar supports\\\",\\\"then\\\":\\\"every nav item shows its full text label, with no icon-only state available\\\"},{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"the sidebar is rendered\\\",\\\"when\\\":\\\"the user looks for a way to hide or reveal navigation\\\",\\\"then\\\":\\\"no collapse toggle or drawer/overlay mechanism exists for the sidebar\\\"},{\\\"id\\\":\\\"AC4\\\",\\\"given\\\":\\\"the sidebar is rendered on a mobile-width viewport versus a desktop-width viewport\\\",\\\"when\\\":\\\"the sidebar widths are compared\\\",\\\"then\\\":\\\"the sidebar is narrower on the mobile-width viewport than on the desktop-width viewport\\\"}]},{\\\"id\\\":\\\"S2\\\",\\\"statement\\\":\\\"Highlight the active route in the sidebar with a glowing style, implemented via a Client Component\\\",\\\"domains\\\":[\\\"ux\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"a route is the currently active route\\\",\\\"when\\\":\\\"MainNav renders the sidebar\\\",\\\"then\\\":\\\"the nav item for that route is shown with a glowing highlight style\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"the active route changes\\\",\\\"when\\\":\\\"MainNav determines which item to highlight\\\",\\\"then\\\":\\\"MainNav is implemented as a Client Component so the glow updates for the active route\\\"}]},{\\\"id\\\":\\\"S3\\\",\\\"statement\\\":\\\"Preserve existing routes, test ids and navigation behavior through the sidebar migration\\\",\\\"domains\\\":[\\\"ux\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"the navigation has moved from top bar to sidebar\\\",\\\"when\\\":\\\"the set of routes exposed by MainNav is compared before and after\\\",\\\"then\\\":\\\"no route paths have changed\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"the navigation has moved from top bar to sidebar\\\",\\\"when\\\":\\\"nav elements are queried by their existing testids\\\",\\\"then\\\":\\\"each existing testid is still present and attached to the same logical nav item\\\"},{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"the navigation has moved from top bar to sidebar\\\",\\\"when\\\":\\\"a user clicks a nav item\\\",\\\"then\\\":\\\"the browser navigates to the same route it did before the migration\\\"}]}]}]}\",\"stop_reason\":\"end_turn\",\"session_id\":\"4c5c5fec-151a-4117-bb40-8ff1471c7c22\",\"total_cost_usd\":0.24783329999999998,\"usage\":{\"input_tokens\":4,\"cache_creation_input_tokens\":32112,\"cache_read_input_tokens\":64831,\"output_tokens\":2380,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":32112,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":882,\"cache_read_input_tokens\":47719,\"cache_creation_input_tokens\":1505,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":1505},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":4,\"outputTokens\":2380,\"cacheReadInputTokens\":64831,\"cacheCreationInputTokens\":32112,\"webSearchRequests\":0,\"costUSD\":0.24783329999999998,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"5e7335b8-fd7b-4d24-9721-180449154973\"}",
+          "sessionId": "4c5c5fec-151a-4117-bb40-8ff1471c7c22",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [
+              {
+                "id": "toolu_01C258nCQtNDpe4WQGHS6KeH",
+                "name": "Bash",
+                "input": {
+                  "command": "echo ok",
+                  "description": "no-op"
+                },
+                "output": "ok",
+                "is_error": false,
+                "parentToolUseId": null
+              }
+            ],
+            "numTurns": 2,
+            "durationMs": 27925,
+            "durationApiMs": 23910,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 4,
+                "outputTokens": 2380,
+                "cacheReadInputTokens": 64831,
+                "cacheCreationInputTokens": 32112,
+                "webSearchRequests": 0,
+                "costUSD": 0.24783329999999998,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-02-sidebar-nav",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-02-sidebar-nav",
+            "item": "file://inputs/case-02-sidebar-nav.item.json",
+            "triage": "file://inputs/case-02-sidebar-nav.triage.json",
+            "sessionId": "4c5c5fec-151a-4117-bb40-8ff1471c7c22"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "coverage",
+              "value": "file://asserts/coverage.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "acceptance",
+              "value": "file://asserts/acceptance.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "scope",
+              "value": "file://asserts/scope.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 4,
+          "completion": 2380,
+          "cached": 0,
+          "total": 2384,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-02-sidebar-nav",
+          "item": "file://inputs/case-02-sidebar-nav.item.json",
+          "triage": "file://inputs/case-02-sidebar-nav.triage.json",
+          "sessionId": "4c5c5fec-151a-4117-bb40-8ff1471c7c22"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [
+            {
+              "id": "toolu_01C258nCQtNDpe4WQGHS6KeH",
+              "name": "Bash",
+              "input": {
+                "command": "echo ok",
+                "description": "no-op"
+              },
+              "output": "ok",
+              "is_error": false,
+              "parentToolUseId": null
+            }
+          ],
+          "numTurns": 2,
+          "durationMs": 27925,
+          "durationApiMs": 23910,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 4,
+              "outputTokens": 2380,
+              "cacheReadInputTokens": 64831,
+              "cacheCreationInputTokens": 32112,
+              "webSearchRequests": 0,
+              "costUSD": 0.24783329999999998,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "4c5c5fec-151a-4117-bb40-8ff1471c7c22"
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.3486276,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "schema": 1,
+            "coverage": 1,
+            "acceptance": 1,
+            "scope": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "coverage": 1,
+            "acceptance": 1,
+            "scope": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to breakdown.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "all 6 deliverables covered",
+              "assertion": {
+                "type": "javascript",
+                "metric": "coverage",
+                "value": "file://asserts/coverage.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "9 stories, criteria distinct and specific",
+              "assertion": {
+                "type": "javascript",
+                "metric": "acceptance",
+                "value": "file://asserts/acceptance.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "9 stories, domains within triage's, nothing invented",
+              "assertion": {
+                "type": "javascript",
+                "metric": "scope",
+                "value": "file://asserts/scope.js"
+              }
+            }
+          ]
+        },
+        "id": "558ee1dd-037e-4da6-bbea-d0dcea4471df",
+        "latencyMs": 72772,
+        "namedScores": {
+          "schema": 1,
+          "coverage": 1,
+          "acceptance": 1,
+          "scope": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-breakdown\ndescription: Break a triaged work item into epics, stories and acceptance criteria. Emits breakdown.json.\n---\n\n# Role\nYou are the planning node of a delivery pipeline. You turn one work item into the unit of\nwork the implementers build from: epics, the stories inside them, and the acceptance criteria\nthat say when a story is done. You plan what the item asks for; you do not design the\nsolution, choose libraries, or add work the item never requested.\n\n# Task\nRead the item and its triage artifact, and write the breakdown.\n\n# Context\nYour reply is written straight to `breakdown.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. The stories you write are\ndispatched to specialists by their `domains`, and the acceptance criteria become the tests, so\na criterion that asserts nothing testable becomes a test that proves nothing.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last is\n`}`: no preamble, no commentary, no code fence. Your reply is written straight to\n`breakdown.json` and parsed by `json.loads` with no cleanup step, so a ```json fence, or any\nsentence before or after the object, is a parse error and the step fails. Begin with `{`.\n\nA correct reply begins exactly like this, with no line above it:\n\n{\"item\":\"ABC-1\",\"epics\":[{\"id\":\"E1\",\"title\":\"Operator can browse the queue\",\"stories\":[…]}]}\n\nUse exactly this shape, with exactly these keys and no others:\n\n```\n{\n  \"item\": string,                       the item's key, copied exactly\n  \"epics\": [\n    {\n      \"id\": \"E1\",                       E followed by digits\n      \"title\": string,\n      \"stories\": [\n        {\n          \"id\": \"S1\",                   S followed by digits\n          \"statement\": string,\n          \"domains\": [string],\n          \"acceptance_criteria\": [\n            {\"id\": \"AC1\", \"given\": string, \"when\": string, \"then\": string}\n          ]\n        }\n      ]\n    }\n  ]\n}\n```\n\nIds match those patterns exactly: `E1`, `S1`, `AC1` — no prefixes, no dots, no `EPIC-1`.\n\n# Constraints\n\n## Covering the item\nWork through the item and account for everything it asks for. Every change it names — each\nfield, each screen, each endpoint, each toggle, each stated rule about how something must\nbehave — belongs to some story. A detail mentioned once in passing still counts: if the item\nsays the work must be idempotent, or that a component becomes a client component, that is a\nstory or an acceptance criterion, not something to leave out because it is small.\n\nName things the way the item names them. Do not introduce files, services or tickets it does\nnot mention.\n\n## Stories\nEvery epic has at least one story, every story at least one acceptance criterion. A story is a\npiece of work someone can finish and demonstrate: not one story for the whole item, and not a\nstory per line of code. Two stories should not restate the same work.\n\n## Domains\nA story's `domains` says which kinds of work it touches, using only these words:\n`ux`, `frontend`, `backend`, `contracts`, `infra`, `data`, `mobile`, `docs`.\n\nDraw them from the `domains` the triage artifact already found: a story may touch fewer than\ntriage listed, never more. A technology is not a domain — authentication, clustering and\nlogging are `backend` or `infra` work, not domains of their own.\n\n## Acceptance criteria\nEach criterion is one given / when / then, and the `then` states an outcome someone could\nobserve and check: a status code, a stored value, a rendered state, a rejected request. \"It\nworks\" is not an outcome.\n\nTwo criteria may share an outcome when their preconditions differ — a missing token and an\nexpired token can both end in a rejected request. What they may not be is the same criterion\nwritten twice: the same given, when and then.\n</skill>\n\nThe work item:\n\n{\n  \"key\": \"HM-40\",\n  \"title\": \"Authentication and tenant isolation before shared deployment\",\n  \"body\": \"HermesMQ is feature-complete against the architecture, but every endpoint is wide open: anyone who can reach the port can create or delete topics, publish, and read any subscription's backlog. Before it can run anywhere shared it needs authentication (who is calling) and tenant isolation (callers only see their own topics and subscriptions).\\n\\nEvery REST and gRPC request authenticates from a bearer token or API key; keys are configured as salted hashes and resolve to a Principal(tenantId, scopes). Tenants are isolated by transparently namespacing resource ids at the API boundary, so cross-tenant access is impossible by construction. Admin operations require an admin scope. /health and /metrics stay unauthenticated for probes and scraping. Configurable and fail-fast, with an auth-disabled default-tenant mode for local dev and backward compatibility with existing single-tenant journals.\",\n  \"type_hint\": null,\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/HM-40\",\n  \"source\": \"github-issues\",\n  \"labels\": [],\n  \"links\": []\n}\n\nIts triage artifact:\n\n{\n  \"item\": \"HM-40\",\n  \"type\": \"feature\",\n  \"path\": \"standard\",\n  \"domains\": [\n    \"backend\"\n  ],\n  \"summary\": \"Authentication and tenant isolation before shared deployment\",\n  \"rationale\": \"adds a new cross-cutting boundary layer (auth + tenant namespacing) across every endpoint; explicitly backward compatible, so not breaking\",\n  \"handoff\": false,\n  \"handoff_reason\": null,\n  \"architecture_change\": true,\n  \"breaking_change\": false\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item:\n\n{{item}}\n\nIts triage artifact:\n\n{{triage}}",
+          "config": {}
+        },
+        "promptId": "3a12fdf74269fd61d2979dbd5744ec83c137e727091385ebc597dacb4d2cf5bb",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"HM-40\",\"epics\":[{\"id\":\"E1\",\"title\":\"Every request authenticates before reaching protected endpoints\",\"stories\":[{\"id\":\"S1\",\"statement\":\"REST and gRPC requests authenticate via a bearer token or API key before reaching protected endpoints\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"a REST request carries no credentials\",\"when\":\"it reaches a protected endpoint\",\"then\":\"the service rejects it with a 401 Unauthorized response\"},{\"id\":\"AC2\",\"given\":\"a REST request carries a valid bearer token\",\"when\":\"it reaches a protected endpoint\",\"then\":\"the request is processed as the Principal the token resolves to\"},{\"id\":\"AC3\",\"given\":\"a gRPC request carries no credentials\",\"when\":\"it reaches a protected RPC method\",\"then\":\"the service rejects it with an UNAUTHENTICATED status\"},{\"id\":\"AC4\",\"given\":\"a gRPC request carries a valid API key\",\"when\":\"it reaches a protected RPC method\",\"then\":\"the request is processed as the Principal the key resolves to\"}]},{\"id\":\"S2\",\"statement\":\"API keys are stored as salted hashes and resolve to a Principal carrying tenantId and scopes\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"an API key is configured for a tenant\",\"when\":\"it is persisted\",\"then\":\"only its salted hash is stored and the plaintext key is not retained\"},{\"id\":\"AC2\",\"given\":\"a request presents an API key matching a stored salted hash\",\"when\":\"the key is verified\",\"then\":\"the request resolves to a Principal carrying that key's tenantId and scopes\"},{\"id\":\"AC3\",\"given\":\"a request presents an API key with no matching stored hash\",\"when\":\"the key is verified\",\"then\":\"the request is rejected as unauthenticated\"}]},{\"id\":\"S3\",\"statement\":\"Auth configuration is validated fail-fast at startup\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"the auth configuration is invalid or incomplete\",\"when\":\"the service starts\",\"then\":\"startup fails with an error instead of running with partial authentication\"},{\"id\":\"AC2\",\"given\":\"the auth configuration is complete and valid\",\"when\":\"the service starts\",\"then\":\"it starts successfully with authentication enforced\"}]}]},{\"id\":\"E2\",\"title\":\"Tenants are isolated by construction\",\"stories\":[{\"id\":\"S1\",\"statement\":\"Resource ids are transparently namespaced by tenant at the API boundary\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"an authenticated tenant creates a topic by name\",\"when\":\"the request is processed at the API boundary\",\"then\":\"the stored resource id is namespaced with that tenant's tenantId without the caller supplying a namespace\"},{\"id\":\"AC2\",\"given\":\"an authenticated tenant requests one of its own topics or subscriptions by name\",\"when\":\"the request is processed at the API boundary\",\"then\":\"it is resolved to that tenant's namespaced resource transparently\"}]},{\"id\":\"S2\",\"statement\":\"Callers cannot access another tenant's topics or subscriptions\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"tenant A owns a topic\",\"when\":\"tenant B requests to read, publish to, or delete that topic by name\",\"then\":\"the request is rejected as not found\"},{\"id\":\"AC2\",\"given\":\"tenant A owns a subscription with a backlog\",\"when\":\"tenant B attempts to read that subscription's backlog\",\"then\":\"the request is rejected\"},{\"id\":\"AC3\",\"given\":\"a caller is authenticated as tenant A\",\"when\":\"it lists topics or subscriptions\",\"then\":\"only tenant A's resources appear in the result\"}]}]},{\"id\":\"E3\",\"title\":\"Admin operations require an admin scope\",\"stories\":[{\"id\":\"S1\",\"statement\":\"Admin operations are permitted only for Principals carrying the admin scope\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"a Principal lacks the admin scope\",\"when\":\"it calls an admin operation\",\"then\":\"the request is rejected with a forbidden response\"},{\"id\":\"AC2\",\"given\":\"a Principal carries the admin scope\",\"when\":\"it calls an admin operation\",\"then\":\"the request is processed\"}]}]},{\"id\":\"E4\",\"title\":\"Health and metrics probes remain unauthenticated\",\"stories\":[{\"id\":\"S1\",\"statement\":\"/health and /metrics are reachable without credentials\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"no credentials are supplied\",\"when\":\"a request is made to /health\",\"then\":\"the response succeeds without an authentication check\"},{\"id\":\"AC2\",\"given\":\"no credentials are supplied\",\"when\":\"a request is made to /metrics\",\"then\":\"the response succeeds without an authentication check\"}]}]},{\"id\":\"E5\",\"title\":\"Local dev and existing deployments keep working\",\"stories\":[{\"id\":\"S1\",\"statement\":\"Auth can be disabled for a single default-tenant mode in local dev\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"auth is disabled via configuration\",\"when\":\"any request is made without credentials\",\"then\":\"it is processed under a single default tenant\"},{\"id\":\"AC2\",\"given\":\"auth is disabled via configuration\",\"when\":\"the service starts\",\"then\":\"it starts successfully without requiring any API key or token to be configured\"}]},{\"id\":\"S2\",\"statement\":\"Existing single-tenant journals keep working after the upgrade\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"a journal was created before tenant isolation existed\",\"when\":\"the service starts after upgrading\",\"then\":\"its existing topics and subscriptions remain accessible under the default tenant without migration\"},{\"id\":\"AC2\",\"given\":\"a pre-existing single-tenant deployment enables auth and tenant isolation\",\"when\":\"a client publishes to or reads from a previously stored topic or subscription\",\"then\":\"the operation succeeds as before under the default tenant\"}]}]}]}",
+          "tokenUsage": {
+            "prompt": 4,
+            "completion": 7478,
+            "total": 7482
+          },
+          "cost": 0.3486276,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":71625,\"duration_api_ms\":67430,\"ttft_ms\":50130,\"ttft_stream_ms\":2211,\"time_to_request_ms\":36,\"num_turns\":2,\"result\":\"{\\\"item\\\":\\\"HM-40\\\",\\\"epics\\\":[{\\\"id\\\":\\\"E1\\\",\\\"title\\\":\\\"Every request authenticates before reaching protected endpoints\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S1\\\",\\\"statement\\\":\\\"REST and gRPC requests authenticate via a bearer token or API key before reaching protected endpoints\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"a REST request carries no credentials\\\",\\\"when\\\":\\\"it reaches a protected endpoint\\\",\\\"then\\\":\\\"the service rejects it with a 401 Unauthorized response\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"a REST request carries a valid bearer token\\\",\\\"when\\\":\\\"it reaches a protected endpoint\\\",\\\"then\\\":\\\"the request is processed as the Principal the token resolves to\\\"},{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"a gRPC request carries no credentials\\\",\\\"when\\\":\\\"it reaches a protected RPC method\\\",\\\"then\\\":\\\"the service rejects it with an UNAUTHENTICATED status\\\"},{\\\"id\\\":\\\"AC4\\\",\\\"given\\\":\\\"a gRPC request carries a valid API key\\\",\\\"when\\\":\\\"it reaches a protected RPC method\\\",\\\"then\\\":\\\"the request is processed as the Principal the key resolves to\\\"}]},{\\\"id\\\":\\\"S2\\\",\\\"statement\\\":\\\"API keys are stored as salted hashes and resolve to a Principal carrying tenantId and scopes\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"an API key is configured for a tenant\\\",\\\"when\\\":\\\"it is persisted\\\",\\\"then\\\":\\\"only its salted hash is stored and the plaintext key is not retained\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"a request presents an API key matching a stored salted hash\\\",\\\"when\\\":\\\"the key is verified\\\",\\\"then\\\":\\\"the request resolves to a Principal carrying that key's tenantId and scopes\\\"},{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"a request presents an API key with no matching stored hash\\\",\\\"when\\\":\\\"the key is verified\\\",\\\"then\\\":\\\"the request is rejected as unauthenticated\\\"}]},{\\\"id\\\":\\\"S3\\\",\\\"statement\\\":\\\"Auth configuration is validated fail-fast at startup\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"the auth configuration is invalid or incomplete\\\",\\\"when\\\":\\\"the service starts\\\",\\\"then\\\":\\\"startup fails with an error instead of running with partial authentication\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"the auth configuration is complete and valid\\\",\\\"when\\\":\\\"the service starts\\\",\\\"then\\\":\\\"it starts successfully with authentication enforced\\\"}]}]},{\\\"id\\\":\\\"E2\\\",\\\"title\\\":\\\"Tenants are isolated by construction\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S1\\\",\\\"statement\\\":\\\"Resource ids are transparently namespaced by tenant at the API boundary\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"an authenticated tenant creates a topic by name\\\",\\\"when\\\":\\\"the request is processed at the API boundary\\\",\\\"then\\\":\\\"the stored resource id is namespaced with that tenant's tenantId without the caller supplying a namespace\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"an authenticated tenant requests one of its own topics or subscriptions by name\\\",\\\"when\\\":\\\"the request is processed at the API boundary\\\",\\\"then\\\":\\\"it is resolved to that tenant's namespaced resource transparently\\\"}]},{\\\"id\\\":\\\"S2\\\",\\\"statement\\\":\\\"Callers cannot access another tenant's topics or subscriptions\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"tenant A owns a topic\\\",\\\"when\\\":\\\"tenant B requests to read, publish to, or delete that topic by name\\\",\\\"then\\\":\\\"the request is rejected as not found\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"tenant A owns a subscription with a backlog\\\",\\\"when\\\":\\\"tenant B attempts to read that subscription's backlog\\\",\\\"then\\\":\\\"the request is rejected\\\"},{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"a caller is authenticated as tenant A\\\",\\\"when\\\":\\\"it lists topics or subscriptions\\\",\\\"then\\\":\\\"only tenant A's resources appear in the result\\\"}]}]},{\\\"id\\\":\\\"E3\\\",\\\"title\\\":\\\"Admin operations require an admin scope\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S1\\\",\\\"statement\\\":\\\"Admin operations are permitted only for Principals carrying the admin scope\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"a Principal lacks the admin scope\\\",\\\"when\\\":\\\"it calls an admin operation\\\",\\\"then\\\":\\\"the request is rejected with a forbidden response\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"a Principal carries the admin scope\\\",\\\"when\\\":\\\"it calls an admin operation\\\",\\\"then\\\":\\\"the request is processed\\\"}]}]},{\\\"id\\\":\\\"E4\\\",\\\"title\\\":\\\"Health and metrics probes remain unauthenticated\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S1\\\",\\\"statement\\\":\\\"/health and /metrics are reachable without credentials\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"no credentials are supplied\\\",\\\"when\\\":\\\"a request is made to /health\\\",\\\"then\\\":\\\"the response succeeds without an authentication check\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"no credentials are supplied\\\",\\\"when\\\":\\\"a request is made to /metrics\\\",\\\"then\\\":\\\"the response succeeds without an authentication check\\\"}]}]},{\\\"id\\\":\\\"E5\\\",\\\"title\\\":\\\"Local dev and existing deployments keep working\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S1\\\",\\\"statement\\\":\\\"Auth can be disabled for a single default-tenant mode in local dev\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"auth is disabled via configuration\\\",\\\"when\\\":\\\"any request is made without credentials\\\",\\\"then\\\":\\\"it is processed under a single default tenant\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"auth is disabled via configuration\\\",\\\"when\\\":\\\"the service starts\\\",\\\"then\\\":\\\"it starts successfully without requiring any API key or token to be configured\\\"}]},{\\\"id\\\":\\\"S2\\\",\\\"statement\\\":\\\"Existing single-tenant journals keep working after the upgrade\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"a journal was created before tenant isolation existed\\\",\\\"when\\\":\\\"the service starts after upgrading\\\",\\\"then\\\":\\\"its existing topics and subscriptions remain accessible under the default tenant without migration\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"a pre-existing single-tenant deployment enables auth and tenant isolation\\\",\\\"when\\\":\\\"a client publishes to or reads from a previously stored topic or subscription\\\",\\\"then\\\":\\\"the operation succeeds as before under the default tenant\\\"}]}]}]}\",\"stop_reason\":\"end_turn\",\"session_id\":\"a48a03f0-2dbe-4577-874e-8e9b7815c115\",\"total_cost_usd\":0.3486276,\"usage\":{\"input_tokens\":4,\"cache_creation_input_tokens\":36158,\"cache_read_input_tokens\":64992,\"output_tokens\":7478,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":36158,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":2095,\"cache_read_input_tokens\":47880,\"cache_creation_input_tokens\":5390,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":5390},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":4,\"outputTokens\":7478,\"cacheReadInputTokens\":64992,\"cacheCreationInputTokens\":36158,\"webSearchRequests\":0,\"costUSD\":0.3486276,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"01b6fc88-e80b-4e9a-b4c5-85cde71fdd7c\"}",
+          "sessionId": "a48a03f0-2dbe-4577-874e-8e9b7815c115",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [
+              {
+                "id": "toolu_019Moxe9soj8EXiR2JRbtNRZ",
+                "name": "Bash",
+                "input": {
+                  "command": "echo noop",
+                  "description": "placeholder"
+                },
+                "output": "noop",
+                "is_error": false,
+                "parentToolUseId": null
+              }
+            ],
+            "numTurns": 2,
+            "durationMs": 71625,
+            "durationApiMs": 67430,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 4,
+                "outputTokens": 7478,
+                "cacheReadInputTokens": 64992,
+                "cacheCreationInputTokens": 36158,
+                "webSearchRequests": 0,
+                "costUSD": 0.3486276,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-03-auth-tenancy",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-03-auth-tenancy",
+            "item": "file://inputs/case-03-auth-tenancy.item.json",
+            "triage": "file://inputs/case-03-auth-tenancy.triage.json",
+            "sessionId": "a48a03f0-2dbe-4577-874e-8e9b7815c115"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "coverage",
+              "value": "file://asserts/coverage.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "acceptance",
+              "value": "file://asserts/acceptance.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "scope",
+              "value": "file://asserts/scope.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 4,
+          "completion": 7478,
+          "cached": 0,
+          "total": 7482,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-03-auth-tenancy",
+          "item": "file://inputs/case-03-auth-tenancy.item.json",
+          "triage": "file://inputs/case-03-auth-tenancy.triage.json",
+          "sessionId": "a48a03f0-2dbe-4577-874e-8e9b7815c115"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [
+            {
+              "id": "toolu_019Moxe9soj8EXiR2JRbtNRZ",
+              "name": "Bash",
+              "input": {
+                "command": "echo noop",
+                "description": "placeholder"
+              },
+              "output": "noop",
+              "is_error": false,
+              "parentToolUseId": null
+            }
+          ],
+          "numTurns": 2,
+          "durationMs": 71625,
+          "durationApiMs": 67430,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 4,
+              "outputTokens": 7478,
+              "cacheReadInputTokens": 64992,
+              "cacheCreationInputTokens": 36158,
+              "webSearchRequests": 0,
+              "costUSD": 0.3486276,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "a48a03f0-2dbe-4577-874e-8e9b7815c115"
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.3058032,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "schema": 1,
+            "coverage": 1,
+            "acceptance": 1,
+            "scope": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "coverage": 1,
+            "acceptance": 1,
+            "scope": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to breakdown.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "all 4 deliverables covered",
+              "assertion": {
+                "type": "javascript",
+                "metric": "coverage",
+                "value": "file://asserts/coverage.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "4 stories, criteria distinct and specific",
+              "assertion": {
+                "type": "javascript",
+                "metric": "acceptance",
+                "value": "file://asserts/acceptance.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "4 stories, domains within triage's, nothing invented",
+              "assertion": {
+                "type": "javascript",
+                "metric": "scope",
+                "value": "file://asserts/scope.js"
+              }
+            }
+          ]
+        },
+        "id": "d4b051ec-40f1-4616-a5d3-29719f235182",
+        "latencyMs": 52557,
+        "namedScores": {
+          "schema": 1,
+          "coverage": 1,
+          "acceptance": 1,
+          "scope": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-breakdown\ndescription: Break a triaged work item into epics, stories and acceptance criteria. Emits breakdown.json.\n---\n\n# Role\nYou are the planning node of a delivery pipeline. You turn one work item into the unit of\nwork the implementers build from: epics, the stories inside them, and the acceptance criteria\nthat say when a story is done. You plan what the item asks for; you do not design the\nsolution, choose libraries, or add work the item never requested.\n\n# Task\nRead the item and its triage artifact, and write the breakdown.\n\n# Context\nYour reply is written straight to `breakdown.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. The stories you write are\ndispatched to specialists by their `domains`, and the acceptance criteria become the tests, so\na criterion that asserts nothing testable becomes a test that proves nothing.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last is\n`}`: no preamble, no commentary, no code fence. Your reply is written straight to\n`breakdown.json` and parsed by `json.loads` with no cleanup step, so a ```json fence, or any\nsentence before or after the object, is a parse error and the step fails. Begin with `{`.\n\nA correct reply begins exactly like this, with no line above it:\n\n{\"item\":\"ABC-1\",\"epics\":[{\"id\":\"E1\",\"title\":\"Operator can browse the queue\",\"stories\":[…]}]}\n\nUse exactly this shape, with exactly these keys and no others:\n\n```\n{\n  \"item\": string,                       the item's key, copied exactly\n  \"epics\": [\n    {\n      \"id\": \"E1\",                       E followed by digits\n      \"title\": string,\n      \"stories\": [\n        {\n          \"id\": \"S1\",                   S followed by digits\n          \"statement\": string,\n          \"domains\": [string],\n          \"acceptance_criteria\": [\n            {\"id\": \"AC1\", \"given\": string, \"when\": string, \"then\": string}\n          ]\n        }\n      ]\n    }\n  ]\n}\n```\n\nIds match those patterns exactly: `E1`, `S1`, `AC1` — no prefixes, no dots, no `EPIC-1`.\n\n# Constraints\n\n## Covering the item\nWork through the item and account for everything it asks for. Every change it names — each\nfield, each screen, each endpoint, each toggle, each stated rule about how something must\nbehave — belongs to some story. A detail mentioned once in passing still counts: if the item\nsays the work must be idempotent, or that a component becomes a client component, that is a\nstory or an acceptance criterion, not something to leave out because it is small.\n\nName things the way the item names them. Do not introduce files, services or tickets it does\nnot mention.\n\n## Stories\nEvery epic has at least one story, every story at least one acceptance criterion. A story is a\npiece of work someone can finish and demonstrate: not one story for the whole item, and not a\nstory per line of code. Two stories should not restate the same work.\n\n## Domains\nA story's `domains` says which kinds of work it touches, using only these words:\n`ux`, `frontend`, `backend`, `contracts`, `infra`, `data`, `mobile`, `docs`.\n\nDraw them from the `domains` the triage artifact already found: a story may touch fewer than\ntriage listed, never more. A technology is not a domain — authentication, clustering and\nlogging are `backend` or `infra` work, not domains of their own.\n\n## Acceptance criteria\nEach criterion is one given / when / then, and the `then` states an outcome someone could\nobserve and check: a status code, a stored value, a rendered state, a rejected request. \"It\nworks\" is not an outcome.\n\nTwo criteria may share an outcome when their preconditions differ — a missing token and an\nexpired token can both end in a rejected request. What they may not be is the same criterion\nwritten twice: the same given, when and then.\n</skill>\n\nThe work item:\n\n{\n  \"key\": \"AP-19\",\n  \"title\": \"Run ApolloStorage as a Pekko cluster\",\n  \"body\": \"ApolloStorage runs as a single node: the projection is one instance and bucket entities are hosted by a node-local BucketEntityManager. That is a throughput and availability ceiling \\u2014 one process is the whole system. To scale horizontally and survive a node failure the service must run as a Pekko cluster.\\n\\nForm a cluster across replicas with automatic membership and a split-brain resolver (keep-majority). Replace the single-node BucketEntityManager with Cluster Sharding, so each bucket is a cluster-wide singleton entity addressed by EntityRef; persistence ids and the journal are unchanged. Distribute the projection with ShardedDaemonProcess across N slice ranges, rebalanced on membership change. Cluster formation via Pekko Management and discovery, with a management HTTP port for bootstrap and health.\",\n  \"type_hint\": null,\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/AP-19\",\n  \"source\": \"github-issues\",\n  \"labels\": [],\n  \"links\": []\n}\n\nIts triage artifact:\n\n{\n  \"item\": \"AP-19\",\n  \"type\": \"feature\",\n  \"path\": \"standard\",\n  \"domains\": [\n    \"backend\",\n    \"infra\"\n  ],\n  \"summary\": \"Run ApolloStorage as a Pekko cluster\",\n  \"rationale\": \"replaces single-node hosting with cluster sharding and distributed projections: an architecture change by any reading\",\n  \"handoff\": false,\n  \"handoff_reason\": null,\n  \"architecture_change\": true,\n  \"breaking_change\": false\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item:\n\n{{item}}\n\nIts triage artifact:\n\n{{triage}}",
+          "config": {}
+        },
+        "promptId": "3a12fdf74269fd61d2979dbd5744ec83c137e727091385ebc597dacb4d2cf5bb",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"AP-19\",\"epics\":[{\"id\":\"E1\",\"title\":\"ApolloStorage replicas form a resilient cluster\",\"stories\":[{\"id\":\"S1\",\"statement\":\"Replicas form a Pekko cluster automatically using Pekko Management and discovery, with a management HTTP port for bootstrap and health\",\"domains\":[\"infra\",\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"multiple ApolloStorage replicas are started with discovery configured and no manual seed-node list\",\"when\":\"the replicas start up\",\"then\":\"they discover each other and join the same cluster automatically\"},{\"id\":\"AC2\",\"given\":\"a replica has started with Pekko Management enabled\",\"when\":\"its management HTTP port is queried for bootstrap/cluster info\",\"then\":\"it responds with the current cluster membership used for bootstrap\"},{\"id\":\"AC3\",\"given\":\"a replica is running as part of the cluster\",\"when\":\"its management HTTP port's health endpoint is queried\",\"then\":\"it returns a healthy status for that node\"}]},{\"id\":\"S2\",\"statement\":\"The cluster resolves network partitions using a keep-majority split-brain resolver\",\"domains\":[\"infra\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"a network partition splits the cluster into a minority side and a majority side\",\"when\":\"the split-brain resolver evaluates the partition after its stable-after period\",\"then\":\"the nodes on the minority side are downed and removed from the cluster\"},{\"id\":\"AC2\",\"given\":\"a network partition has been resolved by downing the minority side\",\"when\":\"the majority side continues operating\",\"then\":\"it remains a valid cluster and keeps processing requests\"}]}]},{\"id\":\"E2\",\"title\":\"Bucket entities run as cluster-wide sharded singletons\",\"stories\":[{\"id\":\"S3\",\"statement\":\"The node-local BucketEntityManager is replaced by Cluster Sharding, so each bucket entity is a cluster-wide singleton addressed by EntityRef\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"a bucket entity is addressed via its EntityRef from any node in the cluster\",\"when\":\"messages are sent to that EntityRef from two different nodes concurrently\",\"then\":\"exactly one active instance of that bucket entity handles the messages cluster-wide\"},{\"id\":\"AC2\",\"given\":\"the node currently hosting a bucket entity's shard fails\",\"when\":\"cluster sharding detects the node is no longer reachable\",\"then\":\"the shard is rebalanced and the bucket entity is recreated on a surviving node\"},{\"id\":\"AC3\",\"given\":\"a bucket entity that previously ran under the single-node BucketEntityManager is migrated to Cluster Sharding\",\"when\":\"its persistence id and journal plugin configuration are inspected\",\"then\":\"the persistence id scheme and journal remain unchanged from the single-node implementation\"}]}]},{\"id\":\"E3\",\"title\":\"Projection work is distributed across the cluster\",\"stories\":[{\"id\":\"S4\",\"statement\":\"The projection runs via ShardedDaemonProcess, split across N slice ranges and rebalanced when cluster membership changes\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"the projection is started as a ShardedDaemonProcess with N configured slice ranges\",\"when\":\"the cluster is stable\",\"then\":\"each slice range is being processed by exactly one running projection worker, and all N ranges are covered\"},{\"id\":\"AC2\",\"given\":\"a node joins the running cluster\",\"when\":\"ShardedDaemonProcess rebalances\",\"then\":\"slice ranges are redistributed so the new node is assigned a share of them\"},{\"id\":\"AC3\",\"given\":\"a node hosting projection workers leaves the cluster\",\"when\":\"ShardedDaemonProcess rebalances\",\"then\":\"the slice ranges that node owned are reassigned to remaining nodes and continue being processed\"}]}]}]}",
+          "tokenUsage": {
+            "prompt": 4,
+            "completion": 5221,
+            "total": 5225
+          },
+          "cost": 0.3058032,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":51544,\"duration_api_ms\":49709,\"ttft_ms\":23727,\"ttft_stream_ms\":1520,\"time_to_request_ms\":35,\"num_turns\":2,\"result\":\"{\\\"item\\\":\\\"AP-19\\\",\\\"epics\\\":[{\\\"id\\\":\\\"E1\\\",\\\"title\\\":\\\"ApolloStorage replicas form a resilient cluster\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S1\\\",\\\"statement\\\":\\\"Replicas form a Pekko cluster automatically using Pekko Management and discovery, with a management HTTP port for bootstrap and health\\\",\\\"domains\\\":[\\\"infra\\\",\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"multiple ApolloStorage replicas are started with discovery configured and no manual seed-node list\\\",\\\"when\\\":\\\"the replicas start up\\\",\\\"then\\\":\\\"they discover each other and join the same cluster automatically\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"a replica has started with Pekko Management enabled\\\",\\\"when\\\":\\\"its management HTTP port is queried for bootstrap/cluster info\\\",\\\"then\\\":\\\"it responds with the current cluster membership used for bootstrap\\\"},{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"a replica is running as part of the cluster\\\",\\\"when\\\":\\\"its management HTTP port's health endpoint is queried\\\",\\\"then\\\":\\\"it returns a healthy status for that node\\\"}]},{\\\"id\\\":\\\"S2\\\",\\\"statement\\\":\\\"The cluster resolves network partitions using a keep-majority split-brain resolver\\\",\\\"domains\\\":[\\\"infra\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"a network partition splits the cluster into a minority side and a majority side\\\",\\\"when\\\":\\\"the split-brain resolver evaluates the partition after its stable-after period\\\",\\\"then\\\":\\\"the nodes on the minority side are downed and removed from the cluster\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"a network partition has been resolved by downing the minority side\\\",\\\"when\\\":\\\"the majority side continues operating\\\",\\\"then\\\":\\\"it remains a valid cluster and keeps processing requests\\\"}]}]},{\\\"id\\\":\\\"E2\\\",\\\"title\\\":\\\"Bucket entities run as cluster-wide sharded singletons\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S3\\\",\\\"statement\\\":\\\"The node-local BucketEntityManager is replaced by Cluster Sharding, so each bucket entity is a cluster-wide singleton addressed by EntityRef\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"a bucket entity is addressed via its EntityRef from any node in the cluster\\\",\\\"when\\\":\\\"messages are sent to that EntityRef from two different nodes concurrently\\\",\\\"then\\\":\\\"exactly one active instance of that bucket entity handles the messages cluster-wide\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"the node currently hosting a bucket entity's shard fails\\\",\\\"when\\\":\\\"cluster sharding detects the node is no longer reachable\\\",\\\"then\\\":\\\"the shard is rebalanced and the bucket entity is recreated on a surviving node\\\"},{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"a bucket entity that previously ran under the single-node BucketEntityManager is migrated to Cluster Sharding\\\",\\\"when\\\":\\\"its persistence id and journal plugin configuration are inspected\\\",\\\"then\\\":\\\"the persistence id scheme and journal remain unchanged from the single-node implementation\\\"}]}]},{\\\"id\\\":\\\"E3\\\",\\\"title\\\":\\\"Projection work is distributed across the cluster\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S4\\\",\\\"statement\\\":\\\"The projection runs via ShardedDaemonProcess, split across N slice ranges and rebalanced when cluster membership changes\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"the projection is started as a ShardedDaemonProcess with N configured slice ranges\\\",\\\"when\\\":\\\"the cluster is stable\\\",\\\"then\\\":\\\"each slice range is being processed by exactly one running projection worker, and all N ranges are covered\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"a node joins the running cluster\\\",\\\"when\\\":\\\"ShardedDaemonProcess rebalances\\\",\\\"then\\\":\\\"slice ranges are redistributed so the new node is assigned a share of them\\\"},{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"a node hosting projection workers leaves the cluster\\\",\\\"when\\\":\\\"ShardedDaemonProcess rebalances\\\",\\\"then\\\":\\\"the slice ranges that node owned are reassigned to remaining nodes and continue being processed\\\"}]}]}]}\",\"stop_reason\":\"end_turn\",\"session_id\":\"e6dffca5-8b83-42b7-8c5c-768f68a911b5\",\"total_cost_usd\":0.3058032,\"usage\":{\"input_tokens\":4,\"cache_creation_input_tokens\":34664,\"cache_read_input_tokens\":64974,\"output_tokens\":5221,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":34664,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":1447,\"cache_read_input_tokens\":47862,\"cache_creation_input_tokens\":3914,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":3914},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":4,\"outputTokens\":5221,\"cacheReadInputTokens\":64974,\"cacheCreationInputTokens\":34664,\"webSearchRequests\":0,\"costUSD\":0.3058032,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"74d56a99-f409-4eb0-99dd-e050ed731bde\"}",
+          "sessionId": "e6dffca5-8b83-42b7-8c5c-768f68a911b5",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [
+              {
+                "id": "toolu_01KhvBk5cVqYXLfKXTqAFwXJ",
+                "name": "Write",
+                "input": {
+                  "file_path": "/private/tmp/claude-501/-private-var-folders-mg-x97bhp0j24x81r154ggq7bl00000gn-T-promptfoo-claude-agent-sdk-nvPsWQ/e6dffca5-8b83-42b7-8c5c-768f68a911b5/scratchpad/breakdown.json",
+                  "content": "{\"item\":\"AP-19\",\"epics\":[{\"id\":\"E1\",\"title\":\"ApolloStorage replicas form a resilient cluster\",\"stories\":[{\"id\":\"S1\",\"statement\":\"Replicas form a Pekko cluster automatically using Pekko Management and discovery, with a management HTTP port for bootstrap and health\",\"domains\":[\"infra\",\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"multiple ApolloStorage replicas are started with discovery configured and no manual seed-node list\",\"when\":\"the replicas start up\",\"then\":\"they discover each other and join the same cluster automatically\"},{\"id\":\"AC2\",\"given\":\"a replica has started with Pekko Management enabled\",\"when\":\"its management HTTP port is queried for bootstrap/cluster info\",\"then\":\"it responds with the current cluster membership used for bootstrap\"},{\"id\":\"AC3\",\"given\":\"a replica is running as part of the cluster\",\"when\":\"its management HTTP port's health endpoint is queried\",\"then\":\"it returns a healthy status for that node\"}]},{\"id\":\"S2\",\"statement\":\"The cluster resolves network partitions using a keep-majority split-brain resolver\",\"domains\":[\"infra\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"a network partition splits the cluster into a minority side and a majority side\",\"when\":\"the split-brain resolver evaluates the partition after its stable-after period\",\"then\":\"the nodes on the minority side are downed and removed from the cluster\"},{\"id\":\"AC2\",\"given\":\"a network partition has been resolved by downing the minority side\",\"when\":\"the majority side continues operating\",\"then\":\"it remains a valid cluster and keeps processing requests\"}]}]},{\"id\":\"E2\",\"title\":\"Bucket entities run as cluster-wide sharded singletons\",\"stories\":[{\"id\":\"S3\",\"statement\":\"The node-local BucketEntityManager is replaced by Cluster Sharding, so each bucket entity is a cluster-wide singleton addressed by EntityRef\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"a bucket entity is addressed via its EntityRef from any node in the cluster\",\"when\":\"messages are sent to that EntityRef from two different nodes concurrently\",\"then\":\"exactly one active instance of that bucket entity handles the messages cluster-wide\"},{\"id\":\"AC2\",\"given\":\"the node currently hosting a bucket entity's shard fails\",\"when\":\"cluster sharding detects the node is no longer reachable\",\"then\":\"the shard is rebalanced and the bucket entity is recreated on a surviving node\"},{\"id\":\"AC3\",\"given\":\"a bucket entity that previously ran under the single-node BucketEntityManager is migrated to Cluster Sharding\",\"when\":\"its persistence id and journal plugin configuration are inspected\",\"then\":\"the persistence id scheme and journal remain unchanged from the single-node implementation\"}]}]},{\"id\":\"E3\",\"title\":\"Projection work is distributed across the cluster\",\"stories\":[{\"id\":\"S4\",\"statement\":\"The projection runs via ShardedDaemonProcess, split across N slice ranges and rebalanced when cluster membership changes\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"the projection is started as a ShardedDaemonProcess with N configured slice ranges\",\"when\":\"the cluster is stable\",\"then\":\"each slice range is being processed by exactly one running projection worker, and all N ranges are covered\"},{\"id\":\"AC2\",\"given\":\"a node joins the running cluster\",\"when\":\"ShardedDaemonProcess rebalances\",\"then\":\"slice ranges are redistributed so the new node is assigned a share of them\"},{\"id\":\"AC3\",\"given\":\"a node hosting projection workers leaves the cluster\",\"when\":\"ShardedDaemonProcess rebalances\",\"then\":\"the slice ranges that node owned are reassigned to remaining nodes and continue being processed\"}]}]}]}"
+                },
+                "output": "File created successfully at: /private/tmp/claude-501/-private-var-folders-mg-x97bhp0j24x81r154ggq7bl00000gn-T-promptfoo-claude-agent-sdk-nvPsWQ/e6dffca5-8b83-42b7-8c5c-768f68a911b5/scratchpad/breakdown.json (file state is current in your context — no need to Read it back)",
+                "is_error": false,
+                "parentToolUseId": null
+              }
+            ],
+            "numTurns": 2,
+            "durationMs": 51544,
+            "durationApiMs": 49709,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 4,
+                "outputTokens": 5221,
+                "cacheReadInputTokens": 64974,
+                "cacheCreationInputTokens": 34664,
+                "webSearchRequests": 0,
+                "costUSD": 0.3058032,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-05-clustering",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-05-clustering",
+            "item": "file://inputs/case-05-clustering.item.json",
+            "triage": "file://inputs/case-05-clustering.triage.json",
+            "sessionId": "e6dffca5-8b83-42b7-8c5c-768f68a911b5"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "coverage",
+              "value": "file://asserts/coverage.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "acceptance",
+              "value": "file://asserts/acceptance.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "scope",
+              "value": "file://asserts/scope.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 3,
+        "tokenUsage": {
+          "prompt": 4,
+          "completion": 5221,
+          "cached": 0,
+          "total": 5225,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-05-clustering",
+          "item": "file://inputs/case-05-clustering.item.json",
+          "triage": "file://inputs/case-05-clustering.triage.json",
+          "sessionId": "e6dffca5-8b83-42b7-8c5c-768f68a911b5"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [
+            {
+              "id": "toolu_01KhvBk5cVqYXLfKXTqAFwXJ",
+              "name": "Write",
+              "input": {
+                "file_path": "/private/tmp/claude-501/-private-var-folders-mg-x97bhp0j24x81r154ggq7bl00000gn-T-promptfoo-claude-agent-sdk-nvPsWQ/e6dffca5-8b83-42b7-8c5c-768f68a911b5/scratchpad/breakdown.json",
+                "content": "{\"item\":\"AP-19\",\"epics\":[{\"id\":\"E1\",\"title\":\"ApolloStorage replicas form a resilient cluster\",\"stories\":[{\"id\":\"S1\",\"statement\":\"Replicas form a Pekko cluster automatically using Pekko Management and discovery, with a management HTTP port for bootstrap and health\",\"domains\":[\"infra\",\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"multiple ApolloStorage replicas are started with discovery configured and no manual seed-node list\",\"when\":\"the replicas start up\",\"then\":\"they discover each other and join the same cluster automatically\"},{\"id\":\"AC2\",\"given\":\"a replica has started with Pekko Management enabled\",\"when\":\"its management HTTP port is queried for bootstrap/cluster info\",\"then\":\"it responds with the current cluster membership used for bootstrap\"},{\"id\":\"AC3\",\"given\":\"a replica is running as part of the cluster\",\"when\":\"its management HTTP port's health endpoint is queried\",\"then\":\"it returns a healthy status for that node\"}]},{\"id\":\"S2\",\"statement\":\"The cluster resolves network partitions using a keep-majority split-brain resolver\",\"domains\":[\"infra\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"a network partition splits the cluster into a minority side and a majority side\",\"when\":\"the split-brain resolver evaluates the partition after its stable-after period\",\"then\":\"the nodes on the minority side are downed and removed from the cluster\"},{\"id\":\"AC2\",\"given\":\"a network partition has been resolved by downing the minority side\",\"when\":\"the majority side continues operating\",\"then\":\"it remains a valid cluster and keeps processing requests\"}]}]},{\"id\":\"E2\",\"title\":\"Bucket entities run as cluster-wide sharded singletons\",\"stories\":[{\"id\":\"S3\",\"statement\":\"The node-local BucketEntityManager is replaced by Cluster Sharding, so each bucket entity is a cluster-wide singleton addressed by EntityRef\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"a bucket entity is addressed via its EntityRef from any node in the cluster\",\"when\":\"messages are sent to that EntityRef from two different nodes concurrently\",\"then\":\"exactly one active instance of that bucket entity handles the messages cluster-wide\"},{\"id\":\"AC2\",\"given\":\"the node currently hosting a bucket entity's shard fails\",\"when\":\"cluster sharding detects the node is no longer reachable\",\"then\":\"the shard is rebalanced and the bucket entity is recreated on a surviving node\"},{\"id\":\"AC3\",\"given\":\"a bucket entity that previously ran under the single-node BucketEntityManager is migrated to Cluster Sharding\",\"when\":\"its persistence id and journal plugin configuration are inspected\",\"then\":\"the persistence id scheme and journal remain unchanged from the single-node implementation\"}]}]},{\"id\":\"E3\",\"title\":\"Projection work is distributed across the cluster\",\"stories\":[{\"id\":\"S4\",\"statement\":\"The projection runs via ShardedDaemonProcess, split across N slice ranges and rebalanced when cluster membership changes\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"the projection is started as a ShardedDaemonProcess with N configured slice ranges\",\"when\":\"the cluster is stable\",\"then\":\"each slice range is being processed by exactly one running projection worker, and all N ranges are covered\"},{\"id\":\"AC2\",\"given\":\"a node joins the running cluster\",\"when\":\"ShardedDaemonProcess rebalances\",\"then\":\"slice ranges are redistributed so the new node is assigned a share of them\"},{\"id\":\"AC3\",\"given\":\"a node hosting projection workers leaves the cluster\",\"when\":\"ShardedDaemonProcess rebalances\",\"then\":\"the slice ranges that node owned are reassigned to remaining nodes and continue being processed\"}]}]}]}"
+              },
+              "output": "File created successfully at: /private/tmp/claude-501/-private-var-folders-mg-x97bhp0j24x81r154ggq7bl00000gn-T-promptfoo-claude-agent-sdk-nvPsWQ/e6dffca5-8b83-42b7-8c5c-768f68a911b5/scratchpad/breakdown.json (file state is current in your context — no need to Read it back)",
+              "is_error": false,
+              "parentToolUseId": null
+            }
+          ],
+          "numTurns": 2,
+          "durationMs": 51544,
+          "durationApiMs": 49709,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 4,
+              "outputTokens": 5221,
+              "cacheReadInputTokens": 64974,
+              "cacheCreationInputTokens": 34664,
+              "webSearchRequests": 0,
+              "costUSD": 0.3058032,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "e6dffca5-8b83-42b7-8c5c-768f68a911b5"
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.2753706,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "schema": 1,
+            "coverage": 1,
+            "acceptance": 1,
+            "scope": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "coverage": 1,
+            "acceptance": 1,
+            "scope": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to breakdown.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "all 5 deliverables covered",
+              "assertion": {
+                "type": "javascript",
+                "metric": "coverage",
+                "value": "file://asserts/coverage.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "6 stories, criteria distinct and specific",
+              "assertion": {
+                "type": "javascript",
+                "metric": "acceptance",
+                "value": "file://asserts/acceptance.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "6 stories, domains within triage's, nothing invented",
+              "assertion": {
+                "type": "javascript",
+                "metric": "scope",
+                "value": "file://asserts/scope.js"
+              }
+            }
+          ]
+        },
+        "id": "2bc28552-30de-4f4f-ab6b-c6b1288a55b6",
+        "latencyMs": 51600,
+        "namedScores": {
+          "schema": 1,
+          "coverage": 1,
+          "acceptance": 1,
+          "scope": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-breakdown\ndescription: Break a triaged work item into epics, stories and acceptance criteria. Emits breakdown.json.\n---\n\n# Role\nYou are the planning node of a delivery pipeline. You turn one work item into the unit of\nwork the implementers build from: epics, the stories inside them, and the acceptance criteria\nthat say when a story is done. You plan what the item asks for; you do not design the\nsolution, choose libraries, or add work the item never requested.\n\n# Task\nRead the item and its triage artifact, and write the breakdown.\n\n# Context\nYour reply is written straight to `breakdown.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. The stories you write are\ndispatched to specialists by their `domains`, and the acceptance criteria become the tests, so\na criterion that asserts nothing testable becomes a test that proves nothing.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last is\n`}`: no preamble, no commentary, no code fence. Your reply is written straight to\n`breakdown.json` and parsed by `json.loads` with no cleanup step, so a ```json fence, or any\nsentence before or after the object, is a parse error and the step fails. Begin with `{`.\n\nA correct reply begins exactly like this, with no line above it:\n\n{\"item\":\"ABC-1\",\"epics\":[{\"id\":\"E1\",\"title\":\"Operator can browse the queue\",\"stories\":[…]}]}\n\nUse exactly this shape, with exactly these keys and no others:\n\n```\n{\n  \"item\": string,                       the item's key, copied exactly\n  \"epics\": [\n    {\n      \"id\": \"E1\",                       E followed by digits\n      \"title\": string,\n      \"stories\": [\n        {\n          \"id\": \"S1\",                   S followed by digits\n          \"statement\": string,\n          \"domains\": [string],\n          \"acceptance_criteria\": [\n            {\"id\": \"AC1\", \"given\": string, \"when\": string, \"then\": string}\n          ]\n        }\n      ]\n    }\n  ]\n}\n```\n\nIds match those patterns exactly: `E1`, `S1`, `AC1` — no prefixes, no dots, no `EPIC-1`.\n\n# Constraints\n\n## Covering the item\nWork through the item and account for everything it asks for. Every change it names — each\nfield, each screen, each endpoint, each toggle, each stated rule about how something must\nbehave — belongs to some story. A detail mentioned once in passing still counts: if the item\nsays the work must be idempotent, or that a component becomes a client component, that is a\nstory or an acceptance criterion, not something to leave out because it is small.\n\nName things the way the item names them. Do not introduce files, services or tickets it does\nnot mention.\n\n## Stories\nEvery epic has at least one story, every story at least one acceptance criterion. A story is a\npiece of work someone can finish and demonstrate: not one story for the whole item, and not a\nstory per line of code. Two stories should not restate the same work.\n\n## Domains\nA story's `domains` says which kinds of work it touches, using only these words:\n`ux`, `frontend`, `backend`, `contracts`, `infra`, `data`, `mobile`, `docs`.\n\nDraw them from the `domains` the triage artifact already found: a story may touch fewer than\ntriage listed, never more. A technology is not a domain — authentication, clustering and\nlogging are `backend` or `infra` work, not domains of their own.\n\n## Acceptance criteria\nEach criterion is one given / when / then, and the `then` states an outcome someone could\nobserve and check: a status code, a stored value, a rendered state, a rejected request. \"It\nworks\" is not an outcome.\n\nTwo criteria may share an outcome when their preconditions differ — a missing token and an\nexpired token can both end in a rejected request. What they may not be is the same criterion\nwritten twice: the same given, when and then.\n</skill>\n\nThe work item:\n\n{\n  \"key\": \"HP-12\",\n  \"title\": \"Expose a Prometheus /metrics endpoint\",\n  \"body\": \"The observability stack scrapes each service's Prometheus /metrics endpoint; Apollo and Hermes already expose one. Hephaestus has none, so it is invisible to Prometheus and Grafana \\u2014 no JVM health, no worker throughput, no failure rate.\\n\\nAdd GET /metrics on the existing HTTP port alongside /health, rendering the app CollectorRegistry. Use the same Prometheus simpleclient the sibling services use. A metrics.enabled toggle defaults to true; when disabled there is no route and a no-op recorder. Base JVM metrics plus worker metrics through a MetricsRecorder seam injected into the JobConsumer: jobs processed by lane and outcome, a processing-time histogram, and an in-flight gauge.\",\n  \"type_hint\": null,\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/HP-12\",\n  \"source\": \"github-issues\",\n  \"labels\": [],\n  \"links\": []\n}\n\nIts triage artifact:\n\n{\n  \"item\": \"HP-12\",\n  \"type\": \"feature\",\n  \"path\": \"standard\",\n  \"domains\": [\n    \"backend\"\n  ],\n  \"summary\": \"Expose a Prometheus /metrics endpoint\",\n  \"rationale\": \"new observable surface inside one service, following an established pattern. Corrected 2026-10-20: was [backend, infra]; the item changes a route, a registry and a config toggle inside the service \\u2014 the scrape side is not in scope here\",\n  \"handoff\": false,\n  \"handoff_reason\": null,\n  \"architecture_change\": false,\n  \"breaking_change\": false\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item:\n\n{{item}}\n\nIts triage artifact:\n\n{{triage}}",
+          "config": {}
+        },
+        "promptId": "3a12fdf74269fd61d2979dbd5744ec83c137e727091385ebc597dacb4d2cf5bb",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"HP-12\",\"epics\":[{\"id\":\"E1\",\"title\":\"Service exposes a Prometheus /metrics endpoint\",\"stories\":[{\"id\":\"S1\",\"statement\":\"Add GET /metrics on the existing HTTP port that renders the app CollectorRegistry in Prometheus exposition format, present when metrics.enabled is true (the default) and absent when it is disabled\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"metrics.enabled is true (the default)\",\"when\":\"a client sends GET /metrics on the service's existing HTTP port\",\"then\":\"the response is 200 and its body is the CollectorRegistry content rendered in Prometheus exposition format\"},{\"id\":\"AC2\",\"given\":\"metrics.enabled is set to false\",\"when\":\"a client sends GET /metrics\",\"then\":\"the /metrics route does not exist and the request is rejected (e.g. 404)\"}]},{\"id\":\"S2\",\"statement\":\"Register base JVM metrics in the CollectorRegistry using the same Prometheus simpleclient the sibling services (Apollo, Hermes) use\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC3\",\"given\":\"metrics.enabled is true\",\"when\":\"GET /metrics is scraped\",\"then\":\"the response includes the base JVM metrics (memory, GC, thread) registered via the Prometheus simpleclient\"}]}]},{\"id\":\"E2\",\"title\":\"Worker throughput and health are recorded through a MetricsRecorder seam in JobConsumer\",\"stories\":[{\"id\":\"S3\",\"statement\":\"JobConsumer records a jobs-processed counter labeled by lane and outcome through the injected MetricsRecorder\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC4\",\"given\":\"a job in a given lane completes successfully\",\"when\":\"JobConsumer finishes processing it\",\"then\":\"the jobs-processed counter for that lane with outcome=success is incremented by one\"},{\"id\":\"AC5\",\"given\":\"a job in a given lane fails\",\"when\":\"JobConsumer finishes processing it\",\"then\":\"the jobs-processed counter for that lane with outcome=failure is incremented by one\"}]},{\"id\":\"S4\",\"statement\":\"JobConsumer records a processing-time histogram through the injected MetricsRecorder\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC6\",\"given\":\"a job is processed\",\"when\":\"JobConsumer completes handling it\",\"then\":\"the processing-time histogram records an observation equal to the elapsed processing duration\"}]},{\"id\":\"S5\",\"statement\":\"JobConsumer tracks an in-flight gauge of jobs currently being processed through the injected MetricsRecorder\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC7\",\"given\":\"a job begins processing\",\"when\":\"JobConsumer starts handling it\",\"then\":\"the in-flight gauge is incremented by one\"},{\"id\":\"AC8\",\"given\":\"that same job finishes processing\",\"when\":\"JobConsumer completes handling it\",\"then\":\"the in-flight gauge is decremented by one\"}]},{\"id\":\"S6\",\"statement\":\"When metrics.enabled is false, JobConsumer is wired to a no-op MetricsRecorder so worker instrumentation has no effect\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC9\",\"given\":\"metrics.enabled is set to false\",\"when\":\"JobConsumer processes a job\",\"then\":\"the no-op MetricsRecorder receives the calls and no counter, histogram, or gauge value is recorded in any registry\"}]}]}]}",
+          "tokenUsage": {
+            "prompt": 2,
+            "completion": 5711,
+            "total": 5713
+          },
+          "cost": 0.2753706,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":50848,\"duration_api_ms\":49858,\"ttft_ms\":42591,\"ttft_stream_ms\":1651,\"time_to_request_ms\":17,\"num_turns\":1,\"result\":\"{\\\"item\\\":\\\"HP-12\\\",\\\"epics\\\":[{\\\"id\\\":\\\"E1\\\",\\\"title\\\":\\\"Service exposes a Prometheus /metrics endpoint\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S1\\\",\\\"statement\\\":\\\"Add GET /metrics on the existing HTTP port that renders the app CollectorRegistry in Prometheus exposition format, present when metrics.enabled is true (the default) and absent when it is disabled\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"metrics.enabled is true (the default)\\\",\\\"when\\\":\\\"a client sends GET /metrics on the service's existing HTTP port\\\",\\\"then\\\":\\\"the response is 200 and its body is the CollectorRegistry content rendered in Prometheus exposition format\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"metrics.enabled is set to false\\\",\\\"when\\\":\\\"a client sends GET /metrics\\\",\\\"then\\\":\\\"the /metrics route does not exist and the request is rejected (e.g. 404)\\\"}]},{\\\"id\\\":\\\"S2\\\",\\\"statement\\\":\\\"Register base JVM metrics in the CollectorRegistry using the same Prometheus simpleclient the sibling services (Apollo, Hermes) use\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"metrics.enabled is true\\\",\\\"when\\\":\\\"GET /metrics is scraped\\\",\\\"then\\\":\\\"the response includes the base JVM metrics (memory, GC, thread) registered via the Prometheus simpleclient\\\"}]}]},{\\\"id\\\":\\\"E2\\\",\\\"title\\\":\\\"Worker throughput and health are recorded through a MetricsRecorder seam in JobConsumer\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S3\\\",\\\"statement\\\":\\\"JobConsumer records a jobs-processed counter labeled by lane and outcome through the injected MetricsRecorder\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC4\\\",\\\"given\\\":\\\"a job in a given lane completes successfully\\\",\\\"when\\\":\\\"JobConsumer finishes processing it\\\",\\\"then\\\":\\\"the jobs-processed counter for that lane with outcome=success is incremented by one\\\"},{\\\"id\\\":\\\"AC5\\\",\\\"given\\\":\\\"a job in a given lane fails\\\",\\\"when\\\":\\\"JobConsumer finishes processing it\\\",\\\"then\\\":\\\"the jobs-processed counter for that lane with outcome=failure is incremented by one\\\"}]},{\\\"id\\\":\\\"S4\\\",\\\"statement\\\":\\\"JobConsumer records a processing-time histogram through the injected MetricsRecorder\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC6\\\",\\\"given\\\":\\\"a job is processed\\\",\\\"when\\\":\\\"JobConsumer completes handling it\\\",\\\"then\\\":\\\"the processing-time histogram records an observation equal to the elapsed processing duration\\\"}]},{\\\"id\\\":\\\"S5\\\",\\\"statement\\\":\\\"JobConsumer tracks an in-flight gauge of jobs currently being processed through the injected MetricsRecorder\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC7\\\",\\\"given\\\":\\\"a job begins processing\\\",\\\"when\\\":\\\"JobConsumer starts handling it\\\",\\\"then\\\":\\\"the in-flight gauge is incremented by one\\\"},{\\\"id\\\":\\\"AC8\\\",\\\"given\\\":\\\"that same job finishes processing\\\",\\\"when\\\":\\\"JobConsumer completes handling it\\\",\\\"then\\\":\\\"the in-flight gauge is decremented by one\\\"}]},{\\\"id\\\":\\\"S6\\\",\\\"statement\\\":\\\"When metrics.enabled is false, JobConsumer is wired to a no-op MetricsRecorder so worker instrumentation has no effect\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC9\\\",\\\"given\\\":\\\"metrics.enabled is set to false\\\",\\\"when\\\":\\\"JobConsumer processes a job\\\",\\\"then\\\":\\\"the no-op MetricsRecorder receives the calls and no counter, histogram, or gauge value is recorded in any registry\\\"}]}]}]}\",\"stop_reason\":\"end_turn\",\"session_id\":\"b3e2e3cd-adca-41f1-8a7a-75309d3fd617\",\"total_cost_usd\":0.2753706,\"usage\":{\"input_tokens\":2,\"cache_creation_input_tokens\":30761,\"cache_read_input_tokens\":17112,\"output_tokens\":5711,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":30761,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":5711,\"cache_read_input_tokens\":17112,\"cache_creation_input_tokens\":30761,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":30761},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":2,\"outputTokens\":5711,\"cacheReadInputTokens\":17112,\"cacheCreationInputTokens\":30761,\"webSearchRequests\":0,\"costUSD\":0.2753706,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"2235925a-27ec-40ac-80f1-be72a8e8be36\"}",
+          "sessionId": "b3e2e3cd-adca-41f1-8a7a-75309d3fd617",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [],
+            "numTurns": 1,
+            "durationMs": 50848,
+            "durationApiMs": 49858,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 2,
+                "outputTokens": 5711,
+                "cacheReadInputTokens": 17112,
+                "cacheCreationInputTokens": 30761,
+                "webSearchRequests": 0,
+                "costUSD": 0.2753706,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-06-metrics-endpoint",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-06-metrics-endpoint",
+            "item": "file://inputs/case-06-metrics-endpoint.item.json",
+            "triage": "file://inputs/case-06-metrics-endpoint.triage.json",
+            "sessionId": "b3e2e3cd-adca-41f1-8a7a-75309d3fd617"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "coverage",
+              "value": "file://asserts/coverage.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "acceptance",
+              "value": "file://asserts/acceptance.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "scope",
+              "value": "file://asserts/scope.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 4,
+        "tokenUsage": {
+          "prompt": 2,
+          "completion": 5711,
+          "cached": 0,
+          "total": 5713,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-06-metrics-endpoint",
+          "item": "file://inputs/case-06-metrics-endpoint.item.json",
+          "triage": "file://inputs/case-06-metrics-endpoint.triage.json",
+          "sessionId": "b3e2e3cd-adca-41f1-8a7a-75309d3fd617"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [],
+          "numTurns": 1,
+          "durationMs": 50848,
+          "durationApiMs": 49858,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 2,
+              "outputTokens": 5711,
+              "cacheReadInputTokens": 17112,
+              "cacheCreationInputTokens": 30761,
+              "webSearchRequests": 0,
+              "costUSD": 0.2753706,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "b3e2e3cd-adca-41f1-8a7a-75309d3fd617"
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.2328036,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "schema": 1,
+            "coverage": 1,
+            "acceptance": 1,
+            "scope": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "coverage": 1,
+            "acceptance": 1,
+            "scope": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to breakdown.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "all 5 deliverables covered",
+              "assertion": {
+                "type": "javascript",
+                "metric": "coverage",
+                "value": "file://asserts/coverage.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "3 stories, criteria distinct and specific",
+              "assertion": {
+                "type": "javascript",
+                "metric": "acceptance",
+                "value": "file://asserts/acceptance.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "3 stories, domains within triage's, nothing invented",
+              "assertion": {
+                "type": "javascript",
+                "metric": "scope",
+                "value": "file://asserts/scope.js"
+              }
+            }
+          ]
+        },
+        "id": "f0be4ce5-c4ca-40d4-a350-5b4d461d8971",
+        "latencyMs": 28529,
+        "namedScores": {
+          "schema": 1,
+          "coverage": 1,
+          "acceptance": 1,
+          "scope": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-breakdown\ndescription: Break a triaged work item into epics, stories and acceptance criteria. Emits breakdown.json.\n---\n\n# Role\nYou are the planning node of a delivery pipeline. You turn one work item into the unit of\nwork the implementers build from: epics, the stories inside them, and the acceptance criteria\nthat say when a story is done. You plan what the item asks for; you do not design the\nsolution, choose libraries, or add work the item never requested.\n\n# Task\nRead the item and its triage artifact, and write the breakdown.\n\n# Context\nYour reply is written straight to `breakdown.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. The stories you write are\ndispatched to specialists by their `domains`, and the acceptance criteria become the tests, so\na criterion that asserts nothing testable becomes a test that proves nothing.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last is\n`}`: no preamble, no commentary, no code fence. Your reply is written straight to\n`breakdown.json` and parsed by `json.loads` with no cleanup step, so a ```json fence, or any\nsentence before or after the object, is a parse error and the step fails. Begin with `{`.\n\nA correct reply begins exactly like this, with no line above it:\n\n{\"item\":\"ABC-1\",\"epics\":[{\"id\":\"E1\",\"title\":\"Operator can browse the queue\",\"stories\":[…]}]}\n\nUse exactly this shape, with exactly these keys and no others:\n\n```\n{\n  \"item\": string,                       the item's key, copied exactly\n  \"epics\": [\n    {\n      \"id\": \"E1\",                       E followed by digits\n      \"title\": string,\n      \"stories\": [\n        {\n          \"id\": \"S1\",                   S followed by digits\n          \"statement\": string,\n          \"domains\": [string],\n          \"acceptance_criteria\": [\n            {\"id\": \"AC1\", \"given\": string, \"when\": string, \"then\": string}\n          ]\n        }\n      ]\n    }\n  ]\n}\n```\n\nIds match those patterns exactly: `E1`, `S1`, `AC1` — no prefixes, no dots, no `EPIC-1`.\n\n# Constraints\n\n## Covering the item\nWork through the item and account for everything it asks for. Every change it names — each\nfield, each screen, each endpoint, each toggle, each stated rule about how something must\nbehave — belongs to some story. A detail mentioned once in passing still counts: if the item\nsays the work must be idempotent, or that a component becomes a client component, that is a\nstory or an acceptance criterion, not something to leave out because it is small.\n\nName things the way the item names them. Do not introduce files, services or tickets it does\nnot mention.\n\n## Stories\nEvery epic has at least one story, every story at least one acceptance criterion. A story is a\npiece of work someone can finish and demonstrate: not one story for the whole item, and not a\nstory per line of code. Two stories should not restate the same work.\n\n## Domains\nA story's `domains` says which kinds of work it touches, using only these words:\n`ux`, `frontend`, `backend`, `contracts`, `infra`, `data`, `mobile`, `docs`.\n\nDraw them from the `domains` the triage artifact already found: a story may touch fewer than\ntriage listed, never more. A technology is not a domain — authentication, clustering and\nlogging are `backend` or `infra` work, not domains of their own.\n\n## Acceptance criteria\nEach criterion is one given / when / then, and the `then` states an outcome someone could\nobserve and check: a status code, a stored value, a rendered state, a rejected request. \"It\nworks\" is not an outcome.\n\nTwo criteria may share an outcome when their preconditions differ — a missing token and an\nexpired token can both end in a rejected request. What they may not be is the same criterion\nwritten twice: the same given, when and then.\n</skill>\n\nThe work item:\n\n{\n  \"key\": \"57\",\n  \"title\": \"Ergonomic DLQ operator endpoints: browse + redrive/replay dead-letters\",\n  \"body\": \"Dead-lettered messages are currently only visible by querying the journal directly. An operator needs to see what is stuck and put it back: browse the dead-letter queue for a subscription with paging, inspect a message's payload and failure reason, and redrive selected messages (or all of them) back onto the subscription for another delivery attempt. Replay should be idempotent and must not disturb in-flight delivery.\",\n  \"type_hint\": null,\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/57\",\n  \"source\": \"github-issues\",\n  \"labels\": [],\n  \"links\": []\n}\n\nIts triage artifact:\n\n{\n  \"item\": \"57\",\n  \"type\": \"feature\",\n  \"path\": \"standard\",\n  \"domains\": [\n    \"backend\"\n  ],\n  \"summary\": \"Ergonomic DLQ operator endpoints: browse + redrive/replay dead-letters\",\n  \"rationale\": \"new operator endpoints over existing state\",\n  \"handoff\": false,\n  \"handoff_reason\": null,\n  \"architecture_change\": false,\n  \"breaking_change\": false\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item:\n\n{{item}}\n\nIts triage artifact:\n\n{{triage}}",
+          "config": {}
+        },
+        "promptId": "3a12fdf74269fd61d2979dbd5744ec83c137e727091385ebc597dacb4d2cf5bb",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"57\",\"epics\":[{\"id\":\"E1\",\"title\":\"Operator can browse the dead-letter queue\",\"stories\":[{\"id\":\"S1\",\"statement\":\"Operator lists dead-lettered messages for a subscription with paging\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"a subscription has dead-lettered messages\",\"when\":\"the operator requests the DLQ listing for that subscription\",\"then\":\"the response returns a page of dead-letter entries belonging to that subscription\"},{\"id\":\"AC2\",\"given\":\"a subscription has more dead-lettered messages than fit on one page\",\"when\":\"the operator requests the next page using the previous page's continuation token\",\"then\":\"the response returns the next page of entries with no entry repeated or skipped across pages\"},{\"id\":\"AC3\",\"given\":\"a subscription has no dead-lettered messages\",\"when\":\"the operator requests the DLQ listing for that subscription\",\"then\":\"the response returns an empty list rather than an error\"}]},{\"id\":\"S2\",\"statement\":\"Operator inspects a dead-lettered message's payload and failure reason\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"a dead-lettered message exists in a subscription's DLQ\",\"when\":\"the operator requests that message's detail\",\"then\":\"the response includes the message's payload\"},{\"id\":\"AC2\",\"given\":\"a dead-lettered message exists in a subscription's DLQ\",\"when\":\"the operator requests that message's detail\",\"then\":\"the response includes the recorded failure reason\"},{\"id\":\"AC3\",\"given\":\"a message id does not correspond to a dead-lettered message\",\"when\":\"the operator requests detail for that id\",\"then\":\"the request is rejected rather than returning message data\"}]}]},{\"id\":\"E2\",\"title\":\"Operator can redrive dead-lettered messages back onto the subscription\",\"stories\":[{\"id\":\"S3\",\"statement\":\"Operator redrives selected or all dead-lettered messages for a subscription, safely and idempotently\",\"domains\":[\"backend\"],\"acceptance_criteria\":[{\"id\":\"AC1\",\"given\":\"the operator has selected specific dead-lettered message ids on a subscription\",\"when\":\"the operator submits a redrive for those ids\",\"then\":\"exactly the selected messages are placed back onto the subscription for another delivery attempt\"},{\"id\":\"AC2\",\"given\":\"a subscription has dead-lettered messages and the operator submits a redrive without selecting specific ids\",\"when\":\"the redrive-all request is processed\",\"then\":\"every dead-lettered message currently in that subscription's DLQ is placed back for another delivery attempt\"},{\"id\":\"AC3\",\"given\":\"a redrive request for a set of message ids has already completed\",\"when\":\"the same redrive request is submitted again for those ids\",\"then\":\"the messages are not queued for a second redelivery and the stored DLQ/subscription state is unchanged beyond the first redrive's effect\"},{\"id\":\"AC4\",\"given\":\"a subscription has deliveries currently in flight\",\"when\":\"a redrive request for that subscription is processed concurrently\",\"then\":\"the in-flight deliveries complete undisturbed and are not duplicated, cancelled, or redelivered as a side effect of the redrive\"}]}]}]}",
+          "tokenUsage": {
+            "prompt": 2,
+            "completion": 2942,
+            "total": 2944
+          },
+          "cost": 0.2328036,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":27632,\"duration_api_ms\":26665,\"ttft_ms\":18962,\"ttft_stream_ms\":1416,\"time_to_request_ms\":19,\"num_turns\":1,\"result\":\"{\\\"item\\\":\\\"57\\\",\\\"epics\\\":[{\\\"id\\\":\\\"E1\\\",\\\"title\\\":\\\"Operator can browse the dead-letter queue\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S1\\\",\\\"statement\\\":\\\"Operator lists dead-lettered messages for a subscription with paging\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"a subscription has dead-lettered messages\\\",\\\"when\\\":\\\"the operator requests the DLQ listing for that subscription\\\",\\\"then\\\":\\\"the response returns a page of dead-letter entries belonging to that subscription\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"a subscription has more dead-lettered messages than fit on one page\\\",\\\"when\\\":\\\"the operator requests the next page using the previous page's continuation token\\\",\\\"then\\\":\\\"the response returns the next page of entries with no entry repeated or skipped across pages\\\"},{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"a subscription has no dead-lettered messages\\\",\\\"when\\\":\\\"the operator requests the DLQ listing for that subscription\\\",\\\"then\\\":\\\"the response returns an empty list rather than an error\\\"}]},{\\\"id\\\":\\\"S2\\\",\\\"statement\\\":\\\"Operator inspects a dead-lettered message's payload and failure reason\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"a dead-lettered message exists in a subscription's DLQ\\\",\\\"when\\\":\\\"the operator requests that message's detail\\\",\\\"then\\\":\\\"the response includes the message's payload\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"a dead-lettered message exists in a subscription's DLQ\\\",\\\"when\\\":\\\"the operator requests that message's detail\\\",\\\"then\\\":\\\"the response includes the recorded failure reason\\\"},{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"a message id does not correspond to a dead-lettered message\\\",\\\"when\\\":\\\"the operator requests detail for that id\\\",\\\"then\\\":\\\"the request is rejected rather than returning message data\\\"}]}]},{\\\"id\\\":\\\"E2\\\",\\\"title\\\":\\\"Operator can redrive dead-lettered messages back onto the subscription\\\",\\\"stories\\\":[{\\\"id\\\":\\\"S3\\\",\\\"statement\\\":\\\"Operator redrives selected or all dead-lettered messages for a subscription, safely and idempotently\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"acceptance_criteria\\\":[{\\\"id\\\":\\\"AC1\\\",\\\"given\\\":\\\"the operator has selected specific dead-lettered message ids on a subscription\\\",\\\"when\\\":\\\"the operator submits a redrive for those ids\\\",\\\"then\\\":\\\"exactly the selected messages are placed back onto the subscription for another delivery attempt\\\"},{\\\"id\\\":\\\"AC2\\\",\\\"given\\\":\\\"a subscription has dead-lettered messages and the operator submits a redrive without selecting specific ids\\\",\\\"when\\\":\\\"the redrive-all request is processed\\\",\\\"then\\\":\\\"every dead-lettered message currently in that subscription's DLQ is placed back for another delivery attempt\\\"},{\\\"id\\\":\\\"AC3\\\",\\\"given\\\":\\\"a redrive request for a set of message ids has already completed\\\",\\\"when\\\":\\\"the same redrive request is submitted again for those ids\\\",\\\"then\\\":\\\"the messages are not queued for a second redelivery and the stored DLQ/subscription state is unchanged beyond the first redrive's effect\\\"},{\\\"id\\\":\\\"AC4\\\",\\\"given\\\":\\\"a subscription has deliveries currently in flight\\\",\\\"when\\\":\\\"a redrive request for that subscription is processed concurrently\\\",\\\"then\\\":\\\"the in-flight deliveries complete undisturbed and are not duplicated, cancelled, or redelivered as a side effect of the redrive\\\"}]}]}]}\",\"stop_reason\":\"end_turn\",\"session_id\":\"0624413b-e804-4d84-8917-ff3c0d6e9ff4\",\"total_cost_usd\":0.2328036,\"usage\":{\"input_tokens\":2,\"cache_creation_input_tokens\":30589,\"cache_read_input_tokens\":17112,\"output_tokens\":2942,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":30589,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":2942,\"cache_read_input_tokens\":17112,\"cache_creation_input_tokens\":30589,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":30589},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":2,\"outputTokens\":2942,\"cacheReadInputTokens\":17112,\"cacheCreationInputTokens\":30589,\"webSearchRequests\":0,\"costUSD\":0.2328036,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"09fb0fe3-c42a-41a2-9160-9df33a13a080\"}",
+          "sessionId": "0624413b-e804-4d84-8917-ff3c0d6e9ff4",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [],
+            "numTurns": 1,
+            "durationMs": 27632,
+            "durationApiMs": 26665,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 2,
+                "outputTokens": 2942,
+                "cacheReadInputTokens": 17112,
+                "cacheCreationInputTokens": 30589,
+                "webSearchRequests": 0,
+                "costUSD": 0.2328036,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-07-dlq-endpoints",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-07-dlq-endpoints",
+            "item": "file://inputs/case-07-dlq-endpoints.item.json",
+            "triage": "file://inputs/case-07-dlq-endpoints.triage.json",
+            "sessionId": "0624413b-e804-4d84-8917-ff3c0d6e9ff4"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "coverage",
+              "value": "file://asserts/coverage.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "acceptance",
+              "value": "file://asserts/acceptance.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "scope",
+              "value": "file://asserts/scope.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 5,
+        "tokenUsage": {
+          "prompt": 2,
+          "completion": 2942,
+          "cached": 0,
+          "total": 2944,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-07-dlq-endpoints",
+          "item": "file://inputs/case-07-dlq-endpoints.item.json",
+          "triage": "file://inputs/case-07-dlq-endpoints.triage.json",
+          "sessionId": "0624413b-e804-4d84-8917-ff3c0d6e9ff4"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [],
+          "numTurns": 1,
+          "durationMs": 27632,
+          "durationApiMs": 26665,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 2,
+              "outputTokens": 2942,
+              "cacheReadInputTokens": 17112,
+              "cacheCreationInputTokens": 30589,
+              "webSearchRequests": 0,
+              "costUSD": 0.2328036,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "0624413b-e804-4d84-8917-ff3c0d6e9ff4"
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 6,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 20,
+        "completion": 32436,
+        "cached": 0,
+        "total": 32456,
+        "numRequests": 6,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 87465,
+      "evaluationDurationMs": 87465
+    }
+  },
+  "config": {
+    "description": "delivery-flow breakdown node: schema, coverage, acceptance, scope on 6 standard-path items",
+    "prompts": [
+      "file://prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "anthropic:claude-agent-sdk",
+        "label": "haiku",
+        "config": {
+          "model": "haiku",
+          "apiKeyRequired": false,
+          "max_turns": 5
+        }
+      },
+      {
+        "id": "anthropic:claude-agent-sdk",
+        "label": "sonnet",
+        "config": {
+          "model": "sonnet",
+          "apiKeyRequired": false,
+          "max_turns": 5
+        }
+      }
+    ],
+    "tests": [
+      {
+        "description": "case-01-pantry-items",
+        "vars": {
+          "case": "case-01-pantry-items",
+          "item": "file://inputs/case-01-pantry-items.item.json",
+          "triage": "file://inputs/case-01-pantry-items.triage.json"
+        }
+      },
+      {
+        "description": "case-02-sidebar-nav",
+        "vars": {
+          "case": "case-02-sidebar-nav",
+          "item": "file://inputs/case-02-sidebar-nav.item.json",
+          "triage": "file://inputs/case-02-sidebar-nav.triage.json"
+        }
+      },
+      {
+        "description": "case-03-auth-tenancy",
+        "vars": {
+          "case": "case-03-auth-tenancy",
+          "item": "file://inputs/case-03-auth-tenancy.item.json",
+          "triage": "file://inputs/case-03-auth-tenancy.triage.json"
+        }
+      },
+      {
+        "description": "case-05-clustering",
+        "vars": {
+          "case": "case-05-clustering",
+          "item": "file://inputs/case-05-clustering.item.json",
+          "triage": "file://inputs/case-05-clustering.triage.json"
+        }
+      },
+      {
+        "description": "case-06-metrics-endpoint",
+        "vars": {
+          "case": "case-06-metrics-endpoint",
+          "item": "file://inputs/case-06-metrics-endpoint.item.json",
+          "triage": "file://inputs/case-06-metrics-endpoint.triage.json"
+        }
+      },
+      {
+        "description": "case-07-dlq-endpoints",
+        "vars": {
+          "case": "case-07-dlq-endpoints",
+          "item": "file://inputs/case-07-dlq-endpoints.item.json",
+          "triage": "file://inputs/case-07-dlq-endpoints.triage.json"
+        }
+      }
+    ],
+    "defaultTest": {
+      "vars": {
+        "skill": "file://prompts/current.md"
+      },
+      "assert": [
+        {
+          "type": "javascript",
+          "metric": "schema",
+          "value": "file://asserts/schema.js"
+        },
+        {
+          "type": "javascript",
+          "metric": "coverage",
+          "value": "file://asserts/coverage.js"
+        },
+        {
+          "type": "javascript",
+          "metric": "acceptance",
+          "value": "file://asserts/acceptance.js"
+        },
+        {
+          "type": "javascript",
+          "metric": "scope",
+          "value": "file://asserts/scope.js"
+        }
+      ]
+    },
+    "outputPath": [
+      "results/run_v6_sonnet.json"
+    ],
+    "extensions": []
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.121.19",
+    "nodeVersion": "v26.9.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-21T02:24:31.222Z",
+    "evaluationCreatedAt": "2026-10-21T02:23:03.715Z"
+  },
+  "vars": [
+    "skill",
+    "case",
+    "item",
+    "triage"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false,
+    "providerFilter": "^sonnet$"
+  }
+}

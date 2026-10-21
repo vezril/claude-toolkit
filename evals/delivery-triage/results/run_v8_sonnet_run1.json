@@ -1,0 +1,2425 @@
+{
+  "evalId": "eval-yhC-2026-10-20T13:39:28",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-20T13:39:28.382Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item to triage:\n\n{{item}}",
+        "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item to triage:\n\n{{item}}",
+        "id": "bea2fe09b30cba30ece804f94131d22ef97c8ce3f89f539b7122ae415f116ba1",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 9.5,
+          "testPassCount": 8,
+          "testFailCount": 2,
+          "testErrorCount": 0,
+          "assertPassCount": 38,
+          "assertFailCount": 2,
+          "totalLatencyMs": 122187,
+          "tokenUsage": {
+            "prompt": 22,
+            "completion": 5620,
+            "cached": 0,
+            "total": 5642,
+            "numRequests": 10,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "schema": 10,
+            "classification": 10,
+            "domains": 8,
+            "grounding": 10
+          },
+          "namedScoresCount": {
+            "schema": 10,
+            "classification": 10,
+            "domains": 10,
+            "grounding": 10
+          },
+          "namedScoreWeights": {
+            "schema": 10,
+            "classification": 10,
+            "domains": 10,
+            "grounding": 10
+          },
+          "cost": 2.0177240999999997
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0.21099659999999998,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to triage.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "type=feature path=standard and all three flags correct",
+              "assertion": {
+                "type": "javascript",
+                "metric": "classification",
+                "value": "file://asserts/classification.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "domains [\"ux\",\"backend\"] match",
+              "assertion": {
+                "type": "javascript",
+                "metric": "domains",
+                "value": "file://asserts/domains.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "summary and rationale grounded in the item",
+              "assertion": {
+                "type": "javascript",
+                "metric": "grounding",
+                "value": "file://asserts/grounding.js"
+              }
+            }
+          ]
+        },
+        "id": "a328f616-a237-49d2-b45c-de668d37b6bd",
+        "latencyMs": 19442,
+        "namedScores": {
+          "schema": 1,
+          "classification": 1,
+          "domains": 1,
+          "grounding": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-triage\ndescription: Classify a tracker item for the delivery pipeline — type, path, domains, and the policy flags the flow branches on. Emits triage.json.\n---\n\n# Role\nYou are the first node of a delivery pipeline. You read one work item and decide how the\nrest of the flow should treat it. You are classifying what the item says, not planning the\nwork and not judging whether it is a good idea.\n\n# Task\nRead the item below and write the triage artifact for it.\n\n# Context\nYour reply is written straight to `triage.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. Later steps branch on\nthese fields: `type` and `path` choose the route, `domains` decides which specialists are\ndispatched, and the three flags decide whether the flow stops and asks a human. A field you\nguess at sends real work to the wrong place.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last\nis `}`: no preamble, no commentary, no code fence.\n\nUse exactly these keys and these value types:\n\n```\n{\n  \"item\": string,                  the item's key, copied exactly\n  \"type\": \"bug\" | \"feature\" | \"task\",\n  \"path\": \"quick\" | \"standard\",\n  \"domains\": [string],             the kinds of work this touches, from the list below\n  \"summary\": string,               one sentence on what the item asks for\n  \"rationale\": string,             why you classified it this way, citing the item\n  \"handoff\": true | false,\n  \"handoff_reason\": string | null, required when handoff is true, otherwise null\n  \"architecture_change\": true | false,\n  \"breaking_change\": true | false\n}\n```\n\n`handoff`, `architecture_change` and `breaking_change` are booleans, never strings and never\nthe name of a person or an agent. No other keys.\n\nA correct reply looks exactly like this, in full:\n\n{\"item\":\"ABC-1\",\"type\":\"bug\",\"path\":\"quick\",\"domains\":[\"backend\"],\"summary\":\"The export endpoint returns 500 on an empty range.\",\"rationale\":\"A defect report against existing behaviour with a clear reproduction.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}\n\n# Constraints\n\n## Type and path\n- `bug` — something that works incorrectly today. `feature` — new behaviour someone will\n  notice. `task` — work with no user-visible behaviour change: dependency bumps, plumbing,\n  configuration, tidying.\n- `path` follows from `type`, with no judgement about size: a `bug` or a `task` takes the\n  `quick` path, a `feature` takes the `standard` path. A small feature is still `standard`.\n\n## Domains\n`domains` uses only these words. Pick every one the work touches, and nothing else — an\nempty array is the right answer when the item names no work you can place.\n\n- `ux` — anything a person sees or operates: screens, navigation, layout, copy, visual\n  assets. A change to a user interface is `ux`, including the code that renders it. Do not\n  add `frontend` as well.\n- `frontend` — browser application code with no user-visible design element: client state\n  plumbing, bundler and build config for the web app. Rare; `ux` covers most UI work.\n- `backend` — services, APIs, domain logic, persistence, and a service's own configuration,\n  including config whose purpose is operational (its logging, its metrics wiring)\n- `contracts` — a shared interface artifact other services compile against, kept outside the\n  service that serves it. A service's own REST or gRPC surface is `backend`, not `contracts`.\n- `infra` — build, CI, containers, charts, deployment, and the platform side of observability\n- `data` — analytics, pipelines, warehouses. An application's own schema is `backend`.\n- `mobile` — iOS or Android applications\n- `docs` — documentation written for people\n\nA technology is not a domain: Pekko clustering, authentication and logging are all `backend`\nor `infra` work, not domains of their own.\n\n## The three flags\nEach flag is false unless its own test is met. They are independent: a large change can set\nnone of them.\n\n- `architecture_change` — true when the change moves a boundary: a new or removed service\n  (including one the item only proposes in a sentence), a new runtime topology (clustering,\n  sharding, a queue between services), or a new cross-cutting layer every request passes\n  through, such as authentication or tenant isolation. Adding an endpoint, a dependency,\n  logging or metrics *inside* one service, under the topology it already has, is not an\n  architecture change, however much code it touches. A `handoff` for scope is usually also an\n  `architecture_change` when what is proposed is a new service.\n- `breaking_change` — true when something that works today stops working unless its caller\n  changes: a removed or renamed field, changed semantics, an incompatible migration. A change\n  the item describes as backward compatible, or that ships behind a default-off switch or a\n  compatibility mode, is not breaking.\n- `handoff` — true when the item cannot be scoped from what it says: it proposes a whole new\n  service with a sentence of description, or it asks for contradictory things, or the decision\n  is someone's to make rather than yours. A large, well-described change is not a handoff. When\n  `handoff` is true, give the reason and leave `domains` empty — do not guess the shape of work\n  you are handing back.\n\n## Summary and rationale\nBoth describe this item and nothing else. Use the item's own words for the things it names;\ndo not name files, services or tickets it does not mention. The rationale says what in the\nitem drove the classification, not that the classification is correct.\n</skill>\n\nThe work item to triage:\n\n{\n  \"key\": \"DP-61\",\n  \"title\": \"Stock the pantry with real branded products\",\n  \"body\": \"Calvin wants to stock the pantry with real branded products (\\\"Ritz crackers\\\"), not just generic ingredients \\u2014 created in one step from the pantry page, with product identity captured (barcode above all). A product you're temporarily out of is still your product: running out must not erase it from the pantry.\\n\\nToday this takes two disconnected steps (create a custom ingredient at /ingredients/new, then add it at /pantry), captures no product identity (no barcode/brand/package size anywhere in the model), and a pantry row at zero quantity can't exist (quantity > 0 is enforced).\\n\\nWhat should change: ingredient gains optional product-identity fields (brand, barcode unique when present, packageQuantity + packageUnit). A \\\"Create custom item\\\" button on /pantry opens a one-step form that creates the custom ingredient and its pantry row in one Server Action. Zero-quantity pantry rows become valid and render an \\\"out of stock\\\" state. The ingredient form gains the same optional fields, and /pantry/[id] shows them when present.\",\n  \"type_hint\": null,\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/DP-61\",\n  \"source\": \"local-markdown\",\n  \"labels\": [],\n  \"links\": []\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item to triage:\n\n{{item}}",
+          "config": {}
+        },
+        "promptId": "bea2fe09b30cba30ece804f94131d22ef97c8ce3f89f539b7122ae415f116ba1",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"DP-61\",\"type\":\"feature\",\"path\":\"standard\",\"domains\":[\"ux\",\"backend\"],\"summary\":\"Add optional product-identity fields (brand, barcode, package quantity/unit) to ingredients, let a one-step form on /pantry create a custom ingredient and its pantry row together in one Server Action, and allow zero-quantity pantry rows to persist and render an out-of-stock state.\",\"rationale\":\"The item asks for new user-visible behaviour \\u2014 a one-step creation form, captured product identity, and an out-of-stock state \\u2014 rather than correcting something broken, so it is a feature; it names the model fields, the button and form to change, and the constraint to relax specifically enough to scope directly, and touches only the ingredient/pantry model and its forms, not a new service or shared boundary.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}",
+          "tokenUsage": {
+            "prompt": 2,
+            "completion": 1241,
+            "total": 1243
+          },
+          "cost": 0.21099659999999998,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":16951,\"duration_api_ms\":15397,\"ttft_ms\":12886,\"ttft_stream_ms\":3321,\"time_to_request_ms\":137,\"num_turns\":1,\"result\":\"{\\\"item\\\":\\\"DP-61\\\",\\\"type\\\":\\\"feature\\\",\\\"path\\\":\\\"standard\\\",\\\"domains\\\":[\\\"ux\\\",\\\"backend\\\"],\\\"summary\\\":\\\"Add optional product-identity fields (brand, barcode, package quantity/unit) to ingredients, let a one-step form on /pantry create a custom ingredient and its pantry row together in one Server Action, and allow zero-quantity pantry rows to persist and render an out-of-stock state.\\\",\\\"rationale\\\":\\\"The item asks for new user-visible behaviour \\\\u2014 a one-step creation form, captured product identity, and an out-of-stock state \\\\u2014 rather than correcting something broken, so it is a feature; it names the model fields, the button and form to change, and the constraint to relax specifically enough to scope directly, and touches only the ingredient/pantry model and its forms, not a new service or shared boundary.\\\",\\\"handoff\\\":false,\\\"handoff_reason\\\":null,\\\"architecture_change\\\":false,\\\"breaking_change\\\":false}\",\"stop_reason\":\"end_turn\",\"session_id\":\"5844db12-8315-4326-bb4f-f7cfdd4f48fb\",\"total_cost_usd\":0.21099659999999998,\"usage\":{\"input_tokens\":2,\"cache_creation_input_tokens\":31207,\"cache_read_input_tokens\":17112,\"output_tokens\":1241,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":31207,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":1241,\"cache_read_input_tokens\":17112,\"cache_creation_input_tokens\":31207,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":31207},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":2,\"outputTokens\":1241,\"cacheReadInputTokens\":17112,\"cacheCreationInputTokens\":31207,\"webSearchRequests\":0,\"costUSD\":0.21099659999999998,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"21ebf1d6-5c3b-40c0-8091-5c17b73436c7\"}",
+          "sessionId": "5844db12-8315-4326-bb4f-f7cfdd4f48fb",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [],
+            "numTurns": 1,
+            "durationMs": 16951,
+            "durationApiMs": 15397,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 2,
+                "outputTokens": 1241,
+                "cacheReadInputTokens": 17112,
+                "cacheCreationInputTokens": 31207,
+                "webSearchRequests": 0,
+                "costUSD": 0.21099659999999998,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-01-pantry-items",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-01-pantry-items",
+            "item": "file://inputs/case-01-pantry-items.json",
+            "sessionId": "5844db12-8315-4326-bb4f-f7cfdd4f48fb"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "classification",
+              "value": "file://asserts/classification.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "domains",
+              "value": "file://asserts/domains.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "grounding",
+              "value": "file://asserts/grounding.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 2,
+          "completion": 1241,
+          "cached": 0,
+          "total": 1243,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-01-pantry-items",
+          "item": "file://inputs/case-01-pantry-items.json",
+          "sessionId": "5844db12-8315-4326-bb4f-f7cfdd4f48fb"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [],
+          "numTurns": 1,
+          "durationMs": 16951,
+          "durationApiMs": 15397,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 2,
+              "outputTokens": 1241,
+              "cacheReadInputTokens": 17112,
+              "cacheCreationInputTokens": 31207,
+              "webSearchRequests": 0,
+              "costUSD": 0.21099659999999998,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "5844db12-8315-4326-bb4f-f7cfdd4f48fb"
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.1951476,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to triage.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "type=feature path=standard and all three flags correct",
+              "assertion": {
+                "type": "javascript",
+                "metric": "classification",
+                "value": "file://asserts/classification.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "domains [\"ux\"] match",
+              "assertion": {
+                "type": "javascript",
+                "metric": "domains",
+                "value": "file://asserts/domains.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "summary and rationale grounded in the item",
+              "assertion": {
+                "type": "javascript",
+                "metric": "grounding",
+                "value": "file://asserts/grounding.js"
+              }
+            }
+          ]
+        },
+        "id": "f45179c9-d24d-4f9b-b96e-761f74c09820",
+        "latencyMs": 9497,
+        "namedScores": {
+          "schema": 1,
+          "classification": 1,
+          "domains": 1,
+          "grounding": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-triage\ndescription: Classify a tracker item for the delivery pipeline — type, path, domains, and the policy flags the flow branches on. Emits triage.json.\n---\n\n# Role\nYou are the first node of a delivery pipeline. You read one work item and decide how the\nrest of the flow should treat it. You are classifying what the item says, not planning the\nwork and not judging whether it is a good idea.\n\n# Task\nRead the item below and write the triage artifact for it.\n\n# Context\nYour reply is written straight to `triage.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. Later steps branch on\nthese fields: `type` and `path` choose the route, `domains` decides which specialists are\ndispatched, and the three flags decide whether the flow stops and asks a human. A field you\nguess at sends real work to the wrong place.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last\nis `}`: no preamble, no commentary, no code fence.\n\nUse exactly these keys and these value types:\n\n```\n{\n  \"item\": string,                  the item's key, copied exactly\n  \"type\": \"bug\" | \"feature\" | \"task\",\n  \"path\": \"quick\" | \"standard\",\n  \"domains\": [string],             the kinds of work this touches, from the list below\n  \"summary\": string,               one sentence on what the item asks for\n  \"rationale\": string,             why you classified it this way, citing the item\n  \"handoff\": true | false,\n  \"handoff_reason\": string | null, required when handoff is true, otherwise null\n  \"architecture_change\": true | false,\n  \"breaking_change\": true | false\n}\n```\n\n`handoff`, `architecture_change` and `breaking_change` are booleans, never strings and never\nthe name of a person or an agent. No other keys.\n\nA correct reply looks exactly like this, in full:\n\n{\"item\":\"ABC-1\",\"type\":\"bug\",\"path\":\"quick\",\"domains\":[\"backend\"],\"summary\":\"The export endpoint returns 500 on an empty range.\",\"rationale\":\"A defect report against existing behaviour with a clear reproduction.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}\n\n# Constraints\n\n## Type and path\n- `bug` — something that works incorrectly today. `feature` — new behaviour someone will\n  notice. `task` — work with no user-visible behaviour change: dependency bumps, plumbing,\n  configuration, tidying.\n- `path` follows from `type`, with no judgement about size: a `bug` or a `task` takes the\n  `quick` path, a `feature` takes the `standard` path. A small feature is still `standard`.\n\n## Domains\n`domains` uses only these words. Pick every one the work touches, and nothing else — an\nempty array is the right answer when the item names no work you can place.\n\n- `ux` — anything a person sees or operates: screens, navigation, layout, copy, visual\n  assets. A change to a user interface is `ux`, including the code that renders it. Do not\n  add `frontend` as well.\n- `frontend` — browser application code with no user-visible design element: client state\n  plumbing, bundler and build config for the web app. Rare; `ux` covers most UI work.\n- `backend` — services, APIs, domain logic, persistence, and a service's own configuration,\n  including config whose purpose is operational (its logging, its metrics wiring)\n- `contracts` — a shared interface artifact other services compile against, kept outside the\n  service that serves it. A service's own REST or gRPC surface is `backend`, not `contracts`.\n- `infra` — build, CI, containers, charts, deployment, and the platform side of observability\n- `data` — analytics, pipelines, warehouses. An application's own schema is `backend`.\n- `mobile` — iOS or Android applications\n- `docs` — documentation written for people\n\nA technology is not a domain: Pekko clustering, authentication and logging are all `backend`\nor `infra` work, not domains of their own.\n\n## The three flags\nEach flag is false unless its own test is met. They are independent: a large change can set\nnone of them.\n\n- `architecture_change` — true when the change moves a boundary: a new or removed service\n  (including one the item only proposes in a sentence), a new runtime topology (clustering,\n  sharding, a queue between services), or a new cross-cutting layer every request passes\n  through, such as authentication or tenant isolation. Adding an endpoint, a dependency,\n  logging or metrics *inside* one service, under the topology it already has, is not an\n  architecture change, however much code it touches. A `handoff` for scope is usually also an\n  `architecture_change` when what is proposed is a new service.\n- `breaking_change` — true when something that works today stops working unless its caller\n  changes: a removed or renamed field, changed semantics, an incompatible migration. A change\n  the item describes as backward compatible, or that ships behind a default-off switch or a\n  compatibility mode, is not breaking.\n- `handoff` — true when the item cannot be scoped from what it says: it proposes a whole new\n  service with a sentence of description, or it asks for contradictory things, or the decision\n  is someone's to make rather than yours. A large, well-described change is not a handoff. When\n  `handoff` is true, give the reason and leave `domains` empty — do not guess the shape of work\n  you are handing back.\n\n## Summary and rationale\nBoth describe this item and nothing else. Use the item's own words for the things it names;\ndo not name files, services or tickets it does not mention. The rationale says what in the\nitem drove the classification, not that the classification is correct.\n</skill>\n\nThe work item to triage:\n\n{\n  \"key\": \"DP-24\",\n  \"title\": \"Move navigation from a top bar to a left sidebar\",\n  \"body\": \"The top bar feels wrong for the retheme's HUD aesthetic. Owner wants a left sidebar instead.\\n\\nMainNav moves from a top bar to a persistent left sidebar, full labels always visible (no icon-only collapse, no drawer), narrower on mobile than desktop. The active route gets a glowing highlight, which requires MainNav to become a Client Component. The layout flips from flex-col to flex-row in app/layout.tsx. No route, testid or behavior changes.\",\n  \"type_hint\": null,\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/DP-24\",\n  \"source\": \"local-markdown\",\n  \"labels\": [],\n  \"links\": []\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item to triage:\n\n{{item}}",
+          "config": {}
+        },
+        "promptId": "bea2fe09b30cba30ece804f94131d22ef97c8ce3f89f539b7122ae415f116ba1",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"DP-24\",\"type\":\"feature\",\"path\":\"standard\",\"domains\":[\"ux\"],\"summary\":\"Move navigation from a top bar to a persistent left sidebar with full labels always visible, narrower on mobile, and a glowing highlight on the active route, requiring MainNav to become a Client Component.\",\"rationale\":\"This changes how navigation looks and behaves for users (top bar to sidebar, glowing active highlight), which is new user-visible behaviour rather than a defect or invisible plumbing, so it is a feature on the standard path; the work is UI layout, component and styling work (MainNav, app/layout.tsx flex direction, visual highlight) and therefore ux.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}",
+          "tokenUsage": {
+            "prompt": 2,
+            "completion": 258,
+            "total": 260
+          },
+          "cost": 0.1951476,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":6941,\"duration_api_ms\":5277,\"ttft_ms\":5322,\"ttft_stream_ms\":2505,\"time_to_request_ms\":62,\"num_turns\":1,\"result\":\"{\\\"item\\\":\\\"DP-24\\\",\\\"type\\\":\\\"feature\\\",\\\"path\\\":\\\"standard\\\",\\\"domains\\\":[\\\"ux\\\"],\\\"summary\\\":\\\"Move navigation from a top bar to a persistent left sidebar with full labels always visible, narrower on mobile, and a glowing highlight on the active route, requiring MainNav to become a Client Component.\\\",\\\"rationale\\\":\\\"This changes how navigation looks and behaves for users (top bar to sidebar, glowing active highlight), which is new user-visible behaviour rather than a defect or invisible plumbing, so it is a feature on the standard path; the work is UI layout, component and styling work (MainNav, app/layout.tsx flex direction, visual highlight) and therefore ux.\\\",\\\"handoff\\\":false,\\\"handoff_reason\\\":null,\\\"architecture_change\\\":false,\\\"breaking_change\\\":false}\",\"stop_reason\":\"end_turn\",\"session_id\":\"4c078237-3ded-4414-878b-8248660e49a5\",\"total_cost_usd\":0.1951476,\"usage\":{\"input_tokens\":2,\"cache_creation_input_tokens\":31023,\"cache_read_input_tokens\":17112,\"output_tokens\":258,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":31023,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":258,\"cache_read_input_tokens\":17112,\"cache_creation_input_tokens\":31023,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":31023},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":2,\"outputTokens\":258,\"cacheReadInputTokens\":17112,\"cacheCreationInputTokens\":31023,\"webSearchRequests\":0,\"costUSD\":0.1951476,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"f5f0f28b-f722-4e75-8e8d-0366356b5a8d\"}",
+          "sessionId": "4c078237-3ded-4414-878b-8248660e49a5",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [],
+            "numTurns": 1,
+            "durationMs": 6941,
+            "durationApiMs": 5277,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 2,
+                "outputTokens": 258,
+                "cacheReadInputTokens": 17112,
+                "cacheCreationInputTokens": 31023,
+                "webSearchRequests": 0,
+                "costUSD": 0.1951476,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-02-sidebar-nav",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-02-sidebar-nav",
+            "item": "file://inputs/case-02-sidebar-nav.json",
+            "sessionId": "4c078237-3ded-4414-878b-8248660e49a5"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "classification",
+              "value": "file://asserts/classification.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "domains",
+              "value": "file://asserts/domains.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "grounding",
+              "value": "file://asserts/grounding.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 2,
+          "completion": 258,
+          "cached": 0,
+          "total": 260,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-02-sidebar-nav",
+          "item": "file://inputs/case-02-sidebar-nav.json",
+          "sessionId": "4c078237-3ded-4414-878b-8248660e49a5"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [],
+          "numTurns": 1,
+          "durationMs": 6941,
+          "durationApiMs": 5277,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 2,
+              "outputTokens": 258,
+              "cacheReadInputTokens": 17112,
+              "cacheCreationInputTokens": 31023,
+              "webSearchRequests": 0,
+              "costUSD": 0.1951476,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "4c078237-3ded-4414-878b-8248660e49a5"
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.23111369999999998,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to triage.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "type=feature path=standard and all three flags correct",
+              "assertion": {
+                "type": "javascript",
+                "metric": "classification",
+                "value": "file://asserts/classification.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "domains [\"backend\"] match",
+              "assertion": {
+                "type": "javascript",
+                "metric": "domains",
+                "value": "file://asserts/domains.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "summary and rationale grounded in the item",
+              "assertion": {
+                "type": "javascript",
+                "metric": "grounding",
+                "value": "file://asserts/grounding.js"
+              }
+            }
+          ]
+        },
+        "id": "633c6e35-e738-4aac-875b-8bc0d931c212",
+        "latencyMs": 30477,
+        "namedScores": {
+          "schema": 1,
+          "classification": 1,
+          "domains": 1,
+          "grounding": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-triage\ndescription: Classify a tracker item for the delivery pipeline — type, path, domains, and the policy flags the flow branches on. Emits triage.json.\n---\n\n# Role\nYou are the first node of a delivery pipeline. You read one work item and decide how the\nrest of the flow should treat it. You are classifying what the item says, not planning the\nwork and not judging whether it is a good idea.\n\n# Task\nRead the item below and write the triage artifact for it.\n\n# Context\nYour reply is written straight to `triage.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. Later steps branch on\nthese fields: `type` and `path` choose the route, `domains` decides which specialists are\ndispatched, and the three flags decide whether the flow stops and asks a human. A field you\nguess at sends real work to the wrong place.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last\nis `}`: no preamble, no commentary, no code fence.\n\nUse exactly these keys and these value types:\n\n```\n{\n  \"item\": string,                  the item's key, copied exactly\n  \"type\": \"bug\" | \"feature\" | \"task\",\n  \"path\": \"quick\" | \"standard\",\n  \"domains\": [string],             the kinds of work this touches, from the list below\n  \"summary\": string,               one sentence on what the item asks for\n  \"rationale\": string,             why you classified it this way, citing the item\n  \"handoff\": true | false,\n  \"handoff_reason\": string | null, required when handoff is true, otherwise null\n  \"architecture_change\": true | false,\n  \"breaking_change\": true | false\n}\n```\n\n`handoff`, `architecture_change` and `breaking_change` are booleans, never strings and never\nthe name of a person or an agent. No other keys.\n\nA correct reply looks exactly like this, in full:\n\n{\"item\":\"ABC-1\",\"type\":\"bug\",\"path\":\"quick\",\"domains\":[\"backend\"],\"summary\":\"The export endpoint returns 500 on an empty range.\",\"rationale\":\"A defect report against existing behaviour with a clear reproduction.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}\n\n# Constraints\n\n## Type and path\n- `bug` — something that works incorrectly today. `feature` — new behaviour someone will\n  notice. `task` — work with no user-visible behaviour change: dependency bumps, plumbing,\n  configuration, tidying.\n- `path` follows from `type`, with no judgement about size: a `bug` or a `task` takes the\n  `quick` path, a `feature` takes the `standard` path. A small feature is still `standard`.\n\n## Domains\n`domains` uses only these words. Pick every one the work touches, and nothing else — an\nempty array is the right answer when the item names no work you can place.\n\n- `ux` — anything a person sees or operates: screens, navigation, layout, copy, visual\n  assets. A change to a user interface is `ux`, including the code that renders it. Do not\n  add `frontend` as well.\n- `frontend` — browser application code with no user-visible design element: client state\n  plumbing, bundler and build config for the web app. Rare; `ux` covers most UI work.\n- `backend` — services, APIs, domain logic, persistence, and a service's own configuration,\n  including config whose purpose is operational (its logging, its metrics wiring)\n- `contracts` — a shared interface artifact other services compile against, kept outside the\n  service that serves it. A service's own REST or gRPC surface is `backend`, not `contracts`.\n- `infra` — build, CI, containers, charts, deployment, and the platform side of observability\n- `data` — analytics, pipelines, warehouses. An application's own schema is `backend`.\n- `mobile` — iOS or Android applications\n- `docs` — documentation written for people\n\nA technology is not a domain: Pekko clustering, authentication and logging are all `backend`\nor `infra` work, not domains of their own.\n\n## The three flags\nEach flag is false unless its own test is met. They are independent: a large change can set\nnone of them.\n\n- `architecture_change` — true when the change moves a boundary: a new or removed service\n  (including one the item only proposes in a sentence), a new runtime topology (clustering,\n  sharding, a queue between services), or a new cross-cutting layer every request passes\n  through, such as authentication or tenant isolation. Adding an endpoint, a dependency,\n  logging or metrics *inside* one service, under the topology it already has, is not an\n  architecture change, however much code it touches. A `handoff` for scope is usually also an\n  `architecture_change` when what is proposed is a new service.\n- `breaking_change` — true when something that works today stops working unless its caller\n  changes: a removed or renamed field, changed semantics, an incompatible migration. A change\n  the item describes as backward compatible, or that ships behind a default-off switch or a\n  compatibility mode, is not breaking.\n- `handoff` — true when the item cannot be scoped from what it says: it proposes a whole new\n  service with a sentence of description, or it asks for contradictory things, or the decision\n  is someone's to make rather than yours. A large, well-described change is not a handoff. When\n  `handoff` is true, give the reason and leave `domains` empty — do not guess the shape of work\n  you are handing back.\n\n## Summary and rationale\nBoth describe this item and nothing else. Use the item's own words for the things it names;\ndo not name files, services or tickets it does not mention. The rationale says what in the\nitem drove the classification, not that the classification is correct.\n</skill>\n\nThe work item to triage:\n\n{\n  \"key\": \"HM-40\",\n  \"title\": \"Authentication and tenant isolation before shared deployment\",\n  \"body\": \"HermesMQ is feature-complete against the architecture, but every endpoint is wide open: anyone who can reach the port can create or delete topics, publish, and read any subscription's backlog. Before it can run anywhere shared it needs authentication (who is calling) and tenant isolation (callers only see their own topics and subscriptions).\\n\\nEvery REST and gRPC request authenticates from a bearer token or API key; keys are configured as salted hashes and resolve to a Principal(tenantId, scopes). Tenants are isolated by transparently namespacing resource ids at the API boundary, so cross-tenant access is impossible by construction. Admin operations require an admin scope. /health and /metrics stay unauthenticated for probes and scraping. Configurable and fail-fast, with an auth-disabled default-tenant mode for local dev and backward compatibility with existing single-tenant journals.\",\n  \"type_hint\": null,\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/HM-40\",\n  \"source\": \"github-issues\",\n  \"labels\": [],\n  \"links\": []\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item to triage:\n\n{{item}}",
+          "config": {}
+        },
+        "promptId": "bea2fe09b30cba30ece804f94131d22ef97c8ce3f89f539b7122ae415f116ba1",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"HM-40\",\"type\":\"feature\",\"path\":\"standard\",\"domains\":[\"backend\"],\"summary\":\"HermesMQ needs authentication (bearer token or API key resolving to a Principal with tenantId and scopes) and tenant isolation (namespacing resource ids at the API boundary so tenants only see their own topics and subscriptions) added to every REST and gRPC endpoint before it can run in a shared deployment.\",\"rationale\":\"The item asks for new, user-visible behaviour: today every endpoint is wide open, and the request is for callers to authenticate and for cross-tenant access to become impossible by construction, which is new behaviour someone will notice rather than a defect or invisible plumbing, so type is feature and path is standard. Authentication and tenant isolation are explicitly named in the rules as a new cross-cutting layer every request passes through, so architecture_change is true. The item describes an auth-disabled default-tenant mode for local dev and backward compatibility with existing single-tenant journals, so nothing that works today stops working, making breaking_change false. The work is scoped clearly enough (concrete mechanisms: bearer/API-key auth, Principal, namespacing, admin scope, unauthenticated health/metrics) that it does not need to be handed back.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":true,\"breaking_change\":false}",
+          "tokenUsage": {
+            "prompt": 4,
+            "completion": 1296,
+            "total": 1300
+          },
+          "cost": 0.23111369999999998,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":27968,\"duration_api_ms\":19579,\"ttft_ms\":12742,\"ttft_stream_ms\":3542,\"time_to_request_ms\":96,\"num_turns\":2,\"result\":\"{\\\"item\\\":\\\"HM-40\\\",\\\"type\\\":\\\"feature\\\",\\\"path\\\":\\\"standard\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"summary\\\":\\\"HermesMQ needs authentication (bearer token or API key resolving to a Principal with tenantId and scopes) and tenant isolation (namespacing resource ids at the API boundary so tenants only see their own topics and subscriptions) added to every REST and gRPC endpoint before it can run in a shared deployment.\\\",\\\"rationale\\\":\\\"The item asks for new, user-visible behaviour: today every endpoint is wide open, and the request is for callers to authenticate and for cross-tenant access to become impossible by construction, which is new behaviour someone will notice rather than a defect or invisible plumbing, so type is feature and path is standard. Authentication and tenant isolation are explicitly named in the rules as a new cross-cutting layer every request passes through, so architecture_change is true. The item describes an auth-disabled default-tenant mode for local dev and backward compatibility with existing single-tenant journals, so nothing that works today stops working, making breaking_change false. The work is scoped clearly enough (concrete mechanisms: bearer/API-key auth, Principal, namespacing, admin scope, unauthenticated health/metrics) that it does not need to be handed back.\\\",\\\"handoff\\\":false,\\\"handoff_reason\\\":null,\\\"architecture_change\\\":true,\\\"breaking_change\\\":false}\",\"stop_reason\":\"end_turn\",\"session_id\":\"43266384-fe92-4b8e-8bfd-b79091368324\",\"total_cost_usd\":0.23111369999999998,\"usage\":{\"input_tokens\":4,\"cache_creation_input_tokens\":32008,\"cache_read_input_tokens\":65379,\"output_tokens\":1296,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":32008,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":449,\"cache_read_input_tokens\":48267,\"cache_creation_input_tokens\":853,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":853},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":4,\"outputTokens\":1296,\"cacheReadInputTokens\":65379,\"cacheCreationInputTokens\":32008,\"webSearchRequests\":0,\"costUSD\":0.23111369999999998,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"e49033e4-141e-41b2-9a00-75f925699279\"}",
+          "sessionId": "43266384-fe92-4b8e-8bfd-b79091368324",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [
+              {
+                "id": "toolu_01EGn7spjUdAaQrLVc4wxmkZ",
+                "name": "Bash",
+                "input": {
+                  "command": "echo done",
+                  "description": "no-op"
+                },
+                "output": "done",
+                "is_error": false,
+                "parentToolUseId": null
+              }
+            ],
+            "numTurns": 2,
+            "durationMs": 27968,
+            "durationApiMs": 19579,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 4,
+                "outputTokens": 1296,
+                "cacheReadInputTokens": 65379,
+                "cacheCreationInputTokens": 32008,
+                "webSearchRequests": 0,
+                "costUSD": 0.23111369999999998,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-03-auth-tenancy",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-03-auth-tenancy",
+            "item": "file://inputs/case-03-auth-tenancy.json",
+            "sessionId": "43266384-fe92-4b8e-8bfd-b79091368324"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "classification",
+              "value": "file://asserts/classification.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "domains",
+              "value": "file://asserts/domains.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "grounding",
+              "value": "file://asserts/grounding.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 4,
+          "completion": 1296,
+          "cached": 0,
+          "total": 1300,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-03-auth-tenancy",
+          "item": "file://inputs/case-03-auth-tenancy.json",
+          "sessionId": "43266384-fe92-4b8e-8bfd-b79091368324"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [
+            {
+              "id": "toolu_01EGn7spjUdAaQrLVc4wxmkZ",
+              "name": "Bash",
+              "input": {
+                "command": "echo done",
+                "description": "no-op"
+              },
+              "output": "done",
+              "is_error": false,
+              "parentToolUseId": null
+            }
+          ],
+          "numTurns": 2,
+          "durationMs": 27968,
+          "durationApiMs": 19579,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 4,
+              "outputTokens": 1296,
+              "cacheReadInputTokens": 65379,
+              "cacheCreationInputTokens": 32008,
+              "webSearchRequests": 0,
+              "costUSD": 0.23111369999999998,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "43266384-fe92-4b8e-8bfd-b79091368324"
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.1946346,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to triage.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "type=task path=quick and all three flags correct",
+              "assertion": {
+                "type": "javascript",
+                "metric": "classification",
+                "value": "file://asserts/classification.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "domains [\"backend\"] match",
+              "assertion": {
+                "type": "javascript",
+                "metric": "domains",
+                "value": "file://asserts/domains.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "summary and rationale grounded in the item",
+              "assertion": {
+                "type": "javascript",
+                "metric": "grounding",
+                "value": "file://asserts/grounding.js"
+              }
+            }
+          ]
+        },
+        "id": "72c97841-109c-442b-9594-5270bc45b102",
+        "latencyMs": 7442,
+        "namedScores": {
+          "schema": 1,
+          "classification": 1,
+          "domains": 1,
+          "grounding": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-triage\ndescription: Classify a tracker item for the delivery pipeline — type, path, domains, and the policy flags the flow branches on. Emits triage.json.\n---\n\n# Role\nYou are the first node of a delivery pipeline. You read one work item and decide how the\nrest of the flow should treat it. You are classifying what the item says, not planning the\nwork and not judging whether it is a good idea.\n\n# Task\nRead the item below and write the triage artifact for it.\n\n# Context\nYour reply is written straight to `triage.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. Later steps branch on\nthese fields: `type` and `path` choose the route, `domains` decides which specialists are\ndispatched, and the three flags decide whether the flow stops and asks a human. A field you\nguess at sends real work to the wrong place.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last\nis `}`: no preamble, no commentary, no code fence.\n\nUse exactly these keys and these value types:\n\n```\n{\n  \"item\": string,                  the item's key, copied exactly\n  \"type\": \"bug\" | \"feature\" | \"task\",\n  \"path\": \"quick\" | \"standard\",\n  \"domains\": [string],             the kinds of work this touches, from the list below\n  \"summary\": string,               one sentence on what the item asks for\n  \"rationale\": string,             why you classified it this way, citing the item\n  \"handoff\": true | false,\n  \"handoff_reason\": string | null, required when handoff is true, otherwise null\n  \"architecture_change\": true | false,\n  \"breaking_change\": true | false\n}\n```\n\n`handoff`, `architecture_change` and `breaking_change` are booleans, never strings and never\nthe name of a person or an agent. No other keys.\n\nA correct reply looks exactly like this, in full:\n\n{\"item\":\"ABC-1\",\"type\":\"bug\",\"path\":\"quick\",\"domains\":[\"backend\"],\"summary\":\"The export endpoint returns 500 on an empty range.\",\"rationale\":\"A defect report against existing behaviour with a clear reproduction.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}\n\n# Constraints\n\n## Type and path\n- `bug` — something that works incorrectly today. `feature` — new behaviour someone will\n  notice. `task` — work with no user-visible behaviour change: dependency bumps, plumbing,\n  configuration, tidying.\n- `path` follows from `type`, with no judgement about size: a `bug` or a `task` takes the\n  `quick` path, a `feature` takes the `standard` path. A small feature is still `standard`.\n\n## Domains\n`domains` uses only these words. Pick every one the work touches, and nothing else — an\nempty array is the right answer when the item names no work you can place.\n\n- `ux` — anything a person sees or operates: screens, navigation, layout, copy, visual\n  assets. A change to a user interface is `ux`, including the code that renders it. Do not\n  add `frontend` as well.\n- `frontend` — browser application code with no user-visible design element: client state\n  plumbing, bundler and build config for the web app. Rare; `ux` covers most UI work.\n- `backend` — services, APIs, domain logic, persistence, and a service's own configuration,\n  including config whose purpose is operational (its logging, its metrics wiring)\n- `contracts` — a shared interface artifact other services compile against, kept outside the\n  service that serves it. A service's own REST or gRPC surface is `backend`, not `contracts`.\n- `infra` — build, CI, containers, charts, deployment, and the platform side of observability\n- `data` — analytics, pipelines, warehouses. An application's own schema is `backend`.\n- `mobile` — iOS or Android applications\n- `docs` — documentation written for people\n\nA technology is not a domain: Pekko clustering, authentication and logging are all `backend`\nor `infra` work, not domains of their own.\n\n## The three flags\nEach flag is false unless its own test is met. They are independent: a large change can set\nnone of them.\n\n- `architecture_change` — true when the change moves a boundary: a new or removed service\n  (including one the item only proposes in a sentence), a new runtime topology (clustering,\n  sharding, a queue between services), or a new cross-cutting layer every request passes\n  through, such as authentication or tenant isolation. Adding an endpoint, a dependency,\n  logging or metrics *inside* one service, under the topology it already has, is not an\n  architecture change, however much code it touches. A `handoff` for scope is usually also an\n  `architecture_change` when what is proposed is a new service.\n- `breaking_change` — true when something that works today stops working unless its caller\n  changes: a removed or renamed field, changed semantics, an incompatible migration. A change\n  the item describes as backward compatible, or that ships behind a default-off switch or a\n  compatibility mode, is not breaking.\n- `handoff` — true when the item cannot be scoped from what it says: it proposes a whole new\n  service with a sentence of description, or it asks for contradictory things, or the decision\n  is someone's to make rather than yours. A large, well-described change is not a handoff. When\n  `handoff` is true, give the reason and leave `domains` empty — do not guess the shape of work\n  you are handing back.\n\n## Summary and rationale\nBoth describe this item and nothing else. Use the item's own words for the things it names;\ndo not name files, services or tickets it does not mention. The rationale says what in the\nitem drove the classification, not that the classification is correct.\n</skill>\n\nThe work item to triage:\n\n{\n  \"key\": \"AR-31\",\n  \"title\": \"Emit logs as structured JSON\",\n  \"body\": \"Free-text logs can't be reliably analyzed: extracting an error's level, exception or stack, or filtering by a correlation id, means fragile regex over multi-line output. The observability stack (Loki) and the self-healing-loop design note both depend on structured logs.\\n\\nArtemis emits one JSON object per log event when containerized (LOG_FORMAT=json) and human-readable text in local dev. Fields follow the constellation-wide schema. Implementation is one dependency (logstash-logback-encoder) plus a logback.xml change. Log format only; no behavioral change.\",\n  \"type_hint\": null,\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/AR-31\",\n  \"source\": \"github-issues\",\n  \"labels\": [],\n  \"links\": []\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item to triage:\n\n{{item}}",
+          "config": {}
+        },
+        "promptId": "bea2fe09b30cba30ece804f94131d22ef97c8ce3f89f539b7122ae415f116ba1",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"AR-31\",\"type\":\"task\",\"path\":\"quick\",\"domains\":[\"backend\"],\"summary\":\"Make Artemis emit structured JSON logs (one JSON object per event, following the constellation-wide schema) instead of free text, so fields like level, exception, stack and correlation id can be reliably extracted and filtered.\",\"rationale\":\"The item states explicitly that this is 'log format only; no behavioral change,' implemented via one dependency and a logback.xml change, with no new user-visible behaviour, so it is a task rather than a feature or bug.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}",
+          "tokenUsage": {
+            "prompt": 2,
+            "completion": 215,
+            "total": 217
+          },
+          "cost": 0.1946346,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":4903,\"duration_api_ms\":3531,\"ttft_ms\":3596,\"ttft_stream_ms\":1577,\"time_to_request_ms\":81,\"num_turns\":1,\"result\":\"{\\\"item\\\":\\\"AR-31\\\",\\\"type\\\":\\\"task\\\",\\\"path\\\":\\\"quick\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"summary\\\":\\\"Make Artemis emit structured JSON logs (one JSON object per event, following the constellation-wide schema) instead of free text, so fields like level, exception, stack and correlation id can be reliably extracted and filtered.\\\",\\\"rationale\\\":\\\"The item states explicitly that this is 'log format only; no behavioral change,' implemented via one dependency and a logback.xml change, with no new user-visible behaviour, so it is a task rather than a feature or bug.\\\",\\\"handoff\\\":false,\\\"handoff_reason\\\":null,\\\"architecture_change\\\":false,\\\"breaking_change\\\":false}\",\"stop_reason\":\"end_turn\",\"session_id\":\"4057483f-8d8b-4698-931d-87d169524095\",\"total_cost_usd\":0.1946346,\"usage\":{\"input_tokens\":2,\"cache_creation_input_tokens\":31045,\"cache_read_input_tokens\":17112,\"output_tokens\":215,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":31045,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":215,\"cache_read_input_tokens\":17112,\"cache_creation_input_tokens\":31045,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":31045},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":2,\"outputTokens\":215,\"cacheReadInputTokens\":17112,\"cacheCreationInputTokens\":31045,\"webSearchRequests\":0,\"costUSD\":0.1946346,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"aaf33beb-9718-4928-8a25-fc56f5ae5cae\"}",
+          "sessionId": "4057483f-8d8b-4698-931d-87d169524095",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [],
+            "numTurns": 1,
+            "durationMs": 4903,
+            "durationApiMs": 3531,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 2,
+                "outputTokens": 215,
+                "cacheReadInputTokens": 17112,
+                "cacheCreationInputTokens": 31045,
+                "webSearchRequests": 0,
+                "costUSD": 0.1946346,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-04-structured-logging",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-04-structured-logging",
+            "item": "file://inputs/case-04-structured-logging.json",
+            "sessionId": "4057483f-8d8b-4698-931d-87d169524095"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "classification",
+              "value": "file://asserts/classification.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "domains",
+              "value": "file://asserts/domains.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "grounding",
+              "value": "file://asserts/grounding.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 3,
+        "tokenUsage": {
+          "prompt": 2,
+          "completion": 215,
+          "cached": 0,
+          "total": 217,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-04-structured-logging",
+          "item": "file://inputs/case-04-structured-logging.json",
+          "sessionId": "4057483f-8d8b-4698-931d-87d169524095"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [],
+          "numTurns": 1,
+          "durationMs": 4903,
+          "durationApiMs": 3531,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 2,
+              "outputTokens": 215,
+              "cacheReadInputTokens": 17112,
+              "cacheCreationInputTokens": 31045,
+              "webSearchRequests": 0,
+              "costUSD": 0.1946346,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "4057483f-8d8b-4698-931d-87d169524095"
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.21465659999999998,
+        "error": "missing domain(s): infra",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.75,
+          "reason": "missing domain(s): infra",
+          "namedScores": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 0,
+            "grounding": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to triage.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "type=feature path=standard and all three flags correct",
+              "assertion": {
+                "type": "javascript",
+                "metric": "classification",
+                "value": "file://asserts/classification.js"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "missing domain(s): infra",
+              "assertion": {
+                "type": "javascript",
+                "metric": "domains",
+                "value": "file://asserts/domains.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "summary and rationale grounded in the item",
+              "assertion": {
+                "type": "javascript",
+                "metric": "grounding",
+                "value": "file://asserts/grounding.js"
+              }
+            }
+          ]
+        },
+        "id": "7d100912-1489-47b0-9ab7-f3ac95bc7dd6",
+        "latencyMs": 20323,
+        "namedScores": {
+          "schema": 1,
+          "classification": 1,
+          "domains": 0,
+          "grounding": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-triage\ndescription: Classify a tracker item for the delivery pipeline — type, path, domains, and the policy flags the flow branches on. Emits triage.json.\n---\n\n# Role\nYou are the first node of a delivery pipeline. You read one work item and decide how the\nrest of the flow should treat it. You are classifying what the item says, not planning the\nwork and not judging whether it is a good idea.\n\n# Task\nRead the item below and write the triage artifact for it.\n\n# Context\nYour reply is written straight to `triage.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. Later steps branch on\nthese fields: `type` and `path` choose the route, `domains` decides which specialists are\ndispatched, and the three flags decide whether the flow stops and asks a human. A field you\nguess at sends real work to the wrong place.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last\nis `}`: no preamble, no commentary, no code fence.\n\nUse exactly these keys and these value types:\n\n```\n{\n  \"item\": string,                  the item's key, copied exactly\n  \"type\": \"bug\" | \"feature\" | \"task\",\n  \"path\": \"quick\" | \"standard\",\n  \"domains\": [string],             the kinds of work this touches, from the list below\n  \"summary\": string,               one sentence on what the item asks for\n  \"rationale\": string,             why you classified it this way, citing the item\n  \"handoff\": true | false,\n  \"handoff_reason\": string | null, required when handoff is true, otherwise null\n  \"architecture_change\": true | false,\n  \"breaking_change\": true | false\n}\n```\n\n`handoff`, `architecture_change` and `breaking_change` are booleans, never strings and never\nthe name of a person or an agent. No other keys.\n\nA correct reply looks exactly like this, in full:\n\n{\"item\":\"ABC-1\",\"type\":\"bug\",\"path\":\"quick\",\"domains\":[\"backend\"],\"summary\":\"The export endpoint returns 500 on an empty range.\",\"rationale\":\"A defect report against existing behaviour with a clear reproduction.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}\n\n# Constraints\n\n## Type and path\n- `bug` — something that works incorrectly today. `feature` — new behaviour someone will\n  notice. `task` — work with no user-visible behaviour change: dependency bumps, plumbing,\n  configuration, tidying.\n- `path` follows from `type`, with no judgement about size: a `bug` or a `task` takes the\n  `quick` path, a `feature` takes the `standard` path. A small feature is still `standard`.\n\n## Domains\n`domains` uses only these words. Pick every one the work touches, and nothing else — an\nempty array is the right answer when the item names no work you can place.\n\n- `ux` — anything a person sees or operates: screens, navigation, layout, copy, visual\n  assets. A change to a user interface is `ux`, including the code that renders it. Do not\n  add `frontend` as well.\n- `frontend` — browser application code with no user-visible design element: client state\n  plumbing, bundler and build config for the web app. Rare; `ux` covers most UI work.\n- `backend` — services, APIs, domain logic, persistence, and a service's own configuration,\n  including config whose purpose is operational (its logging, its metrics wiring)\n- `contracts` — a shared interface artifact other services compile against, kept outside the\n  service that serves it. A service's own REST or gRPC surface is `backend`, not `contracts`.\n- `infra` — build, CI, containers, charts, deployment, and the platform side of observability\n- `data` — analytics, pipelines, warehouses. An application's own schema is `backend`.\n- `mobile` — iOS or Android applications\n- `docs` — documentation written for people\n\nA technology is not a domain: Pekko clustering, authentication and logging are all `backend`\nor `infra` work, not domains of their own.\n\n## The three flags\nEach flag is false unless its own test is met. They are independent: a large change can set\nnone of them.\n\n- `architecture_change` — true when the change moves a boundary: a new or removed service\n  (including one the item only proposes in a sentence), a new runtime topology (clustering,\n  sharding, a queue between services), or a new cross-cutting layer every request passes\n  through, such as authentication or tenant isolation. Adding an endpoint, a dependency,\n  logging or metrics *inside* one service, under the topology it already has, is not an\n  architecture change, however much code it touches. A `handoff` for scope is usually also an\n  `architecture_change` when what is proposed is a new service.\n- `breaking_change` — true when something that works today stops working unless its caller\n  changes: a removed or renamed field, changed semantics, an incompatible migration. A change\n  the item describes as backward compatible, or that ships behind a default-off switch or a\n  compatibility mode, is not breaking.\n- `handoff` — true when the item cannot be scoped from what it says: it proposes a whole new\n  service with a sentence of description, or it asks for contradictory things, or the decision\n  is someone's to make rather than yours. A large, well-described change is not a handoff. When\n  `handoff` is true, give the reason and leave `domains` empty — do not guess the shape of work\n  you are handing back.\n\n## Summary and rationale\nBoth describe this item and nothing else. Use the item's own words for the things it names;\ndo not name files, services or tickets it does not mention. The rationale says what in the\nitem drove the classification, not that the classification is correct.\n</skill>\n\nThe work item to triage:\n\n{\n  \"key\": \"AP-19\",\n  \"title\": \"Run ApolloStorage as a Pekko cluster\",\n  \"body\": \"ApolloStorage runs as a single node: the projection is one instance and bucket entities are hosted by a node-local BucketEntityManager. That is a throughput and availability ceiling \\u2014 one process is the whole system. To scale horizontally and survive a node failure the service must run as a Pekko cluster.\\n\\nForm a cluster across replicas with automatic membership and a split-brain resolver (keep-majority). Replace the single-node BucketEntityManager with Cluster Sharding, so each bucket is a cluster-wide singleton entity addressed by EntityRef; persistence ids and the journal are unchanged. Distribute the projection with ShardedDaemonProcess across N slice ranges, rebalanced on membership change. Cluster formation via Pekko Management and discovery, with a management HTTP port for bootstrap and health.\",\n  \"type_hint\": null,\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/AP-19\",\n  \"source\": \"github-issues\",\n  \"labels\": [],\n  \"links\": []\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item to triage:\n\n{{item}}",
+          "config": {}
+        },
+        "promptId": "bea2fe09b30cba30ece804f94131d22ef97c8ce3f89f539b7122ae415f116ba1",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"AP-19\",\"type\":\"feature\",\"path\":\"standard\",\"domains\":[\"backend\"],\"summary\":\"ApolloStorage must run as a Pekko cluster across replicas, with Cluster Sharding replacing the node-local BucketEntityManager and a ShardedDaemonProcess distributing the projection, so the service can scale horizontally and survive node failure.\",\"rationale\":\"The item asks to form a cluster with automatic membership and a split-brain resolver, replace the single-node BucketEntityManager with Cluster Sharding, and distribute the projection with ShardedDaemonProcess rebalanced on membership change — a new runtime topology (clustering, sharding) for an existing service, which is new user-noticeable capability (horizontal scale, failover) rather than a defect or behaviour-neutral plumbing change, and is well-described enough to scope without a handoff.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":true,\"breaking_change\":false}",
+          "tokenUsage": {
+            "prompt": 2,
+            "completion": 1511,
+            "total": 1513
+          },
+          "cost": 0.21465659999999998,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":19245,\"duration_api_ms\":17881,\"ttft_ms\":15274,\"ttft_stream_ms\":1853,\"time_to_request_ms\":21,\"num_turns\":1,\"result\":\"{\\\"item\\\":\\\"AP-19\\\",\\\"type\\\":\\\"feature\\\",\\\"path\\\":\\\"standard\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"summary\\\":\\\"ApolloStorage must run as a Pekko cluster across replicas, with Cluster Sharding replacing the node-local BucketEntityManager and a ShardedDaemonProcess distributing the projection, so the service can scale horizontally and survive node failure.\\\",\\\"rationale\\\":\\\"The item asks to form a cluster with automatic membership and a split-brain resolver, replace the single-node BucketEntityManager with Cluster Sharding, and distribute the projection with ShardedDaemonProcess rebalanced on membership change — a new runtime topology (clustering, sharding) for an existing service, which is new user-noticeable capability (horizontal scale, failover) rather than a defect or behaviour-neutral plumbing change, and is well-described enough to scope without a handoff.\\\",\\\"handoff\\\":false,\\\"handoff_reason\\\":null,\\\"architecture_change\\\":true,\\\"breaking_change\\\":false}\",\"stop_reason\":\"end_turn\",\"session_id\":\"b8774e13-ffa4-417b-a6ff-d64a68e1ef28\",\"total_cost_usd\":0.21465659999999998,\"usage\":{\"input_tokens\":2,\"cache_creation_input_tokens\":31142,\"cache_read_input_tokens\":17112,\"output_tokens\":1511,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":31142,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":1511,\"cache_read_input_tokens\":17112,\"cache_creation_input_tokens\":31142,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":31142},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":2,\"outputTokens\":1511,\"cacheReadInputTokens\":17112,\"cacheCreationInputTokens\":31142,\"webSearchRequests\":0,\"costUSD\":0.21465659999999998,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"3689540a-3b74-4e93-9994-469853b2ea31\"}",
+          "sessionId": "b8774e13-ffa4-417b-a6ff-d64a68e1ef28",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [],
+            "numTurns": 1,
+            "durationMs": 19245,
+            "durationApiMs": 17881,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 2,
+                "outputTokens": 1511,
+                "cacheReadInputTokens": 17112,
+                "cacheCreationInputTokens": 31142,
+                "webSearchRequests": 0,
+                "costUSD": 0.21465659999999998,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 0.75,
+        "success": false,
+        "testCase": {
+          "description": "case-05-clustering",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-05-clustering",
+            "item": "file://inputs/case-05-clustering.json",
+            "sessionId": "b8774e13-ffa4-417b-a6ff-d64a68e1ef28"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "classification",
+              "value": "file://asserts/classification.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "domains",
+              "value": "file://asserts/domains.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "grounding",
+              "value": "file://asserts/grounding.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 4,
+        "tokenUsage": {
+          "prompt": 2,
+          "completion": 1511,
+          "cached": 0,
+          "total": 1513,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-05-clustering",
+          "item": "file://inputs/case-05-clustering.json",
+          "sessionId": "b8774e13-ffa4-417b-a6ff-d64a68e1ef28"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [],
+          "numTurns": 1,
+          "durationMs": 19245,
+          "durationApiMs": 17881,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 2,
+              "outputTokens": 1511,
+              "cacheReadInputTokens": 17112,
+              "cacheCreationInputTokens": 31142,
+              "webSearchRequests": 0,
+              "costUSD": 0.21465659999999998,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "b8774e13-ffa4-417b-a6ff-d64a68e1ef28"
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0.19690560000000001,
+        "error": "extra domain(s): infra",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.75,
+          "reason": "extra domain(s): infra",
+          "namedScores": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 0,
+            "grounding": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to triage.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "type=feature path=standard and all three flags correct",
+              "assertion": {
+                "type": "javascript",
+                "metric": "classification",
+                "value": "file://asserts/classification.js"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "extra domain(s): infra",
+              "assertion": {
+                "type": "javascript",
+                "metric": "domains",
+                "value": "file://asserts/domains.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "summary and rationale grounded in the item",
+              "assertion": {
+                "type": "javascript",
+                "metric": "grounding",
+                "value": "file://asserts/grounding.js"
+              }
+            }
+          ]
+        },
+        "id": "a859e4cd-e884-453f-93c4-4eb61d4ab77b",
+        "latencyMs": 9287,
+        "namedScores": {
+          "schema": 1,
+          "classification": 1,
+          "domains": 0,
+          "grounding": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-triage\ndescription: Classify a tracker item for the delivery pipeline — type, path, domains, and the policy flags the flow branches on. Emits triage.json.\n---\n\n# Role\nYou are the first node of a delivery pipeline. You read one work item and decide how the\nrest of the flow should treat it. You are classifying what the item says, not planning the\nwork and not judging whether it is a good idea.\n\n# Task\nRead the item below and write the triage artifact for it.\n\n# Context\nYour reply is written straight to `triage.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. Later steps branch on\nthese fields: `type` and `path` choose the route, `domains` decides which specialists are\ndispatched, and the three flags decide whether the flow stops and asks a human. A field you\nguess at sends real work to the wrong place.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last\nis `}`: no preamble, no commentary, no code fence.\n\nUse exactly these keys and these value types:\n\n```\n{\n  \"item\": string,                  the item's key, copied exactly\n  \"type\": \"bug\" | \"feature\" | \"task\",\n  \"path\": \"quick\" | \"standard\",\n  \"domains\": [string],             the kinds of work this touches, from the list below\n  \"summary\": string,               one sentence on what the item asks for\n  \"rationale\": string,             why you classified it this way, citing the item\n  \"handoff\": true | false,\n  \"handoff_reason\": string | null, required when handoff is true, otherwise null\n  \"architecture_change\": true | false,\n  \"breaking_change\": true | false\n}\n```\n\n`handoff`, `architecture_change` and `breaking_change` are booleans, never strings and never\nthe name of a person or an agent. No other keys.\n\nA correct reply looks exactly like this, in full:\n\n{\"item\":\"ABC-1\",\"type\":\"bug\",\"path\":\"quick\",\"domains\":[\"backend\"],\"summary\":\"The export endpoint returns 500 on an empty range.\",\"rationale\":\"A defect report against existing behaviour with a clear reproduction.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}\n\n# Constraints\n\n## Type and path\n- `bug` — something that works incorrectly today. `feature` — new behaviour someone will\n  notice. `task` — work with no user-visible behaviour change: dependency bumps, plumbing,\n  configuration, tidying.\n- `path` follows from `type`, with no judgement about size: a `bug` or a `task` takes the\n  `quick` path, a `feature` takes the `standard` path. A small feature is still `standard`.\n\n## Domains\n`domains` uses only these words. Pick every one the work touches, and nothing else — an\nempty array is the right answer when the item names no work you can place.\n\n- `ux` — anything a person sees or operates: screens, navigation, layout, copy, visual\n  assets. A change to a user interface is `ux`, including the code that renders it. Do not\n  add `frontend` as well.\n- `frontend` — browser application code with no user-visible design element: client state\n  plumbing, bundler and build config for the web app. Rare; `ux` covers most UI work.\n- `backend` — services, APIs, domain logic, persistence, and a service's own configuration,\n  including config whose purpose is operational (its logging, its metrics wiring)\n- `contracts` — a shared interface artifact other services compile against, kept outside the\n  service that serves it. A service's own REST or gRPC surface is `backend`, not `contracts`.\n- `infra` — build, CI, containers, charts, deployment, and the platform side of observability\n- `data` — analytics, pipelines, warehouses. An application's own schema is `backend`.\n- `mobile` — iOS or Android applications\n- `docs` — documentation written for people\n\nA technology is not a domain: Pekko clustering, authentication and logging are all `backend`\nor `infra` work, not domains of their own.\n\n## The three flags\nEach flag is false unless its own test is met. They are independent: a large change can set\nnone of them.\n\n- `architecture_change` — true when the change moves a boundary: a new or removed service\n  (including one the item only proposes in a sentence), a new runtime topology (clustering,\n  sharding, a queue between services), or a new cross-cutting layer every request passes\n  through, such as authentication or tenant isolation. Adding an endpoint, a dependency,\n  logging or metrics *inside* one service, under the topology it already has, is not an\n  architecture change, however much code it touches. A `handoff` for scope is usually also an\n  `architecture_change` when what is proposed is a new service.\n- `breaking_change` — true when something that works today stops working unless its caller\n  changes: a removed or renamed field, changed semantics, an incompatible migration. A change\n  the item describes as backward compatible, or that ships behind a default-off switch or a\n  compatibility mode, is not breaking.\n- `handoff` — true when the item cannot be scoped from what it says: it proposes a whole new\n  service with a sentence of description, or it asks for contradictory things, or the decision\n  is someone's to make rather than yours. A large, well-described change is not a handoff. When\n  `handoff` is true, give the reason and leave `domains` empty — do not guess the shape of work\n  you are handing back.\n\n## Summary and rationale\nBoth describe this item and nothing else. Use the item's own words for the things it names;\ndo not name files, services or tickets it does not mention. The rationale says what in the\nitem drove the classification, not that the classification is correct.\n</skill>\n\nThe work item to triage:\n\n{\n  \"key\": \"HP-12\",\n  \"title\": \"Expose a Prometheus /metrics endpoint\",\n  \"body\": \"The observability stack scrapes each service's Prometheus /metrics endpoint; Apollo and Hermes already expose one. Hephaestus has none, so it is invisible to Prometheus and Grafana \\u2014 no JVM health, no worker throughput, no failure rate.\\n\\nAdd GET /metrics on the existing HTTP port alongside /health, rendering the app CollectorRegistry. Use the same Prometheus simpleclient the sibling services use. A metrics.enabled toggle defaults to true; when disabled there is no route and a no-op recorder. Base JVM metrics plus worker metrics through a MetricsRecorder seam injected into the JobConsumer: jobs processed by lane and outcome, a processing-time histogram, and an in-flight gauge.\",\n  \"type_hint\": null,\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/HP-12\",\n  \"source\": \"github-issues\",\n  \"labels\": [],\n  \"links\": []\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item to triage:\n\n{{item}}",
+          "config": {}
+        },
+        "promptId": "bea2fe09b30cba30ece804f94131d22ef97c8ce3f89f539b7122ae415f116ba1",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"HP-12\",\"type\":\"feature\",\"path\":\"standard\",\"domains\":[\"backend\",\"infra\"],\"summary\":\"Add a GET /metrics endpoint on Hephaestus's existing HTTP port, rendering a Prometheus CollectorRegistry with base JVM metrics plus worker metrics (jobs by lane and outcome, a processing-time histogram, an in-flight gauge) via a MetricsRecorder seam injected into the JobConsumer, gated by a metrics.enabled toggle defaulting to true.\",\"rationale\":\"This is new user-visible (to operators) behaviour \\u2014 a new HTTP route and new metrics data \\u2014 not a fix to broken behaviour, so it is a feature; it touches the service's own HTTP endpoint and application code (backend) and is scraped by the observability platform (infra) alongside the existing /health route and the sibling services' /metrics endpoints.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}",
+          "tokenUsage": {
+            "prompt": 2,
+            "completion": 336,
+            "total": 338
+          },
+          "cost": 0.19690560000000001,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":7819,\"duration_api_ms\":5378,\"ttft_ms\":5377,\"ttft_stream_ms\":1809,\"time_to_request_ms\":19,\"num_turns\":1,\"result\":\"{\\\"item\\\":\\\"HP-12\\\",\\\"type\\\":\\\"feature\\\",\\\"path\\\":\\\"standard\\\",\\\"domains\\\":[\\\"backend\\\",\\\"infra\\\"],\\\"summary\\\":\\\"Add a GET /metrics endpoint on Hephaestus's existing HTTP port, rendering a Prometheus CollectorRegistry with base JVM metrics plus worker metrics (jobs by lane and outcome, a processing-time histogram, an in-flight gauge) via a MetricsRecorder seam injected into the JobConsumer, gated by a metrics.enabled toggle defaulting to true.\\\",\\\"rationale\\\":\\\"This is new user-visible (to operators) behaviour \\\\u2014 a new HTTP route and new metrics data \\\\u2014 not a fix to broken behaviour, so it is a feature; it touches the service's own HTTP endpoint and application code (backend) and is scraped by the observability platform (infra) alongside the existing /health route and the sibling services' /metrics endpoints.\\\",\\\"handoff\\\":false,\\\"handoff_reason\\\":null,\\\"architecture_change\\\":false,\\\"breaking_change\\\":false}\",\"stop_reason\":\"end_turn\",\"session_id\":\"c3d27d54-f95f-40da-b930-01f3d7c21a16\",\"total_cost_usd\":0.19690560000000001,\"usage\":{\"input_tokens\":2,\"cache_creation_input_tokens\":31121,\"cache_read_input_tokens\":17112,\"output_tokens\":336,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":31121,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":336,\"cache_read_input_tokens\":17112,\"cache_creation_input_tokens\":31121,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":31121},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":2,\"outputTokens\":336,\"cacheReadInputTokens\":17112,\"cacheCreationInputTokens\":31121,\"webSearchRequests\":0,\"costUSD\":0.19690560000000001,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"2f4f091e-a62d-4c1b-805b-be169c0436b6\"}",
+          "sessionId": "c3d27d54-f95f-40da-b930-01f3d7c21a16",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [],
+            "numTurns": 1,
+            "durationMs": 7819,
+            "durationApiMs": 5378,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 2,
+                "outputTokens": 336,
+                "cacheReadInputTokens": 17112,
+                "cacheCreationInputTokens": 31121,
+                "webSearchRequests": 0,
+                "costUSD": 0.19690560000000001,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 0.75,
+        "success": false,
+        "testCase": {
+          "description": "case-06-metrics-endpoint",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-06-metrics-endpoint",
+            "item": "file://inputs/case-06-metrics-endpoint.json",
+            "sessionId": "c3d27d54-f95f-40da-b930-01f3d7c21a16"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "classification",
+              "value": "file://asserts/classification.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "domains",
+              "value": "file://asserts/domains.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "grounding",
+              "value": "file://asserts/grounding.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 5,
+        "tokenUsage": {
+          "prompt": 2,
+          "completion": 336,
+          "cached": 0,
+          "total": 338,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-06-metrics-endpoint",
+          "item": "file://inputs/case-06-metrics-endpoint.json",
+          "sessionId": "c3d27d54-f95f-40da-b930-01f3d7c21a16"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [],
+          "numTurns": 1,
+          "durationMs": 7819,
+          "durationApiMs": 5378,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 2,
+              "outputTokens": 336,
+              "cacheReadInputTokens": 17112,
+              "cacheCreationInputTokens": 31121,
+              "webSearchRequests": 0,
+              "costUSD": 0.19690560000000001,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "c3d27d54-f95f-40da-b930-01f3d7c21a16"
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0.19436460000000003,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to triage.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "type=feature path=standard and all three flags correct",
+              "assertion": {
+                "type": "javascript",
+                "metric": "classification",
+                "value": "file://asserts/classification.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "domains [\"backend\"] match",
+              "assertion": {
+                "type": "javascript",
+                "metric": "domains",
+                "value": "file://asserts/domains.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "summary and rationale grounded in the item",
+              "assertion": {
+                "type": "javascript",
+                "metric": "grounding",
+                "value": "file://asserts/grounding.js"
+              }
+            }
+          ]
+        },
+        "id": "e159261a-2a9c-4388-b4bb-efc882356b69",
+        "latencyMs": 5522,
+        "namedScores": {
+          "schema": 1,
+          "classification": 1,
+          "domains": 1,
+          "grounding": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-triage\ndescription: Classify a tracker item for the delivery pipeline — type, path, domains, and the policy flags the flow branches on. Emits triage.json.\n---\n\n# Role\nYou are the first node of a delivery pipeline. You read one work item and decide how the\nrest of the flow should treat it. You are classifying what the item says, not planning the\nwork and not judging whether it is a good idea.\n\n# Task\nRead the item below and write the triage artifact for it.\n\n# Context\nYour reply is written straight to `triage.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. Later steps branch on\nthese fields: `type` and `path` choose the route, `domains` decides which specialists are\ndispatched, and the three flags decide whether the flow stops and asks a human. A field you\nguess at sends real work to the wrong place.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last\nis `}`: no preamble, no commentary, no code fence.\n\nUse exactly these keys and these value types:\n\n```\n{\n  \"item\": string,                  the item's key, copied exactly\n  \"type\": \"bug\" | \"feature\" | \"task\",\n  \"path\": \"quick\" | \"standard\",\n  \"domains\": [string],             the kinds of work this touches, from the list below\n  \"summary\": string,               one sentence on what the item asks for\n  \"rationale\": string,             why you classified it this way, citing the item\n  \"handoff\": true | false,\n  \"handoff_reason\": string | null, required when handoff is true, otherwise null\n  \"architecture_change\": true | false,\n  \"breaking_change\": true | false\n}\n```\n\n`handoff`, `architecture_change` and `breaking_change` are booleans, never strings and never\nthe name of a person or an agent. No other keys.\n\nA correct reply looks exactly like this, in full:\n\n{\"item\":\"ABC-1\",\"type\":\"bug\",\"path\":\"quick\",\"domains\":[\"backend\"],\"summary\":\"The export endpoint returns 500 on an empty range.\",\"rationale\":\"A defect report against existing behaviour with a clear reproduction.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}\n\n# Constraints\n\n## Type and path\n- `bug` — something that works incorrectly today. `feature` — new behaviour someone will\n  notice. `task` — work with no user-visible behaviour change: dependency bumps, plumbing,\n  configuration, tidying.\n- `path` follows from `type`, with no judgement about size: a `bug` or a `task` takes the\n  `quick` path, a `feature` takes the `standard` path. A small feature is still `standard`.\n\n## Domains\n`domains` uses only these words. Pick every one the work touches, and nothing else — an\nempty array is the right answer when the item names no work you can place.\n\n- `ux` — anything a person sees or operates: screens, navigation, layout, copy, visual\n  assets. A change to a user interface is `ux`, including the code that renders it. Do not\n  add `frontend` as well.\n- `frontend` — browser application code with no user-visible design element: client state\n  plumbing, bundler and build config for the web app. Rare; `ux` covers most UI work.\n- `backend` — services, APIs, domain logic, persistence, and a service's own configuration,\n  including config whose purpose is operational (its logging, its metrics wiring)\n- `contracts` — a shared interface artifact other services compile against, kept outside the\n  service that serves it. A service's own REST or gRPC surface is `backend`, not `contracts`.\n- `infra` — build, CI, containers, charts, deployment, and the platform side of observability\n- `data` — analytics, pipelines, warehouses. An application's own schema is `backend`.\n- `mobile` — iOS or Android applications\n- `docs` — documentation written for people\n\nA technology is not a domain: Pekko clustering, authentication and logging are all `backend`\nor `infra` work, not domains of their own.\n\n## The three flags\nEach flag is false unless its own test is met. They are independent: a large change can set\nnone of them.\n\n- `architecture_change` — true when the change moves a boundary: a new or removed service\n  (including one the item only proposes in a sentence), a new runtime topology (clustering,\n  sharding, a queue between services), or a new cross-cutting layer every request passes\n  through, such as authentication or tenant isolation. Adding an endpoint, a dependency,\n  logging or metrics *inside* one service, under the topology it already has, is not an\n  architecture change, however much code it touches. A `handoff` for scope is usually also an\n  `architecture_change` when what is proposed is a new service.\n- `breaking_change` — true when something that works today stops working unless its caller\n  changes: a removed or renamed field, changed semantics, an incompatible migration. A change\n  the item describes as backward compatible, or that ships behind a default-off switch or a\n  compatibility mode, is not breaking.\n- `handoff` — true when the item cannot be scoped from what it says: it proposes a whole new\n  service with a sentence of description, or it asks for contradictory things, or the decision\n  is someone's to make rather than yours. A large, well-described change is not a handoff. When\n  `handoff` is true, give the reason and leave `domains` empty — do not guess the shape of work\n  you are handing back.\n\n## Summary and rationale\nBoth describe this item and nothing else. Use the item's own words for the things it names;\ndo not name files, services or tickets it does not mention. The rationale says what in the\nitem drove the classification, not that the classification is correct.\n</skill>\n\nThe work item to triage:\n\n{\n  \"key\": \"57\",\n  \"title\": \"Ergonomic DLQ operator endpoints: browse + redrive/replay dead-letters\",\n  \"body\": \"Dead-lettered messages are currently only visible by querying the journal directly. An operator needs to see what is stuck and put it back: browse the dead-letter queue for a subscription with paging, inspect a message's payload and failure reason, and redrive selected messages (or all of them) back onto the subscription for another delivery attempt. Replay should be idempotent and must not disturb in-flight delivery.\",\n  \"type_hint\": null,\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/57\",\n  \"source\": \"github-issues\",\n  \"labels\": [],\n  \"links\": []\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item to triage:\n\n{{item}}",
+          "config": {}
+        },
+        "promptId": "bea2fe09b30cba30ece804f94131d22ef97c8ce3f89f539b7122ae415f116ba1",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"57\",\"type\":\"feature\",\"path\":\"standard\",\"domains\":[\"backend\"],\"summary\":\"Add operator endpoints to browse the dead-letter queue for a subscription with paging, inspect a message's payload and failure reason, and redrive selected or all messages back onto the subscription idempotently without disturbing in-flight delivery.\",\"rationale\":\"The item asks for new endpoints (browse, inspect, redrive) that operators will notice and use, which is user-visible new behaviour rather than a fix or plumbing, so it is a feature on the standard path.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}",
+          "tokenUsage": {
+            "prompt": 2,
+            "completion": 217,
+            "total": 219
+          },
+          "cost": 0.19436460000000003,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":3985,\"duration_api_ms\":2721,\"ttft_ms\":2735,\"ttft_stream_ms\":1111,\"time_to_request_ms\":31,\"num_turns\":1,\"result\":\"{\\\"item\\\":\\\"57\\\",\\\"type\\\":\\\"feature\\\",\\\"path\\\":\\\"standard\\\",\\\"domains\\\":[\\\"backend\\\"],\\\"summary\\\":\\\"Add operator endpoints to browse the dead-letter queue for a subscription with paging, inspect a message's payload and failure reason, and redrive selected or all messages back onto the subscription idempotently without disturbing in-flight delivery.\\\",\\\"rationale\\\":\\\"The item asks for new endpoints (browse, inspect, redrive) that operators will notice and use, which is user-visible new behaviour rather than a fix or plumbing, so it is a feature on the standard path.\\\",\\\"handoff\\\":false,\\\"handoff_reason\\\":null,\\\"architecture_change\\\":false,\\\"breaking_change\\\":false}\",\"stop_reason\":\"end_turn\",\"session_id\":\"d68c63ba-2296-42ba-a69e-52c4227b3659\",\"total_cost_usd\":0.19436460000000003,\"usage\":{\"input_tokens\":2,\"cache_creation_input_tokens\":30995,\"cache_read_input_tokens\":17112,\"output_tokens\":217,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":30995,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":217,\"cache_read_input_tokens\":17112,\"cache_creation_input_tokens\":30995,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":30995},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":2,\"outputTokens\":217,\"cacheReadInputTokens\":17112,\"cacheCreationInputTokens\":30995,\"webSearchRequests\":0,\"costUSD\":0.19436460000000003,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"3d3dd4f6-fc23-46b8-9b28-a698f777841c\"}",
+          "sessionId": "d68c63ba-2296-42ba-a69e-52c4227b3659",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [],
+            "numTurns": 1,
+            "durationMs": 3985,
+            "durationApiMs": 2721,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 2,
+                "outputTokens": 217,
+                "cacheReadInputTokens": 17112,
+                "cacheCreationInputTokens": 30995,
+                "webSearchRequests": 0,
+                "costUSD": 0.19436460000000003,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-07-dlq-endpoints",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-07-dlq-endpoints",
+            "item": "file://inputs/case-07-dlq-endpoints.json",
+            "sessionId": "d68c63ba-2296-42ba-a69e-52c4227b3659"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "classification",
+              "value": "file://asserts/classification.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "domains",
+              "value": "file://asserts/domains.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "grounding",
+              "value": "file://asserts/grounding.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 6,
+        "tokenUsage": {
+          "prompt": 2,
+          "completion": 217,
+          "cached": 0,
+          "total": 219,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-07-dlq-endpoints",
+          "item": "file://inputs/case-07-dlq-endpoints.json",
+          "sessionId": "d68c63ba-2296-42ba-a69e-52c4227b3659"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [],
+          "numTurns": 1,
+          "durationMs": 3985,
+          "durationApiMs": 2721,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 2,
+              "outputTokens": 217,
+              "cacheReadInputTokens": 17112,
+              "cacheCreationInputTokens": 30995,
+              "webSearchRequests": 0,
+              "costUSD": 0.19436460000000003,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "d68c63ba-2296-42ba-a69e-52c4227b3659"
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.1932006,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to triage.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "type=task path=quick and all three flags correct",
+              "assertion": {
+                "type": "javascript",
+                "metric": "classification",
+                "value": "file://asserts/classification.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "domains [\"infra\"] match",
+              "assertion": {
+                "type": "javascript",
+                "metric": "domains",
+                "value": "file://asserts/domains.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "summary and rationale grounded in the item",
+              "assertion": {
+                "type": "javascript",
+                "metric": "grounding",
+                "value": "file://asserts/grounding.js"
+              }
+            }
+          ]
+        },
+        "id": "b4a8f169-babc-48ab-a386-6e26005ca17f",
+        "latencyMs": 5380,
+        "namedScores": {
+          "schema": 1,
+          "classification": 1,
+          "domains": 1,
+          "grounding": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-triage\ndescription: Classify a tracker item for the delivery pipeline — type, path, domains, and the policy flags the flow branches on. Emits triage.json.\n---\n\n# Role\nYou are the first node of a delivery pipeline. You read one work item and decide how the\nrest of the flow should treat it. You are classifying what the item says, not planning the\nwork and not judging whether it is a good idea.\n\n# Task\nRead the item below and write the triage artifact for it.\n\n# Context\nYour reply is written straight to `triage.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. Later steps branch on\nthese fields: `type` and `path` choose the route, `domains` decides which specialists are\ndispatched, and the three flags decide whether the flow stops and asks a human. A field you\nguess at sends real work to the wrong place.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last\nis `}`: no preamble, no commentary, no code fence.\n\nUse exactly these keys and these value types:\n\n```\n{\n  \"item\": string,                  the item's key, copied exactly\n  \"type\": \"bug\" | \"feature\" | \"task\",\n  \"path\": \"quick\" | \"standard\",\n  \"domains\": [string],             the kinds of work this touches, from the list below\n  \"summary\": string,               one sentence on what the item asks for\n  \"rationale\": string,             why you classified it this way, citing the item\n  \"handoff\": true | false,\n  \"handoff_reason\": string | null, required when handoff is true, otherwise null\n  \"architecture_change\": true | false,\n  \"breaking_change\": true | false\n}\n```\n\n`handoff`, `architecture_change` and `breaking_change` are booleans, never strings and never\nthe name of a person or an agent. No other keys.\n\nA correct reply looks exactly like this, in full:\n\n{\"item\":\"ABC-1\",\"type\":\"bug\",\"path\":\"quick\",\"domains\":[\"backend\"],\"summary\":\"The export endpoint returns 500 on an empty range.\",\"rationale\":\"A defect report against existing behaviour with a clear reproduction.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}\n\n# Constraints\n\n## Type and path\n- `bug` — something that works incorrectly today. `feature` — new behaviour someone will\n  notice. `task` — work with no user-visible behaviour change: dependency bumps, plumbing,\n  configuration, tidying.\n- `path` follows from `type`, with no judgement about size: a `bug` or a `task` takes the\n  `quick` path, a `feature` takes the `standard` path. A small feature is still `standard`.\n\n## Domains\n`domains` uses only these words. Pick every one the work touches, and nothing else — an\nempty array is the right answer when the item names no work you can place.\n\n- `ux` — anything a person sees or operates: screens, navigation, layout, copy, visual\n  assets. A change to a user interface is `ux`, including the code that renders it. Do not\n  add `frontend` as well.\n- `frontend` — browser application code with no user-visible design element: client state\n  plumbing, bundler and build config for the web app. Rare; `ux` covers most UI work.\n- `backend` — services, APIs, domain logic, persistence, and a service's own configuration,\n  including config whose purpose is operational (its logging, its metrics wiring)\n- `contracts` — a shared interface artifact other services compile against, kept outside the\n  service that serves it. A service's own REST or gRPC surface is `backend`, not `contracts`.\n- `infra` — build, CI, containers, charts, deployment, and the platform side of observability\n- `data` — analytics, pipelines, warehouses. An application's own schema is `backend`.\n- `mobile` — iOS or Android applications\n- `docs` — documentation written for people\n\nA technology is not a domain: Pekko clustering, authentication and logging are all `backend`\nor `infra` work, not domains of their own.\n\n## The three flags\nEach flag is false unless its own test is met. They are independent: a large change can set\nnone of them.\n\n- `architecture_change` — true when the change moves a boundary: a new or removed service\n  (including one the item only proposes in a sentence), a new runtime topology (clustering,\n  sharding, a queue between services), or a new cross-cutting layer every request passes\n  through, such as authentication or tenant isolation. Adding an endpoint, a dependency,\n  logging or metrics *inside* one service, under the topology it already has, is not an\n  architecture change, however much code it touches. A `handoff` for scope is usually also an\n  `architecture_change` when what is proposed is a new service.\n- `breaking_change` — true when something that works today stops working unless its caller\n  changes: a removed or renamed field, changed semantics, an incompatible migration. A change\n  the item describes as backward compatible, or that ships behind a default-off switch or a\n  compatibility mode, is not breaking.\n- `handoff` — true when the item cannot be scoped from what it says: it proposes a whole new\n  service with a sentence of description, or it asks for contradictory things, or the decision\n  is someone's to make rather than yours. A large, well-described change is not a handoff. When\n  `handoff` is true, give the reason and leave `domains` empty — do not guess the shape of work\n  you are handing back.\n\n## Summary and rationale\nBoth describe this item and nothing else. Use the item's own words for the things it names;\ndo not name files, services or tickets it does not mention. The rationale says what in the\nitem drove the classification, not that the classification is correct.\n</skill>\n\nThe work item to triage:\n\n{\n  \"key\": \"DM-53\",\n  \"title\": \"ci: bump actions/setup-java in /.github/actions/setup-scala\",\n  \"body\": \"Bumps actions/setup-java from 5.7.0 to 6.0.0 in the setup-scala composite action.\",\n  \"type_hint\": \"chore\",\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/DM-53\",\n  \"source\": \"github-issues\",\n  \"labels\": [\n    \"dependencies\",\n    \"github_actions\"\n  ],\n  \"links\": []\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item to triage:\n\n{{item}}",
+          "config": {}
+        },
+        "promptId": "bea2fe09b30cba30ece804f94131d22ef97c8ce3f89f539b7122ae415f116ba1",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"DM-53\",\"type\":\"task\",\"path\":\"quick\",\"domains\":[\"infra\"],\"summary\":\"Bumps actions/setup-java from 5.7.0 to 6.0.0 in the setup-scala composite action.\",\"rationale\":\"A dependency version bump to a GitHub Actions composite action with no user-visible behaviour change, labeled 'dependencies' and 'github_actions'.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}",
+          "tokenUsage": {
+            "prompt": 2,
+            "completion": 165,
+            "total": 167
+          },
+          "cost": 0.1932006,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":4301,\"duration_api_ms\":3318,\"ttft_ms\":3322,\"ttft_stream_ms\":1764,\"time_to_request_ms\":19,\"num_turns\":1,\"result\":\"{\\\"item\\\":\\\"DM-53\\\",\\\"type\\\":\\\"task\\\",\\\"path\\\":\\\"quick\\\",\\\"domains\\\":[\\\"infra\\\"],\\\"summary\\\":\\\"Bumps actions/setup-java from 5.7.0 to 6.0.0 in the setup-scala composite action.\\\",\\\"rationale\\\":\\\"A dependency version bump to a GitHub Actions composite action with no user-visible behaviour change, labeled 'dependencies' and 'github_actions'.\\\",\\\"handoff\\\":false,\\\"handoff_reason\\\":null,\\\"architecture_change\\\":false,\\\"breaking_change\\\":false}\",\"stop_reason\":\"end_turn\",\"session_id\":\"9053e941-db46-46f8-9c1c-501f9c3a76b0\",\"total_cost_usd\":0.1932006,\"usage\":{\"input_tokens\":2,\"cache_creation_input_tokens\":30931,\"cache_read_input_tokens\":17112,\"output_tokens\":165,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":30931,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":165,\"cache_read_input_tokens\":17112,\"cache_creation_input_tokens\":30931,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":30931},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":2,\"outputTokens\":165,\"cacheReadInputTokens\":17112,\"cacheCreationInputTokens\":30931,\"webSearchRequests\":0,\"costUSD\":0.1932006,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"7f8d7521-7355-4021-8e2c-4ba655d7403e\"}",
+          "sessionId": "9053e941-db46-46f8-9c1c-501f9c3a76b0",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [],
+            "numTurns": 1,
+            "durationMs": 4301,
+            "durationApiMs": 3318,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 2,
+                "outputTokens": 165,
+                "cacheReadInputTokens": 17112,
+                "cacheCreationInputTokens": 30931,
+                "webSearchRequests": 0,
+                "costUSD": 0.1932006,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-08-setup-java-bump",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-08-setup-java-bump",
+            "item": "file://inputs/case-08-setup-java-bump.json",
+            "sessionId": "9053e941-db46-46f8-9c1c-501f9c3a76b0"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "classification",
+              "value": "file://asserts/classification.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "domains",
+              "value": "file://asserts/domains.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "grounding",
+              "value": "file://asserts/grounding.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 7,
+        "tokenUsage": {
+          "prompt": 2,
+          "completion": 165,
+          "cached": 0,
+          "total": 167,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-08-setup-java-bump",
+          "item": "file://inputs/case-08-setup-java-bump.json",
+          "sessionId": "9053e941-db46-46f8-9c1c-501f9c3a76b0"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [],
+          "numTurns": 1,
+          "durationMs": 4301,
+          "durationApiMs": 3318,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 2,
+              "outputTokens": 165,
+              "cacheReadInputTokens": 17112,
+              "cacheCreationInputTokens": 30931,
+              "webSearchRequests": 0,
+              "costUSD": 0.1932006,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "9053e941-db46-46f8-9c1c-501f9c3a76b0"
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.1927116,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to triage.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "type=bug path=quick and all three flags correct",
+              "assertion": {
+                "type": "javascript",
+                "metric": "classification",
+                "value": "file://asserts/classification.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "domains [\"ux\"] match",
+              "assertion": {
+                "type": "javascript",
+                "metric": "domains",
+                "value": "file://asserts/domains.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "summary and rationale grounded in the item",
+              "assertion": {
+                "type": "javascript",
+                "metric": "grounding",
+                "value": "file://asserts/grounding.js"
+              }
+            }
+          ]
+        },
+        "id": "1758ef95-bc60-4360-80bd-5088b353f016",
+        "latencyMs": 7737,
+        "namedScores": {
+          "schema": 1,
+          "classification": 1,
+          "domains": 1,
+          "grounding": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-triage\ndescription: Classify a tracker item for the delivery pipeline — type, path, domains, and the policy flags the flow branches on. Emits triage.json.\n---\n\n# Role\nYou are the first node of a delivery pipeline. You read one work item and decide how the\nrest of the flow should treat it. You are classifying what the item says, not planning the\nwork and not judging whether it is a good idea.\n\n# Task\nRead the item below and write the triage artifact for it.\n\n# Context\nYour reply is written straight to `triage.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. Later steps branch on\nthese fields: `type` and `path` choose the route, `domains` decides which specialists are\ndispatched, and the three flags decide whether the flow stops and asks a human. A field you\nguess at sends real work to the wrong place.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last\nis `}`: no preamble, no commentary, no code fence.\n\nUse exactly these keys and these value types:\n\n```\n{\n  \"item\": string,                  the item's key, copied exactly\n  \"type\": \"bug\" | \"feature\" | \"task\",\n  \"path\": \"quick\" | \"standard\",\n  \"domains\": [string],             the kinds of work this touches, from the list below\n  \"summary\": string,               one sentence on what the item asks for\n  \"rationale\": string,             why you classified it this way, citing the item\n  \"handoff\": true | false,\n  \"handoff_reason\": string | null, required when handoff is true, otherwise null\n  \"architecture_change\": true | false,\n  \"breaking_change\": true | false\n}\n```\n\n`handoff`, `architecture_change` and `breaking_change` are booleans, never strings and never\nthe name of a person or an agent. No other keys.\n\nA correct reply looks exactly like this, in full:\n\n{\"item\":\"ABC-1\",\"type\":\"bug\",\"path\":\"quick\",\"domains\":[\"backend\"],\"summary\":\"The export endpoint returns 500 on an empty range.\",\"rationale\":\"A defect report against existing behaviour with a clear reproduction.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}\n\n# Constraints\n\n## Type and path\n- `bug` — something that works incorrectly today. `feature` — new behaviour someone will\n  notice. `task` — work with no user-visible behaviour change: dependency bumps, plumbing,\n  configuration, tidying.\n- `path` follows from `type`, with no judgement about size: a `bug` or a `task` takes the\n  `quick` path, a `feature` takes the `standard` path. A small feature is still `standard`.\n\n## Domains\n`domains` uses only these words. Pick every one the work touches, and nothing else — an\nempty array is the right answer when the item names no work you can place.\n\n- `ux` — anything a person sees or operates: screens, navigation, layout, copy, visual\n  assets. A change to a user interface is `ux`, including the code that renders it. Do not\n  add `frontend` as well.\n- `frontend` — browser application code with no user-visible design element: client state\n  plumbing, bundler and build config for the web app. Rare; `ux` covers most UI work.\n- `backend` — services, APIs, domain logic, persistence, and a service's own configuration,\n  including config whose purpose is operational (its logging, its metrics wiring)\n- `contracts` — a shared interface artifact other services compile against, kept outside the\n  service that serves it. A service's own REST or gRPC surface is `backend`, not `contracts`.\n- `infra` — build, CI, containers, charts, deployment, and the platform side of observability\n- `data` — analytics, pipelines, warehouses. An application's own schema is `backend`.\n- `mobile` — iOS or Android applications\n- `docs` — documentation written for people\n\nA technology is not a domain: Pekko clustering, authentication and logging are all `backend`\nor `infra` work, not domains of their own.\n\n## The three flags\nEach flag is false unless its own test is met. They are independent: a large change can set\nnone of them.\n\n- `architecture_change` — true when the change moves a boundary: a new or removed service\n  (including one the item only proposes in a sentence), a new runtime topology (clustering,\n  sharding, a queue between services), or a new cross-cutting layer every request passes\n  through, such as authentication or tenant isolation. Adding an endpoint, a dependency,\n  logging or metrics *inside* one service, under the topology it already has, is not an\n  architecture change, however much code it touches. A `handoff` for scope is usually also an\n  `architecture_change` when what is proposed is a new service.\n- `breaking_change` — true when something that works today stops working unless its caller\n  changes: a removed or renamed field, changed semantics, an incompatible migration. A change\n  the item describes as backward compatible, or that ships behind a default-off switch or a\n  compatibility mode, is not breaking.\n- `handoff` — true when the item cannot be scoped from what it says: it proposes a whole new\n  service with a sentence of description, or it asks for contradictory things, or the decision\n  is someone's to make rather than yours. A large, well-described change is not a handoff. When\n  `handoff` is true, give the reason and leave `domains` empty — do not guess the shape of work\n  you are handing back.\n\n## Summary and rationale\nBoth describe this item and nothing else. Use the item's own words for the things it names;\ndo not name files, services or tickets it does not mention. The rationale says what in the\nitem drove the classification, not that the classification is correct.\n</skill>\n\nThe work item to triage:\n\n{\n  \"key\": \"OLY-7\",\n  \"title\": \"Hephaestus logo is incorrect\",\n  \"body\": \"The Hephaestus logo shown in the console is the wrong one.\",\n  \"type_hint\": null,\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/OLY-7\",\n  \"source\": \"local-markdown\",\n  \"labels\": [],\n  \"links\": []\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item to triage:\n\n{{item}}",
+          "config": {}
+        },
+        "promptId": "bea2fe09b30cba30ece804f94131d22ef97c8ce3f89f539b7122ae415f116ba1",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"OLY-7\",\"type\":\"bug\",\"path\":\"quick\",\"domains\":[\"ux\"],\"summary\":\"The Hephaestus logo shown in the console is the wrong one.\",\"rationale\":\"The item reports that an existing visual element, the logo displayed in the console, is currently incorrect, which is a defect in existing behaviour rather than new functionality.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}",
+          "tokenUsage": {
+            "prompt": 2,
+            "completion": 150,
+            "total": 152
+          },
+          "cost": 0.1927116,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":6676,\"duration_api_ms\":5379,\"ttft_ms\":5386,\"ttft_stream_ms\":3712,\"time_to_request_ms\":25,\"num_turns\":1,\"result\":\"{\\\"item\\\":\\\"OLY-7\\\",\\\"type\\\":\\\"bug\\\",\\\"path\\\":\\\"quick\\\",\\\"domains\\\":[\\\"ux\\\"],\\\"summary\\\":\\\"The Hephaestus logo shown in the console is the wrong one.\\\",\\\"rationale\\\":\\\"The item reports that an existing visual element, the logo displayed in the console, is currently incorrect, which is a defect in existing behaviour rather than new functionality.\\\",\\\"handoff\\\":false,\\\"handoff_reason\\\":null,\\\"architecture_change\\\":false,\\\"breaking_change\\\":false}\",\"stop_reason\":\"end_turn\",\"session_id\":\"ede5e486-7a5c-42e2-b9f1-bb05139ad7a9\",\"total_cost_usd\":0.1927116,\"usage\":{\"input_tokens\":2,\"cache_creation_input_tokens\":30887,\"cache_read_input_tokens\":17112,\"output_tokens\":150,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":30887,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":150,\"cache_read_input_tokens\":17112,\"cache_creation_input_tokens\":30887,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":30887},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":2,\"outputTokens\":150,\"cacheReadInputTokens\":17112,\"cacheCreationInputTokens\":30887,\"webSearchRequests\":0,\"costUSD\":0.1927116,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"6513fe16-a2e8-4308-b355-8e6fe0fdf2b4\"}",
+          "sessionId": "ede5e486-7a5c-42e2-b9f1-bb05139ad7a9",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [],
+            "numTurns": 1,
+            "durationMs": 6676,
+            "durationApiMs": 5379,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 2,
+                "outputTokens": 150,
+                "cacheReadInputTokens": 17112,
+                "cacheCreationInputTokens": 30887,
+                "webSearchRequests": 0,
+                "costUSD": 0.1927116,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-09-wrong-logo",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-09-wrong-logo",
+            "item": "file://inputs/case-09-wrong-logo.json",
+            "sessionId": "ede5e486-7a5c-42e2-b9f1-bb05139ad7a9"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "classification",
+              "value": "file://asserts/classification.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "domains",
+              "value": "file://asserts/domains.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "grounding",
+              "value": "file://asserts/grounding.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 8,
+        "tokenUsage": {
+          "prompt": 2,
+          "completion": 150,
+          "cached": 0,
+          "total": 152,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-09-wrong-logo",
+          "item": "file://inputs/case-09-wrong-logo.json",
+          "sessionId": "ede5e486-7a5c-42e2-b9f1-bb05139ad7a9"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [],
+          "numTurns": 1,
+          "durationMs": 6676,
+          "durationApiMs": 5379,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 2,
+              "outputTokens": 150,
+              "cacheReadInputTokens": 17112,
+              "cacheCreationInputTokens": 30887,
+              "webSearchRequests": 0,
+              "costUSD": 0.1927116,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "ede5e486-7a5c-42e2-b9f1-bb05139ad7a9"
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.1939926,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "namedScoreWeights": {
+            "schema": 1,
+            "classification": 1,
+            "domains": 1,
+            "grounding": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "raw JSON conforming to triage.schema.json",
+              "assertion": {
+                "type": "javascript",
+                "metric": "schema",
+                "value": "file://asserts/schema.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "type=feature path=standard and all three flags correct",
+              "assertion": {
+                "type": "javascript",
+                "metric": "classification",
+                "value": "file://asserts/classification.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "domains [] match",
+              "assertion": {
+                "type": "javascript",
+                "metric": "domains",
+                "value": "file://asserts/domains.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "summary and rationale grounded in the item",
+              "assertion": {
+                "type": "javascript",
+                "metric": "grounding",
+                "value": "file://asserts/grounding.js"
+              }
+            }
+          ]
+        },
+        "id": "89b55f8f-0156-4191-9d8d-f6aa593c443c",
+        "latencyMs": 7080,
+        "namedScores": {
+          "schema": 1,
+          "classification": 1,
+          "domains": 1,
+          "grounding": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill.\n\n<skill>\n---\nname: delivery-triage\ndescription: Classify a tracker item for the delivery pipeline — type, path, domains, and the policy flags the flow branches on. Emits triage.json.\n---\n\n# Role\nYou are the first node of a delivery pipeline. You read one work item and decide how the\nrest of the flow should treat it. You are classifying what the item says, not planning the\nwork and not judging whether it is a good idea.\n\n# Task\nRead the item below and write the triage artifact for it.\n\n# Context\nYour reply is written straight to `triage.json` and parsed by `json.loads` with no cleanup\nstep, then checked against a schema before anything downstream runs. Later steps branch on\nthese fields: `type` and `path` choose the route, `domains` decides which specialists are\ndispatched, and the three flags decide whether the flow stops and asks a human. A field you\nguess at sends real work to the wrong place.\n\n# Output\nReply with raw JSON and nothing else. The first character of your reply is `{` and the last\nis `}`: no preamble, no commentary, no code fence.\n\nUse exactly these keys and these value types:\n\n```\n{\n  \"item\": string,                  the item's key, copied exactly\n  \"type\": \"bug\" | \"feature\" | \"task\",\n  \"path\": \"quick\" | \"standard\",\n  \"domains\": [string],             the kinds of work this touches, from the list below\n  \"summary\": string,               one sentence on what the item asks for\n  \"rationale\": string,             why you classified it this way, citing the item\n  \"handoff\": true | false,\n  \"handoff_reason\": string | null, required when handoff is true, otherwise null\n  \"architecture_change\": true | false,\n  \"breaking_change\": true | false\n}\n```\n\n`handoff`, `architecture_change` and `breaking_change` are booleans, never strings and never\nthe name of a person or an agent. No other keys.\n\nA correct reply looks exactly like this, in full:\n\n{\"item\":\"ABC-1\",\"type\":\"bug\",\"path\":\"quick\",\"domains\":[\"backend\"],\"summary\":\"The export endpoint returns 500 on an empty range.\",\"rationale\":\"A defect report against existing behaviour with a clear reproduction.\",\"handoff\":false,\"handoff_reason\":null,\"architecture_change\":false,\"breaking_change\":false}\n\n# Constraints\n\n## Type and path\n- `bug` — something that works incorrectly today. `feature` — new behaviour someone will\n  notice. `task` — work with no user-visible behaviour change: dependency bumps, plumbing,\n  configuration, tidying.\n- `path` follows from `type`, with no judgement about size: a `bug` or a `task` takes the\n  `quick` path, a `feature` takes the `standard` path. A small feature is still `standard`.\n\n## Domains\n`domains` uses only these words. Pick every one the work touches, and nothing else — an\nempty array is the right answer when the item names no work you can place.\n\n- `ux` — anything a person sees or operates: screens, navigation, layout, copy, visual\n  assets. A change to a user interface is `ux`, including the code that renders it. Do not\n  add `frontend` as well.\n- `frontend` — browser application code with no user-visible design element: client state\n  plumbing, bundler and build config for the web app. Rare; `ux` covers most UI work.\n- `backend` — services, APIs, domain logic, persistence, and a service's own configuration,\n  including config whose purpose is operational (its logging, its metrics wiring)\n- `contracts` — a shared interface artifact other services compile against, kept outside the\n  service that serves it. A service's own REST or gRPC surface is `backend`, not `contracts`.\n- `infra` — build, CI, containers, charts, deployment, and the platform side of observability\n- `data` — analytics, pipelines, warehouses. An application's own schema is `backend`.\n- `mobile` — iOS or Android applications\n- `docs` — documentation written for people\n\nA technology is not a domain: Pekko clustering, authentication and logging are all `backend`\nor `infra` work, not domains of their own.\n\n## The three flags\nEach flag is false unless its own test is met. They are independent: a large change can set\nnone of them.\n\n- `architecture_change` — true when the change moves a boundary: a new or removed service\n  (including one the item only proposes in a sentence), a new runtime topology (clustering,\n  sharding, a queue between services), or a new cross-cutting layer every request passes\n  through, such as authentication or tenant isolation. Adding an endpoint, a dependency,\n  logging or metrics *inside* one service, under the topology it already has, is not an\n  architecture change, however much code it touches. A `handoff` for scope is usually also an\n  `architecture_change` when what is proposed is a new service.\n- `breaking_change` — true when something that works today stops working unless its caller\n  changes: a removed or renamed field, changed semantics, an incompatible migration. A change\n  the item describes as backward compatible, or that ships behind a default-off switch or a\n  compatibility mode, is not breaking.\n- `handoff` — true when the item cannot be scoped from what it says: it proposes a whole new\n  service with a sentence of description, or it asks for contradictory things, or the decision\n  is someone's to make rather than yours. A large, well-described change is not a handoff. When\n  `handoff` is true, give the reason and leave `domains` empty — do not guess the shape of work\n  you are handing back.\n\n## Summary and rationale\nBoth describe this item and nothing else. Use the item's own words for the things it names;\ndo not name files, services or tickets it does not mention. The rationale says what in the\nitem drove the classification, not that the classification is correct.\n</skill>\n\nThe work item to triage:\n\n{\n  \"key\": \"OLY-3\",\n  \"title\": \"Service that can recommend TV series and movies\",\n  \"body\": \"A service that can recommend TV series and movies. This is a long-term effort to stop relying on other people's recommendations.\",\n  \"type_hint\": null,\n  \"status\": \"open\",\n  \"url\": \"https://example.invalid/OLY-3\",\n  \"source\": \"local-markdown\",\n  \"labels\": [],\n  \"links\": []\n}",
+          "label": "prompt.txt: You are executing the following Claude Code skill.\n\n<skill>\n{{skill}}\n</skill>\n\nThe work item to triage:\n\n{{item}}",
+          "config": {}
+        },
+        "promptId": "bea2fe09b30cba30ece804f94131d22ef97c8ce3f89f539b7122ae415f116ba1",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "{\"item\":\"OLY-3\",\"type\":\"feature\",\"path\":\"standard\",\"domains\":[],\"summary\":\"Build a service that can recommend TV series and movies, as a long-term effort to stop relying on other people's recommendations.\",\"rationale\":\"The item proposes a whole new service in a single sentence with no description of its scope, interfaces, or how it fits existing systems, so the shape of work cannot be scoped from what it says.\",\"handoff\":true,\"handoff_reason\":\"The item proposes a new recommendation service with only a one-sentence description; its scope, data sources, and architecture are undefined and the decision of how to shape this effort belongs to a human, not to classification.\",\"architecture_change\":true,\"breaking_change\":false}",
+          "tokenUsage": {
+            "prompt": 2,
+            "completion": 231,
+            "total": 233
+          },
+          "cost": 0.1939926,
+          "raw": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":5891,\"duration_api_ms\":4501,\"ttft_ms\":4506,\"ttft_stream_ms\":1806,\"time_to_request_ms\":22,\"num_turns\":1,\"result\":\"{\\\"item\\\":\\\"OLY-3\\\",\\\"type\\\":\\\"feature\\\",\\\"path\\\":\\\"standard\\\",\\\"domains\\\":[],\\\"summary\\\":\\\"Build a service that can recommend TV series and movies, as a long-term effort to stop relying on other people's recommendations.\\\",\\\"rationale\\\":\\\"The item proposes a whole new service in a single sentence with no description of its scope, interfaces, or how it fits existing systems, so the shape of work cannot be scoped from what it says.\\\",\\\"handoff\\\":true,\\\"handoff_reason\\\":\\\"The item proposes a new recommendation service with only a one-sentence description; its scope, data sources, and architecture are undefined and the decision of how to shape this effort belongs to a human, not to classification.\\\",\\\"architecture_change\\\":true,\\\"breaking_change\\\":false}\",\"stop_reason\":\"end_turn\",\"session_id\":\"9f7960f5-50d7-4de9-b314-5df0153090c5\",\"total_cost_usd\":0.1939926,\"usage\":{\"input_tokens\":2,\"cache_creation_input_tokens\":30898,\"cache_read_input_tokens\":17112,\"output_tokens\":231,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":30898,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":231,\"cache_read_input_tokens\":17112,\"cache_creation_input_tokens\":30898,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":30898},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":2,\"outputTokens\":231,\"cacheReadInputTokens\":17112,\"cacheCreationInputTokens\":30898,\"webSearchRequests\":0,\"costUSD\":0.1939926,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"a20bd771-74ac-459a-9ab0-4859eff4990c\"}",
+          "sessionId": "9f7960f5-50d7-4de9-b314-5df0153090c5",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [],
+            "numTurns": 1,
+            "durationMs": 5891,
+            "durationApiMs": 4501,
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 2,
+                "outputTokens": 231,
+                "cacheReadInputTokens": 17112,
+                "cacheCreationInputTokens": 30898,
+                "webSearchRequests": 0,
+                "costUSD": 0.1939926,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-10-recommender",
+          "vars": {
+            "skill": "file://prompts/current.md",
+            "case": "case-10-recommender",
+            "item": "file://inputs/case-10-recommender.json",
+            "sessionId": "9f7960f5-50d7-4de9-b314-5df0153090c5"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "schema",
+              "value": "file://asserts/schema.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "classification",
+              "value": "file://asserts/classification.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "domains",
+              "value": "file://asserts/domains.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "grounding",
+              "value": "file://asserts/grounding.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 9,
+        "tokenUsage": {
+          "prompt": 2,
+          "completion": 231,
+          "cached": 0,
+          "total": 233,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file://prompts/current.md",
+          "case": "case-10-recommender",
+          "item": "file://inputs/case-10-recommender.json",
+          "sessionId": "9f7960f5-50d7-4de9-b314-5df0153090c5"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [],
+          "numTurns": 1,
+          "durationMs": 5891,
+          "durationApiMs": 4501,
+          "modelUsage": {
+            "claude-sonnet-5": {
+              "inputTokens": 2,
+              "outputTokens": 231,
+              "cacheReadInputTokens": 17112,
+              "cacheCreationInputTokens": 30898,
+              "webSearchRequests": 0,
+              "costUSD": 0.1939926,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 64000
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "9f7960f5-50d7-4de9-b314-5df0153090c5"
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 8,
+      "failures": 2,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 22,
+        "completion": 5620,
+        "cached": 0,
+        "total": 5642,
+        "numRequests": 10,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 32357,
+      "evaluationDurationMs": 32357
+    }
+  },
+  "config": {
+    "description": "delivery-flow triage node: schema, classification, domains, grounding on 10 real items",
+    "prompts": [
+      "file://prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "anthropic:claude-agent-sdk",
+        "label": "haiku",
+        "config": {
+          "model": "haiku",
+          "apiKeyRequired": false,
+          "max_turns": 5
+        }
+      },
+      {
+        "id": "anthropic:claude-agent-sdk",
+        "label": "sonnet",
+        "config": {
+          "model": "sonnet",
+          "apiKeyRequired": false,
+          "max_turns": 5
+        }
+      }
+    ],
+    "tests": [
+      {
+        "description": "case-01-pantry-items",
+        "vars": {
+          "case": "case-01-pantry-items",
+          "item": "file://inputs/case-01-pantry-items.json"
+        }
+      },
+      {
+        "description": "case-02-sidebar-nav",
+        "vars": {
+          "case": "case-02-sidebar-nav",
+          "item": "file://inputs/case-02-sidebar-nav.json"
+        }
+      },
+      {
+        "description": "case-03-auth-tenancy",
+        "vars": {
+          "case": "case-03-auth-tenancy",
+          "item": "file://inputs/case-03-auth-tenancy.json"
+        }
+      },
+      {
+        "description": "case-04-structured-logging",
+        "vars": {
+          "case": "case-04-structured-logging",
+          "item": "file://inputs/case-04-structured-logging.json"
+        }
+      },
+      {
+        "description": "case-05-clustering",
+        "vars": {
+          "case": "case-05-clustering",
+          "item": "file://inputs/case-05-clustering.json"
+        }
+      },
+      {
+        "description": "case-06-metrics-endpoint",
+        "vars": {
+          "case": "case-06-metrics-endpoint",
+          "item": "file://inputs/case-06-metrics-endpoint.json"
+        }
+      },
+      {
+        "description": "case-07-dlq-endpoints",
+        "vars": {
+          "case": "case-07-dlq-endpoints",
+          "item": "file://inputs/case-07-dlq-endpoints.json"
+        }
+      },
+      {
+        "description": "case-08-setup-java-bump",
+        "vars": {
+          "case": "case-08-setup-java-bump",
+          "item": "file://inputs/case-08-setup-java-bump.json"
+        }
+      },
+      {
+        "description": "case-09-wrong-logo",
+        "vars": {
+          "case": "case-09-wrong-logo",
+          "item": "file://inputs/case-09-wrong-logo.json"
+        }
+      },
+      {
+        "description": "case-10-recommender",
+        "vars": {
+          "case": "case-10-recommender",
+          "item": "file://inputs/case-10-recommender.json"
+        }
+      }
+    ],
+    "defaultTest": {
+      "vars": {
+        "skill": "file://prompts/current.md"
+      },
+      "assert": [
+        {
+          "type": "javascript",
+          "metric": "schema",
+          "value": "file://asserts/schema.js"
+        },
+        {
+          "type": "javascript",
+          "metric": "classification",
+          "value": "file://asserts/classification.js"
+        },
+        {
+          "type": "javascript",
+          "metric": "domains",
+          "value": "file://asserts/domains.js"
+        },
+        {
+          "type": "javascript",
+          "metric": "grounding",
+          "value": "file://asserts/grounding.js"
+        }
+      ]
+    },
+    "outputPath": [
+      "results/run_v8_sonnet.json"
+    ],
+    "extensions": []
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.121.19",
+    "nodeVersion": "v26.9.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-20T13:40:00.868Z",
+    "evaluationCreatedAt": "2026-10-20T13:39:28.382Z"
+  },
+  "vars": [
+    "skill",
+    "case",
+    "item"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false,
+    "providerFilter": "^sonnet$"
+  }
+}
