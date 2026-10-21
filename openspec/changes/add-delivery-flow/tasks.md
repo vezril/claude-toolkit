@@ -49,11 +49,11 @@
 
 ## 6. Audit trail
 
-- [ ] 6.1 `hooks/trace-step.py`: SubagentStop per-step records from `agent_transcript_path`, usage de-duplicated by `message.id`, 5m and 1h cache writes priced separately (per-model split), Stop orchestrator delta, `trace_error` on lookup failure, inert outside delivery-flow repos
-- [ ] 6.2 Register the SubagentStop and Stop hooks in `hooks/hooks.json`
-- [ ] 6.3 `scripts/delivery-flow/delivery-report.py`: per-item, per-step and per-model tables labeling cost as API-equivalent at list prices, weekly end-to-end and punch-out rates, pricing `as_of`, Markdown and CSV
+- [x] 6.1 `hooks/trace-step.py`: SubagentStop per-step records from `agent_transcript_path`, usage de-duplicated by `message.id`, 5m and 1h cache writes priced separately (per-model split), Stop orchestrator delta, `trace_error` on lookup failure, inert outside delivery-flow repos
+- [x] 6.2 Register the SubagentStop and Stop hooks in `hooks/hooks.json`
+- [x] 6.3 `scripts/delivery-flow/delivery-report.py`: per-item, per-step and per-model tables labeling cost as API-equivalent at list prices, weekly end-to-end and punch-out rates, pricing `as_of`, Markdown and CSV
 - [ ] 6.3a `delivery-report.py backfill`: historical per-session usage from `~/.claude/projects/*/*.jsonl` labeled `source: backfill`, excluded from end-to-end rates; reads committed traces from repo git history so both Macs' runs aggregate
-- [ ] 6.4 Tests: synthetic transcripts → expected trace lines; report math (the 4/1/2 → 80% scenario); non-delivery repo creates no file
+- [x] 6.4 Tests: synthetic transcripts → expected trace lines; report math (the 4/1/2 → 80% scenario); non-delivery repo creates no file
 
 ## 7. Decision-point enforcement
 

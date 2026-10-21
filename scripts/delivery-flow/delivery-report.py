@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+"""Roll the traces up into the numbers Stage 4 asks for.
+
+Usage:
+    delivery-report.py [<root> ...] [--markdown out.md] [--csv out.csv] [--json]
+
+Reads every `delivery/*/trace.jsonl` and `outcome.json` under the roots given (default: the
+current repo) and reports:
+
+  - per item: outcome, tokens, API-equivalent cost, where it ended;
+  - per step and per model: token and cost distribution;
+  - weekly end-to-end rate, both readings (see below);
+  - steps that ran on a heavier model than their registry tier, with the extra cost;
+  - the certified-only rate, which is the Stage 4 number.
+
+Two readings of the rate, because which one the certification wants is still open:
+  - *excluding punch-outs*: completed / (completed + failed), treating a human decision as a
+    legitimate stop rather than a failure;
+  - *counting punch-outs as unsuccessful*: completed / all terminal items.
+
+Cost is `api_equivalent_cost_usd`: the step's tokens priced at published API list rates. Runs
+under a subscription are not billed per token, so this is a comparison figure, not spend.
+"""
+
+import argparse
+import csv
+import json
+import sys
+from collections import defaultdict
+from datetime import date, datetime
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from common import load_json, repo_root  # noqa: E402
+
+TOKEN_FIELDS = ("input_tokens", "output_tokens", "cache_creation_tokens", "cache_read_tokens")
+
+
+def iso_week(ts: str) -> str:
+    try:
+        d = datetime.fromisoformat(ts.replace("Z", "+00:00")).date()
+    except (ValueError, AttributeError):
+        d = date.today()
+    y, w, _ = d.isocalendar()
+    return f"{y}-W{w:02d}"
+
+
+def collect(roots) -> dict:
+    items = {}
+    for root in roots:
+        for trace in sorted(Path(root).glob("delivery/*/trace.jsonl")):
+            item_dir = trace.parent
+            key = item_dir.name
+            entry = items.setdefault(key, {"item": key, "repo": str(root), "records": [],
+                                           "edges": [], "outcome": None})
+            for line in trace.read_text().splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                (entry["edges"] if rec.get("edge") else entry["records"]).append(rec)
+            outcome, err = load_json(item_dir / "outcome.json")
+            if not err:
+                entry["outcome"] = outcome
+    return items
+
+
+def summarize(items: dict) -> dict:
+    per_step, per_model, weekly = defaultdict(lambda: defaultdict(float)), defaultdict(lambda: defaultdict(float)), defaultdict(lambda: defaultdict(int))
+    nonconformant, missing_pricing, rows = [], set(), []
+
+    for key, entry in sorted(items.items()):
+        tokens = {f: 0 for f in TOKEN_FIELDS}
+        cost, priced, certified_all = 0.0, True, True
+        for rec in entry["records"]:
+            for f in TOKEN_FIELDS:
+                tokens[f] += rec.get(f) or 0
+            if rec.get("api_equivalent_cost_usd") is None:
+                priced = False
+                if rec.get("model"):
+                    missing_pricing.add(rec["model"])
+            else:
+                cost += rec["api_equivalent_cost_usd"]
+            if rec.get("certified") is False:
+                certified_all = False
+            step = rec.get("step") or "?"
+            per_step[step]["cost"] += rec.get("api_equivalent_cost_usd") or 0
+            per_step[step]["input"] += rec.get("input_tokens") or 0
+            per_step[step]["output"] += rec.get("output_tokens") or 0
+            per_step[step]["runs"] += 1
+            if rec.get("model"):
+                per_model[rec["model"]]["cost"] += rec.get("api_equivalent_cost_usd") or 0
+                per_model[rec["model"]]["runs"] += 1
+            if rec.get("model_conformant") is False:
+                nonconformant.append({"item": key, "step": step, "model": rec.get("model"),
+                                      "declared": rec.get("declared_tier"),
+                                      "cost": rec.get("api_equivalent_cost_usd") or 0})
+
+        outcome = entry["outcome"] or {}
+        status = outcome.get("status") or ("in-flight" if entry["records"] or entry["edges"] else "empty")
+        failed_edges = sum(1 for e in entry["edges"] if (e.get("edge") or {}).get("exit"))
+        ts = (entry["records"] or entry["edges"] or [{}])[-1].get("ts", "")
+        if status in ("completed", "failed", "punched-out", "abandoned"):
+            weekly[iso_week(ts)][status] += 1
+            if certified_all:
+                weekly[iso_week(ts)][f"certified:{status}"] += 1
+
+        rows.append({"item": key, "status": status, "step": outcome.get("step") or "",
+                     "reason": outcome.get("reason") or "", **tokens,
+                     "cost_usd": round(cost, 4), "priced": priced,
+                     "certified": certified_all, "failed_edges": failed_edges,
+                     "steps": len(entry["records"])})
+
+    def rate(counts, prefix=""):
+        done = counts.get(f"{prefix}completed", 0)
+        failed = counts.get(f"{prefix}failed", 0)
+        punched = counts.get(f"{prefix}punched-out", 0)
+        excl = done / (done + failed) * 100 if (done + failed) else None
+        incl = done / (done + failed + punched) * 100 if (done + failed + punched) else None
+        return {"completed": done, "failed": failed, "punched_out": punched,
+                "rate_excluding_punch_outs": excl, "rate_counting_punch_outs": incl}
+
+    weeks = {w: {"all": rate(c), "certified_only": rate(c, "certified:")} for w, c in sorted(weekly.items())}
+    return {"items": rows, "per_step": {k: dict(v) for k, v in per_step.items()},
+            "per_model": {k: dict(v) for k, v in per_model.items()},
+            "weekly": weeks, "non_conformant": nonconformant,
+            "missing_pricing": sorted(missing_pricing)}
+
+
+def markdown(s: dict, pricing_as_of: str) -> str:
+    L = ["# Delivery flow report", "",
+         f"Cost is **API-equivalent**: tokens priced at published API list rates"
+         f"{f' (as of {pricing_as_of})' if pricing_as_of else ''}. Runs under a subscription are not "
+         "billed per token, so this is a comparison figure, not spend.", "",
+         "## Items", "",
+         "| Item | Outcome | Steps | In | Out | Cost (API-equiv) | Certified | Failed edges |",
+         "|------|---------|-------|----|-----|------------------|-----------|--------------|"]
+    for r in s["items"]:
+        L.append(f"| {r['item']} | {r['status']}{(' — ' + r['reason']) if r['reason'] else ''} | {r['steps']} | "
+                 f"{r['input_tokens']:,} | {r['output_tokens']:,} | "
+                 f"{'$' + format(r['cost_usd'], '.4f') if r['priced'] else 'unpriced'} | "
+                 f"{'yes' if r['certified'] else 'no'} | {r['failed_edges']} |")
+
+    L += ["", "## Weekly end-to-end rate", "",
+          "| Week | Completed | Failed | Punched out | Excluding punch-outs | Counting them | Certified-only (Stage 4) |",
+          "|------|-----------|--------|-------------|----------------------|---------------|--------------------------|"]
+    for week, v in s["weekly"].items():
+        a, c = v["all"], v["certified_only"]
+        pct = lambda x: "—" if x is None else f"{x:.1f}%"
+        L.append(f"| {week} | {a['completed']} | {a['failed']} | {a['punched_out']} | "
+                 f"{pct(a['rate_excluding_punch_outs'])} | {pct(a['rate_counting_punch_outs'])} | "
+                 f"{pct(c['rate_excluding_punch_outs'])} |")
+
+    L += ["", "## Cost by step", "", "| Step | Runs | In | Out | Cost |", "|------|------|----|-----|------|"]
+    for step, v in sorted(s["per_step"].items(), key=lambda kv: -kv[1]["cost"]):
+        L.append(f"| {step} | {int(v['runs'])} | {int(v['input']):,} | {int(v['output']):,} | ${v['cost']:.4f} |")
+
+    L += ["", "## Cost by model", "", "| Model | Runs | Cost |", "|-------|------|------|"]
+    for model, v in sorted(s["per_model"].items(), key=lambda kv: -kv[1]["cost"]):
+        L.append(f"| {model} | {int(v['runs'])} | ${v['cost']:.4f} |")
+
+    if s["non_conformant"]:
+        L += ["", "## Steps that ran above their tier", "",
+              "| Item | Step | Ran on | Declared | Cost |", "|------|------|--------|----------|------|"]
+        for n in s["non_conformant"]:
+            L.append(f"| {n['item']} | {n['step']} | {n['model']} | {n['declared']} | ${n['cost']:.4f} |")
+    if s["missing_pricing"]:
+        L += ["", f"**Missing pricing** for: {', '.join(s['missing_pricing'])} — those steps are "
+                  "counted in tokens but not in cost."]
+    return "\n".join(L) + "\n"
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("roots", nargs="*", default=["."])
+    ap.add_argument("--markdown")
+    ap.add_argument("--csv")
+    ap.add_argument("--json", action="store_true")
+    args = ap.parse_args(argv)
+
+    roots = [repo_root(Path(r)) for r in (args.roots or ["."])]
+    items = collect(roots)
+    if not items:
+        print("no delivery items found under: " + ", ".join(str(r) for r in roots), file=sys.stderr)
+        return 1
+    summary = summarize(items)
+
+    from common import load_pricing
+    as_of = load_pricing().get("meta", {}).get("as_of", "")
+
+    if args.json:
+        print(json.dumps(summary, indent=2))
+    else:
+        text = markdown(summary, as_of)
+        print(text) if not args.markdown else Path(args.markdown).write_text(text)
+        if args.markdown:
+            print(f"wrote {args.markdown}")
+    if args.csv:
+        with open(args.csv, "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=list(summary["items"][0].keys()))
+            w.writeheader()
+            w.writerows(summary["items"])
+        print(f"wrote {args.csv}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
