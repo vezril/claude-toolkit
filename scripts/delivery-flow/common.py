@@ -102,6 +102,77 @@ def load_json(path: Path):
         return None, f"{path} could not be read: {e}"
 
 
+def load_config(repo: Path) -> dict:
+    """Parse `.delivery-flow.yaml`. Supported subset: top-level `key: value`, one level of
+    nesting, inline lists `[a, b]`, and block sequences. Standard library only, so a hook
+    can read it on a machine with no PyYAML."""
+    text = (repo / CONFIG_NAME).read_text()
+    root, section, pending = {}, None, None
+
+    def scalar(v):
+        v = v.strip()
+        if v in ("", "null", "~"):
+            return None
+        if v in ("true", "True"):
+            return True
+        if v in ("false", "False"):
+            return False
+        if v.startswith("[") and v.endswith("]"):
+            return [x.strip().strip("'\"") for x in v[1:-1].split(",") if x.strip()]
+        if v[0] == v[-1] and v[0] in "'\"" and len(v) >= 2:
+            return v[1:-1]
+        return v
+
+    for raw in text.splitlines():
+        line = "" if raw.lstrip().startswith("#") else raw.split(" #")[0].rstrip()
+        if not line.strip():
+            continue
+        m = re.match(r"^(\s*)-\s+(.+)$", line)
+        if m and pending is not None:
+            pending.append(scalar(m.group(2)))
+            continue
+        m = re.match(r"^(\s*)([A-Za-z0-9_-]+):\s*(.*)$", line)
+        if not m:
+            continue
+        indent, key, value = len(m.group(1)), m.group(2), m.group(3)
+        target = root if indent == 0 else section
+        if target is None:
+            continue
+        if value == "":
+            nxt = {}
+            target[key] = nxt
+            if indent == 0:
+                section = nxt
+            # a key with no value may open either a mapping or a sequence; the next
+            # line decides, and a sequence replaces the empty mapping
+            pending = _Pending(target, key)
+        else:
+            target[key] = scalar(value)
+            pending = None
+            if indent == 0:
+                section = root
+    return _resolve(root)
+
+
+class _Pending(list):
+    """A key whose value is still unknown: a block sequence appends here, and if nothing
+    appends, it stays the empty mapping the parser first assumed."""
+
+    def __init__(self, owner, key):
+        super().__init__()
+        self.owner, self.key = owner, key
+
+    def append(self, item):
+        super().append(item)
+        self.owner[self.key] = list(self)
+
+
+def _resolve(node):
+    if isinstance(node, dict):
+        return {k: _resolve(v) for k, v in node.items()}
+    return node
+
+
 def trace_path(repo: Path, item: str) -> Path:
     return repo / "delivery" / item / "trace.jsonl"
 

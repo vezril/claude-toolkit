@@ -11,7 +11,7 @@
 - [ ] 1.1 Create `templates/delivery-flow/delivery-flow.yaml` (tracker, forge, punch-out policy with triggers, cost budget and external-tracker flag, deploy and auto-roll, per-step models, roster overrides, test command, artifact commit policy, vault binding, tracker-write MCP matcher list) with comments
 - [ ] 1.2 Create `templates/delivery-flow/roster.yaml` with initial kinds of work (`ux`, `frontend`, `backend`, `contracts`, `infra`, `data`, `mobile`, `docs`) mapped to existing toolkit agents and skills only
 - [x] 1.3 Create `templates/delivery-flow/pricing.yaml` (from 0.3)
-- [ ] 1.4 Write a shared `scripts/delivery-flow/common.py`: git-root discovery, `.delivery-flow.yaml` detection (the inert-outside rule), config and roster loading with wholesale per-key override
+- [x] 1.4 Write a shared `scripts/delivery-flow/common.py`: git-root discovery, `.delivery-flow.yaml` detection (the inert-outside rule), config and roster loading with wholesale per-key override
 
 ## 2. Adapters
 
@@ -28,7 +28,7 @@
 - [x] 3.3 `scripts/delivery-flow/write-sentinel.py`: writes `<artifact>.sentinel.json` (path, sha256, claimed counts, status, step, ts); nodes call it as their last action
 - [x] 3.4 `hooks/check-edge.py` (PostToolUse): file parses, sha matches sentinel, schema conforms, sentinel counts match reality, artifact satisfies the consuming step's input contract; exit 2 with the report on failure; append `edge` to `trace.jsonl` either way; inert outside delivery-flow repos
 - [x] 3.5 Register the PostToolUse hook in `hooks/hooks.json` (Write/Edit/MultiEdit/NotebookEdit and Bash writes under `delivery/`)
-- [ ] 3.6 Orchestrator rule: read the latest `edge` result from the trace, refuse to advance on failure, bounded rerun (3) then punch-out
+- [x] 3.6 Orchestrator rule: read the latest `edge` result from the trace, refuse to advance on failure, bounded rerun (3) then punch-out — implemented as `flow-status.py`, so routing is computed rather than judged
 - [ ] 3.7 Manual-correction detection: compare an artifact's current sha to its trace record
 - [x] 3.8 Fixture tests: valid artifact passes; schema violation fails; sentinel count mismatch fails while the schema still passes; missing sentinel fails; downstream input-contract violation fails at the producing handoff; a write in a non-delivery repo is untouched
 
@@ -43,9 +43,9 @@
 
 ## 5. The delivery-flow skill
 
-- [ ] 5.1 `skills/delivery-flow/SKILL.md`: routing table, one-step rule, `--status` / `--step`, item-type branching, bounded reruns, mandatory challenge points, outcome recording, `.current-step` writes before each delegation
-- [ ] 5.2 References: `references/config.md`, `references/adapters.md` (contract plus how to add Jira/GitLab/Bitbucket), `references/roster.md`, `references/trace.md`
-- [ ] 5.3 Triage prompt section with the ambiguity rule (`handoff: true`), emitting `triage.json` against its schema plus its sentinel
+- [x] 5.1 `skills/delivery-flow/SKILL.md`: routing table, one-step rule, `--status` / `--step`, item-type branching, bounded reruns, mandatory challenge points, outcome recording, `.current-step` writes before each delegation
+- [x] 5.2 References: `references/config.md`, `references/adapters.md` (contract plus how to add Jira/GitLab/Bitbucket), `references/roster.md`, `references/trace.md`
+- [x] 5.3 Triage prompt section with the ambiguity rule (`handoff: true`), emitting `triage.json` against its schema plus its sentinel
 
 ## 6. Audit trail
 
