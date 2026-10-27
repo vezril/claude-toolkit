@@ -26,6 +26,18 @@ An **edge record** (written by `check-edge.py` on PostToolUse, pass or fail):
           "summary": "sentinel claims stories=8 but the file holds 5"}}
 ```
 
+A **verdict record**, one per challenge run:
+
+```json
+{"ts": "…", "item": "DEM-12", "step": "challenge-breakdown",
+ "artifact": "challenge-breakdown.json", "target": "breakdown.json", "verdict": "REFUTED"}
+```
+
+The challenge artifact on disk is only the latest verdict; the trace is every one of them.
+That is what lets `flow-status.py` and `check-punch-out.py` agree on when a rerun has
+become a punch-out — two refutations of the same target, counted from here rather than from
+a file that gets overwritten.
+
 ## Reading it
 
 - **Token counts come from Claude Code's own transcripts**, never from an agent reporting
@@ -40,6 +52,9 @@ An **edge record** (written by `check-edge.py` on PostToolUse, pass or fail):
   — worth knowing, since it is how a Sonnet-tiered pipeline quietly becomes an Opus one.
 - **The latest edge per artifact wins.** That is how a rerun clears a failure, and how
   `flow-status.py` decides whether the flow may advance.
+- **Edge records are also the write ledger**, and their order is what tells a current
+  challenge from a stale one: a target whose last edge record sits after its challenge's
+  was written again after it was attacked, so that verdict no longer applies.
 
 `delivery-report.py` rolls this up: outcome and cost per item, distribution per step and
 model, and the weekly end-to-end rate — reported both excluding punch-outs and counting them

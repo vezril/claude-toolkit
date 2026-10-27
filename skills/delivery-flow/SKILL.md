@@ -41,7 +41,7 @@ repo this is** — never guess a tracker or open a PR against an unconfigured fo
 | 2 | `triage.json` | triage | certified node → `references/triage.md` |
 | 3 | `project-context.json` | project-memory | vault recall (skipped with no vault binding) |
 | 4 | `breakdown.json` | breakdown | certified node → `references/breakdown.md` |
-| 5 | `challenge-breakdown.json` | challenge-breakdown | `cross-examine` → adversarial-validator |
+| 5 | `challenge-breakdown.json` | challenge-breakdown | certified node → `references/challenge-breakdown.md`, in a fresh context via `cross-examine` → adversarial-validator |
 | 6 | `spec-ready.json` | solutioning | SDLC orchestrator (standard path) |
 | 7 | `implementation.json` | implementation | SDLC dev pair, per story |
 | 8 | `verify.json` | verify | the repo's test command + protected-paths check |
@@ -81,9 +81,15 @@ challenge; a `feature` takes the standard path and runs everything. The path com
   most 3 times; after that it is a punch-out, not another attempt.
 - **The challenge is a node, not a rubber stamp.** It runs in a fresh context with the
   artifact and the raw material, never the reasoning that produced it. Its verdict routes
-  mechanically: REFUTED reruns the producing step with the findings and invalidates
-  everything downstream; WEAKENED means each finding is addressed in the next version;
-  SURVIVED proceeds.
+  mechanically, and `flow-status.py` applies the routing rather than you:
+  - **REFUTED** reruns the producing step with the findings. Twice on the same target is a
+    punch-out, not a third attempt.
+  - **WEAKENED** proceeds. The findings come back from `flow-status.py` under
+    `carry_forward`, and the step that consumes the artifact has to address each one.
+  - **SURVIVED** proceeds.
+  - A verdict is about **one version** of its target. Rewrite the target and the challenge
+    on disk is stale, so the challenge reruns against the version that now exists — which
+    is also why a refutation does not block the flow forever.
 - **Punch-outs are the human's, and only the human's.** You may not write a decision, clear
   a punch-out, merge a PR, or deploy anything beyond a routine bump. The hooks block all of
   these; do not attempt them and then report the block as a problem.
@@ -104,4 +110,4 @@ end-to-end rate and the per-step model, token and cost tables.
 - [references/adapters.md](references/adapters.md) — the adapter contract, and how to add Jira, GitLab or Bitbucket
 - [references/roster.md](references/roster.md) — kinds of work → specialists
 - [references/trace.md](references/trace.md) — what the trace records and how to read it
-- `references/triage.md`, `references/breakdown.md` — the certified node prompts (edit either and it is uncertified until its suite is re-run)
+- `references/triage.md`, `references/breakdown.md`, `references/challenge-breakdown.md` — the certified node prompts, one per chain node (edit any of them and it is uncertified until its suite is re-run)

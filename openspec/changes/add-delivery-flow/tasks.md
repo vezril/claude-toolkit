@@ -79,14 +79,14 @@
 - [x] 8b.2 Write `scripts/delivery-flow/check-certification.py` (stdlib-only; also binds results to the certified prompt text): ≥3 criteria, ≥95% results, provider tier ≤ Sonnet, prompt sha match, ≥90% load-bearing appendix, iteration log ≥2 complete entries, escalation evidence above Sonnet; fixture tests for each failure
 - [ ] 8b.3 Wire certification into the flow (pre-step check, `allow_uncertified`, `certified` trace field) and the report (certified-only end-to-end rate)
 - [ ] 8b.4 Add `model_conformant` to trace records, report the extra cost of non-conformant records, and add the `--status` session-model warning
-- [ ] 8b.5 Pin `agents/adversarial-validator.md` to `model: sonnet` (currently inherits); record escalation evidence if its suite later requires Opus
+- [x] 8b.5 Pin `agents/adversarial-validator.md` to `model: sonnet` (currently inherits); record escalation evidence if its suite later requires Opus
 - [ ] 8b.6 Mine real-work fixtures from Olympus's archived OpenSpec changes (dionysus-planner, hermesmq, artemis-service, apollo-storage, hephaestus-service; exclude `ares-*`, `codex`, `harpocrates-*`, `muses-ui`), anonymizing nothing secret-adjacent
-- [ ] 8b.7 **Chain first**, using `prompt-edd`, Haiku before Sonnet, each with a baseline, ≥2 iterations, 3 consecutive runs ≥95%, results and a load-bearing map: `triage` (schema output), `breakdown` (epics → stories → acceptance criteria), `challenge-breakdown` (structured verdict)
+- [x] 8b.7 **Chain first**, using `prompt-edd`, Haiku before Sonnet, each with a baseline, ≥2 iterations, 3 consecutive runs ≥95%, results and a load-bearing map: `triage` (schema output), `breakdown` (epics → stories → acceptance criteria), `challenge-breakdown` (structured verdict)
 - [ ] 8b.7a Then the rest, in flow order: work-type classifier, delivery-flow routing, intake digest, post-back summary, delivery recall. (`pr-description` is certified on Haiku at 89/90 and stays outside the chain as terminal prose)
 - [ ] 8b.8 Certify on Sonnet (execution-grounded asserts for code-writing steps: tests green on a fixture repo): `sdlc-orchestrator`, `requirements-analyst`, `solution-architect`, `story-planner`, `test-writer`, `implementer`, `qa-test-architect`, `adversarial-validator`, and the pilot reviewers (`scala-fp-reviewer`, `frontend-reviewer`, `git-and-ci-reviewer`)
 - [ ] 8b.9 For any step failing 95% on Sonnet, commit the Sonnet results as escalation evidence before declaring a higher tier; record the decision in the step's iteration log
 - [ ] 8b.2a Extend `check-certification.py` with the per-run 95% bar across 3 consecutive runs (not just the aggregate), the chain marking, and `inputs`/`outputs` presence; fixture test with runs 100% / 96.7% / 93.3% that must fail
-- [ ] 8b.10 Run `check-certification.py --all`; every chain step exits 0
+- [x] 8b.10 Run `check-certification.py --all`; every chain step exits 0
 
 ## 9. Documentation (doc-sync rule)
 

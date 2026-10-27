@@ -1,0 +1,125 @@
+{
+  "item": "HP-12",
+  "epics": [
+    {
+      "id": "E1",
+      "title": "Operator can scrape Hephaestus's /metrics endpoint",
+      "stories": [
+        {
+          "id": "S1",
+          "statement": "Expose GET /metrics on the existing HTTP port, rendering the app CollectorRegistry via the Prometheus simpleclient the sibling services use",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "metrics.enabled is true (the default) and the service is running",
+              "when": "a client sends GET /metrics on the existing HTTP port",
+              "then": "the response is 200 with a Prometheus text-format body rendered from the app CollectorRegistry"
+            }
+          ]
+        },
+        {
+          "id": "S2",
+          "statement": "A metrics.enabled toggle, defaulting to true, controls whether the /metrics route exists and whether a real or no-op recorder is used",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "the service is running",
+              "when": "/metrics is scraped",
+              "then": "the response includes base JVM metrics from the app CollectorRegistry"
+            },
+            {
+              "id": "AC2",
+              "given": "the app CollectorRegistry holds the registered collectors",
+              "when": "the endpoint renders",
+              "then": "the response is in the Prometheus text exposition format"
+            }
+          ]
+        },
+        {
+          "id": "S3",
+          "statement": "The exposed registry includes base JVM metrics alongside worker metrics",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "metrics.enabled is true",
+              "when": "a client sends GET /metrics",
+              "then": "the response body includes base JVM metrics (e.g. memory and GC) from the CollectorRegistry"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E2",
+      "title": "Operator can observe worker throughput and health through MetricsRecorder-backed metrics",
+      "stories": [
+        {
+          "id": "S4",
+          "statement": "The MetricsRecorder seam injected into the JobConsumer records jobs processed by lane and outcome",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "the JobConsumer processes a job in a given lane and the job completes successfully",
+              "when": "processing finishes",
+              "then": "MetricsRecorder increments a jobs-processed counter labeled with that lane and outcome=success"
+            },
+            {
+              "id": "AC2",
+              "given": "the JobConsumer processes a job in a given lane and the job fails",
+              "when": "processing finishes",
+              "then": "MetricsRecorder increments a jobs-processed counter labeled with that lane and outcome=failure"
+            }
+          ]
+        },
+        {
+          "id": "S5",
+          "statement": "The MetricsRecorder seam records job processing time in a histogram",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "the JobConsumer processes a job",
+              "when": "processing finishes",
+              "then": "MetricsRecorder records the elapsed processing time as an observation in a processing-time histogram"
+            }
+          ]
+        },
+        {
+          "id": "S6",
+          "statement": "The MetricsRecorder seam tracks the number of jobs currently in flight via a gauge",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "the JobConsumer begins processing a job",
+              "when": "processing starts",
+              "then": "MetricsRecorder increments the in-flight gauge"
+            },
+            {
+              "id": "AC2",
+              "given": "the JobConsumer has started processing a job",
+              "when": "processing finishes, whether it succeeds or fails",
+              "then": "MetricsRecorder decrements the in-flight gauge"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
