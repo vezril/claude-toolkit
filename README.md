@@ -242,6 +242,12 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 Each skill is a folder with a `SKILL.md` (YAML frontmatter `name` + `description`, then the body); larger skills add `references/*.md` loaded on demand.
 
+**Intention rituals** (from Chris Bailey's *Intentional*, wired to the Mindmap vault)
+
+- **intentional-daily** — morning Rule of Three laddered to the week's three and the vault's Efforts goals, with the dreaded item made concrete (when / where / first action); evening close-out tags each miss with one of the six aversion triggers. ADHD-tuned: at most three questions, never more than three items, append-only writes to the daily note. Distinct from **morning** (brain-dump triage).
+- **intentional-weekly** — the book's Goal Review (Review → Update → Plan): evidence table from the week's daily notes, edit checks on up to three stalled goals, strategic drops to `Efforts/Backlog`/`Archive` only with explicit OK, a mental contrast, and the week's Rule of Three written to `Calendar/Notes/Weeks/`.
+- **aversion-breaker** — two-minute procrastination unblocker: diagnose the aversion trigger, apply one matching strategy, end with one concrete first step.
+
 ## Skill evaluation (EDD) status
 
 Every skill in the repo, with evaluation-driven-development (EDD) results where a skill has been put through a deterministic promptfoo eval suite. Untested skills are listed with blank results. Scores are N=3-per-case majority against a deterministic rubric (no LLM judge); "naive baseline" is the task with no skill loaded, "with skill" is the real `SKILL.md` embedded. Full suites and iteration logs live in `promptfoo/skill-evals/<skill>/`. "Eval model" is the Claude model the suite's provider ran (`claude -p --model <m>`) — the baseline for any future try-it-on-a-cheaper-model optimization; "—" marks deterministic script harnesses with no model arm. (The `ci-watcher` agent has its own tool-using eval suite there as well, run on **haiku** by design: naive 29% → definition 100%.)
@@ -282,6 +288,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `ansible` |  |  |  |  |
 | `apache-tinkerpop` |  |  |  |  |
 | `apple-dev` |  |  |  |  |
+| `aversion-breaker` | — | 100% | haiku | ✅ `evals/intentional/` (17 cases, real vault diffs). v1 as written 91% → v4 100% on haiku-5-5; pinned `model: claude-haiku-5-5`. Sonnet-5-5 98%, haiku-4-5 63% |
 | `aws-amplify` |  |  |  |  |
 | `aws-api-gateway` |  |  |  |  |
 | `aws-aurora` |  |  |  |  |
@@ -402,6 +409,8 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `html-css` |  |  |  |  |
 | `humanize` | 92% | 96% | sonnet | Style/edit skill; de-cliché lift (mechanical tells), no patch |
 | `information-theory` |  |  |  |  |
+| `intentional-daily` | — | 100% | haiku | ✅ `evals/intentional/` (17 cases, real vault diffs). v1 as written 91% → v4 100% on haiku-5-5; pinned `model: claude-haiku-5-5`. Sonnet-5-5 98%, haiku-4-5 63% |
+| `intentional-weekly` | — | 100% | haiku | ✅ `evals/intentional/` (17 cases, real vault diffs). v1 as written 91% → v4 100% on haiku-5-5; pinned `model: claude-haiku-5-5`. Sonnet-5-5 98%, haiku-4-5 63% |
 | `ios-debugger-agent` |  |  |  |  |
 | `javascript` |  |  |  |  |
 | `lambda-calculus` |  |  |  |  |

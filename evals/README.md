@@ -22,7 +22,9 @@ Every config points `defaultTest.vars.skill` at `file://../../skills/<skill>/SKI
 the shared `prompt.txt`, which injects the skill and the test's `{{request}}`.
 
 Suites currently in the repo: **akka**, **calvin-voice**, **cross-examine**, **detect-ai**,
-**humanize**, **outreach**, **phq-9**, **pr-description**.
+**humanize**, **intentional** (intentional-daily, intentional-weekly, aversion-breaker), **outreach**,
+**phq-9**, **pr-description**. `intentional` uses its own provider (`provider.js`): each case runs in a
+fresh copy of a synthetic Obsidian vault and the asserts grade the file diff as well as the reply.
 
 ## Run one
 
