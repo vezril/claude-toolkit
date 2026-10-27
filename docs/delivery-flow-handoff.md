@@ -10,13 +10,19 @@ A workflow that takes one work item from a tracker to a merged, deployed change,
 can be certified at **Stage 4 of Improving's AI Maturity Model**. The certification is
 Calvin's; the workflow is general and lives in the public `claude-toolkit` plugin.
 
-The authority on what Stage 4 requires is Improving's own course deck, *AI Governance &
-Guardrails (Stage 3 → Stage 4, Q3 2026)*, in Calvin's iCloud at
-`Documents/Library/1xx - Personal/120 - Work and Career/121 - Employer and Clients/Improving/Stage 4/`.
-**Read it before making design calls** — an earlier version of this design was wrong in three
-ways until it was read, and the corrections are recorded in `design.md` (D7, D12–D15).
+**What Stage 4 requires is written up in full in the `workflow-certification` skill**
+(`skills/workflow-certification/`) — the node/edge model, sentinels, punch-outs, the five
+examined criteria with a per-criterion evidence checklist, and a self-test. Read it before
+making design calls; you do not need the course deck to work here. An earlier version of this
+design was wrong in three ways until the deck was read, and the corrections are recorded in
+`design.md` (D7, D12–D15).
 
-Its model in one paragraph: a **node** is a non-deterministic LLM step, each independently
+The deck itself — Improving's *AI Governance & Guardrails (Stage 3 → Stage 4, Q3 2026)* — stays
+the authority if a reviewer disputes a reading. It is in Calvin's iCloud under
+`Documents/Library/1xx - Personal/120 - Work and Career/121 - Employer and Clients/Improving/Stage 4/`,
+on his machine only.
+
+The model in one paragraph: a **node** is a non-deterministic LLM step, each independently
 certified at Stage 3; an **edge** is a deterministic code check between nodes; "a workflow is
 only as trustworthy as its edges, not its nodes". Three rules follow that shaped everything
 here: a node's output must be structured data a schema can check (prose does not count);
@@ -41,6 +47,7 @@ PR-protected (always branch, never push to it).
 
 ```
 openspec/changes/add-delivery-flow/   proposal, design, 6 capability specs, tasks (29 done / 43 open)
+skills/workflow-certification/        what Stage 4 requires, standalone — read this first
 skills/delivery-flow/
   SKILL.md                            the orchestrator: routing table, rules, how a step runs
   steps.yaml                          the step registry: certification evidence per step
