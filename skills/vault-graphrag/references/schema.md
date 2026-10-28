@@ -9,9 +9,13 @@ retrieval, so treat schema conformance the way you'd treat a failing type check.
 ```
 <vault>/<graph_root>/
   incidents/   ABC-446.md            # basename = ticket key, verbatim
+  deliveries/  DEM-12.md             # basename = ticket key, verbatim
+  decisions/   grpc-bff-for-consoles.md     # kebab-case slug
   entities/    orders-api.md         # basename = entity name from the binding
+               olympus.md            #   …including one note per project
   patterns/    silent-downstream-await.md   # kebab-case failure shape
   lessons/     sentence-budgets-over-word-caps.md   # kebab-case practice
+  _templates/  delivery.md           # frontmatter skeletons, not part of the graph
 ```
 
 - Folders organize; the `type` field is the authority. Never infer type from path.
@@ -21,6 +25,23 @@ retrieval, so treat schema conformance the way you'd treat a failing type check.
   yields and takes a suffix (`orders-api (team).md`) plus an `aliases` entry.
 - One graph per vault. Multiple engagements share it, separated by the `client`
   field — never by parallel folder trees, which would fork entity notes.
+- **`_templates/` is not part of the graph.** Recall scans the four payload folders only, so a
+  template's placeholder frontmatter can never score as a match.
+
+## The `project` field
+
+`client` separates engagements; **`project` scopes work within one.** Delivery recall weights a
+same-project hit at **+3**, which is the single biggest term in its scoring, so this field is
+what makes "what have we already decided *here*" a different question from "what do we know".
+
+- Optional on `incident`, `lesson`, `decision` and `delivery` notes, and on service/component
+  entities.
+- Its value is the binding's project name, verbatim and lowercase (`olympus`, `amazon`).
+- **Changing it later touches every note that carries it**, and nothing derives it — so settle
+  the name before the vault fills up, not after.
+
+A project is also an entity note (`entity_type: project`), which is what gives it a page to
+hold conventions and a backlink list of everything scoped to it.
 
 ## Type: incident
 
@@ -82,8 +103,9 @@ vocabulary the first time something links to it; enriched by hand over time.
 ```markdown
 ---
 type: entity
-entity_type: service      # service | platform | component | team | external
+entity_type: service      # service | platform | component | team | external | project
 client: acme              # or "shared" for cross-engagement entities
+project: olympus          # optional; which project this belongs to
 aliases: [orders, order-service]
 ---
 
@@ -162,6 +184,116 @@ than minting a near-duplicate; one lesson per note. Lessons are not scanned by
 incident recall — they surface through Obsidian search, backlinks, and the
 processes that write them re-reading them first.
 
+## Type: decision
+
+A settled technical choice, ADR-shaped, keyed by a kebab-case slug. It exists so a future
+proposal does not re-litigate a question this project already answered — and so that when the
+answer *changes*, the old one stops being quoted as current.
+
+```markdown
+---
+type: decision
+project: olympus
+client: acme
+status: accepted          # proposed | accepted | superseded
+date: 2026-06-01          # when it reached this status
+superseded_by: []         # [[slug]] of the decision that replaced this one
+services: ["[[orders-api]]", "[[voice-gateway]]"]
+refs:
+  change: openspec/changes/add-grpc-bff/       # the OpenSpec change or ADR — linked, never copied
+  pr: https://github.com/example/repo/pull/482
+context: one line: what forced a decision
+decision: one line: what was decided
+consequences: one line: what this costs or constrains
+---
+
+## Context
+## Decision
+## Consequences
+```
+
+Field rules:
+
+- **`context`, `decision` and `consequences` are the retrieval payload** — one sentence each.
+  Recall shows these three lines verbatim and nothing else from the note, so a `decision` of
+  "use the new approach" is a note that costs storage and returns nothing.
+- **`status` decides visibility, not just history.** Only `accepted` decisions appear under
+  "Decisions in force". A `superseded` one that would otherwise have matched appears solely in
+  the recall output's coverage section, named alongside its replacement — visible, and
+  impossible to mistake for current.
+- **`refs` links; it never copies.** The repo's OpenSpec change or ADR is the source of truth.
+  A decision note that duplicates a design doc is a second copy to keep in step, and it will
+  lose.
+- **`proposed` is a real state.** A decision under discussion is worth recording, and it stays
+  out of "in force" until someone accepts it.
+
+### Superseding a decision
+
+Two edits, both required, or the graph lies:
+
+1. On the old note: `status: superseded` and `superseded_by: ["[[new-slug]]"]`.
+2. Write the new note with `status: accepted`.
+
+Never edit a decision in place to mean something else. The point of the type is that the record
+of *having changed your mind* survives, and an overwritten decision destroys exactly that.
+
+### Minting rules
+
+Write a decision note when a choice **constrains future work** and a reader six months out
+would otherwise have to reconstruct it. Not for every design detail — a vault where every
+preference is a decision makes recall return noise, and noise is indistinguishable from nothing.
+
+## Type: delivery
+
+One delivered feature, fix or task, keyed by its tracker key. The delivery counterpart of
+`incident`: where an incident records something that broke, a delivery records something that
+shipped.
+
+```markdown
+---
+type: delivery
+ticket: DEM-12
+project: olympus
+client: acme
+status: shipped           # in-progress | shipped | reverted
+date: 2026-08-14
+domains: [backend, infra]
+services: ["[[orders-api]]"]
+decisions: ["[[grpc-bff-for-consoles]]"]
+patterns: []
+refs:
+  pr: https://github.com/example/repo/pull/512
+  ticket: https://jira.example.com/browse/DEM-12
+goal: one line: what this delivered, and for whom
+approach: one line: how, at the level a future reader needs
+outcome: one line: what actually happened
+---
+
+## What shipped
+## Notes for next time
+```
+
+Field rules:
+
+- **`goal`, `approach` and `outcome` are the retrieval payload** — one line each, and the only
+  parts of the note recall ever shows. Write them for a reader with ten seconds. "Implemented
+  the ticket" is the failure mode: it satisfies the schema and carries no information.
+- **`domains` is what recall matches during implementation**, weighted +3 there against +2 at
+  solutioning, so a story's kinds of work pull up the deliveries that touched the same ground.
+- **`status: reverted` is written honestly.** A memory that only records successes reads as
+  though nothing ever fails, which is worse than having no memory.
+- **`decisions` links the choices this followed**, which is how a delivery and the decision it
+  implements end up adjacent in recall rather than each needing to be found separately.
+- **Upsert by key.** Re-running the update operation edits fields; it never produces `DEM-12
+  1.md`.
+
+### The collision rule
+
+Basenames are unique across the whole vault, and a ticket key can plausibly name both an
+incident and a delivery. The delivery yields: `DEM-12 (delivery).md`, with
+`aliases: [DEM-12-delivery]`. The incident keeps the bare key, because incident recall is older
+and more widely linked.
+
 ## Link vocabulary summary
 
 | From | Field | To | Meaning |
@@ -169,6 +301,26 @@ processes that write them re-reading them first.
 | incident | `services` | entity | the incident manifested in / was fixed in these |
 | incident | `platforms` | entity | external/platform systems in the causal path |
 | incident | `patterns` | pattern | recognized failure shapes |
+| decision | `services` | entity | what this decision binds |
+| decision | `superseded_by` | decision | the decision that replaced this one |
+| delivery | `services` | entity | what this change touched |
+| delivery | `decisions` | decision | the choices this delivery followed |
+| delivery | `patterns` | pattern | failure shapes this delivery addressed |
+| incident / delivery / decision / lesson | `project` | entity (`entity_type: project`) | which project scopes this |
+| entity (service, component) | `project` | entity (`entity_type: project`) | which project owns it |
 | any | prose `[[...]]` | any | human navigation only — no schema meaning |
 
-Backlinks (entity ← incident, pattern ← incident) are derived, never written.
+Backlinks (entity ← incident, pattern ← incident, project ← everything, decision ← delivery)
+are derived, never written.
+
+## What reads this schema
+
+`scripts/delivery-flow/vault-recall.py` is the normative consumer for delivery recall: it reads
+**frontmatter only**, scores by the weights in
+[delivery-recall.md](delivery-recall.md), and never reads a note body. Two consequences worth
+knowing while writing notes:
+
+- A field recall does not read might as well not exist for retrieval. The payload lines are the
+  interface.
+- A note whose frontmatter does not parse is invisible rather than broken — no error, no match.
+  Treat schema conformance the way you would a failing type check.
