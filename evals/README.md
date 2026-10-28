@@ -28,10 +28,19 @@ provider (`provider.js`): each case runs in a fresh copy of a synthetic Obsidian
 asserts grade the file diff as well as the reply.
 
 `finch` is the one suite that ships a **paired naive-baseline arm**
-(`promptfooconfig.baseline.yaml`): same model, same grader, same `tests.yaml`, no `SKILL.md` in
-context. Run both and the difference is the skill's measured value rather than the model's
-pre-existing knowledge. Copy that pattern for any new knowledge skill — a suite that only ever
-runs the with-skill arm can't tell "the skill works" from "the model already knew."
+(`promptfooconfig.local.baseline.yaml`): same model, same asserts, same `tests.yaml`, no
+`SKILL.md` in context. Run both and the difference is the skill's measured value rather than
+the model's pre-existing knowledge. Copy that pattern for any new knowledge skill — a suite
+that only ever runs the with-skill arm can't tell "the skill works" from "the model already
+knew." It's worth running at **N=3 with majority scoring**, as CI does: on `finch` a single
+sample credited the model with three facts that three samples showed it doesn't reliably know
+(`evals/finch/iteration-log.md`).
+
+That suite also carries `.local.*` config variants on an `exec:` provider over the `claude`
+CLI, for machines where `anthropic:claude-agent-sdk` can't authenticate — on a Bedrock-backed
+install it spawns the claude-code binary, inherits no AWS credentials, and errors every case.
+Only the plain `promptfooconfig.yaml` name is auto-discovered by CI, so `.local.*` variants
+and baseline arms stay out of the gate by construction.
 
 ## Run one
 

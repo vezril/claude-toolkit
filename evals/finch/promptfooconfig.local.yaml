@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+#
+# skills/finch/SKILL.md — the WITH-SKILL arm, LOCAL provider.
+#
+# Identical to promptfooconfig.yaml (the CI arm) except for the provider. Use this
+# one wherever anthropic:claude-agent-sdk cannot authenticate — notably a
+# Bedrock-backed install, where it spawns the claude-code binary, inherits no AWS
+# credentials, and errors every case. Deliberately NOT named promptfooconfig.yaml
+# so CI's auto-discovery skips it: `claude` is not on an ubuntu-latest runner.
+#
+# The naive baseline arm is promptfooconfig.local.baseline.yaml and shares this
+# suite's tests.yaml verbatim, so the delta between the two is attributable to the
+# skill and nothing else. The numbers in iteration-log.md came from this pair.
+#
+# FULLY DETERMINISTIC — no llm-rubric, so no judge, no grader drift, and a re-run
+# costs only the generation. Metrics (see evals/README.md):
+#   routing          — does it reach for the right Finch mechanism?
+#   accuracy         — hard claims about Finch's plumbing that must not rot
+#   restraint        — refusing to bluff / pushing back on a false premise, asserted
+#                      on the specific claim the answer has to contain, not graded
+#   no-hallucination — never prescribes a finch subcommand that doesn't exist
+#
+# Provider is provider/claude.sh — see that script's header.
+#
+# Run from the REPO ROOT:
+#   npx promptfoo@latest eval -c evals/finch/promptfooconfig.local.yaml --no-cache
+description: "finch skill — plumbing accuracy, mechanism routing, and restraint"
+prompts:
+  - file://prompt.txt
+providers:
+  - id: exec:./provider/claude.sh
+    label: sonnet
+defaultTest:
+  vars:
+    skill: file://../../skills/finch/SKILL.md
+  assert:
+    # Applies to EVERY case: a CLI answer that names the right mechanism but hands
+    # out a command that doesn't exist has still wasted the user's afternoon.
+    # Added in suite v2 after the baseline transcripts showed exactly that.
+    - type: javascript
+      metric: no-hallucination
+      value: file://asserts/no-invented-commands.js
+tests: file://tests.yaml

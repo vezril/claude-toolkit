@@ -148,14 +148,27 @@ corrupts every score it ever produces, silently and in the flattering direction.
   `*_suite2.json`) as the record of the suite-v1 → suite-v2 progression. The headline numbers
   are the `n3_*` files.
 
+## One thing still unverified
+
+**Every number above came from the local (`claude` CLI) provider.** The CI arm,
+`promptfooconfig.yaml`, runs the same `tests.yaml` on `anthropic:claude-agent-sdk` — and
+that provider cannot authenticate on this machine, so it has never been executed here.
+Scores do not transfer automatically between harnesses; a different harness means a
+different system prompt and a different tool posture. CI's first run is a real
+cross-harness check, not a formality. If it lands below 100%, that is a new Red worth
+investigating, not flake to re-roll.
+
 ## Reproducing
 
 ```bash
 node evals/finch/asserts/no-invented-commands.test.js
 for n in 1 2 3; do
-  npx promptfoo@latest eval -c evals/finch/promptfooconfig.baseline.yaml --no-cache \
+  npx promptfoo@latest eval -c evals/finch/promptfooconfig.local.baseline.yaml --no-cache \
     -o evals/finch/results/n3_baseline_run$n.json
-  npx promptfoo@latest eval -c evals/finch/promptfooconfig.yaml --no-cache \
+  npx promptfoo@latest eval -c evals/finch/promptfooconfig.local.yaml --no-cache \
     -o evals/finch/results/n3_skill_run$n.json
 done
 ```
+
+The `.local.*` pair goes through the `claude` CLI. `promptfooconfig.yaml` is the CI arm and
+is what `.github/workflows/skill-evals.yml` discovers; it needs `ANTHROPIC_API_KEY`.
