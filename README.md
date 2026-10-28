@@ -150,6 +150,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 - **git** — the model (objects/DAG/refs/index) plus best-practice workflows: branching/merging/rebasing, conflict resolution, clean history & reflog recovery, collaboration/PRs, commit conventions, tags/releases (from *Mastering Git* + *Git Best Practices Guide*).
 - **github-actions** — automating CI/CD with GitHub Actions: workflow syntax, events/jobs/matrix, writing actions, runners, secrets/OIDC, reusable workflows, and security hardening (from *Automating Workflows with GitHub Actions*).
+- **gitbucket** — the self-hosted single-WAR Git platform (Scala) and its GitHub-compatible `/api/v3`. Running it (WAR, Docker, NAS, reverse proxy), the full flag/env/property table and precedence, and above all **where the GitHub compatibility stops** — the verified route table, no `PATCH /issues/:id` (an issue can't be closed via API), 25-item hard-coded paging with no `Link` headers, GitBucket's own issue-filter vocabulary, and 404-for-unimplemented. Plus webhooks, SSH on 29418, external MySQL/PostgreSQL, backup, plugins. Read from the source route table, not just the wiki.
 - **promptfoo** — test-driven LLM development with promptfoo (the eval framework): the `promptfooconfig.yaml` matrix (prompts × providers × tests → graded pass/fail), the assertion system (deterministic `contains`/`regex`/`javascript` + model-graded `llm-rubric`/`factuality`), the CLI + exit-100 CI contract, and GitHub Actions integration (the promptfoo-action, PR-comment gating, caching). Headline application: **regression-test your Claude Code skills** — load a `SKILL.md` as context, run query cases, and CI-gate its safety rails / accuracy / refusals / tone. From the promptfoo docs + repo; `references/` carry the assertion catalog and CI workflows.
 - **github-new-repo** — create a brand-new empty GitHub repo (name + public/private as parameters), `main` seeded with an empty initial commit so protection and PRs work from day one.
 - **github-branch-protection** — apply the standard `protect-main` ruleset to a repo (require PR with 0 approvals, block force-push and deletion); idempotent.
@@ -401,6 +402,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `gcp-workflows` |  |  |  |  |
 | `git` | 96% | 100% | sonnet | Sole gap: ~50-char imperative subjects; rescue/safety calls base-strong; no patch |
 | `git-ship` | 100% | 100% | sonnet | Base-strong (universal ship-safety instincts); neutral-safe, no patch |
+| `gitbucket` |  |  |  | Not yet evaluated |
 | `github-actions` | 83% | 96% | sonnet | ✅ Shipped (PR #50) — pwn-request safe pattern + SHA-pin phrasing made imperative |
 | `github-actions-python-ci` | 100% | 100% | sonnet | Guardrails base-strong + deterministic scaffold contract 10/10 (actionlint); no patch |
 | `github-actions-scala-ci` | n/a (script) | 10/10 contract | — | Deterministic scaffold-contract harness; guardrail layer measured in python-ci |
