@@ -257,7 +257,7 @@ Each skill is a folder with a `SKILL.md` (YAML frontmatter `name` + `description
 
 ## Skill evaluation (EDD) status
 
-Every skill in the repo, with evaluation-driven-development (EDD) results where a skill has been put through a deterministic promptfoo eval suite. Untested skills are listed with blank results. Scores are N=3-per-case majority against a deterministic rubric (no LLM judge); "naive baseline" is the task with no skill loaded, "with skill" is the real `SKILL.md` embedded. Full suites and iteration logs live in `promptfoo/skill-evals/<skill>/`. "Eval model" is the Claude model the suite's provider ran (`claude -p --model <m>`) — the baseline for any future try-it-on-a-cheaper-model optimization; "—" marks deterministic script harnesses with no model arm. (The `ci-watcher` agent has its own tool-using eval suite there as well, run on **haiku** by design: naive 29% → definition 100%.)
+Every skill in the repo, with evaluation-driven-development (EDD) results where a skill has been put through a deterministic promptfoo eval suite. Untested skills are listed with blank results. Scores are N=3-per-case majority; most suites grade deterministically, though `phq-9`, `detect-ai` and the agent suites use a thresholded `llm-rubric` for judgment criteria (noted per row); "naive baseline" is the task with no skill loaded, "with skill" is the real `SKILL.md` embedded. Full suites and iteration logs live in `evals/<skill>/` (`iteration-log.md`); older runs are in `promptfoo/skill-evals/<skill>/`. "Eval model" is the Claude model the suite's provider ran (`claude -p --model <m>`) — the baseline for any future try-it-on-a-cheaper-model optimization; "—" marks deterministic script harnesses with no model arm. (Agents are scored separately: `ci-watcher` has its own tool-using suite, run on **haiku** by design, naive 29% → definition 100%; and `adversarial-validator` scores **0% → 100%** on `evals/cross-examine/`, where the 0% is a contract failure — a generic assistant writes balanced review prose instead of a verdict line and attack log.)
 
 | Skill | EDD naive baseline | With skill | Eval model | Outcome |
 |---|---|---|---|---|
@@ -320,10 +320,10 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `computer-networks` |  |  |  |  |
 | `cooklang` |  |  |  |  |
 | `cqrs-event-sourcing` |  |  |  |  |
-| `cross-examine` |  |  |  |  |
+| `cross-examine` |  |  |  | **Still unevaluated.** `evals/cross-examine/` is named after this skill but binds `agent: agents/adversarial-validator.md` — it scores that agent, not this skill (0% → 100%, see below). Needs its own suite. |
 | `cryptography` |  |  |  |  |
 | `design-patterns` |  |  |  |  |
-| `detect-ai` |  |  |  |  |
+| `detect-ai` | 25% | 100% | sonnet | **Widest gap in the repo.** Naive arm passes only the restraint case (won't supply a verdict for a misconduct accusation); it fails all three quantitative ones and notably won't volunteer that a sub-100-word sample is too short — it answers anyway. One unstable case in the skill arm (`short`, P-F-P) left recorded rather than smoothed. Uses `llm-rubric` on 4 asserts. Log: `evals/detect-ai/iteration-log.md` |
 | `devops` |  |  |  |  |
 | `diagnosing-bugs` | 90% | 100% | haiku | ✅ Imported EDD-first (`evals/diagnosing-bugs/`): the agent edits four buggy projects and the code it leaves is graded. Upstream 95%; one added sentence (a regression test fails on every run, so a flaky bug's test pins its seed) → 60/60 on **haiku**, Sonnet 59/60 (its v1: 73%) |
 | `docker` | 83% | 100% | sonnet | ✅ Shipped (PR #51) — 3 linter-derived practices added (secret ENV, exec form, pinned installs) |
@@ -451,7 +451,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `os-virtualization` |  |  |  |  |
 | `osdev-kernel` |  |  |  |  |
 | `personal-finance` |  |  |  |  |
-| `phq-9` |  |  |  |  |
+| `phq-9` | 67% | 100% | sonnet | Both **safety** rails are base-strong (crisis response on item-9, screen-not-diagnosis) — PPP in the naive arm, so the skill's measured value is the administration protocol: the no-skill arm dumps the instrument instead of the gentle one-item-at-a-time setup. Suite is a regression net for rails the model already holds, not proof it installs them. Uses `llm-rubric` on 2 of 3 cases. Log: `evals/phq-9/iteration-log.md` |
 | `portapack-mayhem` |  |  |  |  |
 | `prime` | 58% | 100% | sonnet | Biggest round-2 lift: confidence/evidence discipline; no patch |
 | `procedural-generation` |  |  |  |  |
