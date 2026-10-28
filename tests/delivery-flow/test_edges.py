@@ -209,6 +209,36 @@ class TestSentinelAndHook(unittest.TestCase):
         self.assertEqual(r.returncode, 2)
         self.assertIn("claims epics=99", r.stderr)
 
+    def test_a_bash_write_after_a_cd_is_still_checked(self):
+        """The payload's `cwd` is the session's, not the subshell's.
+
+        Found on a real run: `cd ~/repo && … > delivery/K/item.json` wrote the artifact with no
+        check and no trace record, because the relative path resolved against the session
+        directory, did not exist there, and was skipped as "mentioned but not written". The
+        guardrail was bypassable by accident — which under Stage 4 is the same as bypassable.
+        """
+        f = Fixture()
+        f.write("breakdown.json", breakdown())
+        f.sentinel("breakdown.json", counts={"epics": 99})
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                   "cwd": "/somewhere/else/entirely",
+                   "tool_input": {"command":
+                                  f"cd {f.dir} && cat x > delivery/{f.item}/breakdown.json"}}
+        r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload),
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 2, "the edge must still run when the command cd's first")
+        self.assertIn("claims epics=99", r.stderr)
+
+    def test_a_cd_target_does_not_widen_the_check_to_other_repos(self):
+        """Resolving against cd targets must not make an unrelated path look written."""
+        f = Fixture()
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash", "cwd": str(f.dir),
+                   "tool_input": {"command": "cd /tmp && echo hello"}}
+        r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload),
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0)
+        self.assertEqual(f.trace(), [])
+
     def test_sentinel_itself_is_validated(self):
         f = Fixture()
         f.write("breakdown.json", breakdown())
