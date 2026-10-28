@@ -33,27 +33,150 @@ It names the tracker and forge adapters, the punch-out policy, the per-step mode
 roster overrides, and the optional vault binding. **If it is missing, stop and ask which
 repo this is** — never guess a tracker or open a PR against an unconfigured forge.
 
+Nothing else in this plugin is per-project, so a repo opts in with one command:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}"/scripts/delivery-flow/init-delivery-flow.py <repo> \
+    [--profile triage|full] [--jira-project KEY] [--internal] [--contract-paths a,b]
+```
+
+It detects the forge, base branch, test command and the protected paths that actually exist,
+and refuses to guess the three things guessing would get wrong: the Jira project key,
+`tracker.external` (a Jira not declared `--internal` is assumed to be someone else's), and
+`contract_paths`. Credentials are never written to the file — the Jira adapter reads
+`JIRA_BASE_URL`, `JIRA_EMAIL` and `JIRA_API_TOKEN` from the environment. Run it with
+`--dry-run` first; it will not overwrite an existing config without `--force`.
+
+## Which adapter to run
+
+`tracker.kind` and `forge.kind` in the config name the script. Do not read a tracker any other
+way — not with an MCP connector, not with a web fetch. An MCP tool is callable only by a model,
+and the whole point of an adapter is that the flow, the tests and the eval suites can call it
+with no model and no network.
+
+| Config | Script | Subcommands |
+|---|---|---|
+| `tracker.kind: jira` | `adapters/jira.py` | `fetch`, `related`, `comment`, `transition` |
+| `tracker.kind: github-issues` | `adapters/github_issues.py` | the same, via `gh` |
+| `tracker.kind: local-markdown` | `adapters/local_markdown.py` | the same, plus `import` |
+| `forge.kind: github-pr` | `adapters/github_pr.py` | `open-pr`, `ci-status` |
+
+Exit codes are the contract: **0** fine, **2** a usage error or a refusal, **3** a remote or
+auth failure with the fix on stderr. **A 2 is never something to work around.** It is usually
+the adapter refusing an outward action while a punch-out is open, which is the guardrail doing
+its job; raise the decision instead. Field mappings and each adapter's quirks are in
+[references/adapters.md](references/adapters.md).
+
 ## The routing table
 
 | # | Artifact | Step | Who runs it |
 |---|----------|------|-------------|
 | 1 | `item.json` | intake | tracker adapter (script) |
 | 2 | `triage.json` | triage | certified node → `references/triage.md` |
-| 3 | `project-context.json` | project-memory | vault recall (skipped with no vault binding) |
+| 3 | `project-context.json` | project-memory | script → `vault-recall.py` (skipped with no vault binding) |
 | 4 | `breakdown.json` | breakdown | certified node → `references/breakdown.md` |
 | 5 | `challenge-breakdown.json` | challenge-breakdown | certified node → `references/challenge-breakdown.md`, in a fresh context via `cross-examine` → adversarial-validator |
-| 6 | `spec-ready.json` | solutioning | SDLC orchestrator (standard path) |
-| 7 | `implementation.json` | implementation | SDLC dev pair, per story |
-| 8 | `verify.json` | verify | the repo's test command + protected-paths check |
-| 9 | `challenge-implementation.json` | challenge-implementation | `cross-examine` |
-| 10 | `pr.md` → `pr-opened.json` | pr-description, open-pr | node, then forge adapter |
-| 11 | `post.md` → `posted.json` | post-summary, post-back | node, then tracker adapter |
-| 12 | `outcome.json` | report | script |
-| 13 | `vault-updated.json` | vault-update | vault update (skipped with no vault binding) |
+| 6 | `proposal.json` + `openspec/changes/<id>/` | propose | node → `references/propose.md` (**uncertified**) |
+| 7 | `summary.md` | brief | script → `render-brief.py` |
+| 8 | `implementation.json` | implementation | SDLC dev pair, per task |
+| 9 | `verify.json` | verify | the repo's test command + protected-paths check |
+| 10 | `challenge-implementation.json` | challenge-implementation | `cross-examine` |
+| 11 | `pr.md` → `pr-opened.json` | pr-description, open-pr | node, then forge adapter |
+| 12 | `post.md` → `posted.json` | post-summary, post-back | node, then tracker adapter |
+| 13 | `outcome.json` | report | script → `write-outcome.py` |
+| 14 | `vault-updated.json` | vault-update | node → `references/vault-update.md` (**uncertified**; skipped with no vault binding) |
 
 **Branching.** A `bug` or `task` takes the quick path and skips the breakdown and its
 challenge; a `feature` takes the standard path and runs everything. The path comes from
 `triage.json`, not from your judgement, and `flow-status.py` already applies it.
+
+## Profiles: running part of the table
+
+`profile:` in `.delivery-flow.yaml` names an ordered slice of the table from
+`templates/delivery-flow/profiles.yaml`, and routing happens inside that slice only. A repo
+naming no profile gets `full`, which is every step.
+
+| Profile | Steps | Ends with |
+|---|---|---|
+| `triage` | intake → triage → (project-memory) → breakdown → challenge-breakdown → brief → report | `summary.md`, then `outcome.json` |
+| `full` | …the same, then propose → brief → implementation → verify → challenge-implementation → PR → post-back → report → vault-update | `vault-updated.json` |
+
+`triage` is the Stage 4 certified chain: three certified nodes, deterministic edges between
+them, a rendered brief for a human, and an outcome. Nothing is implemented and no PR is
+opened, so it has no outward action.
+
+`full` adds the proposal and everything after it. **Its rate is not a Stage 4 number** while
+`propose` is uncertified: an uncertified node in the chain makes the end-to-end figure
+meaningless, which is why the report breaks the rate out per profile.
+
+**A profile hands over through the artifact directory, not through you.** When a profile
+reaches its terminus, `flow-status.py` names the next profile and stops. The next profile
+recomputes its own position from `delivery/<ITEM-KEY>/`; nothing records which profile wrote
+what. Do not "continue into" the next profile in the same invocation, and never invent a
+supervising step that decides which profile runs — profile selection is config, and position
+is computed. A model whose job is routing is a node, not an edge.
+
+## The proposal, and the brief as the approval surface
+
+In `full`, `propose` turns the challenged breakdown into an OpenSpec change —
+`openspec/changes/<id>/` with `proposal.md`, `design.md`, at least one delta spec and
+`tasks.md` — plus `proposal.json`, the contract the implementation step reads. The change
+directory is for humans and for `openspec archive`; the JSON is the edge.
+
+Its edge checks the two against each other: task ids must match **in both directions**, named
+specs must exist, and every planned file path must stay inside the repo. `openspec validate
+--strict` runs as an extra layer where the CLI is installed and is recorded as *skipped* where
+it is not — never as a pass.
+
+`brief` then runs, and `summary.md` gains a "What will change" section. The proposal's
+punch-out triggers fire on leaving the brief, not on writing the proposal: explanation before
+decision, so the human is never asked to decide with nothing to read. Those triggers —
+`proposal-scope`, `proposal-breaking`, `proposal-architecture`, `protected-path`,
+`new-dependency` — derive from the **planned file paths**, so unlike the triage-sourced ones
+they cannot be reworded away.
+
+After implementation, `close-openspec-change.py` ticks the change's `tasks.md` from
+`implementation.json` and prints the `openspec archive` command. It never archives: that is a
+human's, and `flow-status.py` reports any change left with unticked tasks so a change directory
+cannot be abandoned quietly.
+
+## Project memory
+
+`project-memory` is a **script**, not a node: `vault-recall.py` implements the specified
+scoring (3 per same project, 3 per shared service, 2 per shared domain — 3 during
+implementation — 1 per keyword, threshold 3, capped 5/5/3/3) over note frontmatter. There is no
+judgement in that, so there is nothing to certify, and it reports facts by construction rather
+than because a prompt was told to.
+
+**An unreachable vault is not an empty one.** Recall checks the graph root before scanning: a
+missing root is exit 3 with no artifact and the flow stops. A reachable vault with nothing above
+the threshold is exit 0 with an artifact whose `matched: false` and whose coverage section says
+what was scanned. Never treat the first as the second — proceeding would silently drop the
+project's memory from the run while the trace still read as successful.
+
+**The vault is a local git clone, so check freshness, not reachability.** The canonical bare
+repo lives on a NAS; the clone is always there, which is the point — work continues off the
+home network. The cost is that a clone weeks behind looks identical to a current one, so recall
+reports its sync state and sets `stale` against `punch_out.vault_staleness_days`. A stale run
+still proceeds, and `project-context.md` opens with a warning. Staleness counts from the last
+**fetch**: a push proves the remote answered but teaches the clone nothing. **Never push** —
+`vault-update` commits, and the push is a human's to make on the right network.
+
+`vault-update` is a node, because writing a delivery note's one-line `goal` / `approach` /
+`outcome` is composition rather than traversal. It is uncertified and declared.
+
+## The brief is rendered, not written
+
+`summary.md` is produced by `render-brief.py` from `item.json`, `triage.json`,
+`breakdown.json` and `challenge-breakdown.json` on a fixed template. It is a script, not a
+node: it has no prompt, no certification, and no sentinel, because a deterministic producer
+has no claim to test. Never hand-write or reword it — rerun the renderer.
+
+Its edge asserts what the renderer is answerable for: every epic and story id present, the
+verdict present, every finding the verdict requires present, and no identifier that appears
+in none of its inputs. Readability (Flesch-Kincaid, Gunning Fog) is measured into the trace
+but never gated, because the prose is inherited from the breakdown node and the renderer
+cannot rewrite it.
 
 ## Running a step
 
@@ -93,6 +216,13 @@ challenge; a `feature` takes the standard path and runs everything. The path com
 - **Punch-outs are the human's, and only the human's.** You may not write a decision, clear
   a punch-out, merge a PR, or deploy anything beyond a routine bump. The hooks block all of
   these; do not attempt them and then report the block as a problem.
+- **The policy flags are not the gate.** `scope`, `architecture` and `breaking` each fire on
+  the node's flag in `triage.json` *or* on a derivation that never reads it, so clearing a
+  flag does not clear the trigger. Where flag and derivation disagree, the edge records
+  `policy_disagreement` and passes — the disagreement is evidence, not a failure. Do not
+  rewrite an artifact to quiet a trigger: hand-editing one marks the run `failed` with reason
+  `manual-correction`, and rerunning the node to launder its own text is the one residual this
+  design admits to rather than hiding.
 - **Quality between steps is automated.** There is no "ask the human to review this spec"
   step. If an artifact is wrong, the edge or the challenge catches it, or the success rate
   records that neither did.
