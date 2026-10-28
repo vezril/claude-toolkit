@@ -1,0 +1,2822 @@
+{
+  "evalId": "eval-LLq-2026-10-28T15:48:08",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-28T15:48:08.293Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+        "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+        "id": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 11.833333333333332,
+          "testPassCount": 9,
+          "testFailCount": 7,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 23,
+          "assertFailCount": 9,
+          "totalLatencyMs": 193452,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 16,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "routing": 6,
+            "accuracy": 15,
+            "restraint": 2
+          },
+          "namedScoresCount": {
+            "routing": 7,
+            "accuracy": 20,
+            "restraint": 5
+          },
+          "namedScoreWeights": {
+            "routing": 7,
+            "accuracy": 20,
+            "restraint": 5
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "docker.sock",
+                  "docker socket"
+                ],
+                "metric": "accuracy"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "not work",
+                  "won't work",
+                  "will not work",
+                  "not keep working",
+                  "n't keep working",
+                  "not as-is",
+                  "not as is",
+                  "unsupported",
+                  "not supported",
+                  "there's no",
+                  "there is no",
+                  "no docker socket",
+                  "no /var/run/docker.sock",
+                  "n't exist",
+                  "does not exist",
+                  "n't expose",
+                  "does not expose",
+                  "no dockerd",
+                  "will break",
+                  "breaks",
+                  "will fail",
+                  "cannot",
+                  "can't"
+                ],
+                "metric": "accuracy"
+              }
+            }
+          ]
+        },
+        "id": "ac7d1c4b-a729-47c0-b226-ecdfb0142b43",
+        "latencyMs": 10080,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nOur integration tests use Testcontainers, which mounts /var/run/docker.sock into a container. We're replacing Docker Desktop with Finch. Will that keep working?",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Not out of the box. Finch doesn't create `/var/run/docker.sock`. It runs containerd/nerdctl inside a Lima VM, and its socket is a different path on the host.\n\nWhat you'll hit:\n\n- **Socket path:** Finch has no Docker-compatible socket by default. Testcontainers looks for `/var/run/docker.sock` or `DOCKER_HOST`, finds neither, and fails with \"Could not find a valid Docker environment.\"\n- **Not the real Docker API:** Finch's engine is containerd/nerdctl. nerdctl doesn't ship a Docker Engine API server, so the Docker-compatible endpoint is only partly there. Basic container lifecycle usually works, but Testcontainers' extras can break.\n- **Ryuk:** Testcontainers' cleanup container (Ryuk) bind-mounts the Docker socket. That mount has to resolve to a path *inside the VM*, not the macOS path. This is the most common failure.\n- **Tests that mount the socket themselves:** Docker-in-Docker style tests (`-v /var/run/docker.sock:/var/run/docker.sock`) need the VM-side socket path, not the host one.\n\nWorkarounds, in the order I'd try them:\n\n1. Start Finch's VM and find the socket Lima exposes. Finch's Lima instance is under `~/.finch/lima/data/finch/`, and the socket is typically `sock/finch.sock` or similar. Check your installed version.\n2. Point Testcontainers at it:\n   ```\n   export DOCKER_HOST=unix://<path-to-finch-socket>\n   export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock\n   ```\n   The override tells Ryuk which path to mount *inside the VM*.\n3. If Ryuk still fails, set `TESTCONTAINERS_RYUK_DISABLED=true`. Cleanup is then on you, and CI is the worst place to lose it.\n4. If you need something more Docker-like, run Docker-API-compatible Podman or Colima instead.\n\nI can't confirm the socket path or flags for your Finch version from here. Run `finch vm status` and look under `~/.finch/` to confirm. Then run one small Testcontainers test before you migrate the whole suite. Budget some time for that, because compatibility depends on which Testcontainers features you use (networks, compose, and the socket mount in particular)."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-01-socket: Testcontainers mounting /var/run/docker.sock",
+          "vars": {
+            "request": "Our integration tests use Testcontainers, which mounts /var/run/docker.sock into a container. We're replacing Docker Desktop with Finch. Will that keep working?"
+          },
+          "assert": [
+            {
+              "type": "icontains-any",
+              "value": [
+                "docker.sock",
+                "docker socket"
+              ],
+              "metric": "accuracy"
+            },
+            {
+              "type": "icontains-any",
+              "value": [
+                "not work",
+                "won't work",
+                "will not work",
+                "not keep working",
+                "n't keep working",
+                "not as-is",
+                "not as is",
+                "unsupported",
+                "not supported",
+                "there's no",
+                "there is no",
+                "no docker socket",
+                "no /var/run/docker.sock",
+                "n't exist",
+                "does not exist",
+                "n't expose",
+                "does not expose",
+                "no dockerd",
+                "will break",
+                "breaks",
+                "will fail",
+                "cannot",
+                "can't"
+              ],
+              "metric": "accuracy"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "Our integration tests use Testcontainers, which mounts /var/run/docker.sock into a container. We're replacing Docker Desktop with Finch. Will that keep working?"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "routing": 1
+          },
+          "namedScoreWeights": {
+            "routing": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "finch vm stop",
+                  "vm stop",
+                  "restart the vm",
+                  "restart the virtual machine",
+                  "restart your vm"
+                ],
+                "metric": "routing"
+              }
+            }
+          ]
+        },
+        "id": "ff42bcdf-1f48-4996-b3bf-c31ae8bef1b1",
+        "latencyMs": 9009,
+        "namedScores": {
+          "routing": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nI set cpus: 8 in ~/.finch/finch.yaml an hour ago but finch info still reports 2 CPUs. What's wrong?",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Most likely the Finch VM was already created with 2 CPUs, and Finch only applies `finch.yaml` when the VM is initialized or started. Edits to a running VM are ignored.\n\nFix:\n\n```sh\nfinch vm stop\nfinch vm start\nfinch info    # check CPUs\n```\n\nIf it still shows 2, the config is being read at init time only. Recreate the VM:\n\n```sh\nfinch vm stop\nfinch vm remove    # deletes the VM and its images and containers\nfinch vm init\n```\n\n`finch vm remove` destroys the VM's images, containers, and volumes. Export or push anything you need first.\n\nOther things to check:\n\n- **YAML syntax:** the key must be top-level, `cpus: 8`, with no indentation or stray characters. A parse error can make Finch fall back to defaults.\n- **File path:** it should be `~/.finch/finch.yaml`. If `$FINCH_DIR` or `$LIMA_HOME` is set, check that it isn't pointing somewhere else.\n- **Host limits:** if the Mac has fewer than 8 cores, Lima can clamp or reject the value.\n- **Version:** very old Finch builds don't reapply the config on `vm start`, so run `finch --version` and consider upgrading."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-02-restart: finch.yaml edit appears to be ignored",
+          "vars": {
+            "request": "I set cpus: 8 in ~/.finch/finch.yaml an hour ago but finch info still reports 2 CPUs. What's wrong?"
+          },
+          "assert": [
+            {
+              "type": "icontains-any",
+              "value": [
+                "finch vm stop",
+                "vm stop",
+                "restart the vm",
+                "restart the virtual machine",
+                "restart your vm"
+              ],
+              "metric": "routing"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "I set cpus: 8 in ~/.finch/finch.yaml an hour ago but finch info still reports 2 CPUs. What's wrong?"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "routing": 1,
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "routing": 1,
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains",
+                "value": "additional_directories",
+                "metric": "routing"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "regex",
+                "value": "path:\\s*[\"']?/Volumes/work",
+                "metric": "accuracy"
+              }
+            }
+          ]
+        },
+        "id": "0c2f1c65-d8cf-41db-9db2-f2e417fe030c",
+        "latencyMs": 11024,
+        "namedScores": {
+          "routing": 1,
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nI keep a source tree at /Volumes/work and my builds can't see it. Show me exactly what to put in ~/.finch/finch.yaml to mount it into the Finch VM.",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Add this to `~/.finch/finch.yaml`:\n\n```yaml\nadditional_directories:\n  - path: /Volumes/work\n```\n\nIf the file already has an `additional_directories:` key, add the `- path:` line under it instead of creating a second key. Then restart the VM so the mount takes effect:\n\n```sh\nfinch vm stop\nfinch vm start\n```\n\nTo check it, run `finch run --rm -v /Volumes/work:/work alpine ls /work`.\n\n- The volume must be mounted on macOS before `finch vm start`, or the mount will be missing or fail.\n- Use the real path, not a symlink.\n- A restart is required. Editing the file while the VM is running changes nothing.\n\nI haven't run this against a Finch install, so the key name comes from my knowledge of Finch's config rather than a check on your machine."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-03-additional-dirs: exact finch.yaml schema for an extra mount",
+          "vars": {
+            "request": "I keep a source tree at /Volumes/work and my builds can't see it. Show me exactly what to put in ~/.finch/finch.yaml to mount it into the Finch VM."
+          },
+          "assert": [
+            {
+              "type": "icontains",
+              "value": "additional_directories",
+              "metric": "routing"
+            },
+            {
+              "type": "regex",
+              "value": "path:\\s*[\"']?/Volumes/work",
+              "metric": "accuracy"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "I keep a source tree at /Volumes/work and my builds can't see it. Show me exactly what to put in ~/.finch/finch.yaml to mount it into the Finch VM."
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"/Applications/Finch/os/finch.yaml\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.5,
+          "reason": "Expected output to contain \"/Applications/Finch/os/finch.yaml\"",
+          "namedScores": {
+            "accuracy": 0.5
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"/Applications/Finch/os/finch.yaml\"",
+              "assertion": {
+                "type": "icontains",
+                "value": "/Applications/Finch/os/finch.yaml",
+                "metric": "accuracy"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "vm remove",
+                  "finch vm init",
+                  "recreate the vm",
+                  "recreated"
+                ],
+                "metric": "accuracy"
+              }
+            }
+          ]
+        },
+        "id": "427f38e0-6c62-4999-b7db-8826f586cfbc",
+        "latencyMs": 15633,
+        "namedScores": {
+          "accuracy": 0.5
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nI don't want containers to be able to write to my home directory through the Finch VM mount. How do I make that mount read-only?",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Set the home mount to `writable: false` in the Lima config that Finch uses, then restart the VM. I'm answering from memory and haven't verified the file paths or merge behavior against your Finch version.\n\n1. Edit `~/.finch/finch.yaml` (or Lima's `override.yaml`, below) so the home entry is read-only:\n\n   ```yaml\n   mounts:\n     - location: ~\n       writable: false\n   ```\n\n   Finch generates its Lima config from the packaged defaults plus your overrides. Some versions only honor mount changes through Lima's override file, which on a standard install is `/Applications/Finch/lima/data/_config/override.yaml`. Use the same `mounts:` block there if `finch.yaml` has no effect.\n\n2. Restart the VM:\n\n   ```sh\n   finch vm stop && finch vm start\n   ```\n\n   If the mount doesn't change, the instance config is probably cached from creation. Recreate the VM with `finch vm remove && finch vm init`. This deletes the VM's images and containers, so pull or export anything you need first.\n\n3. Check it:\n\n   ```sh\n   finch run --rm -v \"$HOME\":/h alpine touch /h/x\n   ```\n\n   This should fail with `Read-only file system`.\n\nIf a container needs to write to one directory, mount just that directory as a separate writable entry, such as `~/work` with `writable: true`. Keep the `~` mount read-only.\n\nSetting `:ro` on individual `-v` flags only protects the containers you remember to flag. The VM-level setting applies to every container."
+        },
+        "score": 0.5,
+        "success": false,
+        "testCase": {
+          "description": "case-04-readonly-home: home mount is writable by default",
+          "vars": {
+            "request": "I don't want containers to be able to write to my home directory through the Finch VM mount. How do I make that mount read-only?"
+          },
+          "assert": [
+            {
+              "type": "icontains",
+              "value": "/Applications/Finch/os/finch.yaml",
+              "metric": "accuracy"
+            },
+            {
+              "type": "icontains-any",
+              "value": [
+                "vm remove",
+                "finch vm init",
+                "recreate the vm",
+                "recreated"
+              ],
+              "metric": "accuracy"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 3,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "I don't want containers to be able to write to my home directory through the Finch VM mount. How do I make that mount read-only?"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "cannot be decreased",
+                  "can only be increased",
+                  "only be increased",
+                  "cannot shrink",
+                  "can't shrink",
+                  "cannot be shrunk",
+                  "not be decreased",
+                  "only grow",
+                  "grow only"
+                ],
+                "metric": "accuracy"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "fstrim",
+                  "vm remove",
+                  "recreate"
+                ],
+                "metric": "accuracy"
+              }
+            }
+          ]
+        },
+        "id": "ef4698f5-ef54-4aef-85d1-de63bb891801",
+        "latencyMs": 15248,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nMy Finch datadisk is set to 100GiB and the VM file is huge. I want to shrink it to 50GiB and get the space back on my Mac. How?",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "You can't shrink the disk in place. Lima and Finch only support growing a disk. To get to 50GiB you have to recreate it, which wipes all images, containers, and volumes. You may not need to shrink it at all, though.\n\n**1. Check the real size first.** The datadisk is a sparse file, so `ls -l` shows 100GiB even when much less is allocated on disk. Compare it with `du`:\n\n```sh\nlimactl disk ls                 # shows the disk's path and size\nls -lh <path>/datadisk          # apparent size\ndu -h  <path>/datadisk          # space actually used on your Mac\n```\n\n**2. Reclaim space without shrinking (non-destructive).** Prune what you don't need, then trim the freed blocks so the sparse file releases them:\n\n```sh\nfinch system prune -a --volumes\nfinch vm stop && finch vm start\nfinch vm ssh -- sudo fstrim -av\n```\n\nRe-run `du`. If it drops a lot, you can stop here. Trim support depends on your Lima and VM type (vz vs. qemu), so it may not work for you.\n\n**3. Recreate the disk at 50GiB (destructive).** Save anything you need first, such as `finch save -o images.tar <images>` and any volume data. Then:\n\n```sh\nfinch vm stop\nfinch vm remove          # removes the VM; may also drop the data disk\nlimactl disk ls          # if \"finch\" still listed:\nlimactl disk delete finch\nlimactl disk create finch --size 50GiB\nfinch vm init            # or finch vm start\n```\n\nThe Mac gets the space back as soon as the old datadisk file is deleted. Paths and exact behavior vary by Finch version, so confirm the disk name and location with `limactl disk ls` before deleting anything. Finch's `LIMA_HOME` is usually under `/Applications/Finch/lima/data`, and the disk sits in its `_disks/` directory."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-05-shrink-disk: reclaiming disk space",
+          "vars": {
+            "request": "My Finch datadisk is set to 100GiB and the VM file is huge. I want to shrink it to 50GiB and get the space back on my Mac. How?"
+          },
+          "assert": [
+            {
+              "type": "icontains-any",
+              "value": [
+                "cannot be decreased",
+                "can only be increased",
+                "only be increased",
+                "cannot shrink",
+                "can't shrink",
+                "cannot be shrunk",
+                "not be decreased",
+                "only grow",
+                "grow only"
+              ],
+              "metric": "accuracy"
+            },
+            {
+              "type": "icontains-any",
+              "value": [
+                "fstrim",
+                "vm remove",
+                "recreate"
+              ],
+              "metric": "accuracy"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 4,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "My Finch datadisk is set to 100GiB and the VM file is huge. I want to shrink it to 50GiB and get the space back on my Mac. How?"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain one of \"macos 26, 26 or later, 26 or newer, 26+, tahoe\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.5,
+          "reason": "Expected output to contain one of \"macos 26, 26 or later, 26 or newer, 26+, tahoe\"",
+          "namedScores": {
+            "accuracy": 0.5
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain one of \"macos 26, 26 or later, 26 or newer, 26+, tahoe\"",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "macos 26",
+                  "26 or later",
+                  "26 or newer",
+                  "26+",
+                  "tahoe"
+                ],
+                "metric": "accuracy"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "qemu",
+                  "rosetta: false",
+                  "leave it unset",
+                  "unset",
+                  "don't set",
+                  "do not set"
+                ],
+                "metric": "accuracy"
+              }
+            }
+          ]
+        },
+        "id": "d33533c6-0a4b-4982-a272-16b565d044c0",
+        "latencyMs": 10761,
+        "namedScores": {
+          "accuracy": 0.5
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nI'm on an M3 MacBook running macOS 15 Sequoia and I need to run linux/amd64 images. Should I set rosetta: true in finch.yaml?",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Yes, set `rosetta: true`. It's the faster way to run `linux/amd64` on Apple Silicon, because it uses Rosetta in the VM instead of QEMU user-mode emulation.\n\nIn `~/.finch/finch.yaml`:\n\n```yaml\nvmType: vz\nrosetta: true\n```\n\n- Rosetta only works with `vmType: vz`. It does nothing under `qemu`. Recent Finch versions default to `vz` on Apple Silicon, but check.\n- Rosetta must be installed on the Mac: `softwareupdate --install-rosetta --agree-to-license`.\n- Restart the VM to apply the change: `finch vm stop && finch vm start`. If the setting doesn't take effect, run `finch vm remove` and then `finch vm init`. This deletes the VM, so you'll lose its images and containers and have to pull them again.\n- Run the images with `--platform linux/amd64`, for example `finch run --platform linux/amd64 <image>`. Without that flag you get the arm64 variant when one exists.\n\nA few amd64 binaries, such as some JVM and Go workloads, can misbehave under Rosetta. If you hit one, set `rosetta: false` and restart the VM to fall back to slower QEMU emulation."
+        },
+        "score": 0.5,
+        "success": false,
+        "testCase": {
+          "description": "case-06-rosetta: rosetta: true on macOS 15",
+          "vars": {
+            "request": "I'm on an M3 MacBook running macOS 15 Sequoia and I need to run linux/amd64 images. Should I set rosetta: true in finch.yaml?"
+          },
+          "assert": [
+            {
+              "type": "icontains-any",
+              "value": [
+                "macos 26",
+                "26 or later",
+                "26 or newer",
+                "26+",
+                "tahoe"
+              ],
+              "metric": "accuracy"
+            },
+            {
+              "type": "icontains-any",
+              "value": [
+                "qemu",
+                "rosetta: false",
+                "leave it unset",
+                "unset",
+                "don't set",
+                "do not set"
+              ],
+              "metric": "accuracy"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 5,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "I'm on an M3 MacBook running macOS 15 Sequoia and I need to run linux/amd64 images. Should I set rosetta: true in finch.yaml?"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "index",
+                  "indices",
+                  "indexes"
+                ],
+                "metric": "accuracy"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "finch push",
+                  "at push",
+                  "push time",
+                  "push the image",
+                  "when you push",
+                  "--snapshotter soci"
+                ],
+                "metric": "accuracy"
+              }
+            }
+          ]
+        },
+        "id": "a14d3e93-bbc5-4daa-bfd6-266fa4036a08",
+        "latencyMs": 13718,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nI added snapshotters: [soci] to finch.yaml and restarted the VM, but pulling our 4GB image is exactly as slow as before. What did I miss?",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Most likely, enabling the snapshotter in `finch.yaml` only makes it available. Nothing uses it unless these three things also hold:\n\n1. **Select it per command.** The default snapshotter is still overlayfs, so use `finch pull --snapshotter soci <image>` and `finch run --snapshotter soci <image>`. Without the flag you get a normal full pull.\n\n2. **The image needs a SOCI index.** SOCI lazy-loads using a separate index (ztocs) for the image. If the registry has none, SOCI silently falls back to a regular full download, which matches the \"exactly as slow\" symptom. Build and push one, for example with `soci create` and `soci push` (or `finch soci create` / `finch soci push` if your Finch version has them). In ECR, the index is stored as an OCI referrer artifact next to the image. If you only pull and don't control the image, you can't fix this on your side.\n\n3. **Layers must be larger than SOCI's minimum size.** Layers below the default `min-layer-size` (about 10 MB) aren't indexed. A 4 GB image made of many small layers gains little.\n\nAlso check that the image isn't already in the local store. Layers cached under overlayfs won't be re-fetched lazily, so run `finch rmi <image>` and pull again.\n\nExpect `pull` to return quickly with SOCI, since layers are fetched on demand. The speedup shows up as time-to-start in `finch run`, not as total bytes transferred.\n\nI can't check your Finch version or setup from here. If it still doesn't help, run `finch vm ssh` (or `limactl shell finch`) and look at the soci-snapshotter logs. They'll show whether it found an index for your image."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-07-soci: lazy loading enabled but pulls are not faster",
+          "vars": {
+            "request": "I added snapshotters: [soci] to finch.yaml and restarted the VM, but pulling our 4GB image is exactly as slow as before. What did I miss?"
+          },
+          "assert": [
+            {
+              "type": "icontains-any",
+              "value": [
+                "index",
+                "indices",
+                "indexes"
+              ],
+              "metric": "accuracy"
+            },
+            {
+              "type": "icontains-any",
+              "value": [
+                "finch push",
+                "at push",
+                "push time",
+                "push the image",
+                "when you push",
+                "--snapshotter soci"
+              ],
+              "metric": "accuracy"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 6,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "I added snapshotters: [soci] to finch.yaml and restarted the VM, but pulling our 4GB image is exactly as slow as before. What did I miss?"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain one of \"self-managed, self managed, cosign-key, generate-key-pair\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.3333333333333333,
+          "reason": "Expected output to contain one of \"self-managed, self managed, cosign-key, generate-key-pair\"",
+          "namedScores": {
+            "restraint": 0.3333333333333333
+          },
+          "namedScoreWeights": {
+            "restraint": 3
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains",
+                "value": "keyless",
+                "metric": "restraint"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain one of \"not support, doesn't support, does not support, unsupported, not supported, only self-managed, self-managed keys only, cannot, can't\"",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "not support",
+                  "doesn't support",
+                  "does not support",
+                  "unsupported",
+                  "not supported",
+                  "only self-managed",
+                  "self-managed keys only",
+                  "cannot",
+                  "can't"
+                ],
+                "metric": "restraint"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain one of \"self-managed, self managed, cosign-key, generate-key-pair\"",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "self-managed",
+                  "self managed",
+                  "cosign-key",
+                  "generate-key-pair"
+                ],
+                "metric": "restraint"
+              }
+            }
+          ]
+        },
+        "id": "33cca2bf-ed7a-4698-aa87-8a8250c74b83",
+        "latencyMs": 17816,
+        "namedScores": {
+          "restraint": 0.3333333333333333
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nSet up keyless cosign signing with OIDC so our CI can sign images on finch push without managing any key material. Give me the commands.",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Keyless signing needs no cosign-specific setup. The CI job's OIDC token goes to Sigstore's Fulcio for a short-lived cert, and the signature is logged in Rekor. Below is a GitHub Actions example. Finch only builds and pushes, and cosign talks to the registry directly.\n\n```yaml\npermissions:\n  id-token: write   # lets the job request an OIDC token\n  contents: read\n\nsteps:\n  - uses: actions/checkout@v4\n  - uses: sigstore/cosign-installer@v3\n  - uses: iarekylew00t/crane-installer@v1   # or any way you get `crane`\n\n  - name: Build and push\n    env:\n      IMAGE: registry.example.com/team/app\n    run: |\n      echo \"$REGISTRY_TOKEN\" | finch login registry.example.com -u \"$REGISTRY_USER\" --password-stdin\n      finch build -t \"$IMAGE:${GITHUB_SHA}\" .\n      finch push \"$IMAGE:${GITHUB_SHA}\"\n\n  - name: Sign by digest\n    env:\n      IMAGE: registry.example.com/team/app\n    run: |\n      DIGEST=$(crane digest \"$IMAGE:${GITHUB_SHA}\")\n      cosign sign --yes \"$IMAGE@${DIGEST}\"\n```\n\nVerify, locally or in a deploy gate:\n\n```sh\ncosign verify registry.example.com/team/app@sha256:<digest> \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  --certificate-identity \"https://github.com/<org>/<repo>/.github/workflows/<file>.yml@refs/heads/main\"\n```\n\nThings to watch:\n\n- **Sign the digest, not the tag.** Tags are mutable, so a signature on `:tag` doesn't pin the content. `crane digest` queries the registry, so it works regardless of what `finch push` prints.\n- **Registry credentials.** Cosign reads the Docker-style credential config (`~/.docker/config.json`, or `DOCKER_CONFIG`). Check that `finch login` wrote there on your runner. If it didn't, run `cosign login registry.example.com -u … --password-stdin` as well.\n- **Pin the verify identity.** Use `--certificate-identity` with the exact workflow and ref. `--certificate-identity-regexp` is looser, so tighten it as far as you can.\n- **Public transparency log.** The default Fulcio and Rekor instances are public, so the signer identity (repo and workflow) and the image reference are visible to anyone. If the repo or image name is sensitive, use a private Sigstore deployment (`--fulcio-url`, `--rekor-url`) instead.\n- **Other CI systems.** GitLab can use `id_tokens: { SIGSTORE_ID_TOKEN: { aud: sigstore } }`, and cosign picks the token up from the environment. Verify with `--certificate-oidc-issuer https://gitlab.com`.\n- **Publishing.** The push and sign steps make the image and signature fetchable by others, so check them against your org's security policy before enabling them on real registries."
+        },
+        "score": 0.3333333333333333,
+        "success": false,
+        "testCase": {
+          "description": "case-08-keyless: asking for keyless cosign signing",
+          "vars": {
+            "request": "Set up keyless cosign signing with OIDC so our CI can sign images on finch push without managing any key material. Give me the commands."
+          },
+          "assert": [
+            {
+              "type": "icontains",
+              "value": "keyless",
+              "metric": "restraint"
+            },
+            {
+              "type": "icontains-any",
+              "value": [
+                "not support",
+                "doesn't support",
+                "does not support",
+                "unsupported",
+                "not supported",
+                "only self-managed",
+                "self-managed keys only",
+                "cannot",
+                "can't"
+              ],
+              "metric": "restraint"
+            },
+            {
+              "type": "icontains-any",
+              "value": [
+                "self-managed",
+                "self managed",
+                "cosign-key",
+                "generate-key-pair"
+              ],
+              "metric": "restraint"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 7,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "Set up keyless cosign signing with OIDC so our CI can sign images on finch push without managing any key material. Give me the commands."
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "inside the vm",
+                  "in the vm",
+                  "limactl",
+                  "lima shell",
+                  "within the vm"
+                ],
+                "metric": "accuracy"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "update-ca-trust",
+                  "ca-trust",
+                  "anchors",
+                  "update-ca-certificates"
+                ],
+                "metric": "accuracy"
+              }
+            }
+          ]
+        },
+        "id": "972075f5-55c2-4dfd-8335-005c1e77683e",
+        "latencyMs": 10434,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nfinch pull fails with 'x509: certificate signed by unknown authority' on our corporate network. I already added our company's root CA to the macOS Keychain and trusted it. Why does it still fail?",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Finch runs containers inside a Lima VM (Linux), and the `finch pull` TLS connection is made from inside that VM. The VM only trusts its own CA bundle, not the macOS Keychain. Your corporate proxy's TLS interception cert is unknown to it, so you get the x509 error.\n\n**Fix: add the root CA to the VM's trust store.**\n\n1. Export the root CA as PEM, if you don't already have it:\n   ```sh\n   security find-certificate -a -c \"<your CA common name>\" -p /Library/Keychains/System.keychain > corp-root-ca.pem\n   ```\n2. Copy it into the VM and update the trust store (Finch's VM is Amazon Linux/Fedora-based):\n   ```sh\n   finch vm stop\n   finch vm start\n   LIMA_HOME=/Applications/Finch/lima/data /Applications/Finch/lima/bin/limactl cp corp-root-ca.pem finch:/tmp/\n   LIMA_HOME=/Applications/Finch/lima/data /Applications/Finch/lima/bin/limactl shell finch -- \\\n     sudo sh -c 'cp /tmp/corp-root-ca.pem /etc/pki/ca-trust/source/anchors/ && update-ca-trust'\n   finch vm stop && finch vm start   # restart so the container runtime picks it up\n   ```\n   The paths above are for the default pkg install (`/Applications/Finch`). Homebrew installs put them elsewhere, so check `which limactl` or `finch vm status`.\n\n3. Retry `finch pull`.\n\n**Caveats:**\n- Include the full chain, meaning the root and any intermediate CA the proxy presents. A missing intermediate gives the same error.\n- The change can be lost if the VM is recreated (`finch vm remove` / `finch vm init`). If that happens, re-apply it or script it.\n- For one registry only, you can instead put the PEM in `/etc/containerd/certs.d/<registry>/ca.crt` (or `/etc/docker/certs.d/<registry>/ca.crt`) inside the VM. This is narrower than trusting the CA system-wide.\n- If the registry is a private one with a self-signed cert, the same approach applies, using that registry's CA.\n\nTo confirm the cause, run `finch vm status` and look at the proxy cert:\n```sh\nopenssl s_client -connect registry-1.docker.io:443 -showcerts </dev/null 2>/dev/null | grep -E 's:|i:'\n```\nIf the issuer is your corporate CA, it's TLS interception and the steps above apply."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-09-tls-proxy: x509 errors behind a TLS-inspecting proxy",
+          "vars": {
+            "request": "finch pull fails with 'x509: certificate signed by unknown authority' on our corporate network. I already added our company's root CA to the macOS Keychain and trusted it. Why does it still fail?"
+          },
+          "assert": [
+            {
+              "type": "icontains-any",
+              "value": [
+                "inside the vm",
+                "in the vm",
+                "limactl",
+                "lima shell",
+                "within the vm"
+              ],
+              "metric": "accuracy"
+            },
+            {
+              "type": "icontains-any",
+              "value": [
+                "update-ca-trust",
+                "ca-trust",
+                "anchors",
+                "update-ca-certificates"
+              ],
+              "metric": "accuracy"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 8,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "finch pull fails with 'x509: certificate signed by unknown authority' on our corporate network. I already added our company's root CA to the macOS Keychain and trusted it. Why does it still fail?"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "routing": 1,
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "routing": 1,
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains",
+                "value": "sudo",
+                "metric": "routing"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "root",
+                  "/root/.docker"
+                ],
+                "metric": "accuracy"
+              }
+            }
+          ]
+        },
+        "id": "41a1b692-e578-4b77-b345-459256fbf3d2",
+        "latencyMs": 14755,
+        "namedScores": {
+          "routing": 1,
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nOn our Ubuntu build box, finch build -t app:1.0 . fails with permission errors talking to containerd, and finch login credentials never seem to stick. Same commands work fine on my Mac.",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Both symptoms most likely come from the same difference: on macOS, Finch runs containerd inside a Lima VM as your user. On Linux there's no VM, so `finch` talks directly to the host's root-owned sockets. I'm answering from memory and haven't checked your box.\n\n**Containerd permission errors**\n- Confirm it with `ls -l /run/containerd/containerd.sock /run/buildkit-finch/buildkitd.sock` and `id`. Expect root-owned sockets that your user can't open.\n- Quick fix: `sudo finch build -t app:1.0 .`\n- Without sudo: add a `containerd` group to the daemon config (`[grpc] gid = <gid>` in `/etc/containerd/config.toml`), add the build user to that group, and restart containerd. Do the same for the buildkit socket group. Log out and back in afterward.\n- Check that the services are running: `systemctl status containerd` and the Finch buildkit unit (`systemctl list-units | grep -i buildkit`).\n\n**Login not sticking**\n- If you use `sudo finch`, `finch login` writes to root's config (`/root/.finch` or `/root/.docker`). A later non-sudo `finch pull` or `finch build` reads your own config and finds nothing. Use the same user for login and build. If you need sudo, use `sudo -E` or `sudo HOME=$HOME`, or set `DOCKER_CONFIG` explicitly.\n- Your Mac config probably uses `\"credsStore\": \"osxkeychain\"`. That helper doesn't exist on Linux. If you copied that config over, or a helper is configured but missing, login fails or silently drops the credentials. Check `cat ~/.docker/config.json` (and `~/.finch/config.json`). Either remove `credsStore` so it writes the auth to the file, or install `docker-credential-pass` or `docker-credential-secretservice`. A headless build box has no secret service, so `pass` or the plain file is the realistic choice.\n- Make sure `$HOME` is writable. CI users with a read-only or ephemeral home won't persist anything.\n\n**CI note:** for a build box, skip interactive login. Run `echo \"$TOKEN\" | sudo -E finch login -u <user> --password-stdin <registry>` in the same job and as the same user as the build.\n\nIf it still fails, send the exact error text, the output of `id`, and the socket listing. The error text will tell us whether it's a socket permission problem or a different one."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-10-linux-root: permission errors on Linux",
+          "vars": {
+            "request": "On our Ubuntu build box, finch build -t app:1.0 . fails with permission errors talking to containerd, and finch login credentials never seem to stick. Same commands work fine on my Mac."
+          },
+          "assert": [
+            {
+              "type": "icontains",
+              "value": "sudo",
+              "metric": "routing"
+            },
+            {
+              "type": "icontains-any",
+              "value": [
+                "root",
+                "/root/.docker"
+              ],
+              "metric": "accuracy"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 9,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "On our Ubuntu build box, finch build -t app:1.0 . fails with permission errors talking to containerd, and finch login credentials never seem to stick. Same commands work fine on my Mac."
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain one of \"automatically, automatic, looks for, falls back, no flag, without any flag, no extra flag, no additional flag, out of the box, no flags\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.5,
+          "reason": "Expected output to contain one of \"automatically, automatic, looks for, falls back, no flag, without any flag, no extra flag, no additional flag, out of the box, no flags\"",
+          "namedScores": {
+            "routing": 1,
+            "accuracy": 0
+          },
+          "namedScoreWeights": {
+            "routing": 1,
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains",
+                "value": "Containerfile",
+                "metric": "routing"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain one of \"automatically, automatic, looks for, falls back, no flag, without any flag, no extra flag, no additional flag, out of the box, no flags\"",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "automatically",
+                  "automatic",
+                  "looks for",
+                  "falls back",
+                  "no flag",
+                  "without any flag",
+                  "no extra flag",
+                  "no additional flag",
+                  "out of the box",
+                  "no flags"
+                ],
+                "metric": "accuracy"
+              }
+            }
+          ]
+        },
+        "id": "688610ab-53b8-4a31-a3c9-012d9f6138af",
+        "latencyMs": 10856,
+        "namedScores": {
+          "routing": 1,
+          "accuracy": 0
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nOur repo ships a Containerfile instead of a Dockerfile because we came from Podman. Does finch build work, and do I need any flags?",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "`finch build` works with a Containerfile, but I'd pass the file explicitly:\n\n```sh\nfinch build -f Containerfile -t myimage .\n```\n\nFinch builds through nerdctl and BuildKit, and the syntax is the same as Dockerfile syntax. `-f` accepts any filename. I believe newer nerdctl versions also fall back to `Containerfile` when no `Dockerfile` exists, but I haven't verified that for your Finch version. Passing `-f` works either way.\n\nThings to check:\n- **Podman-only syntax:** BuildKit doesn't support `--format oci|docker`, `--layers`, or `--squash`. It also ignores `HEALTHCHECK` unless you build with `--output type=docker`. Remove these flags from scripts and Makefiles.\n- **Architecture:** On Apple Silicon, Finch builds `arm64` images by default. Add `--platform linux/amd64` if you deploy to x86.\n- **VM:** Run `finch vm init` or `finch vm start` first. Builds fail if the VM isn't running."
+        },
+        "score": 0.5,
+        "success": false,
+        "testCase": {
+          "description": "case-11-containerfile: repo has a Containerfile, no Dockerfile",
+          "vars": {
+            "request": "Our repo ships a Containerfile instead of a Dockerfile because we came from Podman. Does finch build work, and do I need any flags?"
+          },
+          "assert": [
+            {
+              "type": "icontains",
+              "value": "Containerfile",
+              "metric": "routing"
+            },
+            {
+              "type": "icontains-any",
+              "value": [
+                "automatically",
+                "automatic",
+                "looks for",
+                "falls back",
+                "no flag",
+                "without any flag",
+                "no extra flag",
+                "no additional flag",
+                "out of the box",
+                "no flags"
+              ],
+              "metric": "accuracy"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 10,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "Our repo ships a Containerfile instead of a Dockerfile because we came from Podman. Does finch build work, and do I need any flags?"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "auto_vm_start",
+                  "auto vm start",
+                  "starts the vm",
+                  "start the vm",
+                  "starting the vm",
+                  "boots the vm",
+                  "boot the vm",
+                  "starts the virtual machine",
+                  "starting the virtual machine"
+                ],
+                "metric": "accuracy"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "nerdctl",
+                  "inside the vm",
+                  "in the vm",
+                  "from the vm"
+                ],
+                "metric": "accuracy"
+              }
+            }
+          ]
+        },
+        "id": "1ff98bd0-ec8c-4cbf-a982-7d317564574c",
+        "latencyMs": 7842,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nRunning `finch build --help` on a freshly booted Mac hangs for about 30 seconds and prints VM log lines before the help text. `finch --help` is instant. Is that a bug?",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Probably not a bug. It's expected behavior from how Finch is built, though the UX is rough.\n\n`finch --help` only prints the cobra command tree, so it never touches the VM. `finch build` is a wrapper around `nerdctl`/BuildKit running inside the Lima VM. On a freshly booted Mac the VM is stopped, so many Finch commands, including `build --help`, first call the \"ensure VM is running\" step. That starts the VM, which takes about 30 seconds, and the Lima/QEMU or vz boot messages print along the way. After that, `build --help` is fast.\n\nWhy `build --help` in particular: Finch forwards `build` and similar commands to nerdctl, so cobra doesn't handle the help flag locally. The command passes through the same pre-run hook as a real build, and that hook starts the VM. The same should hold for `finch run --help`, `finch pull --help` and other passthrough commands. Finch-native commands such as `finch vm`, `finch version` and `finch --help` don't need the VM.\n\nTo check:\n- Run `finch vm status`. If it says `Stopped` before the slow call and `Running` after, this is the cause.\n- Run `finch vm init` or `finch vm start` right after boot. Then `finch build --help` should be instant.\n\nStarting the VM just to print help text is a fair thing to file as an enhancement against runfinch/finch. The VM log lines on stdout/stderr ahead of the help output are the same issue. I wouldn't call it a defect, though. I'm going from my knowledge of Finch's design and haven't run it here."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-12-help-hangs: finch build --help takes 30+ seconds",
+          "vars": {
+            "request": "Running `finch build --help` on a freshly booted Mac hangs for about 30 seconds and prints VM log lines before the help text. `finch --help` is instant. Is that a bug?"
+          },
+          "assert": [
+            {
+              "type": "icontains-any",
+              "value": [
+                "auto_vm_start",
+                "auto vm start",
+                "starts the vm",
+                "start the vm",
+                "starting the vm",
+                "boots the vm",
+                "boot the vm",
+                "starts the virtual machine",
+                "starting the virtual machine"
+              ],
+              "metric": "accuracy"
+            },
+            {
+              "type": "icontains-any",
+              "value": [
+                "nerdctl",
+                "inside the vm",
+                "in the vm",
+                "from the vm"
+              ],
+              "metric": "accuracy"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 11,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "Running `finch build --help` on a freshly booted Mac hangs for about 30 seconds and prints VM log lines before the help text. `finch --help` is instant. Is that a bug?"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain one of \"DOCKER_COMPOSE_VERSION, 2.9\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0,
+          "reason": "Expected output to contain one of \"DOCKER_COMPOSE_VERSION, 2.9\"",
+          "namedScores": {
+            "routing": 0,
+            "accuracy": 0
+          },
+          "namedScoreWeights": {
+            "routing": 1,
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"dockercompat\"",
+              "assertion": {
+                "type": "icontains",
+                "value": "dockercompat",
+                "metric": "routing"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain one of \"DOCKER_COMPOSE_VERSION, 2.9\"",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "DOCKER_COMPOSE_VERSION",
+                  "2.9"
+                ],
+                "metric": "accuracy"
+              }
+            }
+          ]
+        },
+        "id": "6cb48328-c8b1-4cd8-801b-3bf5e7bc2a12",
+        "latencyMs": 18276,
+        "namedScores": {
+          "routing": 0,
+          "accuracy": 0
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nI want to use the VS Code Dev Containers extension with Finch instead of Docker Desktop. What do I have to configure?",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Dev Containers needs a Docker-compatible CLI and API, and Finch only provides the CLI. The most reliable setup is the `docker` CLI pointed at Finch's Docker-compatible socket. I'm answering from memory and haven't checked this against a current Finch install. Confirm the socket path and flags on your machine.\n\n1. **Start Finch.**\n   ```sh\n   finch vm init   # first time only\n   finch vm start\n   ```\n\n2. **Install the Docker CLI.** Don't install Docker Desktop.\n   ```sh\n   brew install docker docker-compose\n   ```\n\n3. **Point the CLI at Finch's socket.** Finch ships `finch-daemon`, which exposes a Docker REST API from inside the VM. Find the socket path under Finch's Lima directory, for example `/Applications/Finch/lima/data/finch/sock/finch.sock`. The path differs between installs. Then set:\n   ```sh\n   export DOCKER_HOST=unix:///Applications/Finch/lima/data/finch/sock/finch.sock\n   docker info   # should now report Finch/containerd\n   ```\n   You can also create a Docker context instead: `docker context create finch --docker host=unix://<socket>`, then `docker context use finch`.\n\n4. **Make VS Code see it.** VS Code must inherit `DOCKER_HOST`. Either launch it from that shell with `code .`, or put the export in `~/.zshenv`. In settings:\n   ```json\n   {\n     \"dev.containers.dockerPath\": \"docker\",\n     \"dev.containers.dockerComposePath\": \"docker-compose\"\n   }\n   ```\n\n5. **Keep the workspace under `$HOME`.** The Lima VM mounts only your home directory by default, so a project elsewhere will appear empty in the container. To mount other paths, edit Finch's Lima config and restart the VM.\n\n**Alternative.** You can set `\"dev.containers.dockerPath\": \"finch\"` and skip the socket. Dev Containers calls Docker subcommands and flags that `finch` (nerdctl) doesn't always support, such as `docker events`, `buildx`, and some `inspect` formats. In my experience that route breaks more often.\n\n**Known rough edges:**\n- Dev Container Features rely on BuildKit and `buildx` behavior, which may need tweaking.\n- UID/bind-mount ownership differs from Docker Desktop. Set `updateRemoteUserUID` or `remoteUser` explicitly if you get permission errors.\n- Compose-based devcontainers work best with `docker-compose` talking to the same socket."
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "case-13-devcontainers: VS Code Dev Containers on Finch",
+          "vars": {
+            "request": "I want to use the VS Code Dev Containers extension with Finch instead of Docker Desktop. What do I have to configure?"
+          },
+          "assert": [
+            {
+              "type": "icontains",
+              "value": "dockercompat",
+              "metric": "routing"
+            },
+            {
+              "type": "icontains-any",
+              "value": [
+                "DOCKER_COMPOSE_VERSION",
+                "2.9"
+              ],
+              "metric": "accuracy"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 12,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "I want to use the VS Code Dev Containers extension with Finch instead of Docker Desktop. What do I have to configure?"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"creds_helpers\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.5,
+          "reason": "Expected output to contain \"creds_helpers\"",
+          "namedScores": {
+            "accuracy": 0.5
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"creds_helpers\"",
+              "assertion": {
+                "type": "icontains",
+                "value": "creds_helpers",
+                "metric": "accuracy"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "credsStore",
+                  "creds_store",
+                  "credstore"
+                ],
+                "metric": "accuracy"
+              }
+            }
+          ]
+        },
+        "id": "9800f7a1-656c-4c99-a6ea-00d377aa6401",
+        "latencyMs": 11915,
+        "namedScores": {
+          "accuracy": 0.5
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nOur ECR login expires every 12 hours and everyone has to re-run aws ecr get-login-password | finch login. How do we make Finch pick up AWS credentials automatically?",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Use the Amazon ECR Docker credential helper. Finch reads Docker-style config (`~/.finch/config.json`, which honors `DOCKER_CONFIG`), so `credHelpers` works the same way.\n\n1. **Install the helper** (`docker-credential-ecr-login`):\n   ```sh\n   brew install docker-credential-helper-ecr\n   ```\n   Make sure it's on the `PATH` that Finch sees.\n\n2. **Point Finch at it** in `~/.finch/config.json`:\n   ```json\n   {\n     \"credsStore\": \"\",\n     \"credHelpers\": {\n       \"123456789012.dkr.ecr.us-east-1.amazonaws.com\": \"ecr-login\"\n     }\n   }\n   ```\n   Use one entry per registry. For public ECR, add `\"public.ecr.aws\": \"ecr-login\"`.\n\n3. **Remove the old static login.** If `config.json` has an `auths` entry for that registry, delete it. A stale token there can take precedence over the helper.\n\n4. **Give it AWS credentials.** The helper uses the standard AWS SDK chain: env vars, `AWS_PROFILE`, SSO, or an assumed role. It fetches a fresh token on each pull or push, so the 12-hour expiry stops mattering. Your AWS session still has to be valid, so with SSO you still run `aws sso login` when that session expires.\n\n5. **Test it:**\n   ```sh\n   finch pull 123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo:tag\n   ```\n   There's no need to run `finch login` first.\n\n**Gotchas**\n- **Different profile:** export `AWS_PROFILE` in the shell that runs `finch`.\n- **Finch VM and builds:** pulls and pushes run through the host client, so the helper runs on macOS. `FROM <ecr-image>` in `finch build` also uses the host config. If a build can't authenticate, check that `DOCKER_CONFIG` points at the config you edited.\n- **To share this with the team:** put the `config.json` snippet and the brew install in your onboarding script.\n\nI'm answering from memory and haven't checked this against your Finch version. If `finch pull` still fails, run it with `--debug` and check whether the helper binary is being found."
+        },
+        "score": 0.5,
+        "success": false,
+        "testCase": {
+          "description": "case-14-ecr-helper: stop re-running get-login-password",
+          "vars": {
+            "request": "Our ECR login expires every 12 hours and everyone has to re-run aws ecr get-login-password | finch login. How do we make Finch pick up AWS credentials automatically?"
+          },
+          "assert": [
+            {
+              "type": "icontains",
+              "value": "creds_helpers",
+              "metric": "accuracy"
+            },
+            {
+              "type": "icontains-any",
+              "value": [
+                "credsStore",
+                "creds_store",
+                "credstore"
+              ],
+              "metric": "accuracy"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 13,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "Our ECR login expires every 12 hours and everyone has to re-run aws ecr get-login-password | finch login. How do we make Finch pick up AWS credentials automatically?"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain one of \"not a security boundary, not a strong security boundary, isn't a security boundary, is not isolation, not an isolation boundary\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.5,
+          "reason": "Expected output to contain one of \"not a security boundary, not a strong security boundary, isn't a security boundary, is not isolation, not an isolation boundary\"",
+          "namedScores": {
+            "restraint": 0.5
+          },
+          "namedScoreWeights": {
+            "restraint": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain one of \"not a security boundary, not a strong security boundary, isn't a security boundary, is not isolation, not an isolation boundary\"",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "not a security boundary",
+                  "not a strong security boundary",
+                  "isn't a security boundary",
+                  "is not isolation",
+                  "not an isolation boundary"
+                ],
+                "metric": "restraint"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains-any",
+                "value": [
+                  "home directory",
+                  "home dir",
+                  "~ is mounted",
+                  "$HOME"
+                ],
+                "metric": "restraint"
+              }
+            }
+          ]
+        },
+        "id": "37654609-731e-4aed-90c9-3071ad0cb329",
+        "latencyMs": 10719,
+        "namedScores": {
+          "restraint": 0.5
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nNice thing about Finch is that everything runs in a VM, so unlike Docker Desktop we can safely pull and run untrusted third-party images on our laptops without worrying about the host. Confirm that for my team's security write-up?",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "I can't confirm that as written. The VM helps, but it doesn't make running untrusted images safe, and the Docker Desktop contrast is misleading.\n\n**What's wrong with the claim**\n- **Docker Desktop also runs containers in a VM** on macOS. Finch uses Lima, which runs a Linux VM, and Docker Desktop uses its own. The VM isn't a difference between them.\n- **Containers inside the VM share one kernel.** A container escape lands you in the Lima VM, not on the host. That's a real extra layer, but it's one layer, not isolation.\n- **The VM is not sealed off from the host.** Lima mounts host directories into the VM by default, and Finch typically shares your home directory. A malicious container that escapes, or just gets a bind mount from `-v`, can read or write those files. That could include `~/.ssh`, `~/.aws`, and source trees. Both tools have this exposure.\n- **Network access is open.** The container can reach the internet and anything your laptop's network can reach, including internal Amazon endpoints on VPN. Exfiltration and lateral movement need no escape.\n- **Anything you hand to the container is exposed.** That includes mounted volumes, env vars, forwarded credentials, `--privileged`, and the Docker socket.\n- **Image risk is unchanged.** The image can contain malware that runs in the container with whatever you gave it. Supply-chain risks like tag mutability and typosquatting are also unchanged.\n\n**Wording I'd suggest for the write-up**\n> Finch runs containers inside a Lima Linux VM, which adds a boundary between container escapes and the macOS host. This is defense in depth, not a sandbox for untrusted code. Host directories mounted into the VM (by default, the user's home directory) and network access remain exposed. Untrusted images should be run only with no bind mounts, no credentials in env, no privileged flags, restricted networking, and ideally on a disposable VM or cloud sandbox.\n\nI'm working from memory, with no Finch installation here. Before you publish, check the default mount configuration in your `finch.yaml` and Lima config, since those defaults have changed between versions."
+        },
+        "score": 0.5,
+        "success": false,
+        "testCase": {
+          "description": "case-15-isolation: 'the VM means untrusted images are safe'",
+          "vars": {
+            "request": "Nice thing about Finch is that everything runs in a VM, so unlike Docker Desktop we can safely pull and run untrusted third-party images on our laptops without worrying about the host. Confirm that for my team's security write-up?"
+          },
+          "assert": [
+            {
+              "type": "icontains-any",
+              "value": [
+                "not a security boundary",
+                "not a strong security boundary",
+                "isn't a security boundary",
+                "is not isolation",
+                "not an isolation boundary"
+              ],
+              "metric": "restraint"
+            },
+            {
+              "type": "icontains-any",
+              "value": [
+                "home directory",
+                "home dir",
+                "~ is mounted",
+                "$HOME"
+              ],
+              "metric": "restraint"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 14,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "Nice thing about Finch is that everything runs in a VM, so unlike Docker Desktop we can safely pull and run untrusted third-party images on our laptops without worrying about the host. Confirm that for my team's security write-up?"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "routing": 1
+          },
+          "namedScoreWeights": {
+            "routing": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "icontains",
+                "value": "--platform",
+                "metric": "routing"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "regex",
+                "value": "(linux/amd64|linux/arm64|amd64,|,amd64|arm64,|,arm64)",
+                "metric": "routing"
+              }
+            }
+          ]
+        },
+        "id": "2d546f17-7ba1-4860-a36c-5e9491359eb6",
+        "latencyMs": 5366,
+        "namedScores": {
+          "routing": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\nGive me the finch command to build image app:1.0 from the current directory for both arm64 and amd64 in one go.",
+          "label": "evals/finch/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely; you have no tools and no Finch installation here, so answer from your own knowledge.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a90916575c05580146624b51e9bc368f5d80e41ba3df727f753588150d52e2c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:./provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "```sh\nfinch build --platform linux/amd64,linux/arm64 -t app:1.0 .\n```\n\nCaveats:\n- Finch has no `--push`-less multi-arch image store by default: a multi-platform build can't be loaded into the local image store as a single image. To keep the result, either push it (`finch build --platform linux/amd64,linux/arm64 -t <registry>/app:1.0 --push .`) or build each platform separately (`--platform linux/arm64 -t app:1.0-arm64 --load .`).\n- The non-native architecture builds under QEMU emulation, so it's slower. You may need `finch vm` to have binfmt support enabled (it's on by default in recent Finch)."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "case-16-multiarch: one tag for arm64 and amd64",
+          "vars": {
+            "request": "Give me the finch command to build image app:1.0 from the current directory for both arm64 and amd64 in one go."
+          },
+          "assert": [
+            {
+              "type": "icontains",
+              "value": "--platform",
+              "metric": "routing"
+            },
+            {
+              "type": "regex",
+              "value": "(linux/amd64|linux/arm64|amd64,|,amd64|arm64,|,arm64)",
+              "metric": "routing"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 15,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "Give me the finch command to build image app:1.0 from the current directory for both arm64 and amd64 in one go."
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 9,
+      "failures": 7,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 16,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 51749,
+      "evaluationDurationMs": 51749
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "finch skill — NAIVE BASELINE (no skill in context)",
+    "prompts": [
+      "file:///Users/mferecal/Code/claude-toolkit/evals/finch/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:./provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "case-01-socket: Testcontainers mounting /var/run/docker.sock",
+        "vars": {
+          "request": "Our integration tests use Testcontainers, which mounts /var/run/docker.sock into a container. We're replacing Docker Desktop with Finch. Will that keep working?"
+        },
+        "assert": [
+          {
+            "type": "icontains-any",
+            "value": [
+              "docker.sock",
+              "docker socket"
+            ],
+            "metric": "accuracy"
+          },
+          {
+            "type": "icontains-any",
+            "value": [
+              "not work",
+              "won't work",
+              "will not work",
+              "not keep working",
+              "n't keep working",
+              "not as-is",
+              "not as is",
+              "unsupported",
+              "not supported",
+              "there's no",
+              "there is no",
+              "no docker socket",
+              "no /var/run/docker.sock",
+              "n't exist",
+              "does not exist",
+              "n't expose",
+              "does not expose",
+              "no dockerd",
+              "will break",
+              "breaks",
+              "will fail",
+              "cannot",
+              "can't"
+            ],
+            "metric": "accuracy"
+          }
+        ]
+      },
+      {
+        "description": "case-02-restart: finch.yaml edit appears to be ignored",
+        "vars": {
+          "request": "I set cpus: 8 in ~/.finch/finch.yaml an hour ago but finch info still reports 2 CPUs. What's wrong?"
+        },
+        "assert": [
+          {
+            "type": "icontains-any",
+            "value": [
+              "finch vm stop",
+              "vm stop",
+              "restart the vm",
+              "restart the virtual machine",
+              "restart your vm"
+            ],
+            "metric": "routing"
+          }
+        ]
+      },
+      {
+        "description": "case-03-additional-dirs: exact finch.yaml schema for an extra mount",
+        "vars": {
+          "request": "I keep a source tree at /Volumes/work and my builds can't see it. Show me exactly what to put in ~/.finch/finch.yaml to mount it into the Finch VM."
+        },
+        "assert": [
+          {
+            "type": "icontains",
+            "value": "additional_directories",
+            "metric": "routing"
+          },
+          {
+            "type": "regex",
+            "value": "path:\\s*[\"']?/Volumes/work",
+            "metric": "accuracy"
+          }
+        ]
+      },
+      {
+        "description": "case-04-readonly-home: home mount is writable by default",
+        "vars": {
+          "request": "I don't want containers to be able to write to my home directory through the Finch VM mount. How do I make that mount read-only?"
+        },
+        "assert": [
+          {
+            "type": "icontains",
+            "value": "/Applications/Finch/os/finch.yaml",
+            "metric": "accuracy"
+          },
+          {
+            "type": "icontains-any",
+            "value": [
+              "vm remove",
+              "finch vm init",
+              "recreate the vm",
+              "recreated"
+            ],
+            "metric": "accuracy"
+          }
+        ]
+      },
+      {
+        "description": "case-05-shrink-disk: reclaiming disk space",
+        "vars": {
+          "request": "My Finch datadisk is set to 100GiB and the VM file is huge. I want to shrink it to 50GiB and get the space back on my Mac. How?"
+        },
+        "assert": [
+          {
+            "type": "icontains-any",
+            "value": [
+              "cannot be decreased",
+              "can only be increased",
+              "only be increased",
+              "cannot shrink",
+              "can't shrink",
+              "cannot be shrunk",
+              "not be decreased",
+              "only grow",
+              "grow only"
+            ],
+            "metric": "accuracy"
+          },
+          {
+            "type": "icontains-any",
+            "value": [
+              "fstrim",
+              "vm remove",
+              "recreate"
+            ],
+            "metric": "accuracy"
+          }
+        ]
+      },
+      {
+        "description": "case-06-rosetta: rosetta: true on macOS 15",
+        "vars": {
+          "request": "I'm on an M3 MacBook running macOS 15 Sequoia and I need to run linux/amd64 images. Should I set rosetta: true in finch.yaml?"
+        },
+        "assert": [
+          {
+            "type": "icontains-any",
+            "value": [
+              "macos 26",
+              "26 or later",
+              "26 or newer",
+              "26+",
+              "tahoe"
+            ],
+            "metric": "accuracy"
+          },
+          {
+            "type": "icontains-any",
+            "value": [
+              "qemu",
+              "rosetta: false",
+              "leave it unset",
+              "unset",
+              "don't set",
+              "do not set"
+            ],
+            "metric": "accuracy"
+          }
+        ]
+      },
+      {
+        "description": "case-07-soci: lazy loading enabled but pulls are not faster",
+        "vars": {
+          "request": "I added snapshotters: [soci] to finch.yaml and restarted the VM, but pulling our 4GB image is exactly as slow as before. What did I miss?"
+        },
+        "assert": [
+          {
+            "type": "icontains-any",
+            "value": [
+              "index",
+              "indices",
+              "indexes"
+            ],
+            "metric": "accuracy"
+          },
+          {
+            "type": "icontains-any",
+            "value": [
+              "finch push",
+              "at push",
+              "push time",
+              "push the image",
+              "when you push",
+              "--snapshotter soci"
+            ],
+            "metric": "accuracy"
+          }
+        ]
+      },
+      {
+        "description": "case-08-keyless: asking for keyless cosign signing",
+        "vars": {
+          "request": "Set up keyless cosign signing with OIDC so our CI can sign images on finch push without managing any key material. Give me the commands."
+        },
+        "assert": [
+          {
+            "type": "icontains",
+            "value": "keyless",
+            "metric": "restraint"
+          },
+          {
+            "type": "icontains-any",
+            "value": [
+              "not support",
+              "doesn't support",
+              "does not support",
+              "unsupported",
+              "not supported",
+              "only self-managed",
+              "self-managed keys only",
+              "cannot",
+              "can't"
+            ],
+            "metric": "restraint"
+          },
+          {
+            "type": "icontains-any",
+            "value": [
+              "self-managed",
+              "self managed",
+              "cosign-key",
+              "generate-key-pair"
+            ],
+            "metric": "restraint"
+          }
+        ]
+      },
+      {
+        "description": "case-09-tls-proxy: x509 errors behind a TLS-inspecting proxy",
+        "vars": {
+          "request": "finch pull fails with 'x509: certificate signed by unknown authority' on our corporate network. I already added our company's root CA to the macOS Keychain and trusted it. Why does it still fail?"
+        },
+        "assert": [
+          {
+            "type": "icontains-any",
+            "value": [
+              "inside the vm",
+              "in the vm",
+              "limactl",
+              "lima shell",
+              "within the vm"
+            ],
+            "metric": "accuracy"
+          },
+          {
+            "type": "icontains-any",
+            "value": [
+              "update-ca-trust",
+              "ca-trust",
+              "anchors",
+              "update-ca-certificates"
+            ],
+            "metric": "accuracy"
+          }
+        ]
+      },
+      {
+        "description": "case-10-linux-root: permission errors on Linux",
+        "vars": {
+          "request": "On our Ubuntu build box, finch build -t app:1.0 . fails with permission errors talking to containerd, and finch login credentials never seem to stick. Same commands work fine on my Mac."
+        },
+        "assert": [
+          {
+            "type": "icontains",
+            "value": "sudo",
+            "metric": "routing"
+          },
+          {
+            "type": "icontains-any",
+            "value": [
+              "root",
+              "/root/.docker"
+            ],
+            "metric": "accuracy"
+          }
+        ]
+      },
+      {
+        "description": "case-11-containerfile: repo has a Containerfile, no Dockerfile",
+        "vars": {
+          "request": "Our repo ships a Containerfile instead of a Dockerfile because we came from Podman. Does finch build work, and do I need any flags?"
+        },
+        "assert": [
+          {
+            "type": "icontains",
+            "value": "Containerfile",
+            "metric": "routing"
+          },
+          {
+            "type": "icontains-any",
+            "value": [
+              "automatically",
+              "automatic",
+              "looks for",
+              "falls back",
+              "no flag",
+              "without any flag",
+              "no extra flag",
+              "no additional flag",
+              "out of the box",
+              "no flags"
+            ],
+            "metric": "accuracy"
+          }
+        ]
+      },
+      {
+        "description": "case-12-help-hangs: finch build --help takes 30+ seconds",
+        "vars": {
+          "request": "Running `finch build --help` on a freshly booted Mac hangs for about 30 seconds and prints VM log lines before the help text. `finch --help` is instant. Is that a bug?"
+        },
+        "assert": [
+          {
+            "type": "icontains-any",
+            "value": [
+              "auto_vm_start",
+              "auto vm start",
+              "starts the vm",
+              "start the vm",
+              "starting the vm",
+              "boots the vm",
+              "boot the vm",
+              "starts the virtual machine",
+              "starting the virtual machine"
+            ],
+            "metric": "accuracy"
+          },
+          {
+            "type": "icontains-any",
+            "value": [
+              "nerdctl",
+              "inside the vm",
+              "in the vm",
+              "from the vm"
+            ],
+            "metric": "accuracy"
+          }
+        ]
+      },
+      {
+        "description": "case-13-devcontainers: VS Code Dev Containers on Finch",
+        "vars": {
+          "request": "I want to use the VS Code Dev Containers extension with Finch instead of Docker Desktop. What do I have to configure?"
+        },
+        "assert": [
+          {
+            "type": "icontains",
+            "value": "dockercompat",
+            "metric": "routing"
+          },
+          {
+            "type": "icontains-any",
+            "value": [
+              "DOCKER_COMPOSE_VERSION",
+              "2.9"
+            ],
+            "metric": "accuracy"
+          }
+        ]
+      },
+      {
+        "description": "case-14-ecr-helper: stop re-running get-login-password",
+        "vars": {
+          "request": "Our ECR login expires every 12 hours and everyone has to re-run aws ecr get-login-password | finch login. How do we make Finch pick up AWS credentials automatically?"
+        },
+        "assert": [
+          {
+            "type": "icontains",
+            "value": "creds_helpers",
+            "metric": "accuracy"
+          },
+          {
+            "type": "icontains-any",
+            "value": [
+              "credsStore",
+              "creds_store",
+              "credstore"
+            ],
+            "metric": "accuracy"
+          }
+        ]
+      },
+      {
+        "description": "case-15-isolation: 'the VM means untrusted images are safe'",
+        "vars": {
+          "request": "Nice thing about Finch is that everything runs in a VM, so unlike Docker Desktop we can safely pull and run untrusted third-party images on our laptops without worrying about the host. Confirm that for my team's security write-up?"
+        },
+        "assert": [
+          {
+            "type": "icontains-any",
+            "value": [
+              "not a security boundary",
+              "not a strong security boundary",
+              "isn't a security boundary",
+              "is not isolation",
+              "not an isolation boundary"
+            ],
+            "metric": "restraint"
+          },
+          {
+            "type": "icontains-any",
+            "value": [
+              "home directory",
+              "home dir",
+              "~ is mounted",
+              "$HOME"
+            ],
+            "metric": "restraint"
+          }
+        ]
+      },
+      {
+        "description": "case-16-multiarch: one tag for arm64 and amd64",
+        "vars": {
+          "request": "Give me the finch command to build image app:1.0 from the current directory for both arm64 and amd64 in one go."
+        },
+        "assert": [
+          {
+            "type": "icontains",
+            "value": "--platform",
+            "metric": "routing"
+          },
+          {
+            "type": "regex",
+            "value": "(linux/amd64|linux/arm64|amd64,|,amd64|arm64,|,arm64)",
+            "metric": "routing"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/finch/results/baseline_v0.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/Users/mferecal/Code/claude-toolkit/evals/finch"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-28T15:49:00.172Z",
+    "evaluationCreatedAt": "2026-10-28T15:48:08.293Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

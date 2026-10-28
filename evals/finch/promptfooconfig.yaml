@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+#
+# Behavioral regression tests for skills/finch/SKILL.md — the CI arm.
+#
+# This is the file .github/workflows/skill-evals.yml auto-discovers
+# (`find evals -mindepth 2 -name promptfooconfig.yaml`), so it has to run on a bare
+# ubuntu-latest runner with nothing but ANTHROPIC_API_KEY. Hence the repo-standard
+# anthropic:claude-agent-sdk provider, same as every other suite here.
+#
+# On a Bedrock-backed machine that provider cannot authenticate at all — it spawns
+# the claude-code binary, which inherits no AWS credentials, and every case errors
+# with "Could not load AWS credentials". Use the local pair there instead:
+# promptfooconfig.local.yaml and promptfooconfig.local.baseline.yaml, which go
+# through the `claude` CLI. All four configs share tests.yaml verbatim, so the
+# asserts are identical whichever provider runs them.
+#
+# CI supplies repeat: 3 / repeat-min-pass: 2 / fail-on-threshold: 100 — a case must
+# hold in 2 of 3 samples, which is the same N=3 majority the iteration log reports.
+#
+# FULLY DETERMINISTIC — no llm-rubric, so no judge and no grader drift. Metrics:
+#   routing          — does it reach for the right Finch mechanism?
+#   accuracy         — hard claims about Finch's plumbing that must not rot
+#   restraint        — refusing to bluff / pushing back on a false premise, asserted
+#                      on the specific claim the answer has to contain, not graded
+#   no-hallucination — never prescribes a finch subcommand that doesn't exist
+#
+# Run from the REPO ROOT:
+#   npx promptfoo@latest eval -c evals/finch/promptfooconfig.yaml --no-cache
+description: "finch skill — plumbing accuracy, mechanism routing, and restraint"
+prompts:
+  - file://prompt.txt
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config:
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 3
+defaultTest:
+  vars:
+    skill: file://../../skills/finch/SKILL.md
+  assert:
+    # Applies to EVERY case: a CLI answer that names the right mechanism but hands
+    # out a command that doesn't exist has still wasted the user's afternoon.
+    # Added in suite v2 after the baseline transcripts showed exactly that.
+    - type: javascript
+      metric: no-hallucination
+      value: file://asserts/no-invented-commands.js
+tests: file://tests.yaml
