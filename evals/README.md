@@ -21,7 +21,7 @@ evals/<skill>/
 Every config points `defaultTest.vars.skill` at `file://../../skills/<skill>/SKILL.md` and runs
 the shared `prompt.txt`, which injects the skill and the test's `{{request}}`.
 
-Suites currently in the repo: **akka**, **calvin-voice**, **cross-examine**, **detect-ai**,
+Suites currently in the repo: **akka**, **calvin-voice**, **cross-examine**, **detect-ai**, **handoff**,
 **humanize**, **outreach**, **phq-9**, **pr-description**.
 
 ## Run one
