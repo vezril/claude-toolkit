@@ -31,6 +31,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 **Session priming**
 
 - **prime** — at the start of a session, analyzes the project (structure, architecture, design patterns, conventions) from **concrete evidence** (cross-validated, confidence-labelled, asks on ambiguity — no hallucination), produces a Priming Brief, then activates the matching skills and the sdlc-orchestrator team bound to the real stack.
+- **handoff** — relay mode: writes a relay from one Claude Code session to another as a parseable `RELAY → <Target> session` block (Kind, Authorization, Ask, tagged Claims, Delivery). Every claim is checked against the code first and tagged verified / refuted with the `path:line` that shows it, or unverified (cluster state, secrets, hearsay); only Calvin's own words authorize an outward action, quoted verbatim; a peer's reported go gets a hold, and a cleared blocker is never a go to ship; with no SendMessage or no live target it queues a ready-to-paste pending-relays entry and routes it through the Codex session rather than editing that repo. Built EDD-first (`evals/handoff/`: 7 cases on a fixture constellation, including the real Echo→Hephaestus relay with two false premises). Certified on **Haiku** and Sonnet at 100% over two isolated samples each (156/156), up from 26% with a one-line skill. A `seed` mode for new-service `AGENTS.md` handoffs is planned.
 
 **Software-engineering disciplines**
 
@@ -415,6 +416,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `grilling` | 60% | 99% | haiku | ✅ Imported EDD-first (`evals/grilling/`): upstream skill certified as is on **haiku**, 89/90 over two samples (Sonnet the same); v1 asked downstream questions early and had no round format |
 | `hackrf-one` |  |  |  |  |
 | `haiku` | 70% | 98% | sonnet | ✅ Built EDD-first (v1 → v10, `evals/haiku/`); the 5-7-5 myth was most of the floor. Certified on **haiku**: 41% → 99%, same skill |
+| `handoff` | 26% | 100% | sonnet | ✅ Built EDD-first (v1 → v5, `evals/handoff/`); format + delivery were most of the floor, authority rules and a negative-evidence slot the rest. Certified on **haiku**: 100%, same skill |
 | `home-assistant` |  |  |  |  |
 | `html-css` |  |  |  |  |
 | `humanize` | 92% | 96% | sonnet | Style/edit skill; de-cliché lift (mechanical tells), no patch |
