@@ -26,9 +26,14 @@ Paths in the registry are relative to the repository root.
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 from pathlib import Path
+
+# The registry ships with the plugin. Resolved the same way common.py does it, so the gate
+# works when invoked from a delivery repo rather than only from a toolkit checkout.
+PLUGIN_ROOT = Path(os.environ.get("CLAUDE_PLUGIN_ROOT", Path(__file__).resolve().parents[2]))
 
 try:
     import yaml  # used when available
@@ -268,11 +273,24 @@ def main(argv=None) -> int:
         ap.print_usage(sys.stderr)
         return 2
 
-    root = repo_root(Path.cwd())
-    reg_path = root / args.registry
-    if not reg_path.exists():
-        print(f"registry not found: {args.registry}", file=sys.stderr)
+    # The registry and the evidence it points at live in the *plugin*, not in the repository
+    # being delivered — and the gate is checked from the delivery repo, which is where every
+    # real run happens. Resolving against cwd meant protocol step 1 ("check the step is
+    # certified") could not run anywhere it mattered. Try the plugin root first, fall back to
+    # the working repo so a toolkit checkout still works unchanged.
+    candidates = []
+    if not Path(args.registry).is_absolute():
+        candidates.append(PLUGIN_ROOT / args.registry)
+    candidates.append((repo_root(Path.cwd()) / args.registry) if not Path(args.registry).is_absolute()
+                      else Path(args.registry))
+    reg_path = next((c for c in candidates if c.exists()), None)
+    if reg_path is None:
+        print("registry not found; looked in "
+              + " and ".join(str(c) for c in candidates), file=sys.stderr)
         return 2
+    # Evidence paths inside the registry are relative to whatever holds the registry.
+    root = reg_path.parent.parent.parent if reg_path.parent.name == "delivery-flow" \
+        else repo_root(reg_path.parent)
     entries = parse_registry(reg_path.read_text()).get("steps", [])
     if args.step:
         entries = [e for e in entries if e.get("step") == args.step]
