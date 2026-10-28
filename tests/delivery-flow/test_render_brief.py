@@ -51,6 +51,16 @@ PROPOSAL = {"item": "BRF-1", "change_id": "add-bounded-backoff",
             "scope": False, "architecture": False, "breaking": False}
 
 
+SENTINEL = SCRIPTS / "write-sentinel.py"
+# Keyed on each schema's own `artifact` field, not on its filename: challenge.schema.json
+# describes challenge-breakdown.json, so deriving the name from the file misses it.
+PRODUCED_BY = {}
+for _p in sorted((ROOT / "schemas").glob("*.schema.json")):
+    _s = json.loads(_p.read_text())
+    if _s.get("artifact") and _s.get("produced_by"):
+        PRODUCED_BY[_s["artifact"]] = _s["produced_by"]
+
+
 class Repo:
     def __init__(self, item="BRF-1"):
         self.dir = Path(tempfile.mkdtemp())
@@ -62,7 +72,48 @@ class Repo:
         self.item_dir.mkdir(parents=True)
 
     def write(self, name, doc):
+        """Write an upstream artifact *and its sentinel*.
+
+        A real pipeline never leaves an artifact without one — the node writes the sentinel as
+        its last action — so a fixture that omitted them was modelling an impossible state.
+        It only surfaced once the edge hook started detecting writes by content rather than by
+        parsing the command line, at which point these upstream files became visible to it.
+        """
         (self.item_dir / name).write_text(json.dumps(doc, indent=2))
+        step = PRODUCED_BY.get(name)
+        if step:
+            subprocess.run([sys.executable, str(SENTINEL), str(self.item_dir / name),
+                            "--step", step], capture_output=True, text=True, check=False)
+        if name == "proposal.json":
+            self.scaffold_change(doc)
+
+    def scaffold_change(self, proposal):
+        """Create the OpenSpec change directory the proposal declares.
+
+        `propose` always writes both — the directory for humans, the JSON as the edge — so a
+        proposal.json without its change directory is another state the pipeline cannot
+        produce. The proposal edge checks the two agree, and now that the hook finds artifacts
+        by content it checks this one too.
+        """
+        change = self.dir / proposal["change_path"]
+        (change / "specs").mkdir(parents=True, exist_ok=True)
+        (change / "proposal.md").write_text("## Why\n\nFixture.\n")
+        (change / "design.md").write_text("## Decisions\n\nFixture.\n")
+        for spec in proposal.get("specs_touched", []):
+            path = self.dir / spec
+            path.parent.mkdir(parents=True, exist_ok=True)
+            # Shaped to pass `openspec validate --strict`, which the proposal edge runs:
+            # SHALL wording plus at least one scenario per requirement.
+            path.write_text(
+                "## ADDED Requirements\n\n"
+                "### Requirement: Bounded backoff\n"
+                "The consumer SHALL cap its retry delay.\n\n"
+                "#### Scenario: The delay stops growing\n\n"
+                "- **WHEN** retries exceed the cap\n"
+                "- **THEN** the delay stays at the cap\n")
+        tasks = "\n".join(f"- [ ] {task['id']} {task['description']}"
+                           for task in proposal.get("tasks", []))
+        (change / "tasks.md").write_text(f"## 1. Work\n\n{tasks}\n")
 
     def render(self, *args):
         return subprocess.run([sys.executable, str(RENDER), self.item, "--repo", str(self.dir),
