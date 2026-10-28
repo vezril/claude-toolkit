@@ -321,13 +321,13 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `cooklang` |  |  |  |  |
 | `cqrs-event-sourcing` |  |  |  |  |
 | `cross-examine` |  |  |  | **Still unevaluated.** `evals/cross-examine/` is named after this skill but binds `agent: agents/adversarial-validator.md` — it scores that agent, not this skill (0% → 100%, see below). Needs its own suite. |
-| `cryptography` |  |  |  |  |
-| `design-patterns` |  |  |  |  |
+| `cryptography` | 50% | 100% | sonnet | The discriminator is **reasoning, not recommendations**. Baseline passes the CBC-with-random-IV case I built the suite around, but fails the 2n rule FFF — it gives 256-bit/RSA-2048 and cannot say why — and treats a GCM nonce-counter rollback as a bug to fix rather than a key-compromise needing rotation. Noisiest baseline in the batch (1/4, 3/4, 2/4). Log: `evals/cryptography/iteration-log.md` |
+| `design-patterns` | 67% | 100% | sonnet | **First run was an assert bug, not a skill gap** — it scored FFF in *both* arms because one assert accepted a bare `=>` and another demanded a GoF/1994 framing the skill never requires; rewritten and both arms re-run from scratch. Post-fix, Visitor and Singleton are base-strong (PPP) and only Strategy moves — the naive arm never offers the function form. Log: `evals/design-patterns/iteration-log.md` |
 | `detect-ai` | 25% | 100% | sonnet | **Widest gap in the repo.** Naive arm passes only the restraint case (won't supply a verdict for a misconduct accusation); it fails all three quantitative ones and notably won't volunteer that a sub-100-word sample is too short — it answers anyway. One unstable case in the skill arm (`short`, P-F-P) left recorded rather than smoothed. Uses `llm-rubric` on 4 asserts. Log: `evals/detect-ai/iteration-log.md` |
 | `devops` |  |  |  |  |
 | `diagnosing-bugs` | 90% | 100% | haiku | ✅ Imported EDD-first (`evals/diagnosing-bugs/`): the agent edits four buggy projects and the code it leaves is graded. Upstream 95%; one added sentence (a regression test fails on every run, so a flaky bug's test pins its seed) → 60/60 on **haiku**, Sonnet 59/60 (its v1: 73%) |
 | `docker` | 83% | 100% | sonnet | ✅ Shipped (PR #51) — 3 linter-derived practices added (secret ENV, exec form, pinned installs) |
-| `dockerhub-setup` |  |  |  |  |
+| `dockerhub-setup` | 50% | 100% | sonnet | Fully deterministic suite, no judge. **The baseline never echoes a password pasted into chat (0 leaks in 3 runs)** — what it misses is treating that paste as a rotation event, and noting that Actions secret values are never readable back. Skill arm isn't rock-solid (3/4 twice, on the unreadable-values note). Log: `evals/dockerhub-setup/iteration-log.md` |
 | `domain-driven-design` | 96% | 100% | sonnet | ✅ Shipped (PR #56) — ubiquitous-language glossary made part of the deliverable |
 | `event-storming` |  |  |  |  |
 | `finch` | 44% | 100% | sonnet | Baseline 6/8/6 of 16 across the 3 runs; skill 16/16 on all 3. 8 cases fail the baseline every run: read-only home mount, Rosetta's macOS-26 floor, SOCI, cosign-keyless-unsupported, Containerfile auto-detect, DevContainers wiring, `creds_helpers`+`credsStore`, "VM = isolation" pushback. Skill was 100% from v1, so no patch — iteration went into the *suite*: added a `no-hallucination` criterion (baseline invents `finch vm ssh`, `finch soci create`), and N=3 overturned an N=1 read that had credited the model with 3 facts it doesn't reliably know. Ships a paired naive-baseline arm. Log: `evals/finch/iteration-log.md` |
@@ -335,10 +335,10 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `flipper-zero` |  |  |  |  |
 | `follow-up` |  |  |  |  |
 | `functional-programming` | 96% | 100% | sonnet | Base-strong; skill fixes the impure-shuffle fragility; no patch |
-| `gad-7` |  |  |  |  |
+| `gad-7` | 80% | 100% | sonnet | Baseline is strong and passes the cases I built the suite for: it keeps the functional-impairment item out of the 0-21 total unprompted and volunteers that ≥10 flags panic/social-anxiety/PTSD, not GAD specifically. Only the **GAD-2 pre-screen** (0-6 range, ≥3 cue) moves. With [[phq-9]], the pattern across both screeners is that safety and interpretation rails are native while procedural mechanics are not. Log: `evals/gad-7/iteration-log.md` |
 | `game-ai` |  |  |  |  |
 | `game-audio` |  |  |  |  |
-| `game-design` |  |  |  |  |
+| `game-design` | 50% | 100% | sonnet | **Treat the number as soft** — 2 cases, both arms unstable (baseline ran 2/2, 0/2, 1/2), so one flip moves it 50 points. The real finding is the ethics case: asked for the most effective retention-and-spending mechanics, the naive arm supplies them with no pushback in 2 of 3 runs; with the skill it names and declines the dark patterns every time. Log: `evals/game-design/iteration-log.md` |
 | `game-development` |  |  |  |  |
 | `game-graphics` |  |  |  |  |
 | `game-math` |  |  |  |  |
@@ -450,7 +450,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `os-security` |  |  |  |  |
 | `os-virtualization` |  |  |  |  |
 | `osdev-kernel` |  |  |  |  |
-| `personal-finance` |  |  |  |  |
+| `personal-finance` |  |  |  | **Measured 100% → 100%, recorded as no result.** Six runs, zero variation: the naive arm already declines to state TFSA/RESP figures from memory and already refuses to bless a concentrated bet. By this table's own standard a tie means the skill isn't pulling weight on what was tested — but the honest read is that my two restraint cases were the behaviours a safety-trained model already has. The skill's actual substance is untested. Log: `evals/personal-finance/iteration-log.md` |
 | `phq-9` | 67% | 100% | sonnet | Both **safety** rails are base-strong (crisis response on item-9, screen-not-diagnosis) — PPP in the naive arm, so the skill's measured value is the administration protocol: the no-skill arm dumps the instrument instead of the gentle one-item-at-a-time setup. Suite is a regression net for rails the model already holds, not proof it installs them. Uses `llm-rubric` on 2 of 3 cases. Log: `evals/phq-9/iteration-log.md` |
 | `portapack-mayhem` |  |  |  |  |
 | `prime` | 58% | 100% | sonnet | Biggest round-2 lift: confidence/evidence discipline; no patch |
