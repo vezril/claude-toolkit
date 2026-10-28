@@ -1,0 +1,146 @@
+# Shared test matrix for the finch skill — used VERBATIM by both arms
+# (promptfooconfig.yaml = skill loaded, promptfooconfig.baseline.yaml = no skill),
+# so the naive-vs-skill delta is measured against identical asserts.
+#
+# Every case plants a fact that is specific to Finch's plumbing rather than to the
+# container model it inherits from Docker. A model answering from general Docker
+# knowledge should fail most of them; that gap is the skill's reason to exist.
+#
+# Metrics: routing = "does it reach for the right Finch mechanism" (classification);
+#          accuracy = a hard claim that must not rot;
+#          restraint = does it refuse to bluff / push back on a false premise (graded).
+
+# ── accuracy: the single biggest migration failure ────────────────────────────
+- description: "case-01-socket: Testcontainers mounting /var/run/docker.sock"
+  vars:
+    request: "Our integration tests use Testcontainers, which mounts /var/run/docker.sock into a container. We're replacing Docker Desktop with Finch. Will that keep working?"
+  assert:
+    - { type: icontains-any, value: ["docker.sock", "docker socket"], metric: accuracy }
+    # The property is "it tells the user this breaks" — asserted over the realistic
+    # vocabulary for a negative verdict, not one phrasing of it.
+    - { type: icontains-any, value: ["not work", "won't work", "will not work", "not keep working", "n't keep working", "not as-is", "not as is", "unsupported", "not supported", "there's no", "there is no", "no docker socket", "no /var/run/docker.sock", "n't exist", "does not exist", "n't expose", "does not expose", "no dockerd", "will break", "breaks", "will fail", "cannot", "can't"], metric: accuracy }
+
+# ── routing: the restart cycle is the #1 "why didn't my change apply" ─────────
+- description: "case-02-restart: finch.yaml edit appears to be ignored"
+  vars:
+    request: "I set cpus: 8 in ~/.finch/finch.yaml an hour ago but finch info still reports 2 CPUs. What's wrong?"
+  assert:
+    - { type: icontains-any, value: ["finch vm stop", "vm stop", "restart the vm", "restart the virtual machine", "restart your vm"], metric: routing }
+
+# ── accuracy: the documented example of this key does not parse ──────────────
+- description: "case-03-additional-dirs: exact finch.yaml schema for an extra mount"
+  vars:
+    request: "I keep a source tree at /Volumes/work and my builds can't see it. Show me exactly what to put in ~/.finch/finch.yaml to mount it into the Finch VM."
+  assert:
+    - { type: icontains, value: "additional_directories", metric: routing }
+    - { type: regex, value: "path:\\s*[\"']?/Volumes/work", metric: accuracy }
+
+# ── accuracy: Lima-level mounts need recreate, not restart ───────────────────
+- description: "case-04-readonly-home: home mount is writable by default"
+  vars:
+    request: "I don't want containers to be able to write to my home directory through the Finch VM mount. How do I make that mount read-only?"
+  assert:
+    - { type: icontains, value: "/Applications/Finch/os/finch.yaml", metric: accuracy }
+    - { type: icontains-any, value: ["vm remove", "finch vm init", "recreate the vm", "recreated"], metric: accuracy }
+
+# ── accuracy: sparse disks grow only; prune != host space ────────────────────
+- description: "case-05-shrink-disk: reclaiming disk space"
+  vars:
+    request: "My Finch datadisk is set to 100GiB and the VM file is huge. I want to shrink it to 50GiB and get the space back on my Mac. How?"
+  assert:
+    - { type: icontains-any, value: ["cannot be decreased", "can only be increased", "only be increased", "cannot shrink", "can't shrink", "cannot be shrunk", "not be decreased", "only grow", "grow only"], metric: accuracy }
+    - { type: icontains-any, value: ["fstrim", "vm remove", "recreate"], metric: accuracy }
+
+# ── accuracy: Rosetta's real requirements ───────────────────────────────────
+- description: "case-06-rosetta: rosetta: true on macOS 15"
+  vars:
+    request: "I'm on an M3 MacBook running macOS 15 Sequoia and I need to run linux/amd64 images. Should I set rosetta: true in finch.yaml?"
+  assert:
+    - { type: icontains-any, value: ["macos 26", "26 or later", "26 or newer", "26+", "tahoe"], metric: accuracy }
+    - { type: icontains-any, value: ["qemu", "rosetta: false", "leave it unset", "unset", "don't set", "do not set"], metric: accuracy }
+
+# ── accuracy: SOCI indexes are built at push, and fail soft ─────────────────
+- description: "case-07-soci: lazy loading enabled but pulls are not faster"
+  vars:
+    request: "I added snapshotters: [soci] to finch.yaml and restarted the VM, but pulling our 4GB image is exactly as slow as before. What did I miss?"
+  assert:
+    - { type: icontains-any, value: ["index", "indices", "indexes"], metric: accuracy }
+    # The missed step is specifically that the index is produced at PUSH time.
+    - { type: icontains-any, value: ["finch push", "at push", "push time", "push the image", "when you push", "--snapshotter soci"], metric: accuracy }
+
+# ── restraint: Finch's cosign support is narrower than cosign's ─────────────
+- description: "case-08-keyless: asking for keyless cosign signing"
+  vars:
+    request: "Set up keyless cosign signing with OIDC so our CI can sign images on finch push without managing any key material. Give me the commands."
+  assert:
+    # Must name the limitation, and must name self-managed keys as the alternative.
+    - { type: icontains, value: "keyless", metric: restraint }
+    - { type: icontains-any, value: ["not support", "doesn't support", "does not support", "unsupported", "not supported", "only self-managed", "self-managed keys only", "cannot", "can't"], metric: restraint }
+    - { type: icontains-any, value: ["self-managed", "self managed", "cosign-key", "generate-key-pair"], metric: restraint }
+
+# ── accuracy: trust lives in the VM, not the host keychain ─────────────────
+- description: "case-09-tls-proxy: x509 errors behind a TLS-inspecting proxy"
+  vars:
+    request: "finch pull fails with 'x509: certificate signed by unknown authority' on our corporate network. I already added our company's root CA to the macOS Keychain and trusted it. Why does it still fail?"
+  assert:
+    - { type: icontains-any, value: ["inside the vm", "in the vm", "limactl", "lima shell", "within the vm"], metric: accuracy }
+    - { type: icontains-any, value: ["update-ca-trust", "ca-trust", "anchors", "update-ca-certificates"], metric: accuracy }
+
+# ── accuracy: Linux has no VM and runs as root ────────────────────────────
+- description: "case-10-linux-root: permission errors on Linux"
+  vars:
+    request: "On our Ubuntu build box, finch build -t app:1.0 . fails with permission errors talking to containerd, and finch login credentials never seem to stick. Same commands work fine on my Mac."
+  assert:
+    - { type: icontains, value: "sudo", metric: routing }
+    - { type: icontains-any, value: ["root", "/root/.docker"], metric: accuracy }
+
+# ── routing: Containerfile fallback ──────────────────────────────────────
+- description: "case-11-containerfile: repo has a Containerfile, no Dockerfile"
+  vars:
+    request: "Our repo ships a Containerfile instead of a Dockerfile because we came from Podman. Does finch build work, and do I need any flags?"
+  assert:
+    # The request already says "Containerfile", so echoing it proves nothing. The
+    # discriminating claim is that Finch picks it up with NO flag.
+    - { type: icontains, value: "Containerfile", metric: routing }
+    - { type: icontains-any, value: ["automatically", "automatic", "looks for", "falls back", "no flag", "without any flag", "no extra flag", "no additional flag", "out of the box", "no flags"], metric: accuracy }
+
+# ── accuracy: why a --help invocation has side effects ───────────────────
+- description: "case-12-help-hangs: finch build --help takes 30+ seconds"
+  vars:
+    request: "Running `finch build --help` on a freshly booted Mac hangs for about 30 seconds and prints VM log lines before the help text. `finch --help` is instant. Is that a bug?"
+  assert:
+    - { type: icontains-any, value: ["auto_vm_start", "auto vm start", "starts the vm", "start the vm", "starting the vm", "boots the vm", "boot the vm", "starts the virtual machine", "starting the virtual machine"], metric: accuracy }
+    - { type: icontains-any, value: ["nerdctl", "inside the vm", "in the vm", "from the vm"], metric: accuracy }
+
+# ── routing: DevContainers wiring ───────────────────────────────────────
+- description: "case-13-devcontainers: VS Code Dev Containers on Finch"
+  vars:
+    request: "I want to use the VS Code Dev Containers extension with Finch instead of Docker Desktop. What do I have to configure?"
+  assert:
+    - { type: icontains, value: "dockercompat", metric: routing }
+    - { type: icontains-any, value: ["DOCKER_COMPOSE_VERSION", "2.9"], metric: accuracy }
+
+# ── accuracy: the ECR helper needs both halves ─────────────────────────
+- description: "case-14-ecr-helper: stop re-running get-login-password"
+  vars:
+    request: "Our ECR login expires every 12 hours and everyone has to re-run aws ecr get-login-password | finch login. How do we make Finch pick up AWS credentials automatically?"
+  assert:
+    - { type: icontains, value: "creds_helpers", metric: accuracy }
+    - { type: icontains-any, value: ["credsStore", "creds_store", "credstore"], metric: accuracy }
+
+# ── restraint: don't validate a false isolation premise ───────────────
+- description: "case-15-isolation: 'the VM means untrusted images are safe'"
+  vars:
+    request: "Nice thing about Finch is that everything runs in a VM, so unlike Docker Desktop we can safely pull and run untrusted third-party images on our laptops without worrying about the host. Confirm that for my team's security write-up?"
+  assert:
+    # Must refuse the premise in Finch's own terms, and must give the concrete reason.
+    - { type: icontains-any, value: ["not a security boundary", "not a strong security boundary", "isn't a security boundary", "is not isolation", "not an isolation boundary"], metric: restraint }
+    - { type: icontains-any, value: ["home directory", "home dir", "~ is mounted", "$HOME"], metric: restraint }
+
+# ── routing: multi-arch build ─────────────────────────────────────────
+- description: "case-16-multiarch: one tag for arm64 and amd64"
+  vars:
+    request: "Give me the finch command to build image app:1.0 from the current directory for both arm64 and amd64 in one go."
+  assert:
+    - { type: icontains, value: "--platform", metric: routing }
+    - { type: regex, value: "(linux/amd64|linux/arm64|amd64,|,amd64|arm64,|,arm64)", metric: routing }

@@ -22,9 +22,16 @@ Every config points `defaultTest.vars.skill` at `file://../../skills/<skill>/SKI
 the shared `prompt.txt`, which injects the skill and the test's `{{request}}`.
 
 Suites currently in the repo: **akka**, **calvin-voice**, **cross-examine**, **detect-ai**,
-**humanize**, **intentional** (intentional-daily, intentional-weekly, aversion-breaker), **outreach**,
-**phq-9**, **pr-description**. `intentional` uses its own provider (`provider.js`): each case runs in a
-fresh copy of a synthetic Obsidian vault and the asserts grade the file diff as well as the reply.
+**finch**, **humanize**, **intentional** (intentional-daily, intentional-weekly,
+aversion-breaker), **outreach**, **phq-9**, **pr-description**. `intentional` uses its own
+provider (`provider.js`): each case runs in a fresh copy of a synthetic Obsidian vault and the
+asserts grade the file diff as well as the reply.
+
+`finch` is the one suite that ships a **paired naive-baseline arm**
+(`promptfooconfig.baseline.yaml`): same model, same grader, same `tests.yaml`, no `SKILL.md` in
+context. Run both and the difference is the skill's measured value rather than the model's
+pre-existing knowledge. Copy that pattern for any new knowledge skill — a suite that only ever
+runs the with-skill arm can't tell "the skill works" from "the model already knew."
 
 ## Run one
 
