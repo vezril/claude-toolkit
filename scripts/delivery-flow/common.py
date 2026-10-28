@@ -106,7 +106,22 @@ def load_config(repo: Path) -> dict:
     """Parse `.delivery-flow.yaml`. Supported subset: nested mappings by indentation,
     scalars, inline lists `[a, b]` and block sequences of scalars. Standard library only,
     so a hook can read the binding on a machine with no PyYAML."""
-    text = (repo / CONFIG_NAME).read_text()
+    return parse_mapping((repo / CONFIG_NAME).read_text())
+
+
+def load_roster(path: Path = None) -> dict:
+    """Parse `templates/delivery-flow/roster.yaml`: kinds of work -> specialists.
+
+    Same subset as the config, because it is the same shape — a mapping of mappings with
+    inline lists. Paired with `skills/delivery-flow/references/roster.md`: the vocabulary of
+    kinds and the keys under each live in both, and they have to agree.
+    """
+    path = path or (PLUGIN_ROOT / "templates" / "delivery-flow" / "roster.yaml")
+    return parse_mapping(Path(path).read_text())
+
+
+def parse_mapping(text: str) -> dict:
+    """The YAML subset both `.delivery-flow.yaml` and `roster.yaml` are written in."""
     root = {}
     stack = [(-1, root)]  # (indent, mapping) — the innermost mapping is last
     pending = None
@@ -167,6 +182,51 @@ class _Pending(list):
     def append(self, item):
         super().append(item)
         self.owner[self.key] = list(self)
+
+
+DEFAULT_PROFILE = "full"
+
+
+def load_profiles(path: Path = None) -> list:
+    """Parse `templates/delivery-flow/profiles.yaml` without PyYAML.
+
+    Shape: `profiles:` as a block sequence of flat mappings, each with `profile`, `terminus`,
+    `next` and an inline `steps` list. A `steps:` value whose bracket never closes is an
+    error rather than a short list, because silently truncating a profile would drop steps
+    from the flow and still look like a successful run.
+    """
+    path = path or (PLUGIN_ROOT / "templates" / "delivery-flow" / "profiles.yaml")
+    profiles, cur = [], None
+    for lineno, raw in enumerate(path.read_text().splitlines(), 1):
+        line = "" if raw.lstrip().startswith("#") else raw.split(" #")[0].rstrip()
+        if not line.strip():
+            continue
+        m = re.match(r"^\s*-\s+([A-Za-z0-9_-]+):\s*(.*)$", line)
+        if m:
+            cur = {}
+            profiles.append(cur)
+            key, value = m.group(1), m.group(2)
+        else:
+            m = re.match(r"^(\s+)([A-Za-z0-9_-]+):\s*(.*)$", line)
+            if not m or cur is None:
+                continue
+            key, value = m.group(2), m.group(3)
+        if value.lstrip().startswith("[") and not value.rstrip().endswith("]"):
+            raise ValueError(
+                f"{path}:{lineno}: `{key}:` opens an inline list that does not close on the "
+                "same line; keep each list on one line so none is silently truncated")
+        cur[key] = _config_scalar(value)
+    return profiles
+
+
+def select_profile(cfg: dict, profiles: list):
+    """(profile, error) for the config's `profile:` key, defaulting to `full`."""
+    name = cfg.get("profile") or DEFAULT_PROFILE
+    for p in profiles:
+        if p.get("profile") == name:
+            return p, None
+    available = ", ".join(sorted(p.get("profile") or "?" for p in profiles)) or "none"
+    return None, f"unknown profile {name!r}; profiles.yaml defines: {available}"
 
 
 def load_pricing(path: Path = None) -> dict:
@@ -313,6 +373,127 @@ def verify_decision(decision: dict, allowed_signers: Path):
     if out.returncode != 0:
         return False, (out.stderr or b"").decode().strip() or "signature did not verify"
     return True, "signature verified"
+
+
+def punch_out_trigger(path: Path) -> str:
+    """The trigger named in a punch-out's H1. The one-line idiom `check-punch-out.py` uses to
+    decide whether a trigger is already open, kept here so every reader agrees."""
+    try:
+        return path.read_text().split("\n", 1)[0].split(": ", 1)[-1].strip()
+    except OSError:
+        return path.stem
+
+
+def open_punch_outs(item_dir: Path) -> list:
+    """Punch-outs with no decision file, or whose decision no longer matches the file.
+
+    Signature verification is the enforcement hook's job; this reports what is unresolved.
+    """
+    out = []
+    for p in sorted(item_dir.glob("punch-out-*.md")):
+        decision = item_dir / "decisions" / (p.stem + ".json")
+        doc, err = load_json(decision)
+        entry = {"punch_out": p.name, "trigger": punch_out_trigger(p)}
+        if err:
+            out.append({**entry, "state": "undecided"})
+            continue
+        if doc.get("sha256") != sha256(p):
+            out.append({**entry, "state": "decision is stale: the punch-out changed after it was decided"})
+            continue
+        if doc.get("choice") != "proceed":
+            out.append({**entry, "state": f"decided: {doc.get('choice')}", "stops_flow": True})
+    return out
+
+
+class Usage(Exception):
+    """A failure that belongs to the caller: bad arguments, missing config, or a refusal.
+
+    Exit 2. Every adapter raises this same class, because the exit codes *are* the adapter
+    contract and three adapters with three private exception hierarchies would eventually
+    disagree about which code a refusal gets.
+    """
+
+
+class Remote(Exception):
+    """A failure that belongs to the other end: auth, network, or an unexpected status.
+
+    Exit 3, with the remediation on stderr.
+    """
+
+
+def dispatch(handlers: dict, cmd: str, args) -> int:
+    """Run an adapter subcommand and map its failures onto the contract's exit codes."""
+    import sys
+    try:
+        return handlers[cmd](args)
+    except Usage as e:
+        print(str(e), file=sys.stderr)
+        return 2
+    except Remote as e:
+        print(str(e), file=sys.stderr)
+        return 3
+
+
+def emit(doc) -> int:
+    """Every subcommand's stdout: sorted, indented JSON, so reruns are byte-identical."""
+    import sys
+    print(json.dumps(doc, indent=2, sort_keys=True))
+    sys.stdout.flush()
+    return 0
+
+
+def outward_refusal(item: str, action: str, start: Path = None):
+    """None if an outward action may proceed for this item, else the reason it must not.
+
+    Every adapter's `comment`, `transition` and `open-pr` asks this before it touches the
+    remote, so the three cannot drift into three different ideas of "blocked". Two things
+    block: an unresolved punch-out on the item, and a post to a tracker configured
+    `external: true` without a decision carrying a signature that verifies. A decision file
+    on its own is not enough — an agent can write a file.
+
+    The PreToolUse hook blocks these too. Checking here as well is deliberate: one layer can
+    be wrong, and the far end is someone else's system.
+    """
+    repo = repo_root(start or Path("."))
+    if not is_delivery_repo(repo):
+        return f"{repo} is not a delivery-flow repo, so {action} has no policy to check"
+
+    item_dir = repo / "delivery" / item
+    blocking = open_punch_outs(item_dir) if item_dir.is_dir() else []
+    if blocking:
+        names = ", ".join(f"{p['punch_out']} ({p['trigger']}) is {p['state']}" for p in blocking)
+        return f"refusing to {action}: an unresolved punch-out is open — {names}"
+
+    cfg = load_config(repo)
+    if not (cfg.get("tracker") or {}).get("external"):
+        return None
+
+    signers = (cfg.get("decisions") or {}).get("allowed_signers")
+    if not signers:
+        return (f"refusing to {action}: tracker.external is true but no "
+                "decisions.allowed_signers is configured, so no decision can be verified")
+    decisions = (sorted((item_dir / "decisions").glob("*.json"))
+                 if (item_dir / "decisions").is_dir() else [])
+    if not decisions:
+        return (f"refusing to {action}: tracker.external is true, so writing to this tracker "
+                "needs a signed decision. Raise one with check-punch-out.py and sign it with "
+                "decide.py.")
+
+    reasons = []
+    for path in decisions:
+        doc, err = load_json(path)
+        if err:
+            reasons.append(f"{path.name}: {err}")
+            continue
+        if doc.get("choice") != "proceed":
+            reasons.append(f"{path.name}: choice is {doc.get('choice')!r}, not 'proceed'")
+            continue
+        ok, why = verify_decision(doc, Path(signers).expanduser())
+        if ok:
+            return None
+        reasons.append(f"{path.name}: {why}")
+    return (f"refusing to {action}: no decision for this item carries a verifiable human "
+            "signature — " + "; ".join(reasons))
 
 
 def trace_path(repo: Path, item: str) -> Path:

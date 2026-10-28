@@ -157,7 +157,13 @@ def main() -> int:
             "cache_read_tokens": usage["cache_read"],
             "api_equivalent_cost_usd": cost,
             "pricing_as_of": pricing.get("meta", {}).get("as_of"),
-            "certified": declared.get("certified"),
+            # A step with no registry entry has no certification evidence, so it is False —
+            # not None. This hook only fires for LLM steps, so "unregistered" means
+            # "uncertified", and `delivery-report.py` tests `is False` when deciding whether a
+            # run counts toward the certified-only rate. Recording None there would let a run
+            # containing an `allow_uncertified` node into the Stage 4 number, which is exactly
+            # the thing that makes the number meaningless.
+            "certified": bool(declared.get("certified")) if step_name else None,
         }
         if cost is None:
             record["pricing_missing"] = True
