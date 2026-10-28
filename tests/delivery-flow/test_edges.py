@@ -229,6 +229,43 @@ class TestSentinelAndHook(unittest.TestCase):
         self.assertEqual(r.returncode, 2, "the edge must still run when the command cd's first")
         self.assertIn("claims epics=99", r.stderr)
 
+    def test_a_write_the_command_text_hides_is_still_checked(self):
+        """Detection is by content, not by parsing the command line.
+
+        Three real runs on 2026-10-28 wrote an artifact the edge never saw, each defeating the
+        regex a different way: a relative path after a `cd`, then a path built from a shell
+        variable. Pattern-matching a command line will always lose to variables, subshells,
+        `python -c` and computed paths — so the hook compares each artifact's bytes against the
+        sha the trace last recorded, which no write syntax can hide from.
+        """
+        f = Fixture()
+        f.write("breakdown.json", breakdown())
+        f.sentinel("breakdown.json", counts={"epics": 99})
+        # The command mentions no path at all: the artifact is reached through a variable.
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash", "cwd": str(f.dir),
+                   "tool_input": {"command": 'D=delivery; cat x > "$D/ITEM/breakdown.json"'}}
+        r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload),
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 2, "a hidden write must still be caught")
+        self.assertIn("claims epics=99", r.stderr)
+
+    def test_an_unchanged_artifact_is_not_rechecked_on_every_command(self):
+        """Content detection must not re-fire for artifacts nothing touched."""
+        f = Fixture()
+        f.write("breakdown.json", breakdown())
+        f.sentinel("breakdown.json")
+        first = f.hook("breakdown.json")
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertEqual(len(f.trace()), 1)
+        # A later, unrelated command in the same repo: the artifact is unchanged since the
+        # trace recorded it, so there is nothing new to check.
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash", "cwd": str(f.dir),
+                   "tool_input": {"command": "ls delivery/"}}
+        second = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload),
+                                capture_output=True, text=True)
+        self.assertEqual(second.returncode, 0)
+        self.assertEqual(len(f.trace()), 1, "an unchanged artifact must not be traced again")
+
     def test_a_cd_target_does_not_widen_the_check_to_other_repos(self):
         """Resolving against cd targets must not make an unrelated path look written."""
         f = Fixture()

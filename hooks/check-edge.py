@@ -32,6 +32,11 @@ HELPERS = Path(__file__).resolve().parents[1] / "scripts" / "delivery-flow"
 
 # Any path under delivery/<ITEM-KEY>/, in a tool input or a shell command. Checked against
 # the raw payload first: a session that writes nothing there costs one regex and exits.
+# A fast path for the overwhelmingly common case: a tool call in a repo that has no
+# .delivery-flow.yaml. Deliberately NOT a text match on the command — an early exit that
+# depends on the command spelling `delivery/` is an early exit an artifact can be written
+# behind, which is how the first version of this hook let three real writes through. The
+# gate below is a filesystem fact instead: one existence check per candidate directory.
 DELIVERY_HINT = re.compile(r"delivery/[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9]")
 
 
@@ -221,20 +226,114 @@ def policy_disagreements(path: Path, common, trigger_rules) -> list:
         cfg)
 
 
+def last_traced_sha(repo: Path, item: str, filename: str, common):
+    """The sha this artifact had when an edge last ran over it, or None."""
+    found = None
+    try:
+        lines = common.trace_path(repo, item).read_text().splitlines()
+    except OSError:
+        return None
+    for line in lines:                      # the newest matching record wins
+        try:
+            rec = json.loads(line)
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if rec.get("artifact") == filename and rec.get("sha256"):
+            found = rec["sha256"]
+    return found
+
+
+def changed_artifacts(payload: dict, common, schemas: dict) -> list:
+    """Artifacts that are new or whose bytes changed since an edge last saw them.
+
+    Content, not command text. Detecting writes by regexing a Bash command line loses to
+    shell variables, subshells, `python -c`, heredocs and computed paths — three separate
+    real runs on 2026-10-28 wrote an artifact that the edge never checked, each defeating the
+    pattern a different way. The trace already records every artifact's sha, so "what
+    actually changed" is answerable without parsing anything, and no write syntax can hide
+    from it.
+    """
+    bases = [Path(payload.get("cwd") or ".")]
+    if payload.get("tool_name") == "Bash":
+        bases += _cd_targets((payload.get("tool_input") or {}).get("command", ""))
+
+    repos, out = [], []
+    for base in bases:
+        try:
+            repo = common.repo_root(base)
+        except OSError:
+            continue
+        if repo not in repos and common.is_delivery_repo(repo):
+            repos.append(repo)
+
+    for repo in repos:
+        root = repo / "delivery"
+        if not root.is_dir():
+            continue
+        for path in sorted(root.glob("*/*")):
+            if not path.is_file():
+                continue
+            item, filename = common.parse_artifact_path(path)
+            if not item:
+                continue
+            # Artifacts only. A sentinel is checked as part of its artifact's edge, so
+            # scanning it separately would triple the trace and blur "one record per step".
+            if filename.endswith(common.SENTINEL_SUFFIX):
+                continue
+            if filename not in schemas and filename not in TERMINAL_PROSE:
+                continue
+            try:
+                current = common.sha256(path)
+            except OSError:
+                continue
+            if current != last_traced_sha(repo, item, filename, common):
+                out.append(path)
+    return out
+
+
 def main() -> int:
     raw = sys.stdin.read()
-    if not DELIVERY_HINT.search(raw):
-        return 0  # nothing under delivery/ was touched: the common case, and the cheap one
     try:
         payload = json.loads(raw)
     except (json.JSONDecodeError, ValueError):
         return 0  # not our business to fail a tool call over a malformed payload
 
+    common, validator, brief, trigger_rules, proposal_rules = _helpers()
+    schemas = common.load_schemas()
     paths = written_paths(payload)
+
+    # Bail only when nothing in reach is a delivery-flow repo — a filesystem fact, not a text
+    # match on the command. "In reach" must include the directories the paths themselves
+    # imply: a command can write an absolute path held in a shell variable, from a cwd that is
+    # not a delivery repo and with no `cd` anywhere, which is how the fourth variant of this
+    # bug got through in one afternoon. So the list is built from the paths under
+    # consideration rather than guessed at — every hand-written enumeration of "places to
+    # look" has missed one.
+    candidates = [Path(payload.get("cwd") or ".")]
+    if payload.get("tool_name") == "Bash":
+        candidates += _cd_targets((payload.get("tool_input") or {}).get("command", ""))
+    candidates += [p.parent for p in paths]
+    if not any(common.is_delivery_repo(c) for c in candidates if str(c)):
+        return 0
+
+    # Union with what actually changed on disk, so a write the command text hid still gets
+    # checked. De-duplicate on the *resolved* path: on macOS a tempdir reaches the hook as
+    # /tmp from one route and /private/tmp from the other, and the same file would be
+    # checked twice.
+    def _key(path):
+        try:
+            return str(path.resolve())
+        except OSError:
+            return str(path)
+
+    seen = {_key(p) for p in paths}
+    for p in changed_artifacts(payload, common, schemas):
+        if _key(p) not in seen:
+            seen.add(_key(p))
+            paths.append(p)
     if not paths:
         return 0
 
-    common, validator, brief, trigger_rules, proposal_rules = _helpers()
     schemas = common.load_schemas()
     failures = []
     for path in paths:
