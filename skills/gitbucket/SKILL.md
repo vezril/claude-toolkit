@@ -130,6 +130,10 @@ Verified from the source route table (~97 routes). Grouped, with GitHub's paths:
   makes the asymmetry easy to miss. Workarounds: a **commit-message keyword** on a pushed
   commit (`close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved #N`, repeatable in one
   message), or the web UI. Changing labels is possible, so label-as-state is a viable model.
+  Live-confirmed on 4.48.0: `PATCH …/issues/1` with `{"state":"closed","title":"MUTATED"}`
+  returned `404 {"message":"Not Found"}` and the issue was untouched, while
+  `PATCH …/issues/comments/:id` returned `200` — so it is the issue endpoint that is absent,
+  not a PATCH-verb or permissions problem.
 - **No repo deletion, no issue deletion, no reviews/review-comments API, no teams, no search,
   no Actions/Checks** (status API only), **no git blobs/trees/commits write API**.
 - **`GET /api/v3/user/repos` and `GET /api/v3/user/orgs` are broken by route shadowing** —
@@ -162,6 +166,10 @@ Three different behaviours, so never write one generic pager:
 termination condition is a short page: loop `page=1,2,3…` until you get fewer than the page
 size. Code that trusts `Link` will silently process page 1 and stop.
 
+Measured on 4.48.0 against a repo with 30 issues: no params → 25, `per_page=100` → 25,
+`per_page=5` → **25** (the parameter is simply not read), `page=2` → 5, and no `Link` header
+on any response.
+
 ### Issue filters use GitBucket's vocabulary, not GitHub's
 
 `GET …/issues` accepts `labels` (comma-separated), `milestone`, `priority`, **`author`**,
@@ -172,6 +180,31 @@ and `custom.<field>=<op>:<value>`.
 GitHub's `creator=` and `assignee=` **are not recognised and are silently ignored** — you get an
 unfiltered list that looks plausible. Note also that `state` defaults to `open`, so a sync job
 that forgets `state=all` will never see closed work.
+
+Measured on 4.48.0 against 30 open issues — `0` means the filter applied, `25` means it was
+dropped and you got an unfiltered page:
+
+| Query | Result |
+|---|---|
+| `?author=nosuchuser` | `0` — recognised |
+| `?creator=nosuchuser` | **`25`** — ignored |
+| `?assigned=nosuchuser` | `0` — recognised |
+| `?assignee=nosuchuser` | **`25`** — ignored |
+
+### Writing labels: the payload shape is version-dependent
+
+`POST …/issues/:id/labels` on **4.48.0** requires the object form. The bare array GitHub
+documents returns **`200` with `[]` and attaches nothing** — a silent no-op, not a `400`:
+
+```bash
+curl -X POST -H "$H" -d '{"labels":["in-review"]}' "$R/issues/1/labels"   # works
+curl -X POST -H "$H" -d '["in-review"]'            "$R/issues/1/labels"   # 200 [], does nothing
+```
+
+4.48.0 deserialises into a fixed `AddLabelsToAnIssue` case class; `master` has since gained a
+tolerant parser accepting a bare array or a lone string. **Always send `{"labels":[…]}`** — it
+is correct on both. And check the response body, not just the status: `200` plus an empty array
+is this failure.
 
 ## Webhooks
 
@@ -242,6 +275,12 @@ one place:
 open/closed, or accept that closing is a side effect of a push. Decide that before writing the
 adapter, because it changes the item schema.
 
+The labels route is verified end to end on 4.48.0 — create a label, attach it with
+`{"labels":[…]}`, replace the set with `PUT`, and filter with `?labels=done` — so
+labels-as-state is a sound basis for `transition`. Two things an adapter must do anyway: send
+the object payload (the bare array no-ops at `200`), and use `/users/<login>/repos` rather than
+`/user/repos`.
+
 ## Anti-patterns
 
 - Assuming full GitHub API parity, then reading the resulting `404` as a bad ID rather than a
@@ -275,5 +314,13 @@ adapter, because it changes the item schema.
 - [[scala]] — the implementation language and the plugin API.
 - [[secure-coding]] — default credentials, token handling, exposing a forge on a LAN.
 - [[delivery-flow]] — the adapter contract above; [[github-issue-fix-flow]] for the GitHub equivalent.
-- Source: [gitbucket/gitbucket](https://github.com/gitbucket/gitbucket) (route table read from
-  `src/main/scala/gitbucket/core/controller/api/`) and the project wiki, at v4.48.0.
+- Source: [gitbucket/gitbucket](https://github.com/gitbucket/gitbucket) — route table read from
+  `src/main/scala/gitbucket/core/controller/api/` — plus the project wiki, with the API
+  behaviours above measured against a live **4.48.0** instance.
+
+**Read the tag, not `master`.** The route table here came from `master`, and that bit once
+already: `master` accepts a bare array when adding labels while released 4.48.0 does not, so
+the tolerant behaviour looked like a fact and was actually unreleased. When a documented call
+misbehaves, diff
+`https://raw.githubusercontent.com/gitbucket/gitbucket/<your-version>/src/main/scala/…`
+against `master` before concluding anything.
