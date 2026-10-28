@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: One trace record per step, including the orchestrator
-For every subagent completion inside a delivery-flow repository, the trace hook SHALL append one JSON line to `delivery/<KEY>/trace.jsonl` containing `ts`, `item`, `step`, `agent`, `session_id`, `agent_id`, `model`, `input_tokens`, `output_tokens`, `cache_creation_tokens`, `cache_read_tokens`, `api_equivalent_cost_usd`, `artifact` and `validator` (name, exit code, summary). The main session's usage since its previous record SHALL be recorded as `step: orchestrator`. The step SHALL be taken from `delivery/<KEY>/.current-step`.
+For every subagent completion inside a delivery-flow repository, the trace hook SHALL append one JSON line to `delivery/<KEY>/trace.jsonl` containing `ts`, `item`, `step`, `agent`, `session_id`, `agent_id`, `model`, `input_tokens`, `output_tokens`, `cache_creation_tokens`, `cache_read_tokens`, `api_equivalent_cost_usd`, `artifact` and `edge` (check name, exit code, summary), the last written by the PostToolUse edge hook rather than the step itself. The main session's usage since its previous record SHALL be recorded as `step: orchestrator`. The step SHALL be taken from `delivery/<KEY>/.current-step`.
 
 #### Scenario: Subagent step traced
 - **WHEN** the triage subagent finishes while `.current-step` names `triage` for DEM-12
@@ -53,6 +53,13 @@ The trace hook SHALL exit 0 without reading transcripts or writing files when th
 #### Scenario: Punch-outs are not failures
 - **WHEN** a week has 4 completed, 1 failed and 2 punched-out items
 - **THEN** the report shows an end-to-end rate of 80% and a punch-out rate of 2 of 7 items
+
+### Requirement: Edge results are recorded whether or not they pass
+The edge hook SHALL append an `edge` result to `trace.jsonl` for every checked artifact, passing or failing, so the trace shows which checks ran and not only which failed.
+
+#### Scenario: Passing edge still recorded
+- **WHEN** `triage.json` passes every edge check
+- **THEN** `trace.jsonl` contains its `edge` result with exit 0
 
 ### Requirement: Failure traceable to its origin step
 Given an item with a failed or refuted output, the trace SHALL let a reader identify the step, agent, model and validator result that produced the first failing output.

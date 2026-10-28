@@ -1,0 +1,77 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "delivery-flow triage node: schema, classification, domains, grounding on 10 real items"
+# The prompt under test is the triage node. run.sh copies prompts/prompt_vN.md to current.md.
+# No working_dir: the agent runs in an empty temp dir with NO tools, so it classifies from the
+# item it is given and cannot go reading the repos these items came from.
+prompts:
+  - file://prompt.txt
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config:
+      model: haiku
+      apiKeyRequired: false
+      max_turns: 5
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config:
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 5
+defaultTest:
+  vars:
+    skill: file://prompts/current.md
+  assert:
+    - type: javascript
+      metric: schema
+      value: file://asserts/schema.js
+    - type: javascript
+      metric: classification
+      value: file://asserts/classification.js
+    - type: javascript
+      metric: domains
+      value: file://asserts/domains.js
+    - type: javascript
+      metric: grounding
+      value: file://asserts/grounding.js
+tests:
+  - description: "case-01-pantry-items"
+    vars:
+      case: case-01-pantry-items
+      item: file://inputs/case-01-pantry-items.json
+  - description: "case-02-sidebar-nav"
+    vars:
+      case: case-02-sidebar-nav
+      item: file://inputs/case-02-sidebar-nav.json
+  - description: "case-03-auth-tenancy"
+    vars:
+      case: case-03-auth-tenancy
+      item: file://inputs/case-03-auth-tenancy.json
+  - description: "case-04-structured-logging"
+    vars:
+      case: case-04-structured-logging
+      item: file://inputs/case-04-structured-logging.json
+  - description: "case-05-clustering"
+    vars:
+      case: case-05-clustering
+      item: file://inputs/case-05-clustering.json
+  - description: "case-06-metrics-endpoint"
+    vars:
+      case: case-06-metrics-endpoint
+      item: file://inputs/case-06-metrics-endpoint.json
+  - description: "case-07-dlq-endpoints"
+    vars:
+      case: case-07-dlq-endpoints
+      item: file://inputs/case-07-dlq-endpoints.json
+  - description: "case-08-setup-java-bump"
+    vars:
+      case: case-08-setup-java-bump
+      item: file://inputs/case-08-setup-java-bump.json
+  - description: "case-09-wrong-logo"
+    vars:
+      case: case-09-wrong-logo
+      item: file://inputs/case-09-wrong-logo.json
+  - description: "case-10-recommender"
+    vars:
+      case: case-10-recommender
+      item: file://inputs/case-10-recommender.json

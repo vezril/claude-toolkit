@@ -45,6 +45,10 @@ def _scalar(v: str):
     v = v.strip()
     if v in ("", "null", "~"):
         return None
+    if v in ("true", "True"):
+        return True
+    if v in ("false", "False"):
+        return False
     if v.startswith("[") and v.endswith("]"):
         return [x.strip().strip("'\"") for x in v[1:-1].split(",") if x.strip()]
     if (v[0] == v[-1]) and v[0] in "'\"" and len(v) >= 2:
@@ -58,19 +62,30 @@ def parse_registry(text: str) -> dict:
     null, or inline lists like [a, b]. Comments and blank lines are ignored."""
     if yaml is not None:
         return yaml.safe_load(text) or {}
-    steps, cur = [], None
+    steps, cur, pending_list = [], None, None
     for raw in text.splitlines():
         line = raw.split(" #")[0].rstrip() if not raw.lstrip().startswith("#") else ""
         if not line.strip() or line.strip() == "steps:":
+            continue
+        # an item of a block sequence under the previous key
+        m = re.match(r"^\s+-\s+(?!\w+:)(.+)$", line)
+        if m and pending_list is not None:
+            pending_list.append(_scalar(m.group(1)))
             continue
         m = re.match(r"^\s*-\s+(\w+):\s*(.*)$", line)
         if m:
             cur = {m.group(1): _scalar(m.group(2))}
             steps.append(cur)
+            pending_list = None
             continue
         m = re.match(r"^\s+(\w+):\s*(.*)$", line)
         if m and cur is not None:
-            cur[m.group(1)] = _scalar(m.group(2))
+            key, value = m.group(1), m.group(2).strip()
+            if value == "":  # a key whose value is the block sequence that follows
+                pending_list = cur[key] = []
+            else:
+                cur[key] = _scalar(value)
+                pending_list = None
             continue
         raise ValueError(f"unsupported registry line: {raw!r}")
     return {"steps": steps}
@@ -200,6 +215,27 @@ def check_step(entry: dict, root: Path) -> list:
             bad = prompt_mismatches(results, tier, version.read_text().strip())
             if bad:
                 problems.append(f"{bad} result row(s) were not produced with the certified prompt {entry['certified_version']}")
+        runs = entry.get("consecutive_runs") or []
+        if runs:
+            if len(runs) < 3:
+                problems.append(f"{len(runs)} consecutive run(s) recorded, need 3")
+            for rp in runs:
+                full = root / rp
+                if not full.exists():
+                    problems.append(f"consecutive run not found: {rp}")
+                    continue
+                rp_p, rp_t, _, rp_err = score(full, tier)
+                if rp_t == 0:
+                    problems.append(f"{rp}: no scored asserts for tier {tier}")
+                elif rp_p / rp_t < BAR:
+                    problems.append(f"{rp}: {rp_p}/{rp_t} ({100 * rp_p / rp_t:.1f}%) is below the per-run bar")
+                if rp_err:
+                    problems.append(f"{rp}: {rp_err} unscored provider error(s)")
+                if version.exists() and prompt_mismatches(full, tier, version.read_text().strip()):
+                    problems.append(f"{rp}: not produced with the certified prompt")
+        elif entry.get("chain"):
+            problems.append("a chain step needs consecutive_runs: 3 runs each at or above the bar")
+
         absent = [c for c in criteria if c not in metrics]
         if absent:
             problems.append(f"criteria not found as metrics in results: {', '.join(absent)}")
@@ -256,8 +292,11 @@ def main(argv=None) -> int:
             p, t, _, _ = score(root / entry["results"], entry["tier"])
             m, n = load_bearing_ratio(root / entry["load_bearing"])
             k = complete_iterations(root / entry["iteration_log"])
-            print(f"PASS {entry['step']}: {entry['tier']} {p}/{t} ({100 * p / t:.1f}%), "
-                  f"{len(set(entry['criteria']))} criteria, load-bearing {m}/{n}, {k} iterations")
+            tag = "chain" if entry.get("chain") else "outside the chain"
+            runs = entry.get("consecutive_runs") or []
+            extra = f", {len(runs)} consecutive runs" if runs else ""
+            print(f"PASS {entry['step']} ({tag}): {entry['tier']} {p}/{t} ({100 * p / t:.1f}%), "
+                  f"{len(set(entry['criteria']))} criteria, load-bearing {m}/{n}, {k} iterations{extra}")
     return 1 if failed else 0
 
 

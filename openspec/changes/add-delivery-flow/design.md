@@ -28,6 +28,8 @@ Target shape (figures in `docs/figures/`, embedded in the playbook when this cha
 
 ![Per-story specialist routing](../../../docs/figures/delivery-flow-routing.svg)
 
+Improving's course *AI Governance & Guardrails (Stage 3 → Stage 4, Q3 2026)* is the authority this design is written against. Its model: a **node** is a non-deterministic LLM step already proven at Stage 3; an **edge** is a deterministic check between nodes, code and not a model; the workflow is only as trustworthy as its edges. It rules out three things this design originally did: prose artifacts passed between nodes, edge checks invoked by the orchestrator rather than fired automatically after the write, and treating an LLM reviewer as a guardrail. It also sets the scale: the exercise assumes 2–3 nodes in a chain, and each node must pass its Stage 3 bar over 3 consecutive runs.
+
 ## Goals / Non-Goals
 
 **Goals:**
@@ -55,20 +57,23 @@ Target shape (figures in `docs/figures/`, embedded in the playbook when this cha
 ### D2. State in files under `delivery/<ITEM-KEY>/`, routed by the first missing file
 The routing table, in order:
 
-| # | File | Produced by |
-|---|------|-------------|
-| 1 | `item.json` | tracker adapter (script) |
-| 2 | `triage.md` | triage agent: item type, path, provisional kinds of work, rationale |
-| 3 | `project-context.md` | vault delivery recall (optional) |
-| 4 | `spec-ready.md` | SDLC Planning+Solutioning receipt: change name, lint and validate results |
-| 5 | `challenge-spec.md` | adversarial validator, **mandatory** |
-| 6 | `implementation.md` | per-story receipts: tests, reviewer verdicts, skills loaded |
-| 7 | `verify.md` | full test command, protected-paths check, CI status |
-| 8 | `challenge-implementation.md` | adversarial validator, **mandatory** |
-| 9 | `pr.md` → `pr-opened.json` | `pr-description`, then the forge adapter |
-| 10 | `post.md` → `posted.json` | summary, then the tracker adapter |
-| 11 | `outcome.json` | report script |
-| 12 | `vault-updated.md` | vault delivery update (optional) |
+| # | Artifact | Kind | Produced by |
+|---|----------|------|-------------|
+| 1 | `item.json` | structured | tracker adapter (script) |
+| 2 | `triage.json` | structured | triage **node**: type, path, domains, flags, rationale |
+| 3 | `project-context.json` | structured | vault delivery recall (optional) |
+| 4 | `breakdown.json` | structured | breakdown **node**: epics → stories → acceptance criteria |
+| 5 | `challenge-breakdown.json` | structured | adversarial validator **node** (verdict + findings) |
+| 6 | `spec-ready.json` | structured | SDLC Planning+Solutioning receipt: change name, lint and validate exits |
+| 7 | `implementation.json` | structured | per-story receipts: tests, reviewer verdicts, skills loaded |
+| 8 | `verify.json` | structured | full test command, protected-paths check, CI status |
+| 9 | `challenge-implementation.json` | structured | adversarial validator **node** |
+| 10 | `pr.md` → `pr-opened.json` | **terminal prose** → structured | `pr-description`, then the forge adapter |
+| 11 | `post.md` → `posted.json` | **terminal prose** → structured | summary, then the tracker adapter |
+| 12 | `outcome.json` | structured | report script |
+| 13 | `vault-updated.json` | structured | vault delivery update (optional) |
+
+Every structured artifact has a schema in `schemas/` and a sibling `<artifact>.sentinel.json`. Terminal prose (`pr.md`, `post.md`) is read by people, consumed by no node, and checked only for shape plus the no-invention rules its own certification covers.
 
 - Human involvement: **no fixed checkpoints between steps.** A policy check runs at every handoff and punches out to Calvin only when a trigger matches (D6). Merging the PR is always human, and deploys are human unless auto-roll applies. The automated path runs from intake to an open PR and ticket update without stopping.
 - Files are committed to the work branch by default (`artifacts.commit: true`), so the audit trail travels with the PR. `trace.jsonl`, punch-out files and `decisions/` are included.
@@ -173,16 +178,22 @@ Adapters re-check (c) themselves (defense in depth).
 
 Each attempt must be blocked or detected. Results go to `bypass-report.md` with the deny reasons. This is the Stage 4 punch-out evidence.
 
-### D7. Checks between steps: validators first, adversarial review at two fixed points
-- `scripts/delivery-flow/validate-artifact.py <kind> <path>` uses the stdlib only, like `lint-story.py`. It checks shape and cross-file facts:
-  - `item.json` keys and types;
-  - `triage.md` enums;
-  - `spec-ready.md` shows lint and validate exit 0;
-  - `pr.md` sections and a linked item key;
-  - `posted.json` body sha equals `post.md`'s.
-- The orchestrator runs it after each step, and the trace records the exit code. Routing refuses to advance past a step whose latest validation failed: bounded rerun (3), then hand to a human with `outcome: punched-out`.
-- The adversarial validator is **mandatory** at steps 5 and 8. A REFUTED verdict reruns the producing step with the findings; WEAKENED requires the findings to be addressed in the next file version; SURVIVED proceeds. It stays optional elsewhere.
-- *Alternative:* LLM-only checking. Rejected: Stage 4 counts only automated deterministic or adversarial checks, and deterministic ones are cheaper and reproducible.
+### D7. Edges are hooks that fire after the write, not calls the model makes
+The course is specific: the check needs the work already on disk ("pre-action: breakdown.json doesn't exist yet; nothing to check against"), so it belongs on **PostToolUse**, and it runs as code. An orchestrator-invoked validator fails this: if the model never calls it, nothing happens.
+
+`hooks/check-edge.py` fires on PostToolUse for Write/Edit/MultiEdit and for Bash commands that write under `delivery/<KEY>/`. For the artifact just written it checks, in order:
+
+1. the file exists and parses (JSON/YAML);
+2. its sha256 matches `<artifact>.sentinel.json`;
+3. it conforms to its schema in `schemas/`;
+4. the sentinel's claimed counts match the real counts (the sentinel is a claim, not a fact);
+5. the artifact satisfies the **input contract** of the next step that consumes it (D14).
+
+On failure the hook exits 2, so the report goes back to the model as feedback, and appends `edge: {name, exit, summary}` to `trace.jsonl`. The orchestrator reads the trace, not its own memory, and refuses to advance past an artifact whose latest edge result is a failure: bounded rerun (3), then a punch-out. A PostToolUse hook cannot un-write a file, which is the point of recording the verdict rather than trusting the moment.
+
+**Adversarial review is a node, not an edge.** The course's "reviewer trap" is exact: an LLM reviewing another LLM's output in shared context is a second non-deterministic node that rationalizes rather than reviews. So the challenge runs in a fresh context through `cross-examine`, carries its own Stage 3 certification, emits a structured verdict, and the harness applies fixed rules to that verdict: REFUTED reruns the producing step with the findings, WEAKENED requires each finding addressed in the next version, SURVIVED proceeds. The rules are code; the reviewer is a node.
+
+*Alternative:* keep validators as orchestrator calls, as the first draft had. Rejected: it makes the guardrail depend on the thing it guards.
 
 ### D8. Outcomes distinguish handing to a human from failing
 `outcome.json` = `{item, status: completed | punched-out | failed | abandoned, reason, step, ts}`:
@@ -221,6 +232,8 @@ Stage 4 requires that "every agent passes its Stage 3 quality bar", and an uncer
 - every reviewer in the roster entries that are enabled.
 
 *Knowledge skills* loaded as context (`scala`, `react`, `terraform`…) are not task prompts. They are covered by the eval of the agent consuming them, with the skill injected as in production. **Working assumption confirmed by Calvin 2026-09-16**: knowledge skills are not separately certified — they are reference material, not prompts with an output contract, so there is nothing to score them against. If the reviewers disagree, scope grows from ~15 task prompts to 50+ and this becomes a project of its own.
+
+**Certification order, and what `pr-description` is worth.** Stage 4 asks for a chain where every node clears Stage 3; it does not ask for every prompt in a large flow. The chain certified first is **triage → breakdown → challenge-breakdown**: three nodes with structured contracts and real edges between them. `pr-description` is certified (Haiku, 89/90) and stays in the flow, but it writes terminal prose that no node consumes, so it carries no edge and is not submitted as Stage 4 evidence. Everything outside the chain stays `certified: false` and is excluded from the certified-only end-to-end rate.
 
 **Registry.** `skills/delivery-flow/steps.yaml`, one entry per task prompt:
 
@@ -264,7 +277,34 @@ The "separate model for validation" principle is kept by requiring the checker t
 - Default to Opus for quality and downgrade later. Rejected: inverts the burden of proof and inflates the audit-trail cost.
 - LLM-judge-only evals. Rejected: Stage 3 wants substantive, clear pass/fail criteria, so deterministic asserts come first and rubrics only for intent.
 
+### D12. Contract-first artifacts: structure where a node consumes it, prose only at the ends
+Deterministic code can check "does this match schema"; it cannot check "is this a good paragraph". So every artifact another node reads is structured data with a schema in `schemas/`, and prose survives only where a person is the reader.
+
+- `schemas/<artifact>.schema.json` holds a JSON Schema subset (types, required keys, enums, array item shapes, counts), validated by a stdlib checker in `validate-artifact.py`, so there is no new dependency on either Mac.
+- Each schema names `produced_by` and `consumed_by`, which is what makes D14's compatibility check possible and keeps the workflow definition honest.
+- `triage.json` carries the fields the policy check already needs (`type`, `path`, `domains[]`, `architecture_change`, `breaking_change`, `handoff`), which turns punch-out triggers into field reads instead of markdown scraping.
+- `breakdown.json` is the course's own example: epics → stories → acceptance criteria against a fixed schema. The course writes that example in YAML; JSON carries the same contract without putting a YAML parser on every machine that runs a check, and the schema is what the edge enforces either way.
+- *Alternative:* keep markdown with section checks. Rejected: section headings are not a contract, and the course names this exact substitution as the thing that doesn't count.
+
+### D13. Sentinels: the node's claim, tested against reality
+Each node writes `<artifact>.sentinel.json` via `write-sentinel.py`: `{artifact, sha256, counts: {...}, status, step, ts}`. The counts are what the node believes it produced (epics, stories, acceptance criteria, findings, failing tests).
+
+The value is the gap it exposes: a node that reports `status: complete` with `stories: 8` while the file holds 5 is caught by the edge hook, where schema validation alone would pass. A node that writes no sentinel fails its edge.
+
+*Alternative:* derive counts from the artifact alone and skip sentinels. Rejected: then a node's self-report is never tested, and the criteria name sentinel files outright.
+
+### D14. Edges also check that A's output fits B's input
+An edge is not only "is this artifact well-formed" but "does node A's output match one of node B's inputs". Each step declares `inputs` in the registry; the edge hook resolves the consuming step's input contract from `schemas/` and checks the artifact against it, so a breakdown that omits acceptance criteria fails at the handoff rather than inside the implementer.
+
+**Loop bounds, stated rather than implied:** the same step reruns at most 3 times; a step whose challenge is REFUTED twice punches out; the per-item cost budget punches out; every rerun writes a trace record, so a loop is visible in the audit trail rather than silent.
+
+### D15. The evidence package
+`package-evidence.py` builds the submission ZIP, one directory per examined criterion: workflow definition (the SKILL.md routing table, `schemas/`, the figure), guardrails (the hooks, schemas, sentinel checker, and traces showing them firing), punch-out evidence (policy, decisions, `bypass-report.md`), end-to-end success rate (`delivery-report.py` output with the weekly trend), and audit trail (`trace.jsonl` plus the per-step model/token/cost tables). A README maps each directory to its criterion.
+
 ## Risks / Trade-offs
+
+- **[A PostToolUse hook cannot prevent the write it checks]** → it records the verdict in the trace and feeds the report back to the model; the orchestrator refuses to advance on a failed edge, and `delivery-report.py` counts items whose edges failed. Prevention stays with the PreToolUse punch-out hook, which is about outward actions.
+- **[Structured artifacts make some steps harder for small models]** → that shows up in certification: a node that can't hold its schema on Haiku escalates to Sonnet with recorded evidence, which is the policy working rather than failing.
 
 - **[Certifying ~15 task prompts is most of the effort]** → sequenced by pilot path; the kinds of work and reviewers not in the pilot stay `certified: false` and excluded; fixtures come from OpenSpec archives rather than being authored.
 - **[Haiku or Sonnet can't reach 95% on generative steps (implementer, architect)]** → escalation is allowed with evidence, and the report shows its cost. For code-writing steps, the eval uses execution-grounded asserts (tests go green on a fixture repo) so the bar is objective.
