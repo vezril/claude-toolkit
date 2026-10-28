@@ -1,6 +1,6 @@
 ---
 name: gitbucket
-description: GitBucket — the self-hosted, single-WAR Git platform written in Scala (gitbucket.github.io) with a deliberately GitHub-compatible REST API at /api/v3. Covers running it (java -jar gitbucket.war, the official Docker image, a NAS/reverse-proxy deployment, GITBUCKET_HOME), every CLI flag and its env-var and system-property equivalents plus the config precedence order, the API in detail — all four authentication methods and the anonymous-fallthrough trap, the verified route table, the endpoints GitHub has that GitBucket does not (notably no PATCH /issues/:id, so an issue cannot be closed or edited via the API), hard-coded 25-item pagination with no Link headers, GitBucket's own issue-filter vocabulary (author/assigned, not creator/assignee), 404-for-unimplemented error semantics and the disabled rate_limit endpoint — plus webhooks and their event types, SSH access on port 29418, clone and raw/archive URL formats, external MySQL/PostgreSQL setup, backup, and plugins. Use when installing, configuring, upgrading or debugging GitBucket, writing API or webhook automation against it, porting GitHub tooling or a delivery-flow adapter to it, or deciding how far its GitHub compatibility actually goes. Complements git, docker, nginx, scala and secure-coding.
+description: GitBucket — the self-hosted, single-WAR Git platform written in Scala (gitbucket.github.io) with a deliberately GitHub-compatible REST API at /api/v3. Covers running it (java -jar gitbucket.war, the official Docker image, a NAS/reverse-proxy deployment, GITBUCKET_HOME), every CLI flag and its env-var and system-property equivalents plus the config precedence order, the API in detail — all four authentication methods and the inconsistent unauthenticated-request behaviour (401 vs 404 vs empty 200) plus unauthenticated user enumeration, the verified route table, the endpoints GitHub has that GitBucket does not (notably no PATCH /issues/:id, so an issue cannot be closed or edited via the API), hard-coded 25-item pagination with no Link headers, GitBucket's own issue-filter vocabulary (author/assigned, not creator/assignee), 404-for-unimplemented error semantics and the disabled rate_limit endpoint — plus webhooks and their event types, SSH access on port 29418, clone and raw/archive URL formats, external MySQL/PostgreSQL setup, backup, and plugins. Use when installing, configuring, upgrading or debugging GitBucket, writing API or webhook automation against it, porting GitHub tooling or a delivery-flow adapter to it, or deciding how far its GitHub compatibility actually goes. Complements git, docker, nginx, scala and secure-coding.
 ---
 
 # GitBucket
@@ -74,11 +74,28 @@ curl "$GB/api/v3/user?access_token=$GB_TOKEN"                 # query param
 Tokens are minted per user under **Account Settings → Applications**. `Bearer` works even
 though the wiki documents only `token`. OAuth2 key/secret flows are **not** supported.
 
-**The trap: no auth header means anonymous, not rejected.** The filter only returns
-`401 {"message":"Bad credentials"}` when a token is *present and invalid*. Omit or misspell the
-header and the request proceeds unauthenticated — so you get `404`/empty results on private
-resources instead of a clear auth error. **Always smoke-test with `GET /api/v3/user`:** it
-returns your account when authenticated, and that's the cheapest way to prove the token is live.
+**The trap: an unauthenticated request does not fail consistently.** The auth filter rejects
+only a token that is *present and invalid*; a missing header falls through to the route's own
+authenticator, and those disagree about what to return. Measured on a live 4.x instance:
+
+| Request | Result |
+|---|---|
+| `GET /user`, no header | `401 {"message":"Requires authentication"}` |
+| `GET /user`, bad token | `401 {"message":"Bad credentials"}` |
+| `GET /user/repos`, no header | **`404 {"message":"Not Found"}`** |
+| `GET /repositories`, no header | `200 []` — public subset, no error |
+| `GET /users`, no header | `200` with the **full account list** |
+
+So no single status proves an auth problem: the same missing header yields 401 on one endpoint,
+404 on another, and a plausible-looking empty success on a third. **Smoke-test with
+`GET /api/v3/user`** — it is the one endpoint that distinguishes all three states, and the two
+401 messages tell you *which* failure you have: `Requires authentication` means your header
+never arrived, `Bad credentials` means the token itself is rejected.
+
+**`GET /api/v3/users` needs no authentication and returns every account including email
+addresses.** Anyone who can reach the port can enumerate your users. Treat network exposure as
+the only control here and put the instance behind a VPN or an authenticating proxy
+([[secure-coding]]).
 
 ### What exists
 
@@ -232,7 +249,9 @@ adapter, because it changes the item schema.
 
 1. **`/api/v3` is GitHub-*shaped*, not GitHub-complete.** Check the route table before porting
    tooling; unimplemented endpoints answer `404`.
-2. **Smoke-test auth with `GET /api/v3/user`** — a missing header silently degrades to anonymous.
+2. **Smoke-test auth with `GET /api/v3/user`** — unauthenticated requests return 401, 404 or a
+   plausible empty 200 depending on the endpoint, so only that one tells you the real state.
+   `GET /api/v3/users` is unauthenticated and leaks every account's email.
 3. **Page by "short page", never by `Link`.** Issues and pulls are fixed at 25 and ignore `per_page`.
 4. **Issues are create/read/comment only.** No close or edit via API — labels or commit keywords.
 5. **Set the base URL**, and enable SSH explicitly on 29418 if you want it.
