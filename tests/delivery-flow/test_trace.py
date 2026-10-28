@@ -197,5 +197,38 @@ class TestReport(unittest.TestCase):
         self.assertIn("not billed per token", out.stdout)
 
 
+class TestUncertifiedStepsDoNotCount(unittest.TestCase):
+    """An `allow_uncertified` step must record certified: False, not None.
+
+    `delivery-report.py` tests `rec.get("certified") is False`, so None would let a run with an
+    uncertified node in the chain into the certified-only Stage 4 rate — the one number that is
+    meaningless if any node is uncertified.
+    """
+
+    def test_a_step_with_no_registry_entry_records_certified_false(self):
+        r = Repo()
+        r.current_step("propose")          # a real step, deliberately not in steps.yaml
+        t = transcript(r.dir / "sub.jsonl", model="claude-sonnet-5", messages=1, out=10, inp=10)
+        self.assertEqual(r.subagent_stop(t).returncode, 0)
+        recs = [x for x in r.trace() if x.get("step") == "propose" and "certified" in x]
+        self.assertTrue(recs, "no step record was written")
+        for rec in recs:
+            self.assertIs(rec["certified"], False)
+            self.assertIsNot(rec["certified"], None)
+
+    def test_the_report_excludes_it_from_the_certified_only_rate(self):
+        r = Repo()
+        r.current_step("propose")
+        t = transcript(r.dir / "sub.jsonl", model="claude-sonnet-5", messages=1, out=10, inp=10)
+        r.subagent_stop(t)
+        r.outcome("completed")
+        payload = r.report()
+        row = payload["items"][0]
+        self.assertFalse(row["certified"])
+        week = list(payload["weekly"].values())[0]
+        self.assertEqual(week["certified_only"]["completed"], 0)
+        self.assertEqual(week["all"]["completed"], 1)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
