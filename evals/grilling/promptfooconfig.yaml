@@ -1,0 +1,66 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "grilling: round format, facts looked up, frontier discipline, hold on 4 plans"
+# Run through run.sh: it points `skill` at prompts/prompt_vN.md and working_dir at a
+# temp copy of the fixture repo. Read-only tools (Read/Grep/Glob/LS) so the agent can
+# look facts up; no write tools. One grilling round is one reply, so the suite grades
+# round one: does it ask the right things, in the right shape, and then stop.
+prompts:
+  - file://prompt.txt
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config: { model: sonnet, apiKeyRequired: false, working_dir: ./fixture/pantry, max_turns: 20 }
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config: { model: haiku, apiKeyRequired: false, working_dir: ./fixture/pantry, max_turns: 20 }
+defaultTest:
+  vars:
+    skill: file://prompts/current.md
+    skill_dir: __SKILL_DIR__
+tests:
+  - description: "g-01-sharing: two facts in the repo (database, auth); expiry and invite email hang on public-vs-invite"
+    vars:
+      case: g-01-sharing
+      request: >-
+        Grill me on this: I want to add recipe sharing to pantry. I haven't decided whether a share is a
+        public link anyone can open, or invite-only to specific pantry users. If it's public links I'll
+        have to work out expiry and whether links can be revoked; if it's invite-only I'll need an
+        invitation email.
+    assert:
+      - { type: javascript, metric: format, value: file://asserts/format.js }
+      - { type: javascript, metric: facts, value: file://asserts/facts.js }
+      - { type: javascript, metric: frontier, value: file://asserts/frontier.js }
+      - { type: javascript, metric: hold, value: file://asserts/hold.js }
+  - description: "g-02-rate-limit: current limit is in config/app.conf; the new number and burst size hang on raise-vs-burst"
+    vars:
+      case: g-02-rate-limit
+      request: >-
+        Grill me: users hit pantry's API rate limit on Sunday evenings when they plan meals for the week,
+        and I want to fix that. Either I raise the flat limit, or I add a burst allowance on top of it. If
+        I raise it, I need to pick the new number; if I go with burst, I need to pick the burst size and window.
+    assert:
+      - { type: javascript, metric: format, value: file://asserts/format.js }
+      - { type: javascript, metric: facts, value: file://asserts/facts.js }
+      - { type: javascript, metric: frontier, value: file://asserts/frontier.js }
+      - { type: javascript, metric: hold, value: file://asserts/hold.js }
+  - description: "g-03-half-marathon: nothing to look up; pace and mileage hang on time-goal-vs-finish"
+    vars:
+      case: g-03-half-marathon
+      request: >-
+        Grill me on my plan to run my first half-marathon in March. I can't decide between going for a time
+        goal or just finishing it, and the whole training plan depends on that.
+    assert:
+      - { type: javascript, metric: format, value: file://asserts/format.js }
+      - { type: javascript, metric: frontier, value: file://asserts/frontier.js }
+      - { type: javascript, metric: hold, value: file://asserts/hold.js }
+  - description: "g-04-split: the module layout is in build.sbt; deploy/CI and database-per-service hang on the seam"
+    vars:
+      case: g-04-split
+      request: >-
+        Grill me: I'm thinking of splitting pantry into separate services. I'm not sure yet where the seam goes,
+        and everything else (how each one deploys, whether they share a database) depends on that.
+    assert:
+      - { type: javascript, metric: format, value: file://asserts/format.js }
+      - { type: javascript, metric: facts, value: file://asserts/facts.js }
+      - { type: javascript, metric: frontier, value: file://asserts/frontier.js }
+      - { type: javascript, metric: hold, value: file://asserts/hold.js }

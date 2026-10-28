@@ -22,9 +22,15 @@ Every config points `defaultTest.vars.skill` at `file://../../skills/<skill>/SKI
 the shared `prompt.txt`, which injects the skill and the test's `{{request}}`.
 
 Suites currently in the repo: **akka**, **calvin-voice**, **cross-examine**, **detect-ai**,
-**humanize**, **intentional** (intentional-daily, intentional-weekly, aversion-breaker), **outreach**,
-**phq-9**, **pr-description**. `intentional` uses its own provider (`provider.js`): each case runs in a
-fresh copy of a synthetic Obsidian vault and the asserts grade the file diff as well as the reply.
+**diagnosing-bugs**, **grilling**, **humanize**, **intentional** (intentional-daily, intentional-weekly,
+aversion-breaker), **outreach**, **phq-9**, **pr-description**, **wizard**, **writing-for-agents**.
+`intentional` uses its own provider (`provider.js`): each case runs in a fresh copy of a synthetic
+Obsidian vault and the asserts grade the file diff as well as the reply. The four suites for skills
+imported from mattpocock/skills (diagnosing-bugs, grilling, wizard, writing-for-agents) run through
+their own `run.sh`, which gives the agent a temp copy of a fixture and scans its tool calls for paths
+outside it. `diagnosing-bugs` lets the agent edit (Bash sandboxed, Edit/Write limited to the copy) and
+grades the code it leaves; `wizard` runs each generated script in a pseudo-terminal (`drive.py`)
+against stub `gh`/`open`.
 
 ## Run one
 
