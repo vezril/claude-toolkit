@@ -21,11 +21,33 @@ evals/<skill>/
 Every config points `defaultTest.vars.skill` at `file://../../skills/<skill>/SKILL.md` and runs
 the shared `prompt.txt`, which injects the skill and the test's `{{request}}`.
 
-Suites currently in the repo: **akka**, **calvin-voice**, **cross-examine**, **detect-ai**, **handoff**,
-**humanize**, **intentional** (intentional-daily, intentional-weekly, aversion-breaker), **outreach**,
-**phq-9**, **pr-description**. `intentional` uses its own provider (`provider.js`): each case runs in a
+Suites currently in the repo: **akka**, **calvin-voice**, **cross-examine**, **detect-ai**,
+**diagnosing-bugs**, **finch**, **grilling**, **handoff**, **humanize**, **intentional**
+(intentional-daily, intentional-weekly, aversion-breaker), **outreach**, **phq-9**, **pr-description**,
+**wizard**, **writing-for-agents**. `intentional` uses its own provider (`provider.js`): each case runs in a
 fresh copy of a synthetic Obsidian vault and the asserts grade the file diff as well as the reply.
 `handoff` runs the agent in a temp copy of a fixture constellation with read-only tools (`run.sh`).
+
+The four suites for skills imported from mattpocock/skills (diagnosing-bugs, grilling, wizard,
+writing-for-agents) run through their own `run.sh`, which gives the agent a temp copy of a fixture
+and scans its tool calls for paths outside it. `diagnosing-bugs` lets the agent edit (Bash
+sandboxed, Edit/Write limited to the copy) and grades the code it leaves; `wizard` runs each
+generated script in a pseudo-terminal (`drive.py`) against stub `gh`/`open`.
+
+`finch` is the one suite that ships a **paired naive-baseline arm**
+(`promptfooconfig.local.baseline.yaml`): same model, same asserts, same `tests.yaml`, no
+`SKILL.md` in context. Run both and the difference is the skill's measured value rather than
+the model's pre-existing knowledge. Copy that pattern for any new knowledge skill — a suite
+that only ever runs the with-skill arm can't tell "the skill works" from "the model already
+knew." It's worth running at **N=3 with majority scoring**, as CI does: on `finch` a single
+sample credited the model with three facts that three samples showed it doesn't reliably know
+(`evals/finch/iteration-log.md`).
+
+That suite also carries `.local.*` config variants on an `exec:` provider over the `claude`
+CLI, for machines where `anthropic:claude-agent-sdk` can't authenticate — on a Bedrock-backed
+install it spawns the claude-code binary, inherits no AWS credentials, and errors every case.
+Only the plain `promptfooconfig.yaml` name is auto-discovered by CI, so `.local.*` variants
+and baseline arms stay out of the gate by construction.
 
 ## Run one
 

@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "wizard: generated scripts are run for real against stubs; valid, runs, coverage, hidden, gate, scope"
+# Run through run.sh (temp world, prompt version pinned). Read-only tools so the agent
+# can read the repo (.env.example, the workflow, README); no Bash, no writes, so the
+# script comes back in the reply. The asserts then execute it in a fresh copy of the
+# fixture with stub gh/open/fly on PATH (stubs/) and every prompt driven in a pseudo-terminal by drive.py (yes or no to every yes/no prompt).
+prompts:
+  - file://prompt.txt
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config: { model: sonnet, apiKeyRequired: false, working_dir: ./fixture/pantry, max_turns: 20 }
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config: { model: haiku, apiKeyRequired: false, working_dir: ./fixture/pantry, max_turns: 20 }
+defaultTest:
+  vars:
+    skill: file://prompts/current.md
+    skill_dir: __SKILL_DIR__
+tests:
+  - description: "z-01-setup: local .env plus the GitHub secrets and variable the deploy workflow reads"
+    vars:
+      case: z-01-setup
+      request: >-
+        Make me a wizard to set up pantry's secrets: my local .env, and the GitHub Actions secrets CI needs. You can't write files or run commands in this session. If you write a script, put the complete script in a single ```bash block (no other bash blocks) and tell me where to save it.
+    assert:
+      - { type: javascript, metric: valid, value: file://asserts/valid.js }
+      - { type: javascript, metric: runs, value: file://asserts/runs.js }
+      - { type: javascript, metric: coverage, value: file://asserts/coverage.js }
+      - { type: javascript, metric: hidden, value: file://asserts/hidden.js }
+  - description: "z-02-cutover: backup first, then an irreversible migration that must wait for a yes"
+    vars:
+      case: z-02-cutover
+      request: >-
+        Make me a wizard for the one-off recipes cutover: back up the database first, then run the migration that drops the legacy table. You can't write files or run commands in this session. If you write a script, put the complete script in a single ```bash block (no other bash blocks) and tell me where to save it.
+    assert:
+      - { type: javascript, metric: valid, value: file://asserts/valid.js }
+      - { type: javascript, metric: runs, value: file://asserts/runs.js }
+      - { type: javascript, metric: gate, value: file://asserts/gate.js }
+  - description: "z-03-agent-can: every step is one the agent could do itself (no wizard)"
+    vars:
+      case: z-03-agent-can
+      request: >-
+        Set up my local .env for pantry. For local dev the defaults in .env.example are all I need, no keys. You can't write files or run commands in this session. If you write a script, put the complete script in a single ```bash block (no other bash blocks) and tell me where to save it.
+    assert:
+      - { type: javascript, metric: scope, value: file://asserts/scope.js }
