@@ -113,7 +113,7 @@ class TestRouting(unittest.TestCase):
         r.artifact("item.json")
         r.artifact("triage.json", dict(TRIAGE, type="bug", path="quick"))
         st = r.status()
-        self.assertEqual(st["next_step"], "solutioning")
+        self.assertEqual(st["next_step"], "propose")
         for step in ("breakdown", "challenge-breakdown"):
             self.assertTrue(next(x for x in st["table"] if x["step"] == step)["skipped"])
 
@@ -180,7 +180,7 @@ class TestChallengeVerdicts(unittest.TestCase):
         r = Repo().through_breakdown()
         r.challenge("SURVIVED"); r.edge("challenge-breakdown.json", step="challenge-breakdown")
         st = r.status()
-        self.assertEqual(st["next_step"], "solutioning")
+        self.assertEqual(st["next_step"], "propose")
         self.assertIsNone(st["blocked"])
 
     def test_weakened_proceeds_and_carries_its_findings_forward(self):
@@ -188,7 +188,7 @@ class TestChallengeVerdicts(unittest.TestCase):
         r.challenge("WEAKENED", findings=["S2's criteria do not test the toggle it promises"])
         r.edge("challenge-breakdown.json", step="challenge-breakdown")
         st = r.status()
-        self.assertEqual(st["next_step"], "solutioning")
+        self.assertEqual(st["next_step"], "propose")
         self.assertIsNone(st["blocked"])
         self.assertEqual(st["carry_forward"], ["S2's criteria do not test the toggle it promises"])
 
@@ -286,7 +286,7 @@ class TestChallengeVerdicts(unittest.TestCase):
         r.artifact("item.json"); r.edge("item.json")
         r.artifact("triage.json", dict(TRIAGE, type="bug", path="quick")); r.edge("triage.json")
         st = r.status()
-        self.assertEqual(st["next_step"], "solutioning")
+        self.assertEqual(st["next_step"], "propose")
         self.assertEqual(st["challenges"], [])
 
 

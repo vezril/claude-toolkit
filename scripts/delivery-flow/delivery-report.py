@@ -69,6 +69,9 @@ def collect(roots) -> dict:
 
 def summarize(items: dict) -> dict:
     per_step, per_model, weekly = defaultdict(lambda: defaultdict(float)), defaultdict(lambda: defaultdict(float)), defaultdict(lambda: defaultdict(int))
+    # Per profile too: the Stage 4 number belongs to the certified chain, and mixing it with
+    # runs of the whole pipeline reports neither honestly.
+    per_profile = defaultdict(lambda: defaultdict(int))
     nonconformant, missing_pricing, rows = [], set(), []
 
     for key, entry in sorted(items.items()):
@@ -102,12 +105,16 @@ def summarize(items: dict) -> dict:
         status = outcome.get("status") or ("in-flight" if entry["records"] or entry["edges"] else "empty")
         failed_edges = sum(1 for e in entry["edges"] if (e.get("edge") or {}).get("exit"))
         ts = (entry["records"] or entry["edges"] or [{}])[-1].get("ts", "")
+        profile = outcome.get("profile") or "unknown"
         if status in ("completed", "failed", "punched-out", "abandoned"):
             weekly[iso_week(ts)][status] += 1
+            per_profile[profile][status] += 1
             if certified_all:
                 weekly[iso_week(ts)][f"certified:{status}"] += 1
+                per_profile[profile][f"certified:{status}"] += 1
 
-        rows.append({"item": key, "status": status, "step": outcome.get("step") or "",
+        rows.append({"item": key, "status": status, "profile": profile,
+                     "step": outcome.get("step") or "",
                      "reason": outcome.get("reason") or "", **tokens,
                      "cost_usd": round(cost, 4), "priced": priced,
                      "certified": certified_all, "failed_edges": failed_edges,
@@ -123,9 +130,13 @@ def summarize(items: dict) -> dict:
                 "rate_excluding_punch_outs": excl, "rate_counting_punch_outs": incl}
 
     weeks = {w: {"all": rate(c), "certified_only": rate(c, "certified:")} for w, c in sorted(weekly.items())}
+    # A profile with no terminal runs has no rate. Reporting it as 0% would read as "it never
+    # works" when it means "nobody has run it", and those are opposite conclusions.
+    profiles = {p: {"all": rate(c), "certified_only": rate(c, "certified:")}
+                for p, c in sorted(per_profile.items())}
     return {"items": rows, "per_step": {k: dict(v) for k, v in per_step.items()},
             "per_model": {k: dict(v) for k, v in per_model.items()},
-            "weekly": weeks, "non_conformant": nonconformant,
+            "weekly": weeks, "per_profile": profiles, "non_conformant": nonconformant,
             "missing_pricing": sorted(missing_pricing)}
 
 
@@ -135,10 +146,10 @@ def markdown(s: dict, pricing_as_of: str) -> str:
          f"{f' (as of {pricing_as_of})' if pricing_as_of else ''}. Runs under a subscription are not "
          "billed per token, so this is a comparison figure, not spend.", "",
          "## Items", "",
-         "| Item | Outcome | Steps | In | Out | Cost (API-equiv) | Certified | Failed edges |",
-         "|------|---------|-------|----|-----|------------------|-----------|--------------|"]
+         "| Item | Profile | Outcome | Steps | In | Out | Cost (API-equiv) | Certified | Failed edges |",
+         "|------|---------|---------|-------|----|-----|------------------|-----------|--------------|"]
     for r in s["items"]:
-        L.append(f"| {r['item']} | {r['status']}{(' — ' + r['reason']) if r['reason'] else ''} | {r['steps']} | "
+        L.append(f"| {r['item']} | {r['profile']} | {r['status']}{(' — ' + r['reason']) if r['reason'] else ''} | {r['steps']} | "
                  f"{r['input_tokens']:,} | {r['output_tokens']:,} | "
                  f"{'$' + format(r['cost_usd'], '.4f') if r['priced'] else 'unpriced'} | "
                  f"{'yes' if r['certified'] else 'no'} | {r['failed_edges']} |")
@@ -152,6 +163,19 @@ def markdown(s: dict, pricing_as_of: str) -> str:
         L.append(f"| {week} | {a['completed']} | {a['failed']} | {a['punched_out']} | "
                  f"{pct(a['rate_excluding_punch_outs'])} | {pct(a['rate_counting_punch_outs'])} | "
                  f"{pct(c['rate_excluding_punch_outs'])} |")
+
+    L += ["", "## End-to-end rate by profile", "",
+          "A profile with no terminal runs has no rate: that is not 0%, it is no evidence.", "",
+          "| Profile | Completed | Failed | Punched out | Excluding punch-outs | Counting them | Certified-only (Stage 4) |",
+          "|---------|-----------|--------|-------------|----------------------|---------------|--------------------------|"]
+    pct = lambda x: "—" if x is None else f"{x:.1f}%"
+    for profile, v in s["per_profile"].items():
+        a, c = v["all"], v["certified_only"]
+        L.append(f"| {profile} | {a['completed']} | {a['failed']} | {a['punched_out']} | "
+                 f"{pct(a['rate_excluding_punch_outs'])} | {pct(a['rate_counting_punch_outs'])} | "
+                 f"{pct(c['rate_excluding_punch_outs'])} |")
+    if not s["per_profile"]:
+        L.append("| — | 0 | 0 | 0 | — | — | — |")
 
     L += ["", "## Cost by step", "", "| Step | Runs | In | Out | Cost |", "|------|------|----|-----|------|"]
     for step, v in sorted(s["per_step"].items(), key=lambda kv: -kv[1]["cost"]):

@@ -32,6 +32,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import triggers as trigger_rules  # noqa: E402  (the local `triggers()` owns that name)
 from common import is_delivery_repo, load_config, load_json, repo_root  # noqa: E402
 
 DEFAULT_RETRY_LIMIT = 3
@@ -69,21 +70,50 @@ def triggers(repo: Path, item: str, step: str, cfg: dict) -> list:
     policy = cfg.get("punch_out") or {}
     found = []
 
+    # The three triage-sourced triggers. Each fires on the node's flag OR on a derivation that
+    # never reads that flag, so a node cannot skip its own gate by writing false. Where the two
+    # disagree, check-edge.py records it on the edge as `policy_disagreement` evidence and the
+    # edge still passes; the punch-out is written either way.
+    item_doc, _ = load_json(item_dir / "item.json")
     triage, _ = load_json(item_dir / "triage.json")
-    if triage:
-        if triage.get("handoff"):
-            found.append({"trigger": "scope", "evidence": "triage.json sets handoff: true"
-                          + (f" — {triage.get('handoff_reason')}" if triage.get("handoff_reason") else ""),
-                          "decision": "Is this in scope, and what should it be cut down to?",
-                          "options": ["proceed with a narrowed scope", "stop", "redirect to another item"]})
-        if triage.get("architecture_change"):
-            found.append({"trigger": "architecture", "evidence": "triage.json sets architecture_change: true",
-                          "decision": "This moves a boundary. Is that the intent?",
-                          "options": ["proceed", "stop", "redirect to a design discussion first"]})
-        if triage.get("breaking_change"):
-            found.append({"trigger": "breaking", "evidence": "triage.json sets breaking_change: true",
-                          "decision": "Callers will have to change. Proceed?",
-                          "options": ["proceed", "stop", "redirect: add a compatibility path first"]})
+    breakdown, _ = load_json(item_dir / "breakdown.json")
+    for name, v in sorted(trigger_rules.combine(item_doc, triage, breakdown, cfg).items()):
+        if not v["fired"]:
+            continue
+        flag = trigger_rules.FLAG_FOR[name]
+        if v["source"] == "claim":
+            evidence = f"triage.json sets {flag}: true"
+            if name == "scope" and (triage or {}).get("handoff_reason"):
+                evidence += f" — {triage['handoff_reason']}"
+            evidence += "; the derivation did not independently find it"
+        elif v["source"] == "derivation":
+            evidence = (f"derived from the artifacts ({v['evidence']}); "
+                        f"triage.json did not set {flag}")
+        else:
+            evidence = f"triage.json sets {flag}: true, and the artifacts agree: {v['evidence']}"
+        found.append({"trigger": name, "evidence": evidence,
+                      "decision": trigger_rules.CLAIMS[name][1], "options": trigger_rules.OPTIONS[name]})
+
+    # The proposal-sourced triggers, evaluated only when the flow is leaving the brief. Raising
+    # them earlier would ask a human to decide before the brief that explains the change exists.
+    if step == "implementation":
+        proposal, _ = load_json(item_dir / "proposal.json")
+        for name, v in sorted(trigger_rules.combine_proposal(proposal, cfg).items()):
+            if not v["fired"]:
+                continue
+            flag = trigger_rules.PROPOSAL_FLAG_FOR.get(name)
+            if v["source"] == "claim":
+                evidence = (f"proposal.json sets {flag}: true; the planned paths did not "
+                            "independently show it")
+            elif v["source"] == "derivation":
+                evidence = f"derived from the proposal's planned changes ({v['evidence']})"
+                if flag:
+                    evidence += f"; proposal.json did not set {flag}"
+            else:
+                evidence = f"proposal.json sets {flag}: true, and the planned paths agree: {v['evidence']}"
+            ask, options = trigger_rules.PROPOSAL_DECISIONS[name]
+            found.append({"trigger": name, "evidence": evidence,
+                          "decision": ask, "options": options})
 
     changed = git_changed_files(repo)
     for kind, key, question in (("breaking", "contract_paths", "A shared contract changed. Proceed?"),
