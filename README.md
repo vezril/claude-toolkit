@@ -35,6 +35,8 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 **Software-engineering disciplines**
 
 - **tdd** — strict Red-Green-Refactor.
+- **diagnosing-bugs** — a discipline for hard bugs and performance regressions: no theorising until there is one command that already goes red on *this* bug (tight, deterministic, agent-runnable), then minimise the repro, rank 3–5 falsifiable hypotheses, instrument one variable at a time with tagged logs, fix behind a regression test that fails every run on the buggy code, and clean up. Redacts secrets in anything it shows. *(Imported from Matt Pocock's [mattpocock/skills](https://github.com/mattpocock/skills), MIT; built eval-first, changes and license in the skill's `UPSTREAM.md`.)*
+- **grilling** — a relentless interview about a plan or decision, worked in rounds: each round asks every question whose prerequisites are settled (the frontier), numbered, each with a recommended answer; facts it looks up itself, decisions it puts to you, and nothing is acted on until you agree you've reached a shared understanding. *(Imported from Matt Pocock's [mattpocock/skills](https://github.com/mattpocock/skills), MIT; built eval-first, changes and license in the skill's `UPSTREAM.md`.)*
 - **functional-programming** — pure core / effectful shell, immutability, ADTs, total functions, errors-as-values (woven with *Grokking Simplicity*: actions/calculations/data, copy-on-write, stratified/onion architecture); grounded in the λ-calculus foundation below.
 - **lambda-calculus** — Church's model of computation and the theory beneath FP (*Michaelson*): syntax, α/β/η-reduction, normal vs applicative order & Church–Rosser, currying, Church encodings, the Y combinator, and types.
 - **scala** — Scala 2.13 idioms & gotchas (incl. the `sealed abstract case class` smart-constructor pattern).
@@ -89,6 +91,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **docker** — containerizing apps (*Docker in Action*): containers vs VMs, image layers & Dockerfiles, volumes, networking, Docker Compose, and an orchestration intro.
 - **finch** — the Docker-free alternative (AWS/open source): nerdctl + containerd + BuildKit inside a Lima VM. The VM lifecycle and the `finch.yaml` schema, build/run/compose, host mounts and why the VM isn't a security boundary, ECR/osxkeychain auth, SOCI lazy loading, cosign signing, DevContainers — i.e. everything that *isn't* the Docker model `docker` already covers. Verified against Finch v1.19.0 and the `runfinch/finch` config source, not just the docs site.
 - **site-reliability-engineering** — Google SRE: SLIs/SLOs/error budgets, toil, golden signals, on-call & blameless postmortems.
+- **wizard** — generates an interactive bash wizard for the steps only a human can do (provisioning, credentials and CI secrets, a third-party dashboard, a one-off cutover): it reads `.env*` and the workflows' `secrets.*`/`vars.*` first, opens each URL, captures values with hidden input, writes `.env` and GitHub secrets/variables, and gates every irreversible step on a yes. Doesn't fire for steps the agent can do itself. *(Imported from Matt Pocock's [mattpocock/skills](https://github.com/mattpocock/skills), MIT; built eval-first, changes and license in the skill's `UPSTREAM.md`.)*
 
 **Game development** (Godot engine; Schell/Nystrom/Millington/Lengyel/Akenine-Möller + Gaffer/Red Blob) — a "Game Dev Studio" mirroring the SDLC team
 
@@ -186,6 +189,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 - **toolkit-archive** — retire a toolkit component into `archive/<name>/` with a `RETIRED.md` (what / why / replaced-by / date), de-index it from this README, and remove stale `~/.claude` installs; refuses while active components still reference it.
 - **merge** — the end-of-change train: merge the gated PR → tag `vX.Y.Z` on merged `main` (fires release.yml where present) → `openspec archive` + land the bookkeeping. One invocation authorizes the train's merges; failing checks, uninvented versions, and ambiguity are absolute stops. Composes with git-ship: git-ship gets changes *to* the gate, merge takes them from it.
+- **writing-for-agents** — the reference for writing anything an agent reads (a skill, `CLAUDE.md`/`AGENTS.md`, a pointed-at doc): descriptions as context pointers (leading word first, one trigger per branch), the context-vs-cognitive load trade, progressive disclosure, a done-when on every step, prompting the positive instead of the prohibition, and pruning no-ops and environment caches while keeping each rule's reason. *(Imported from Matt Pocock's [mattpocock/skills](https://github.com/mattpocock/skills), MIT; built eval-first, changes and license in the skill's `UPSTREAM.md`.)*
 
 **Design**
 
@@ -319,6 +323,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `design-patterns` |  |  |  |  |
 | `detect-ai` |  |  |  |  |
 | `devops` |  |  |  |  |
+| `diagnosing-bugs` | 90% | 100% | haiku | ✅ Imported EDD-first (`evals/diagnosing-bugs/`): the agent edits four buggy projects and the code it leaves is graded. Upstream 95%; one added sentence (a regression test fails on every run, so a flaky bug's test pins its seed) → 60/60 on **haiku**, Sonnet 59/60 (its v1: 73%) |
 | `docker` | 83% | 100% | sonnet | ✅ Shipped (PR #51) — 3 linter-derived practices added (secret ENV, exec form, pinned installs) |
 | `dockerhub-setup` |  |  |  |  |
 | `domain-driven-design` | 96% | 100% | sonnet | ✅ Shipped (PR #56) — ubiquitous-language glossary made part of the deliverable |
@@ -405,6 +410,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `godot` |  |  |  |  |
 | `graph-databases` |  |  |  |  |
 | `gremlin` |  |  |  |  |
+| `grilling` | 60% | 99% | haiku | ✅ Imported EDD-first (`evals/grilling/`): upstream skill certified as is on **haiku**, 89/90 over two samples (Sonnet the same); v1 asked downstream questions early and had no round format |
 | `hackrf-one` |  |  |  |  |
 | `haiku` | 70% | 98% | sonnet | ✅ Built EDD-first (v1 → v10, `evals/haiku/`); the 5-7-5 myth was most of the floor. Certified on **haiku**: 41% → 99%, same skill |
 | `home-assistant` |  |  |  |  |
@@ -495,7 +501,9 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `webkit` |  |  |  |  |
 | `webui-quickfix-demo` |  |  |  |  |
 | `wifi-pineapple` |  |  |  |  |
+| `wizard` | 46% | 96% | haiku | ✅ Imported EDD-first (`evals/wizard/`): scripts run for real in a pseudo-terminal against stub `gh`. Upstream template failed its own shellcheck step (SC1087, line 114), fixed; plus one sentence on reading the repo before a migration. Certified on **haiku** 46/48; Sonnet 48/48 (its v1 was already 88%) |
 | `word-stats` |  |  |  |  |
+| `writing-for-agents` | 58% | 97% | sonnet | ✅ Imported EDD-first (`evals/writing-for-agents/`): upstream 88% → v5 97% on **sonnet** with three measured additions (pointer examples, done-when on every step, keep a rule's reason). Haiku 93%, under the bar |
 
 ## Subagents
 

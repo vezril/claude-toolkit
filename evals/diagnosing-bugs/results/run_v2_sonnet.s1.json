@@ -1,0 +1,1888 @@
+{
+  "evalId": "eval-XUd-2026-10-28T18:52:57",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-28T18:52:57.085Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\nBase directory for this skill: {{skill_dir}}\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\nBase directory for this skill: {{skill_dir}}\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "defbe424f1e2b3952dae59afa25d7cca146a91aa43ce31bfe12778e84bbbadbf",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 3.8,
+          "testPassCount": 3,
+          "testFailCount": 1,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 19,
+          "assertFailCount": 1,
+          "totalLatencyMs": 146040,
+          "tokenUsage": {
+            "prompt": 373132,
+            "completion": 8889,
+            "cached": 0,
+            "total": 382021,
+            "numRequests": 4,
+            "completionDetails": {
+              "reasoning": 1599,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 325640,
+              "cacheCreationInputTokens": 47444
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "fixed": 4,
+            "regression": 2,
+            "clean": 4,
+            "loop-first": 3,
+            "redact": 1,
+            "cause": 4,
+            "measured": 1
+          },
+          "namedScoresCount": {
+            "fixed": 4,
+            "regression": 3,
+            "clean": 4,
+            "loop-first": 3,
+            "redact": 1,
+            "cause": 4,
+            "measured": 1
+          },
+          "namedScoreWeights": {
+            "fixed": 4,
+            "regression": 3,
+            "clean": 4,
+            "loop-first": 3,
+            "redact": 1,
+            "cause": 4,
+            "measured": 1
+          },
+          "cost": 0.31132600000000005
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0.08235719999999999,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "fixed": 1,
+            "regression": 1,
+            "clean": 1,
+            "loop-first": 1,
+            "cause": 1
+          },
+          "namedScoreWeights": {
+            "fixed": 1,
+            "regression": 1,
+            "clean": 1,
+            "loop-first": 1,
+            "cause": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "bug fixed (hidden check passes)",
+              "assertion": {
+                "type": "javascript",
+                "metric": "fixed",
+                "value": "file://asserts/fixed.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "regression test tests/test_invoice.py catches the bug",
+              "assertion": {
+                "type": "javascript",
+                "metric": "regression",
+                "value": "file://asserts/regression.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "no instrumentation or throwaway files left",
+              "assertion": {
+                "type": "javascript",
+                "metric": "clean",
+                "value": "file://asserts/clean.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "ran the code before changing it",
+              "assertion": {
+                "type": "javascript",
+                "metric": "loop-first",
+                "value": "file://asserts/loop-first.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "root cause named",
+              "assertion": {
+                "type": "javascript",
+                "metric": "cause",
+                "value": "file://asserts/cause.js"
+              }
+            }
+          ]
+        },
+        "id": "c487d39e-042f-4345-b96f-3ca2ad20a855",
+        "latencyMs": 26979,
+        "namedScores": {
+          "fixed": 1,
+          "regression": 1,
+          "clean": 1,
+          "loop-first": 1,
+          "cause": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\nBase directory for this skill: /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/.skill\n\n<skill>\n---\nname: diagnosing-bugs\ndescription: Diagnosis loop for hard bugs and performance regressions. Use when the user says \"diagnose\"/\"debug this\", or reports something broken/throwing/failing/slow.\n---\n\n# Diagnosing Bugs\n\nA discipline for hard bugs. Skip phases only when explicitly justified.\n\nWhen exploring the codebase, read `GLOSSARY.md` (if it exists) to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.\n\n## Redact\n\nThis skill has you show commands, outputs and captured artifacts. **Redact every secret first**: write `<REDACTED>` in its place. Build loops against env vars, so the credential stays in the environment rather than in what you show. Captured artifacts carry auth headers: quote only the lines that carry the signal.\n\nIf the redacted output is not enough to diagnose the bug, say so and ask the user.\n\n## Phase 1: Build a feedback loop\n\n**This is the skill.** Everything else is mechanical. If you have a **tight** pass/fail signal for the bug (one that goes red on _this_ bug), you will find the cause; bisection, hypothesis-testing, and instrumentation all just consume it. If you don't have one, no amount of staring at code will save you.\n\nSpend disproportionate effort here. **Be aggressive. Be creative. Refuse to give up.**\n\n### Ways to construct one, in roughly this order\n\n1. **Failing test** at whatever seam reaches the bug: unit, integration, e2e.\n2. **Curl / HTTP script** against a running dev server.\n3. **CLI invocation** with a fixture input, diffing stdout against a known-good snapshot.\n4. **Headless browser script** (Playwright / Puppeteer) that drives the UI and asserts on DOM/console/network.\n5. **Replay a captured trace.** Save a real network request / payload / event log to disk; replay it through the code path in isolation.\n6. **Throwaway harness.** Spin up a minimal subset of the system (one service, mocked deps) that exercises the bug code path with a single function call.\n7. **Property / fuzz loop.** If the bug is \"sometimes wrong output\", run 1000 random inputs and look for the failure mode.\n8. **Bisection harness.** If the bug appeared between two known states (commit, dataset, version), automate \"boot at state X, check, repeat\" so you can `git bisect run` it.\n9. **Differential loop.** Run the same input through old-version vs new-version (or two configs) and diff outputs.\n10. **HITL bash script.** Last resort. If a human must click, drive _them_ with `scripts/hitl-loop.template.sh` so the loop is still structured. Captured output feeds back to you.\n\nBuild the right feedback loop, and the bug is 90% fixed.\n\n### Tighten the loop\n\nTreat the loop as a product. Once you have _a_ loop, **tighten** it:\n\n- Can I make it faster? (Cache setup, skip unrelated init, narrow the test scope.)\n- Can I make the signal sharper? (Assert on the specific symptom, not \"didn't crash\".)\n- Can I make it more deterministic? (Pin time, seed RNG, isolate filesystem, freeze network.)\n\nA 30-second flaky loop is barely better than no loop; a 2-second deterministic one is tight, a debugging superpower.\n\n### Non-deterministic bugs\n\nThe goal is not a clean repro but a **higher reproduction rate**. Loop the trigger 100×, parallelise, add stress, narrow timing windows, inject sleeps. A 50%-flake bug is debuggable; 1% is not, so keep raising the rate until it's debuggable.\n\n### When you genuinely cannot build a loop\n\nStop and say so explicitly. List what you tried. Ask the user for: (a) access to whatever environment reproduces it, (b) a redacted captured artifact (HAR file, log dump, core dump, screen recording with timestamps), or (c) permission to add temporary production instrumentation. Do **not** proceed to hypothesise without a loop.\n\n### Completion criterion: a tight loop that goes red\n\nPhase 1 is done when the loop is **tight** and **red-capable**: you can name **one command** (a script path, a test invocation, a curl) that you have **already run at least once** (show the invocation and its output, redacted), and that is:\n\n- [ ] **Red-capable**: it drives the actual bug code path and asserts the **user's exact symptom**, so it can go red on this bug and green once fixed. Not \"runs without erroring\"; it must be able to _catch this specific bug_.\n- [ ] **Deterministic**: same verdict every run (flaky bugs: a pinned, high reproduction rate, per above).\n- [ ] **Fast**: seconds, not minutes.\n- [ ] **Agent-runnable**: you can run it unattended; a human in the loop only via `scripts/hitl-loop.template.sh`.\n\nIf you catch yourself reading code to build a theory before this command exists, **stop: jumping straight to a hypothesis is the exact failure this skill prevents.** No red-capable command, no Phase 2.\n\n## Phase 2: Reproduce + minimise\n\nRun the loop. Watch it go red as the bug appears.\n\nConfirm:\n\n- [ ] The loop produces the failure mode the **user** described, not a different failure that happens to be nearby. Wrong bug = wrong fix.\n- [ ] The failure is reproducible across multiple runs (or, for non-deterministic bugs, reproducible at a high enough rate to debug against).\n- [ ] You have captured the exact symptom (error message, wrong output, slow timing) so later phases can verify the fix actually addresses it.\n\n### Minimise\n\nOnce it's red, shrink the repro to the **smallest scenario that still goes red**. Cut inputs, callers, config, data, and steps **one at a time**, re-running the loop after each cut, and keep only what's load-bearing for the failure.\n\nWhy bother: a minimal repro shrinks the hypothesis space in Phase 3 (fewer moving parts left to suspect) and becomes the clean regression test in Phase 5.\n\nDone when **every remaining element is load-bearing**: removing any one of them makes the loop go green.\n\nDo not proceed until you have reproduced **and** minimised.\n\n## Phase 3: Hypothesise\n\nGenerate **3–5 ranked hypotheses** before testing any of them. Single-hypothesis generation anchors on the first plausible idea.\n\nEach hypothesis must be **falsifiable**: state the prediction it makes.\n\n> Format: \"If <X> is the cause, then <changing Y> will make the bug disappear / <changing Z> will make it worse.\"\n\nIf you cannot state the prediction, the hypothesis is a vibe: discard or sharpen it.\n\n**Show the ranked list to the user before testing.** They often have domain knowledge that re-ranks instantly (\"we just deployed a change to #3\"), or know hypotheses they've already ruled out. Cheap checkpoint, big time saver. Don't block on it; proceed with your ranking if the user is AFK.\n\n## Phase 4: Instrument\n\nEach probe must map to a specific prediction from Phase 3. **Change one variable at a time.**\n\nTool preference:\n\n1. **Debugger / REPL inspection** if the env supports it. One breakpoint beats ten logs.\n2. **Targeted logs** at the boundaries that distinguish hypotheses.\n3. Never \"log everything and grep\".\n\n**Tag every debug log** with a unique prefix, e.g. `[DEBUG-a4f2]`. Cleanup at the end becomes a single grep. Untagged logs survive; tagged logs die.\n\n**Perf branch.** For performance regressions, logs are usually wrong. Instead: establish a baseline measurement (timing harness, `performance.now()`, profiler, query plan), then bisect. Measure first, fix second.\n\n## Phase 5: Fix + regression test\n\nWrite the regression test **before the fix**, but only if there is a **correct seam** for it.\n\nA correct seam is one where the test exercises the **real bug pattern** as it occurs at the call site. If the only available seam is too shallow (single-caller test when the bug needs multiple callers, unit test that can't replicate the chain that triggered the bug), a regression test there gives false confidence.\n\n**If no correct seam exists, that itself is the finding.** Note it. The codebase architecture is preventing the bug from being locked down. Flag this for the next phase.\n\nIf a correct seam exists:\n\n1. Turn the minimised repro into a failing test at that seam.\n2. Watch it fail. If you forced the red by mutating code or a fixture, `diff` against a pristine copy to prove the mutation landed before you trust it.\n3. Apply the fix.\n4. Watch it pass.\n5. Re-run the Phase 1 feedback loop against the original (un-minimised) scenario.\n\n## Phase 6: Cleanup\n\nRequired before declaring done:\n\n- [ ] Original repro no longer reproduces (re-run the Phase 1 loop)\n- [ ] Regression test passes (or absence of seam is documented)\n- [ ] All `[DEBUG-...]` instrumentation removed (`grep` the prefix)\n- [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)\n- [ ] The hypothesis that turned out correct is stated in the commit / PR message, so the next debugger learns\n</skill>\n\nUser request:\nInvoice INV-1043 (./invoices/data/INV-1043.json) comes out at 71.64, but the customer's spreadsheet says 71.65. I'm pretty sure it's the tax rounding in tax.py. Can you fix it? The project is in ./invoices.",
+          "label": "prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\nBase directory for this skill: {{skill_dir}}\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "defbe424f1e2b3952dae59afa25d7cca146a91aa43ce31bfe12778e84bbbadbf",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "INV-1043 now comes out at 71.65, which matches the customer's spreadsheet. The tax rounding wasn't the cause, so I left `tax.py` alone.\n\n**Cause:** `line_total` in `invoice.py` truncated each line to the cent (`int(amount * 100) / 100`) instead of rounding. Line 2 is 12.49 × 0.85 = 10.6165, which came out as 10.61 instead of 10.62. That put the subtotal at 62.31 instead of 62.32. The tax on 62.31 is 9.33 and the tax on 62.32 is also 9.33, so the tax step was correct both ways. The 1¢ error came entirely from the subtotal.\n\n**Fix:** `line_total` now does its arithmetic in `Decimal` (converting inputs with `str()`) and rounds half-up to the cent. It returns a `Decimal`, and `subtotal` uses it directly.\n\n**Verification:**\n- **Repro:** the script that asserted 71.65 failed before the fix with 71.64 and passes now. It was a throwaway script in `$TMPDIR` and isn't part of the project.\n- **Regression tests:** I added `test_line_discount_rounds_half_up` and `test_inv_1043` to `tests/test_invoice.py`. Both failed before the fix.\n- **Test suite:** all 6 tests pass.\n- **Debug code:** I added no debug instrumentation, so there was nothing to clean up.\n\n`line_total` used to return a float and now returns a `Decimal`. The existing tests still pass, but check any other callers you have that rely on a float.",
+          "tokenUsage": {
+            "prompt": 93907,
+            "completion": 2504,
+            "cached": 0,
+            "total": 96411,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 686,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 81612,
+              "cacheCreationInputTokens": 12283
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "cost": 0.08235719999999999,
+          "raw": "{\"duration_api_ms\":23367,\"stop_reason\":\"end_turn\",\"session_id\":\"03b32253-990c-490c-bfc1-cdc1ed51d6aa\",\"total_cost_usd\":0.08235719999999999,\"usage\":{\"input_tokens\":12,\"cache_creation_input_tokens\":12283,\"cache_read_input_tokens\":81612,\"output_tokens\":2504,\"output_tokens_details\":{\"thinking_tokens\":686},\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":12283,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":535,\"cache_read_input_tokens\":17075,\"cache_creation_input_tokens\":637,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":637},\"type\":\"message\"}],\"speed\":\"standard\",\"fallback_credit\":null},\"modelUsage\":{\"claude-sonnet-5-5\":{\"inputTokens\":12,\"outputTokens\":2504,\"cacheReadInputTokens\":81612,\"cacheCreationInputTokens\":12283,\"webSearchRequests\":0,\"costUSD\":0.08235719999999999,\"contextWindow\":1000000,\"maxOutputTokens\":128000,\"thinkingTokens\":686,\"cacheCreationEphemeral5mInputTokens\":0,\"cacheCreationEphemeral1hInputTokens\":12283,\"canonicalModel\":\"claude-sonnet-5-5\",\"provider\":\"firstParty\",\"costBasis\":\"list\"}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"fast_mode_disabled_reason\":\"sdk_opt_in_required\",\"subagent_stats\":{\"spawned\":0,\"requested\":{\"background\":0,\"foreground\":0,\"unset\":0},\"started_in_background\":0,\"max_depth\":0,\"spawned_by_subagents\":0,\"completed\":0,\"failed\":0,\"killed\":{\"parent\":0,\"user\":0,\"system\":0},\"refused\":{\"depth_limit\":0,\"concurrency_limit\":0,\"budget\":0},\"by_type\":{}},\"safety_stops\":0,\"is_error\":false,\"num_turns\":6,\"subtype\":\"success\",\"api_error_status\":null,\"result\":\"INV-1043 now comes out at 71.65, which matches the customer's spreadsheet. The tax rounding wasn't the cause, so I left `tax.py` alone.\\n\\n**Cause:** `line_total` in `invoice.py` truncated each line to the cent (`int(amount * 100) / 100`) instead of rounding. Line 2 is 12.49 × 0.85 = 10.6165, which came out as 10.61 instead of 10.62. That put the subtotal at 62.31 instead of 62.32. The tax on 62.31 is 9.33 and the tax on 62.32 is also 9.33, so the tax step was correct both ways. The 1¢ error came entirely from the subtotal.\\n\\n**Fix:** `line_total` now does its arithmetic in `Decimal` (converting inputs with `str()`) and rounds half-up to the cent. It returns a `Decimal`, and `subtotal` uses it directly.\\n\\n**Verification:**\\n- **Repro:** the script that asserted 71.65 failed before the fix with 71.64 and passes now. It was a throwaway script in `$TMPDIR` and isn't part of the project.\\n- **Regression tests:** I added `test_line_discount_rounds_half_up` and `test_inv_1043` to `tests/test_invoice.py`. Both failed before the fix.\\n- **Test suite:** all 6 tests pass.\\n- **Debug code:** I added no debug instrumentation, so there was nothing to clean up.\\n\\n`line_total` used to return a float and now returns a `Decimal`. The existing tests still pass, but check any other callers you have that rely on a float.\",\"ttft_ms\":2453,\"type\":\"result\",\"duration_ms\":25685,\"uuid\":\"ee12089c-2e2c-4c33-9b21-1cba16fe04f1\",\"ttft_stream_ms\":1650,\"time_to_request_ms\":63,\"time_to_request_phases_ms\":{\"other\":6,\"system_prompt\":4,\"resume_other\":0,\"process_user_input\":2,\"input_attachments\":3,\"input_hooks\":1,\"transcript_persist\":33,\"tool_pool_refresh\":1,\"init_message\":2,\"engine_pickup\":0,\"message_prep\":1,\"model_config_wait\":0,\"autocompact\":1,\"query_setup\":0,\"model_gates\":0,\"tool_schema_build\":2,\"message_normalization\":1,\"client_creation\":2,\"request_build\":4},\"turn_start_resume_kind\":\"none\",\"process_turn_index\":0,\"time_to_request_loop_lag_ms\":13,\"time_to_request_cpu_ms\":57,\"time_to_request_major_faults\":0,\"input_attachments_detail\":{\"slowest_producer\":\"queued_commands\",\"slowest_producer_ms\":3,\"cpu_ms\":5,\"major_faults\":0},\"first_content_frame_ms\":1650,\"queued_turn_count\":0,\"result_index\":0,\"model_usage_since_last_result\":{\"claude-sonnet-5-5\":{\"inputTokens\":12,\"outputTokens\":2504,\"cacheReadInputTokens\":81612,\"cacheCreationInputTokens\":12283,\"webSearchRequests\":0,\"costUSD\":0.08235719999999999,\"contextWindow\":1000000,\"maxOutputTokens\":128000,\"thinkingTokens\":686,\"cacheCreationEphemeral5mInputTokens\":0,\"cacheCreationEphemeral1hInputTokens\":12283,\"canonicalModel\":\"claude-sonnet-5-5\",\"provider\":\"firstParty\",\"costBasis\":\"list\"}}}",
+          "sessionId": "03b32253-990c-490c-bfc1-cdc1ed51d6aa",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [
+              {
+                "id": "toolu_01HBh8otZaaRmtaCgHrpdEvo",
+                "name": "Bash",
+                "input": {
+                  "command": "cd invoices && ls -R . | head -50; cat tax.py; cat data/INV-1043.json; ls GLOSSARY.md 2>&1"
+                },
+                "output": "Exit code 1\nREADME.md\ndata\ninvoice.py\ntax.py\ntests\n\n./data:\nINV-1043.json\n\n./tests:\n__init__.py\ntest_invoice.py\n\"\"\"Sales tax on a subtotal, rounded half-up to the cent (the rule the tax authority uses).\"\"\"\nfrom decimal import Decimal, ROUND_HALF_UP\n\n\ndef tax_amount(subtotal, rate):\n    return (Decimal(subtotal) * Decimal(rate)).quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)\n{ \"id\": \"INV-1043\", \"lines\": [\n  { \"quantity\": 3, \"unit_price\": 12.99, \"discount_pct\": 0 },\n  { \"quantity\": 1, \"unit_price\": 12.49, \"discount_pct\": 15 },\n  { \"quantity\": 4, \"unit_price\": 3.35, \"discount_pct\": 5 }\n] }\nls: GLOSSARY.md: No such file or directory",
+                "is_error": true,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_01P5b5Mcyxj8E316mdhDqPsW",
+                "name": "Bash",
+                "input": {
+                  "command": "cd invoices && cat invoice.py README.md; cat tests/test_invoice.py"
+                },
+                "output": "\"\"\"Invoice totals.\"\"\"\nimport json\nfrom decimal import Decimal\n\nfrom tax import tax_amount\n\nTAX_RATE = Decimal(\"0.14975\")\n\n\ndef line_total(quantity, unit_price, discount_pct=0):\n    \"\"\"Quantity times unit price, less the line's percentage discount, in dollars and cents.\"\"\"\n    amount = quantity * unit_price * (1 - discount_pct / 100)\n    return int(amount * 100) / 100\n\n\ndef subtotal(lines):\n    return sum(Decimal(str(line_total(**line))) for line in lines)\n\n\ndef invoice_total(lines):\n    sub = subtotal(lines)\n    return sub + tax_amount(sub, TAX_RATE)\n\n\ndef load(path):\n    with open(path) as f:\n        return json.load(f)[\"lines\"]\n# invoices\n\nComputes invoice totals: each line is quantity × unit price less its discount, rounded to the cent;\ntax (QC GST+QST, 14.975%) is charged on the subtotal. Run the tests with `python3 -m unittest`.\nimport unittest\nfrom decimal import Decimal\n\nfrom invoice import invoice_total, line_total\nfrom tax import tax_amount\n\n\nclass InvoiceTest(unittest.TestCase):\n    def test_line_without_discount(self):\n        self.assertEqual(line_total(2, 10.0), 20.0)\n\n    def test_line_with_round_discount(self):\n        self.assertEqual(line_total(1, 10.0, 10), 9.0)\n\n    def test_tax_rounds_half_up(self):\n        self.assertEqual(tax_amount(Decimal(\"10.00\"), Decimal(\"0.14975\")), Decimal(\"1.50\"))\n\n    def test_simple_invoice(self):\n        self.assertEqual(invoice_total([{\"quantity\": 2, \"unit_price\": 10.0}]), Decimal(\"23.00\"))\n\n\nif __name__ == \"__main__\":\n    unittest.main()",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_01UMZx4LUbF99foW54tksZV2",
+                "name": "Bash",
+                "input": {
+                  "command": "cat > $TMPDIR/loop.py <<'E'\nimport sys; sys.path.insert(0,'.')\nfrom invoice import *\nfrom decimal import Decimal\nL=load('data/INV-1043.json')\nfor l in L: print(l, repr(line_total(**l)))\ns=subtotal(L); print('sub',s,'tax',tax_amount(s,TAX_RATE),'total',invoice_total(L))\nassert invoice_total(L)==Decimal('71.65'), 'expected 71.65'\nE\npython3 -I $TMPDIR/loop.py; echo exit $?"
+                },
+                "output": "{'quantity': 3, 'unit_price': 12.99, 'discount_pct': 0} 38.97\n{'quantity': 1, 'unit_price': 12.49, 'discount_pct': 15} 10.61\n{'quantity': 4, 'unit_price': 3.35, 'discount_pct': 5} 12.73\nsub 62.31 tax 9.33 total 71.64\nTraceback (most recent call last):\n  File \"/tmp/claude-501/loop.py\", line 7, in <module>\n    assert invoice_total(L)==Decimal('71.65'), 'expected 71.65'\nAssertionError: expected 71.65\nexit 1",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_01Px2HMPodxSq8wtxAZrzLRR",
+                "name": "Bash",
+                "input": {
+                  "command": "python3 - <<'E'\np='tests/test_invoice.py'\ns=open(p).read()\ns=s.replace('''    def test_simple_invoice''','''    def test_line_discount_rounds_half_up(self):\n        self.assertEqual(line_total(1, 12.49, 15), Decimal(\"10.62\"))\n\n    def test_inv_1043(self):\n        self.assertEqual(invoice_total(load(\"data/INV-1043.json\")), Decimal(\"71.65\"))\n\n    def test_simple_invoice''')\ns=s.replace(\"import invoice_total, line_total\",\"import invoice_total, line_total, load\")\nopen(p,'w').write(s)\nE\npython3 -m unittest 2>&1 | tail -15"
+                },
+                "output": "    self.assertEqual(invoice_total(load(\"data/INV-1043.json\")), Decimal(\"71.65\"))\nAssertionError: Decimal('71.64') != Decimal('71.65')\n\n======================================================================\nFAIL: test_line_discount_rounds_half_up (tests.test_invoice.InvoiceTest)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/invoices/tests/test_invoice.py\", line 19, in test_line_discount_rounds_half_up\n    self.assertEqual(line_total(1, 12.49, 15), Decimal(\"10.62\"))\nAssertionError: 10.61 != Decimal('10.62')\n\n----------------------------------------------------------------------\nRan 6 tests in 0.001s\n\nFAILED (failures=2)",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_01JYAVphJSrff2Mnvnfw251N",
+                "name": "Bash",
+                "input": {
+                  "command": "python3 - <<'E'\np='invoice.py'\ns=open(p).read()\ns=s.replace(\"from decimal import Decimal\\n\",\"from decimal import Decimal, ROUND_HALF_UP\\n\",1)\ns=s.replace('''    amount = quantity * unit_price * (1 - discount_pct / 100)\n    return int(amount * 100) / 100''','''    amount = Decimal(quantity) * Decimal(str(unit_price)) * (1 - Decimal(str(discount_pct)) / 100)\n    return amount.quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)''')\ns=s.replace(\"Decimal(str(line_total(**line)))\",\"line_total(**line)\")\nopen(p,'w').write(s)\nE\npython3 -m unittest 2>&1 | tail -4; python3 -I $TMPDIR/loop.py; echo exit $?; grep -rn \"DEBUG-\" . ; true"
+                },
+                "output": "----------------------------------------------------------------------\nRan 6 tests in 0.000s\n\nOK\n{'quantity': 3, 'unit_price': 12.99, 'discount_pct': 0} Decimal('38.97')\n{'quantity': 1, 'unit_price': 12.49, 'discount_pct': 15} Decimal('10.62')\n{'quantity': 4, 'unit_price': 3.35, 'discount_pct': 5} Decimal('12.73')\nsub 62.32 tax 9.33 total 71.65\nexit 0",
+                "is_error": false,
+                "parentToolUseId": null
+              }
+            ],
+            "numTurns": 6,
+            "durationMs": 25685,
+            "durationApiMs": 23367,
+            "modelUsage": {
+              "claude-sonnet-5-5": {
+                "inputTokens": 12,
+                "outputTokens": 2504,
+                "cacheReadInputTokens": 81612,
+                "cacheCreationInputTokens": 12283,
+                "webSearchRequests": 0,
+                "costUSD": 0.08235719999999999,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 128000,
+                "thinkingTokens": 686,
+                "cacheCreationEphemeral5mInputTokens": 0,
+                "cacheCreationEphemeral1hInputTokens": 12283,
+                "canonicalModel": "claude-sonnet-5-5",
+                "provider": "firstParty",
+                "costBasis": "list"
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "d-01-invoices: off by a cent; the user blames tax.py, the cause is truncation in line_total",
+          "vars": {
+            "skill": "file:///Users/cference/Code/claude-toolkit/evals/diagnosing-bugs/prompts/prompt_v2.md",
+            "skill_dir": "/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/.skill",
+            "case": "d-01-invoices",
+            "request": "Invoice INV-1043 (./invoices/data/INV-1043.json) comes out at 71.64, but the customer's spreadsheet says 71.65. I'm pretty sure it's the tax rounding in tax.py. Can you fix it? The project is in ./invoices.",
+            "sessionId": "03b32253-990c-490c-bfc1-cdc1ed51d6aa"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "fixed",
+              "value": "file://asserts/fixed.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "regression",
+              "value": "file://asserts/regression.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "clean",
+              "value": "file://asserts/clean.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "loop-first",
+              "value": "file://asserts/loop-first.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "cause",
+              "value": "file://asserts/cause.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 93907,
+          "completion": 2504,
+          "cached": 0,
+          "total": 96411,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 686,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 81612,
+            "cacheCreationInputTokens": 12283
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///Users/cference/Code/claude-toolkit/evals/diagnosing-bugs/prompts/prompt_v2.md",
+          "skill_dir": "/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/.skill",
+          "case": "d-01-invoices",
+          "request": "Invoice INV-1043 (./invoices/data/INV-1043.json) comes out at 71.64, but the customer's spreadsheet says 71.65. I'm pretty sure it's the tax rounding in tax.py. Can you fix it? The project is in ./invoices.",
+          "sessionId": "03b32253-990c-490c-bfc1-cdc1ed51d6aa"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [
+            {
+              "id": "toolu_01HBh8otZaaRmtaCgHrpdEvo",
+              "name": "Bash",
+              "input": {
+                "command": "cd invoices && ls -R . | head -50; cat tax.py; cat data/INV-1043.json; ls GLOSSARY.md 2>&1"
+              },
+              "output": "Exit code 1\nREADME.md\ndata\ninvoice.py\ntax.py\ntests\n\n./data:\nINV-1043.json\n\n./tests:\n__init__.py\ntest_invoice.py\n\"\"\"Sales tax on a subtotal, rounded half-up to the cent (the rule the tax authority uses).\"\"\"\nfrom decimal import Decimal, ROUND_HALF_UP\n\n\ndef tax_amount(subtotal, rate):\n    return (Decimal(subtotal) * Decimal(rate)).quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)\n{ \"id\": \"INV-1043\", \"lines\": [\n  { \"quantity\": 3, \"unit_price\": 12.99, \"discount_pct\": 0 },\n  { \"quantity\": 1, \"unit_price\": 12.49, \"discount_pct\": 15 },\n  { \"quantity\": 4, \"unit_price\": 3.35, \"discount_pct\": 5 }\n] }\nls: GLOSSARY.md: No such file or directory",
+              "is_error": true,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_01P5b5Mcyxj8E316mdhDqPsW",
+              "name": "Bash",
+              "input": {
+                "command": "cd invoices && cat invoice.py README.md; cat tests/test_invoice.py"
+              },
+              "output": "\"\"\"Invoice totals.\"\"\"\nimport json\nfrom decimal import Decimal\n\nfrom tax import tax_amount\n\nTAX_RATE = Decimal(\"0.14975\")\n\n\ndef line_total(quantity, unit_price, discount_pct=0):\n    \"\"\"Quantity times unit price, less the line's percentage discount, in dollars and cents.\"\"\"\n    amount = quantity * unit_price * (1 - discount_pct / 100)\n    return int(amount * 100) / 100\n\n\ndef subtotal(lines):\n    return sum(Decimal(str(line_total(**line))) for line in lines)\n\n\ndef invoice_total(lines):\n    sub = subtotal(lines)\n    return sub + tax_amount(sub, TAX_RATE)\n\n\ndef load(path):\n    with open(path) as f:\n        return json.load(f)[\"lines\"]\n# invoices\n\nComputes invoice totals: each line is quantity × unit price less its discount, rounded to the cent;\ntax (QC GST+QST, 14.975%) is charged on the subtotal. Run the tests with `python3 -m unittest`.\nimport unittest\nfrom decimal import Decimal\n\nfrom invoice import invoice_total, line_total\nfrom tax import tax_amount\n\n\nclass InvoiceTest(unittest.TestCase):\n    def test_line_without_discount(self):\n        self.assertEqual(line_total(2, 10.0), 20.0)\n\n    def test_line_with_round_discount(self):\n        self.assertEqual(line_total(1, 10.0, 10), 9.0)\n\n    def test_tax_rounds_half_up(self):\n        self.assertEqual(tax_amount(Decimal(\"10.00\"), Decimal(\"0.14975\")), Decimal(\"1.50\"))\n\n    def test_simple_invoice(self):\n        self.assertEqual(invoice_total([{\"quantity\": 2, \"unit_price\": 10.0}]), Decimal(\"23.00\"))\n\n\nif __name__ == \"__main__\":\n    unittest.main()",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_01UMZx4LUbF99foW54tksZV2",
+              "name": "Bash",
+              "input": {
+                "command": "cat > $TMPDIR/loop.py <<'E'\nimport sys; sys.path.insert(0,'.')\nfrom invoice import *\nfrom decimal import Decimal\nL=load('data/INV-1043.json')\nfor l in L: print(l, repr(line_total(**l)))\ns=subtotal(L); print('sub',s,'tax',tax_amount(s,TAX_RATE),'total',invoice_total(L))\nassert invoice_total(L)==Decimal('71.65'), 'expected 71.65'\nE\npython3 -I $TMPDIR/loop.py; echo exit $?"
+              },
+              "output": "{'quantity': 3, 'unit_price': 12.99, 'discount_pct': 0} 38.97\n{'quantity': 1, 'unit_price': 12.49, 'discount_pct': 15} 10.61\n{'quantity': 4, 'unit_price': 3.35, 'discount_pct': 5} 12.73\nsub 62.31 tax 9.33 total 71.64\nTraceback (most recent call last):\n  File \"/tmp/claude-501/loop.py\", line 7, in <module>\n    assert invoice_total(L)==Decimal('71.65'), 'expected 71.65'\nAssertionError: expected 71.65\nexit 1",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_01Px2HMPodxSq8wtxAZrzLRR",
+              "name": "Bash",
+              "input": {
+                "command": "python3 - <<'E'\np='tests/test_invoice.py'\ns=open(p).read()\ns=s.replace('''    def test_simple_invoice''','''    def test_line_discount_rounds_half_up(self):\n        self.assertEqual(line_total(1, 12.49, 15), Decimal(\"10.62\"))\n\n    def test_inv_1043(self):\n        self.assertEqual(invoice_total(load(\"data/INV-1043.json\")), Decimal(\"71.65\"))\n\n    def test_simple_invoice''')\ns=s.replace(\"import invoice_total, line_total\",\"import invoice_total, line_total, load\")\nopen(p,'w').write(s)\nE\npython3 -m unittest 2>&1 | tail -15"
+              },
+              "output": "    self.assertEqual(invoice_total(load(\"data/INV-1043.json\")), Decimal(\"71.65\"))\nAssertionError: Decimal('71.64') != Decimal('71.65')\n\n======================================================================\nFAIL: test_line_discount_rounds_half_up (tests.test_invoice.InvoiceTest)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/invoices/tests/test_invoice.py\", line 19, in test_line_discount_rounds_half_up\n    self.assertEqual(line_total(1, 12.49, 15), Decimal(\"10.62\"))\nAssertionError: 10.61 != Decimal('10.62')\n\n----------------------------------------------------------------------\nRan 6 tests in 0.001s\n\nFAILED (failures=2)",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_01JYAVphJSrff2Mnvnfw251N",
+              "name": "Bash",
+              "input": {
+                "command": "python3 - <<'E'\np='invoice.py'\ns=open(p).read()\ns=s.replace(\"from decimal import Decimal\\n\",\"from decimal import Decimal, ROUND_HALF_UP\\n\",1)\ns=s.replace('''    amount = quantity * unit_price * (1 - discount_pct / 100)\n    return int(amount * 100) / 100''','''    amount = Decimal(quantity) * Decimal(str(unit_price)) * (1 - Decimal(str(discount_pct)) / 100)\n    return amount.quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)''')\ns=s.replace(\"Decimal(str(line_total(**line)))\",\"line_total(**line)\")\nopen(p,'w').write(s)\nE\npython3 -m unittest 2>&1 | tail -4; python3 -I $TMPDIR/loop.py; echo exit $?; grep -rn \"DEBUG-\" . ; true"
+              },
+              "output": "----------------------------------------------------------------------\nRan 6 tests in 0.000s\n\nOK\n{'quantity': 3, 'unit_price': 12.99, 'discount_pct': 0} Decimal('38.97')\n{'quantity': 1, 'unit_price': 12.49, 'discount_pct': 15} Decimal('10.62')\n{'quantity': 4, 'unit_price': 3.35, 'discount_pct': 5} Decimal('12.73')\nsub 62.32 tax 9.33 total 71.65\nexit 0",
+              "is_error": false,
+              "parentToolUseId": null
+            }
+          ],
+          "numTurns": 6,
+          "durationMs": 25685,
+          "durationApiMs": 23367,
+          "modelUsage": {
+            "claude-sonnet-5-5": {
+              "inputTokens": 12,
+              "outputTokens": 2504,
+              "cacheReadInputTokens": 81612,
+              "cacheCreationInputTokens": 12283,
+              "webSearchRequests": 0,
+              "costUSD": 0.08235719999999999,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 128000,
+              "thinkingTokens": 686,
+              "cacheCreationEphemeral5mInputTokens": 0,
+              "cacheCreationEphemeral1hInputTokens": 12283,
+              "canonicalModel": "claude-sonnet-5-5",
+              "provider": "firstParty",
+              "costBasis": "list"
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "03b32253-990c-490c-bfc1-cdc1ed51d6aa"
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.07174380000000001,
+        "error": "no new or changed test",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.8,
+          "reason": "no new or changed test",
+          "namedScores": {
+            "fixed": 1,
+            "regression": 0,
+            "clean": 1,
+            "loop-first": 1,
+            "cause": 1
+          },
+          "namedScoreWeights": {
+            "fixed": 1,
+            "regression": 1,
+            "clean": 1,
+            "loop-first": 1,
+            "cause": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "bug fixed (hidden check passes)",
+              "assertion": {
+                "type": "javascript",
+                "metric": "fixed",
+                "value": "file://asserts/fixed.js"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "no new or changed test",
+              "assertion": {
+                "type": "javascript",
+                "metric": "regression",
+                "value": "file://asserts/regression.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "no instrumentation or throwaway files left",
+              "assertion": {
+                "type": "javascript",
+                "metric": "clean",
+                "value": "file://asserts/clean.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "ran the code before changing it",
+              "assertion": {
+                "type": "javascript",
+                "metric": "loop-first",
+                "value": "file://asserts/loop-first.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "root cause named",
+              "assertion": {
+                "type": "javascript",
+                "metric": "cause",
+                "value": "file://asserts/cause.js"
+              }
+            }
+          ]
+        },
+        "id": "d6fe59b2-ae6a-489b-a133-bf83dbac7753",
+        "latencyMs": 29866,
+        "namedScores": {
+          "fixed": 1,
+          "regression": 0,
+          "clean": 1,
+          "loop-first": 1,
+          "cause": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\nBase directory for this skill: /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/.skill\n\n<skill>\n---\nname: diagnosing-bugs\ndescription: Diagnosis loop for hard bugs and performance regressions. Use when the user says \"diagnose\"/\"debug this\", or reports something broken/throwing/failing/slow.\n---\n\n# Diagnosing Bugs\n\nA discipline for hard bugs. Skip phases only when explicitly justified.\n\nWhen exploring the codebase, read `GLOSSARY.md` (if it exists) to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.\n\n## Redact\n\nThis skill has you show commands, outputs and captured artifacts. **Redact every secret first**: write `<REDACTED>` in its place. Build loops against env vars, so the credential stays in the environment rather than in what you show. Captured artifacts carry auth headers: quote only the lines that carry the signal.\n\nIf the redacted output is not enough to diagnose the bug, say so and ask the user.\n\n## Phase 1: Build a feedback loop\n\n**This is the skill.** Everything else is mechanical. If you have a **tight** pass/fail signal for the bug (one that goes red on _this_ bug), you will find the cause; bisection, hypothesis-testing, and instrumentation all just consume it. If you don't have one, no amount of staring at code will save you.\n\nSpend disproportionate effort here. **Be aggressive. Be creative. Refuse to give up.**\n\n### Ways to construct one, in roughly this order\n\n1. **Failing test** at whatever seam reaches the bug: unit, integration, e2e.\n2. **Curl / HTTP script** against a running dev server.\n3. **CLI invocation** with a fixture input, diffing stdout against a known-good snapshot.\n4. **Headless browser script** (Playwright / Puppeteer) that drives the UI and asserts on DOM/console/network.\n5. **Replay a captured trace.** Save a real network request / payload / event log to disk; replay it through the code path in isolation.\n6. **Throwaway harness.** Spin up a minimal subset of the system (one service, mocked deps) that exercises the bug code path with a single function call.\n7. **Property / fuzz loop.** If the bug is \"sometimes wrong output\", run 1000 random inputs and look for the failure mode.\n8. **Bisection harness.** If the bug appeared between two known states (commit, dataset, version), automate \"boot at state X, check, repeat\" so you can `git bisect run` it.\n9. **Differential loop.** Run the same input through old-version vs new-version (or two configs) and diff outputs.\n10. **HITL bash script.** Last resort. If a human must click, drive _them_ with `scripts/hitl-loop.template.sh` so the loop is still structured. Captured output feeds back to you.\n\nBuild the right feedback loop, and the bug is 90% fixed.\n\n### Tighten the loop\n\nTreat the loop as a product. Once you have _a_ loop, **tighten** it:\n\n- Can I make it faster? (Cache setup, skip unrelated init, narrow the test scope.)\n- Can I make the signal sharper? (Assert on the specific symptom, not \"didn't crash\".)\n- Can I make it more deterministic? (Pin time, seed RNG, isolate filesystem, freeze network.)\n\nA 30-second flaky loop is barely better than no loop; a 2-second deterministic one is tight, a debugging superpower.\n\n### Non-deterministic bugs\n\nThe goal is not a clean repro but a **higher reproduction rate**. Loop the trigger 100×, parallelise, add stress, narrow timing windows, inject sleeps. A 50%-flake bug is debuggable; 1% is not, so keep raising the rate until it's debuggable.\n\n### When you genuinely cannot build a loop\n\nStop and say so explicitly. List what you tried. Ask the user for: (a) access to whatever environment reproduces it, (b) a redacted captured artifact (HAR file, log dump, core dump, screen recording with timestamps), or (c) permission to add temporary production instrumentation. Do **not** proceed to hypothesise without a loop.\n\n### Completion criterion: a tight loop that goes red\n\nPhase 1 is done when the loop is **tight** and **red-capable**: you can name **one command** (a script path, a test invocation, a curl) that you have **already run at least once** (show the invocation and its output, redacted), and that is:\n\n- [ ] **Red-capable**: it drives the actual bug code path and asserts the **user's exact symptom**, so it can go red on this bug and green once fixed. Not \"runs without erroring\"; it must be able to _catch this specific bug_.\n- [ ] **Deterministic**: same verdict every run (flaky bugs: a pinned, high reproduction rate, per above).\n- [ ] **Fast**: seconds, not minutes.\n- [ ] **Agent-runnable**: you can run it unattended; a human in the loop only via `scripts/hitl-loop.template.sh`.\n\nIf you catch yourself reading code to build a theory before this command exists, **stop: jumping straight to a hypothesis is the exact failure this skill prevents.** No red-capable command, no Phase 2.\n\n## Phase 2: Reproduce + minimise\n\nRun the loop. Watch it go red as the bug appears.\n\nConfirm:\n\n- [ ] The loop produces the failure mode the **user** described, not a different failure that happens to be nearby. Wrong bug = wrong fix.\n- [ ] The failure is reproducible across multiple runs (or, for non-deterministic bugs, reproducible at a high enough rate to debug against).\n- [ ] You have captured the exact symptom (error message, wrong output, slow timing) so later phases can verify the fix actually addresses it.\n\n### Minimise\n\nOnce it's red, shrink the repro to the **smallest scenario that still goes red**. Cut inputs, callers, config, data, and steps **one at a time**, re-running the loop after each cut, and keep only what's load-bearing for the failure.\n\nWhy bother: a minimal repro shrinks the hypothesis space in Phase 3 (fewer moving parts left to suspect) and becomes the clean regression test in Phase 5.\n\nDone when **every remaining element is load-bearing**: removing any one of them makes the loop go green.\n\nDo not proceed until you have reproduced **and** minimised.\n\n## Phase 3: Hypothesise\n\nGenerate **3–5 ranked hypotheses** before testing any of them. Single-hypothesis generation anchors on the first plausible idea.\n\nEach hypothesis must be **falsifiable**: state the prediction it makes.\n\n> Format: \"If <X> is the cause, then <changing Y> will make the bug disappear / <changing Z> will make it worse.\"\n\nIf you cannot state the prediction, the hypothesis is a vibe: discard or sharpen it.\n\n**Show the ranked list to the user before testing.** They often have domain knowledge that re-ranks instantly (\"we just deployed a change to #3\"), or know hypotheses they've already ruled out. Cheap checkpoint, big time saver. Don't block on it; proceed with your ranking if the user is AFK.\n\n## Phase 4: Instrument\n\nEach probe must map to a specific prediction from Phase 3. **Change one variable at a time.**\n\nTool preference:\n\n1. **Debugger / REPL inspection** if the env supports it. One breakpoint beats ten logs.\n2. **Targeted logs** at the boundaries that distinguish hypotheses.\n3. Never \"log everything and grep\".\n\n**Tag every debug log** with a unique prefix, e.g. `[DEBUG-a4f2]`. Cleanup at the end becomes a single grep. Untagged logs survive; tagged logs die.\n\n**Perf branch.** For performance regressions, logs are usually wrong. Instead: establish a baseline measurement (timing harness, `performance.now()`, profiler, query plan), then bisect. Measure first, fix second.\n\n## Phase 5: Fix + regression test\n\nWrite the regression test **before the fix**, but only if there is a **correct seam** for it.\n\nA correct seam is one where the test exercises the **real bug pattern** as it occurs at the call site. If the only available seam is too shallow (single-caller test when the bug needs multiple callers, unit test that can't replicate the chain that triggered the bug), a regression test there gives false confidence.\n\n**If no correct seam exists, that itself is the finding.** Note it. The codebase architecture is preventing the bug from being locked down. Flag this for the next phase.\n\nIf a correct seam exists:\n\n1. Turn the minimised repro into a failing test at that seam.\n2. Watch it fail. If you forced the red by mutating code or a fixture, `diff` against a pristine copy to prove the mutation landed before you trust it.\n3. Apply the fix.\n4. Watch it pass.\n5. Re-run the Phase 1 feedback loop against the original (un-minimised) scenario.\n\n## Phase 6: Cleanup\n\nRequired before declaring done:\n\n- [ ] Original repro no longer reproduces (re-run the Phase 1 loop)\n- [ ] Regression test passes (or absence of seam is documented)\n- [ ] All `[DEBUG-...]` instrumentation removed (`grep` the prefix)\n- [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)\n- [ ] The hypothesis that turned out correct is stated in the commit / PR message, so the next debugger learns\n</skill>\n\nUser request:\ntest_next_slot_picks_earliest in ./scheduler fails on CI maybe half the time, and passes when I re-run it. Can you sort it out?",
+          "label": "prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\nBase directory for this skill: {{skill_dir}}\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "defbe424f1e2b3952dae59afa25d7cca146a91aa43ce31bfe12778e84bbbadbf",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "I fixed the flaky test. `test_next_slot_picks_earliest` now passes under every hash seed I tried.\n\n**Cause:** `next_slot` in `scheduler.py` took `list(free)[0]` from a `set`, so the result depended on set iteration order. Python randomizes string hashing for each process, so the \"first\" element changed from run to run. That is why CI failed about half the time and a re-run passed. The failure looked like `'15:00' != '09:30'`.\n\n**Fix:** `next_slot` now returns `min(free)`. The `\"HH:MM\"` zero-padded strings sort in time order, so this gives the earliest slot.\n\n**Verification:**\n- **Before the fix:** I ran the test under `PYTHONHASHSEED` 0–11, and it failed for seeds 3, 7, 8, 10 and 11. Pinning the seed made the failure deterministic.\n- **After the fix:** the same 12 seeds all pass. The full suite is also green under seeds 0, 3, 7 and 8.\n- **Regression test:** I didn't add one. The existing test already exercises this path and catches the bug whenever the hash seed is unlucky.\n- **Cleanup:** the temporary loop script is deleted, and no debug instrumentation was added.\n\nTo make a regression show up on every CI run, run the suite under a few fixed `PYTHONHASHSEED` values. That is optional.\n\nThis directory isn't a git repo, so I made no commit.",
+          "tokenUsage": {
+            "prompt": 91258,
+            "completion": 1943,
+            "cached": 0,
+            "total": 93201,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 226,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 80178,
+              "cacheCreationInputTokens": 11068
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "cost": 0.07174380000000001,
+          "raw": "{\"duration_api_ms\":23325,\"stop_reason\":\"end_turn\",\"session_id\":\"d53d4482-b9bd-444e-85bb-13e8fc3320a4\",\"total_cost_usd\":0.07174380000000001,\"usage\":{\"input_tokens\":12,\"cache_creation_input_tokens\":11068,\"cache_read_input_tokens\":80178,\"output_tokens\":1943,\"output_tokens_details\":{\"thinking_tokens\":226},\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":11068,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":482,\"cache_read_input_tokens\":15802,\"cache_creation_input_tokens\":695,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":695},\"type\":\"message\"}],\"speed\":\"standard\",\"fallback_credit\":null},\"modelUsage\":{\"claude-sonnet-5-5\":{\"inputTokens\":12,\"outputTokens\":1943,\"cacheReadInputTokens\":80178,\"cacheCreationInputTokens\":11068,\"webSearchRequests\":0,\"costUSD\":0.07174380000000001,\"contextWindow\":1000000,\"maxOutputTokens\":128000,\"thinkingTokens\":226,\"cacheCreationEphemeral5mInputTokens\":0,\"cacheCreationEphemeral1hInputTokens\":11068,\"canonicalModel\":\"claude-sonnet-5-5\",\"provider\":\"firstParty\",\"costBasis\":\"list\"}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"fast_mode_disabled_reason\":\"sdk_opt_in_required\",\"subagent_stats\":{\"spawned\":0,\"requested\":{\"background\":0,\"foreground\":0,\"unset\":0},\"started_in_background\":0,\"max_depth\":0,\"spawned_by_subagents\":0,\"completed\":0,\"failed\":0,\"killed\":{\"parent\":0,\"user\":0,\"system\":0},\"refused\":{\"depth_limit\":0,\"concurrency_limit\":0,\"budget\":0},\"by_type\":{}},\"safety_stops\":0,\"is_error\":false,\"num_turns\":7,\"subtype\":\"success\",\"api_error_status\":null,\"result\":\"I fixed the flaky test. `test_next_slot_picks_earliest` now passes under every hash seed I tried.\\n\\n**Cause:** `next_slot` in `scheduler.py` took `list(free)[0]` from a `set`, so the result depended on set iteration order. Python randomizes string hashing for each process, so the \\\"first\\\" element changed from run to run. That is why CI failed about half the time and a re-run passed. The failure looked like `'15:00' != '09:30'`.\\n\\n**Fix:** `next_slot` now returns `min(free)`. The `\\\"HH:MM\\\"` zero-padded strings sort in time order, so this gives the earliest slot.\\n\\n**Verification:**\\n- **Before the fix:** I ran the test under `PYTHONHASHSEED` 0–11, and it failed for seeds 3, 7, 8, 10 and 11. Pinning the seed made the failure deterministic.\\n- **After the fix:** the same 12 seeds all pass. The full suite is also green under seeds 0, 3, 7 and 8.\\n- **Regression test:** I didn't add one. The existing test already exercises this path and catches the bug whenever the hash seed is unlucky.\\n- **Cleanup:** the temporary loop script is deleted, and no debug instrumentation was added.\\n\\nTo make a regression show up on every CI run, run the suite under a few fixed `PYTHONHASHSEED` values. That is optional.\\n\\nThis directory isn't a git repo, so I made no commit.\",\"ttft_ms\":3106,\"type\":\"result\",\"duration_ms\":28624,\"uuid\":\"5d74791f-938c-489e-84b8-fe9269894380\",\"ttft_stream_ms\":2197,\"time_to_request_ms\":106,\"time_to_request_phases_ms\":{\"other\":7,\"system_prompt\":9,\"resume_other\":0,\"process_user_input\":1,\"input_attachments\":5,\"input_hooks\":1,\"transcript_persist\":35,\"tool_pool_refresh\":0,\"init_message\":2,\"engine_pickup\":1,\"message_prep\":0,\"model_config_wait\":8,\"autocompact\":0,\"query_setup\":1,\"model_gates\":0,\"tool_schema_build\":1,\"message_normalization\":1,\"client_creation\":31,\"request_build\":3},\"turn_start_resume_kind\":\"none\",\"process_turn_index\":0,\"time_to_request_loop_lag_ms\":6,\"time_to_request_cpu_ms\":67,\"time_to_request_major_faults\":0,\"input_attachments_detail\":{\"slowest_producer\":\"queued_commands\",\"slowest_producer_ms\":3,\"cpu_ms\":5,\"major_faults\":0},\"first_content_frame_ms\":2197,\"queued_turn_count\":0,\"result_index\":0,\"model_usage_since_last_result\":{\"claude-sonnet-5-5\":{\"inputTokens\":12,\"outputTokens\":1943,\"cacheReadInputTokens\":80178,\"cacheCreationInputTokens\":11068,\"webSearchRequests\":0,\"costUSD\":0.07174380000000001,\"contextWindow\":1000000,\"maxOutputTokens\":128000,\"thinkingTokens\":226,\"cacheCreationEphemeral5mInputTokens\":0,\"cacheCreationEphemeral1hInputTokens\":11068,\"canonicalModel\":\"claude-sonnet-5-5\",\"provider\":\"firstParty\",\"costBasis\":\"list\"}}}",
+          "sessionId": "d53d4482-b9bd-444e-85bb-13e8fc3320a4",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [
+              {
+                "id": "toolu_01AvELaWVRFiEjw5xeCaNu1j",
+                "name": "Bash",
+                "input": {
+                  "command": "cd scheduler 2>/dev/null && pwd && ls -la && ls ../GLOSSARY.md GLOSSARY.md 2>&1; grep -rn \"test_next_slot_picks_earliest\" ."
+                },
+                "output": "/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/scheduler\ntotal 16\ndrwxr-xr-x@ 5 cference  staff  160 Oct 28 14:52 .\ndrwxr-xr-x@ 8 cference  staff  256 Oct 28 14:53 ..\n-rw-r--r--@ 1 cference  staff   76 Oct 28 14:52 README.md\n-rw-r--r--@ 1 cference  staff  509 Oct 28 14:52 scheduler.py\ndrwxr-xr-x@ 4 cference  staff  128 Oct 28 14:52 tests\nls: ../GLOSSARY.md: No such file or directory\nls: GLOSSARY.md: No such file or directory\n./tests/test_scheduler.py:10:    def test_next_slot_picks_earliest(self):",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_01FpigJXTxLrhfj699EnBii5",
+                "name": "Bash",
+                "input": {
+                  "command": "cd /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/scheduler; cat README.md scheduler.py tests/test_scheduler.py; ls tests"
+                },
+                "output": "# scheduler\n\nBooks meeting slots. Run the tests with `python3 -m unittest`.\n\"\"\"Pick meeting slots.\"\"\"\n\nSLOTS = [\"09:00\", \"09:30\", \"10:00\", \"10:30\", \"11:00\", \"13:00\", \"13:30\", \"14:00\", \"14:30\", \"15:00\"]\n\n\ndef free_slots(busy):\n    return set(SLOTS) - set(busy)\n\n\ndef next_slot(busy):\n    \"\"\"The earliest free slot of the day, or None when the day is full.\"\"\"\n    free = free_slots(busy)\n    if not free:\n        return None\n    return list(free)[0]\n\n\ndef book(busy, slot):\n    if slot in busy:\n        raise ValueError(f\"{slot} is already booked\")\n    return sorted(set(busy) | {slot})\nimport unittest\n\nfrom scheduler import SLOTS, book, next_slot\n\n\nclass SchedulerTest(unittest.TestCase):\n    def test_full_day_has_no_slot(self):\n        self.assertIsNone(next_slot(SLOTS))\n\n    def test_next_slot_picks_earliest(self):\n        busy = [s for s in SLOTS if s not in (\"09:30\", \"15:00\")]\n        self.assertEqual(next_slot(busy), \"09:30\")\n\n    def test_book_rejects_double_booking(self):\n        with self.assertRaises(ValueError):\n            book([\"10:00\"], \"10:00\")\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n__init__.py\ntest_scheduler.py",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_015qGxdc5vbPYMyACgw7XucM",
+                "name": "Bash",
+                "input": {
+                  "command": "cd /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/scheduler\ncat > $TMPDIR/loop.sh <<'EOF'\n#!/bin/sh\n# red if any hash seed fails\nfail=0\nfor s in 0 1 2 3 4 5 6 7 8 9 10 11; do\n  PYTHONHASHSEED=$s python3 -m unittest tests.test_scheduler.SchedulerTest.test_next_slot_picks_earliest >/dev/null 2>&1 || { echo \"seed $s: FAIL\"; fail=1; }\ndone\nexit $fail\nEOF\nchmod +x $TMPDIR/loop.sh; $TMPDIR/loop.sh; echo exit=$?\nPYTHONHASHSEED=1 python3 -m unittest 2>&1 | grep -E \"AssertionError|FAIL\""
+                },
+                "output": "seed 3: FAIL\nseed 7: FAIL\nseed 8: FAIL\nseed 10: FAIL\nseed 11: FAIL\nexit=1",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_01DkaSMtiQHVyE6xnDVVxAyo",
+                "name": "Bash",
+                "input": {
+                  "command": "cd /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/scheduler\nPYTHONHASHSEED=3 python3 -m unittest 2>&1 | grep -E \"Error|!=\""
+                },
+                "output": "AssertionError: '15:00' != '09:30'",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_01T2rdVR8TEScTDsjf3ZcTDe",
+                "name": "Edit",
+                "input": {
+                  "replace_all": false,
+                  "file_path": "/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/scheduler/scheduler.py",
+                  "old_string": "    return list(free)[0]",
+                  "new_string": "    return min(free)"
+                },
+                "output": "The file /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/scheduler/scheduler.py has been updated successfully.",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_0148nicjs33un6Jdrgd4Y4Ev",
+                "name": "Bash",
+                "input": {
+                  "command": "cd /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/scheduler\n$TMPDIR/loop.sh; echo exit=$?\nfor s in 0 3 7 8; do PYTHONHASHSEED=$s python3 -m unittest 2>&1 | tail -1; done\ngrep -rn \"DEBUG-\" . ; rm $TMPDIR/loop.sh"
+                },
+                "output": "exit=0\nOK\nOK\nOK\nOK",
+                "is_error": false,
+                "parentToolUseId": null
+              }
+            ],
+            "numTurns": 7,
+            "durationMs": 28624,
+            "durationApiMs": 23325,
+            "modelUsage": {
+              "claude-sonnet-5-5": {
+                "inputTokens": 12,
+                "outputTokens": 1943,
+                "cacheReadInputTokens": 80178,
+                "cacheCreationInputTokens": 11068,
+                "webSearchRequests": 0,
+                "costUSD": 0.07174380000000001,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 128000,
+                "thinkingTokens": 226,
+                "cacheCreationEphemeral5mInputTokens": 0,
+                "cacheCreationEphemeral1hInputTokens": 11068,
+                "canonicalModel": "claude-sonnet-5-5",
+                "provider": "firstParty",
+                "costBasis": "list"
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 0.8,
+        "success": false,
+        "testCase": {
+          "description": "d-02-scheduler: a test that fails about half the time (set ordering under hash randomization)",
+          "vars": {
+            "skill": "file:///Users/cference/Code/claude-toolkit/evals/diagnosing-bugs/prompts/prompt_v2.md",
+            "skill_dir": "/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/.skill",
+            "case": "d-02-scheduler",
+            "request": "test_next_slot_picks_earliest in ./scheduler fails on CI maybe half the time, and passes when I re-run it. Can you sort it out?",
+            "sessionId": "d53d4482-b9bd-444e-85bb-13e8fc3320a4"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "fixed",
+              "value": "file://asserts/fixed.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "regression",
+              "value": "file://asserts/regression.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "clean",
+              "value": "file://asserts/clean.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "loop-first",
+              "value": "file://asserts/loop-first.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "cause",
+              "value": "file://asserts/cause.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 91258,
+          "completion": 1943,
+          "cached": 0,
+          "total": 93201,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 226,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 80178,
+            "cacheCreationInputTokens": 11068
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///Users/cference/Code/claude-toolkit/evals/diagnosing-bugs/prompts/prompt_v2.md",
+          "skill_dir": "/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/.skill",
+          "case": "d-02-scheduler",
+          "request": "test_next_slot_picks_earliest in ./scheduler fails on CI maybe half the time, and passes when I re-run it. Can you sort it out?",
+          "sessionId": "d53d4482-b9bd-444e-85bb-13e8fc3320a4"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [
+            {
+              "id": "toolu_01AvELaWVRFiEjw5xeCaNu1j",
+              "name": "Bash",
+              "input": {
+                "command": "cd scheduler 2>/dev/null && pwd && ls -la && ls ../GLOSSARY.md GLOSSARY.md 2>&1; grep -rn \"test_next_slot_picks_earliest\" ."
+              },
+              "output": "/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/scheduler\ntotal 16\ndrwxr-xr-x@ 5 cference  staff  160 Oct 28 14:52 .\ndrwxr-xr-x@ 8 cference  staff  256 Oct 28 14:53 ..\n-rw-r--r--@ 1 cference  staff   76 Oct 28 14:52 README.md\n-rw-r--r--@ 1 cference  staff  509 Oct 28 14:52 scheduler.py\ndrwxr-xr-x@ 4 cference  staff  128 Oct 28 14:52 tests\nls: ../GLOSSARY.md: No such file or directory\nls: GLOSSARY.md: No such file or directory\n./tests/test_scheduler.py:10:    def test_next_slot_picks_earliest(self):",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_01FpigJXTxLrhfj699EnBii5",
+              "name": "Bash",
+              "input": {
+                "command": "cd /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/scheduler; cat README.md scheduler.py tests/test_scheduler.py; ls tests"
+              },
+              "output": "# scheduler\n\nBooks meeting slots. Run the tests with `python3 -m unittest`.\n\"\"\"Pick meeting slots.\"\"\"\n\nSLOTS = [\"09:00\", \"09:30\", \"10:00\", \"10:30\", \"11:00\", \"13:00\", \"13:30\", \"14:00\", \"14:30\", \"15:00\"]\n\n\ndef free_slots(busy):\n    return set(SLOTS) - set(busy)\n\n\ndef next_slot(busy):\n    \"\"\"The earliest free slot of the day, or None when the day is full.\"\"\"\n    free = free_slots(busy)\n    if not free:\n        return None\n    return list(free)[0]\n\n\ndef book(busy, slot):\n    if slot in busy:\n        raise ValueError(f\"{slot} is already booked\")\n    return sorted(set(busy) | {slot})\nimport unittest\n\nfrom scheduler import SLOTS, book, next_slot\n\n\nclass SchedulerTest(unittest.TestCase):\n    def test_full_day_has_no_slot(self):\n        self.assertIsNone(next_slot(SLOTS))\n\n    def test_next_slot_picks_earliest(self):\n        busy = [s for s in SLOTS if s not in (\"09:30\", \"15:00\")]\n        self.assertEqual(next_slot(busy), \"09:30\")\n\n    def test_book_rejects_double_booking(self):\n        with self.assertRaises(ValueError):\n            book([\"10:00\"], \"10:00\")\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n__init__.py\ntest_scheduler.py",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_015qGxdc5vbPYMyACgw7XucM",
+              "name": "Bash",
+              "input": {
+                "command": "cd /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/scheduler\ncat > $TMPDIR/loop.sh <<'EOF'\n#!/bin/sh\n# red if any hash seed fails\nfail=0\nfor s in 0 1 2 3 4 5 6 7 8 9 10 11; do\n  PYTHONHASHSEED=$s python3 -m unittest tests.test_scheduler.SchedulerTest.test_next_slot_picks_earliest >/dev/null 2>&1 || { echo \"seed $s: FAIL\"; fail=1; }\ndone\nexit $fail\nEOF\nchmod +x $TMPDIR/loop.sh; $TMPDIR/loop.sh; echo exit=$?\nPYTHONHASHSEED=1 python3 -m unittest 2>&1 | grep -E \"AssertionError|FAIL\""
+              },
+              "output": "seed 3: FAIL\nseed 7: FAIL\nseed 8: FAIL\nseed 10: FAIL\nseed 11: FAIL\nexit=1",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_01DkaSMtiQHVyE6xnDVVxAyo",
+              "name": "Bash",
+              "input": {
+                "command": "cd /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/scheduler\nPYTHONHASHSEED=3 python3 -m unittest 2>&1 | grep -E \"Error|!=\""
+              },
+              "output": "AssertionError: '15:00' != '09:30'",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_01T2rdVR8TEScTDsjf3ZcTDe",
+              "name": "Edit",
+              "input": {
+                "replace_all": false,
+                "file_path": "/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/scheduler/scheduler.py",
+                "old_string": "    return list(free)[0]",
+                "new_string": "    return min(free)"
+              },
+              "output": "The file /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/scheduler/scheduler.py has been updated successfully.",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_0148nicjs33un6Jdrgd4Y4Ev",
+              "name": "Bash",
+              "input": {
+                "command": "cd /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/scheduler\n$TMPDIR/loop.sh; echo exit=$?\nfor s in 0 3 7 8; do PYTHONHASHSEED=$s python3 -m unittest 2>&1 | tail -1; done\ngrep -rn \"DEBUG-\" . ; rm $TMPDIR/loop.sh"
+              },
+              "output": "exit=0\nOK\nOK\nOK\nOK",
+              "is_error": false,
+              "parentToolUseId": null
+            }
+          ],
+          "numTurns": 7,
+          "durationMs": 28624,
+          "durationApiMs": 23325,
+          "modelUsage": {
+            "claude-sonnet-5-5": {
+              "inputTokens": 12,
+              "outputTokens": 1943,
+              "cacheReadInputTokens": 80178,
+              "cacheCreationInputTokens": 11068,
+              "webSearchRequests": 0,
+              "costUSD": 0.07174380000000001,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 128000,
+              "thinkingTokens": 226,
+              "cacheCreationEphemeral5mInputTokens": 0,
+              "cacheCreationEphemeral1hInputTokens": 11068,
+              "canonicalModel": "claude-sonnet-5-5",
+              "provider": "firstParty",
+              "costBasis": "list"
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "d53d4482-b9bd-444e-85bb-13e8fc3320a4"
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0.0682427,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "fixed": 1,
+            "regression": 1,
+            "clean": 1,
+            "loop-first": 1,
+            "redact": 1,
+            "cause": 1
+          },
+          "namedScoreWeights": {
+            "fixed": 1,
+            "regression": 1,
+            "clean": 1,
+            "loop-first": 1,
+            "redact": 1,
+            "cause": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "bug fixed (hidden check passes)",
+              "assertion": {
+                "type": "javascript",
+                "metric": "fixed",
+                "value": "file://asserts/fixed.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "regression test tests/test_client.py catches the bug",
+              "assertion": {
+                "type": "javascript",
+                "metric": "regression",
+                "value": "file://asserts/regression.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "no instrumentation or throwaway files left",
+              "assertion": {
+                "type": "javascript",
+                "metric": "clean",
+                "value": "file://asserts/clean.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "ran the code before changing it",
+              "assertion": {
+                "type": "javascript",
+                "metric": "loop-first",
+                "value": "file://asserts/loop-first.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "key redacted",
+              "assertion": {
+                "type": "javascript",
+                "metric": "redact",
+                "value": "file://asserts/redact.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "root cause named",
+              "assertion": {
+                "type": "javascript",
+                "metric": "cause",
+                "value": "file://asserts/cause.js"
+              }
+            }
+          ]
+        },
+        "id": "19ae40e5-74a3-487d-9a17-713b50fe497f",
+        "latencyMs": 21964,
+        "namedScores": {
+          "fixed": 1,
+          "regression": 1,
+          "clean": 1,
+          "loop-first": 1,
+          "redact": 1,
+          "cause": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\nBase directory for this skill: /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/.skill\n\n<skill>\n---\nname: diagnosing-bugs\ndescription: Diagnosis loop for hard bugs and performance regressions. Use when the user says \"diagnose\"/\"debug this\", or reports something broken/throwing/failing/slow.\n---\n\n# Diagnosing Bugs\n\nA discipline for hard bugs. Skip phases only when explicitly justified.\n\nWhen exploring the codebase, read `GLOSSARY.md` (if it exists) to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.\n\n## Redact\n\nThis skill has you show commands, outputs and captured artifacts. **Redact every secret first**: write `<REDACTED>` in its place. Build loops against env vars, so the credential stays in the environment rather than in what you show. Captured artifacts carry auth headers: quote only the lines that carry the signal.\n\nIf the redacted output is not enough to diagnose the bug, say so and ask the user.\n\n## Phase 1: Build a feedback loop\n\n**This is the skill.** Everything else is mechanical. If you have a **tight** pass/fail signal for the bug (one that goes red on _this_ bug), you will find the cause; bisection, hypothesis-testing, and instrumentation all just consume it. If you don't have one, no amount of staring at code will save you.\n\nSpend disproportionate effort here. **Be aggressive. Be creative. Refuse to give up.**\n\n### Ways to construct one, in roughly this order\n\n1. **Failing test** at whatever seam reaches the bug: unit, integration, e2e.\n2. **Curl / HTTP script** against a running dev server.\n3. **CLI invocation** with a fixture input, diffing stdout against a known-good snapshot.\n4. **Headless browser script** (Playwright / Puppeteer) that drives the UI and asserts on DOM/console/network.\n5. **Replay a captured trace.** Save a real network request / payload / event log to disk; replay it through the code path in isolation.\n6. **Throwaway harness.** Spin up a minimal subset of the system (one service, mocked deps) that exercises the bug code path with a single function call.\n7. **Property / fuzz loop.** If the bug is \"sometimes wrong output\", run 1000 random inputs and look for the failure mode.\n8. **Bisection harness.** If the bug appeared between two known states (commit, dataset, version), automate \"boot at state X, check, repeat\" so you can `git bisect run` it.\n9. **Differential loop.** Run the same input through old-version vs new-version (or two configs) and diff outputs.\n10. **HITL bash script.** Last resort. If a human must click, drive _them_ with `scripts/hitl-loop.template.sh` so the loop is still structured. Captured output feeds back to you.\n\nBuild the right feedback loop, and the bug is 90% fixed.\n\n### Tighten the loop\n\nTreat the loop as a product. Once you have _a_ loop, **tighten** it:\n\n- Can I make it faster? (Cache setup, skip unrelated init, narrow the test scope.)\n- Can I make the signal sharper? (Assert on the specific symptom, not \"didn't crash\".)\n- Can I make it more deterministic? (Pin time, seed RNG, isolate filesystem, freeze network.)\n\nA 30-second flaky loop is barely better than no loop; a 2-second deterministic one is tight, a debugging superpower.\n\n### Non-deterministic bugs\n\nThe goal is not a clean repro but a **higher reproduction rate**. Loop the trigger 100×, parallelise, add stress, narrow timing windows, inject sleeps. A 50%-flake bug is debuggable; 1% is not, so keep raising the rate until it's debuggable.\n\n### When you genuinely cannot build a loop\n\nStop and say so explicitly. List what you tried. Ask the user for: (a) access to whatever environment reproduces it, (b) a redacted captured artifact (HAR file, log dump, core dump, screen recording with timestamps), or (c) permission to add temporary production instrumentation. Do **not** proceed to hypothesise without a loop.\n\n### Completion criterion: a tight loop that goes red\n\nPhase 1 is done when the loop is **tight** and **red-capable**: you can name **one command** (a script path, a test invocation, a curl) that you have **already run at least once** (show the invocation and its output, redacted), and that is:\n\n- [ ] **Red-capable**: it drives the actual bug code path and asserts the **user's exact symptom**, so it can go red on this bug and green once fixed. Not \"runs without erroring\"; it must be able to _catch this specific bug_.\n- [ ] **Deterministic**: same verdict every run (flaky bugs: a pinned, high reproduction rate, per above).\n- [ ] **Fast**: seconds, not minutes.\n- [ ] **Agent-runnable**: you can run it unattended; a human in the loop only via `scripts/hitl-loop.template.sh`.\n\nIf you catch yourself reading code to build a theory before this command exists, **stop: jumping straight to a hypothesis is the exact failure this skill prevents.** No red-capable command, no Phase 2.\n\n## Phase 2: Reproduce + minimise\n\nRun the loop. Watch it go red as the bug appears.\n\nConfirm:\n\n- [ ] The loop produces the failure mode the **user** described, not a different failure that happens to be nearby. Wrong bug = wrong fix.\n- [ ] The failure is reproducible across multiple runs (or, for non-deterministic bugs, reproducible at a high enough rate to debug against).\n- [ ] You have captured the exact symptom (error message, wrong output, slow timing) so later phases can verify the fix actually addresses it.\n\n### Minimise\n\nOnce it's red, shrink the repro to the **smallest scenario that still goes red**. Cut inputs, callers, config, data, and steps **one at a time**, re-running the loop after each cut, and keep only what's load-bearing for the failure.\n\nWhy bother: a minimal repro shrinks the hypothesis space in Phase 3 (fewer moving parts left to suspect) and becomes the clean regression test in Phase 5.\n\nDone when **every remaining element is load-bearing**: removing any one of them makes the loop go green.\n\nDo not proceed until you have reproduced **and** minimised.\n\n## Phase 3: Hypothesise\n\nGenerate **3–5 ranked hypotheses** before testing any of them. Single-hypothesis generation anchors on the first plausible idea.\n\nEach hypothesis must be **falsifiable**: state the prediction it makes.\n\n> Format: \"If <X> is the cause, then <changing Y> will make the bug disappear / <changing Z> will make it worse.\"\n\nIf you cannot state the prediction, the hypothesis is a vibe: discard or sharpen it.\n\n**Show the ranked list to the user before testing.** They often have domain knowledge that re-ranks instantly (\"we just deployed a change to #3\"), or know hypotheses they've already ruled out. Cheap checkpoint, big time saver. Don't block on it; proceed with your ranking if the user is AFK.\n\n## Phase 4: Instrument\n\nEach probe must map to a specific prediction from Phase 3. **Change one variable at a time.**\n\nTool preference:\n\n1. **Debugger / REPL inspection** if the env supports it. One breakpoint beats ten logs.\n2. **Targeted logs** at the boundaries that distinguish hypotheses.\n3. Never \"log everything and grep\".\n\n**Tag every debug log** with a unique prefix, e.g. `[DEBUG-a4f2]`. Cleanup at the end becomes a single grep. Untagged logs survive; tagged logs die.\n\n**Perf branch.** For performance regressions, logs are usually wrong. Instead: establish a baseline measurement (timing harness, `performance.now()`, profiler, query plan), then bisect. Measure first, fix second.\n\n## Phase 5: Fix + regression test\n\nWrite the regression test **before the fix**, but only if there is a **correct seam** for it.\n\nA correct seam is one where the test exercises the **real bug pattern** as it occurs at the call site. If the only available seam is too shallow (single-caller test when the bug needs multiple callers, unit test that can't replicate the chain that triggered the bug), a regression test there gives false confidence.\n\n**If no correct seam exists, that itself is the finding.** Note it. The codebase architecture is preventing the bug from being locked down. Flag this for the next phase.\n\nIf a correct seam exists:\n\n1. Turn the minimised repro into a failing test at that seam.\n2. Watch it fail. If you forced the red by mutating code or a fixture, `diff` against a pristine copy to prove the mutation landed before you trust it.\n3. Apply the fix.\n4. Watch it pass.\n5. Re-run the Phase 1 feedback loop against the original (un-minimised) scenario.\n\n## Phase 6: Cleanup\n\nRequired before declaring done:\n\n- [ ] Original repro no longer reproduces (re-run the Phase 1 loop)\n- [ ] Regression test passes (or absence of seam is documented)\n- [ ] All `[DEBUG-...]` instrumentation removed (`grep` the prefix)\n- [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)\n- [ ] The hypothesis that turned out correct is stated in the commit / PR message, so the next debugger learns\n</skill>\n\nUser request:\nIn ./weather, forecast() always fails with 401 Unauthorized. The key in .env is definitely valid, I checked it in the provider's dashboard. What's wrong?",
+          "label": "prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\nBase directory for this skill: {{skill_dir}}\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "defbe424f1e2b3952dae59afa25d7cca146a91aa43ce31bfe12778e84bbbadbf",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Your key is fine. The bug was in how `client.py` built the `Authorization` header: `f\"Bearer{key}\"` has no space after `Bearer`. The server got `BearerabC123…` instead of `Bearer abC123…`, so it rejected the request as unauthorized.\n\n**Loop:** `python3 -c \"import client; print(client.forecast('Montreal'))\"`. It failed with `401 Unauthorized` before the fix. After the fix it returns `{'city': 'Montreal', 'high_c': 4, 'low_c': -3}`.\n\n**Fix:** `client.py:16` is now `f\"Bearer {key}\"`.\n\n**Regression test:** I added `test_auth_header_accepted_by_fake_api` to `tests/test_client.py`.\n- It calls `forecast()` through `fake_api`, which applies the real auth rule.\n- It failed before the fix and passes now, and all 3 tests pass.\n- The existing tests use a stub transport that ignores headers, which is why they never caught this.\n\n**Hypotheses:** I didn't draft a ranked list. The cause was visible on the first read, and the fix plus the failing-then-passing test confirmed it. I did not test other causes, such as a bad key, a `.env` loading problem, or a wrong path. I ran no other checks on the key or on `env.py`.\n\n**Cleanup:** I added no debug logging, and I created no throwaway files.\n\n**Against the real API:** I only tested against `fake_api`, and I didn't make any real network calls. If the real API still returns 401 after this fix, the next thing to check is whether it expects a different header format.",
+          "tokenUsage": {
+            "prompt": 75893,
+            "completion": 1697,
+            "cached": 0,
+            "total": 77590,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 223,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 64687,
+              "cacheCreationInputTokens": 11196
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "cost": 0.0682427,
+          "raw": "{\"duration_api_ms\":17916,\"stop_reason\":\"end_turn\",\"session_id\":\"1d4fe585-d86b-4048-89f6-0ad480f6c5cb\",\"total_cost_usd\":0.0682427,\"usage\":{\"input_tokens\":10,\"cache_creation_input_tokens\":11196,\"cache_read_input_tokens\":64687,\"output_tokens\":1697,\"output_tokens_details\":{\"thinking_tokens\":223},\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":11196,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":533,\"cache_read_input_tokens\":15872,\"cache_creation_input_tokens\":753,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":753},\"type\":\"message\"}],\"speed\":\"standard\",\"fallback_credit\":null},\"modelUsage\":{\"claude-sonnet-5-5\":{\"inputTokens\":10,\"outputTokens\":1697,\"cacheReadInputTokens\":64687,\"cacheCreationInputTokens\":11196,\"webSearchRequests\":0,\"costUSD\":0.0682427,\"contextWindow\":1000000,\"maxOutputTokens\":128000,\"thinkingTokens\":223,\"cacheCreationEphemeral5mInputTokens\":0,\"cacheCreationEphemeral1hInputTokens\":11196,\"canonicalModel\":\"claude-sonnet-5-5\",\"provider\":\"firstParty\",\"costBasis\":\"list\"}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"fast_mode_disabled_reason\":\"sdk_opt_in_required\",\"subagent_stats\":{\"spawned\":0,\"requested\":{\"background\":0,\"foreground\":0,\"unset\":0},\"started_in_background\":0,\"max_depth\":0,\"spawned_by_subagents\":0,\"completed\":0,\"failed\":0,\"killed\":{\"parent\":0,\"user\":0,\"system\":0},\"refused\":{\"depth_limit\":0,\"concurrency_limit\":0,\"budget\":0},\"by_type\":{}},\"safety_stops\":0,\"is_error\":false,\"num_turns\":5,\"subtype\":\"success\",\"api_error_status\":null,\"result\":\"Your key is fine. The bug was in how `client.py` built the `Authorization` header: `f\\\"Bearer{key}\\\"` has no space after `Bearer`. The server got `BearerabC123…` instead of `Bearer abC123…`, so it rejected the request as unauthorized.\\n\\n**Loop:** `python3 -c \\\"import client; print(client.forecast('Montreal'))\\\"`. It failed with `401 Unauthorized` before the fix. After the fix it returns `{'city': 'Montreal', 'high_c': 4, 'low_c': -3}`.\\n\\n**Fix:** `client.py:16` is now `f\\\"Bearer {key}\\\"`.\\n\\n**Regression test:** I added `test_auth_header_accepted_by_fake_api` to `tests/test_client.py`.\\n- It calls `forecast()` through `fake_api`, which applies the real auth rule.\\n- It failed before the fix and passes now, and all 3 tests pass.\\n- The existing tests use a stub transport that ignores headers, which is why they never caught this.\\n\\n**Hypotheses:** I didn't draft a ranked list. The cause was visible on the first read, and the fix plus the failing-then-passing test confirmed it. I did not test other causes, such as a bad key, a `.env` loading problem, or a wrong path. I ran no other checks on the key or on `env.py`.\\n\\n**Cleanup:** I added no debug logging, and I created no throwaway files.\\n\\n**Against the real API:** I only tested against `fake_api`, and I didn't make any real network calls. If the real API still returns 401 after this fix, the next thing to check is whether it expects a different header format.\",\"ttft_ms\":2302,\"type\":\"result\",\"duration_ms\":20729,\"uuid\":\"d46eb72f-52ff-4f63-8ca6-2ff5c83b26c3\",\"ttft_stream_ms\":1487,\"time_to_request_ms\":156,\"time_to_request_phases_ms\":{\"other\":7,\"system_prompt\":71,\"resume_other\":0,\"process_user_input\":2,\"input_attachments\":22,\"input_hooks\":1,\"transcript_persist\":7,\"tool_pool_refresh\":1,\"init_message\":2,\"engine_pickup\":0,\"message_prep\":34,\"model_config_wait\":0,\"autocompact\":1,\"query_setup\":0,\"model_gates\":1,\"tool_schema_build\":1,\"message_normalization\":1,\"client_creation\":2,\"request_build\":3},\"turn_start_resume_kind\":\"none\",\"process_turn_index\":0,\"time_to_request_loop_lag_ms\":35,\"time_to_request_cpu_ms\":70,\"time_to_request_major_faults\":0,\"input_attachments_detail\":{\"slowest_producer\":\"queued_commands\",\"slowest_producer_ms\":3,\"cpu_ms\":5,\"major_faults\":0},\"first_content_frame_ms\":1487,\"queued_turn_count\":0,\"result_index\":0,\"model_usage_since_last_result\":{\"claude-sonnet-5-5\":{\"inputTokens\":10,\"outputTokens\":1697,\"cacheReadInputTokens\":64687,\"cacheCreationInputTokens\":11196,\"webSearchRequests\":0,\"costUSD\":0.0682427,\"contextWindow\":1000000,\"maxOutputTokens\":128000,\"thinkingTokens\":223,\"cacheCreationEphemeral5mInputTokens\":0,\"cacheCreationEphemeral1hInputTokens\":11196,\"canonicalModel\":\"claude-sonnet-5-5\",\"provider\":\"firstParty\",\"costBasis\":\"list\"}}}",
+          "sessionId": "1d4fe585-d86b-4048-89f6-0ad480f6c5cb",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [
+              {
+                "id": "toolu_01RSw28fxYfQZvUvVqQ4Godh",
+                "name": "Bash",
+                "input": {
+                  "command": "cd weather && ls -la && cat GLOSSARY.md 2>/dev/null | head -50",
+                  "description": "List weather directory contents"
+                },
+                "output": "total 40\ndrwxr-xr-x@ 8 cference  staff  256 Oct 28 14:52 .\ndrwxr-xr-x@ 8 cference  staff  256 Oct 28 14:53 ..\n-rw-r--r--@ 1 cference  staff   41 Oct 28 14:52 .env\n-rw-r--r--@ 1 cference  staff  302 Oct 28 14:52 README.md\n-rw-r--r--@ 1 cference  staff  457 Oct 28 14:52 client.py\n-rw-r--r--@ 1 cference  staff  268 Oct 28 14:52 env.py\n-rw-r--r--@ 1 cference  staff  361 Oct 28 14:52 fake_api.py\ndrwxr-xr-x@ 4 cference  staff  128 Oct 28 14:52 tests",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_014YUYfpQiKeixbYr6vfCEpp",
+                "name": "Bash",
+                "input": {
+                  "command": "cat README.md client.py env.py fake_api.py; ls tests; sed 's/=.*/=<REDACTED>/' .env",
+                  "description": "Show source files, redacting .env values"
+                },
+                "output": "# weather\n\nForecast client. `fake_api.py` is a local stand-in for the forecast API that checks the API key the\nway the real one does, so you can run the client offline: `python3 -c \"import client; print(client.forecast('Montreal'))\"`.\nThe key lives in `.env`. Run the tests with `python3 -m unittest`.\n\"\"\"Forecast client.\"\"\"\nimport os\n\nimport env\nimport fake_api\n\nenv.load()\n\n\nclass ForecastError(Exception):\n    pass\n\n\ndef headers():\n    key = os.environ[\"WEATHER_API_KEY\"]\n    return {\"Authorization\": f\"Bearer{key}\", \"Accept\": \"application/json\"}\n\n\ndef forecast(city, transport=fake_api):\n    status, body = transport.get(f\"/v1/forecast/{city}\", headers())\n    if status != 200:\n        raise ForecastError(f\"{status} {body.get('error')}\")\n    return body\nimport os\n\n\ndef load(path=\".env\"):\n    with open(path) as f:\n        for line in f:\n            line = line.strip()\n            if line and not line.startswith(\"#\") and \"=\" in line:\n                k, v = line.split(\"=\", 1)\n                os.environ.setdefault(k, v)\n\"\"\"Local stand-in for the forecast API: same auth rule as production.\"\"\"\nimport os\n\n\ndef get(path, headers):\n    expected = \"Bearer \" + os.environ.get(\"WEATHER_API_KEY\", \"\")\n    if headers.get(\"Authorization\") != expected:\n        return 401, {\"error\": \"Unauthorized\"}\n    city = path.rsplit(\"/\", 1)[-1]\n    return 200, {\"city\": city, \"high_c\": 4, \"low_c\": -3}\n__init__.py\ntest_client.py\nWEATHER_API_KEY=<REDACTED>",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_01GbCf4w1qUhM6Ybh8yRD1Ls",
+                "name": "Bash",
+                "input": {
+                  "command": "cat tests/test_client.py; python3 -c \"import client; print(client.forecast('Montreal'))\" 2>&1 | tail -3; python3 -m unittest 2>&1 | tail -8",
+                  "description": "Run repro and existing tests"
+                },
+                "output": "import unittest\n\nimport client\n\n\nclass StubTransport:\n    def __init__(self, status, body):\n        self.status, self.body, self.calls = status, body, []\n\n    def get(self, path, headers):\n        self.calls.append(path)\n        return self.status, self.body\n\n\nclass ClientTest(unittest.TestCase):\n    def test_forecast_returns_body(self):\n        t = StubTransport(200, {\"city\": \"Montreal\", \"high_c\": 4})\n        self.assertEqual(client.forecast(\"Montreal\", t)[\"high_c\"], 4)\n        self.assertEqual(t.calls, [\"/v1/forecast/Montreal\"])\n\n    def test_error_status_raises(self):\n        with self.assertRaises(client.ForecastError):\n            client.forecast(\"Montreal\", StubTransport(500, {\"error\": \"boom\"}))\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n  File \"/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/weather/client.py\", line 22, in forecast\n    raise ForecastError(f\"{status} {body.get('error')}\")\nclient.ForecastError: 401 Unauthorized\n..\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_01LxdKvm3N4SWHTRfx8Xre4n",
+                "name": "Bash",
+                "input": {
+                  "command": "python3 - <<'E'\np='tests/test_client.py'\ns=open(p).read()\ns=s.replace('''\n\nif __name__''','''\n    def test_auth_header_accepted_by_fake_api(self):\n        self.assertEqual(client.forecast(\"Montreal\")[\"city\"], \"Montreal\")\n\n\nif __name__''')\nopen(p,'w').write(s)\nE\npython3 -m unittest 2>&1 | tail -6\nsed -i '' 's/Bearer{key}/Bearer {key}/' client.py\ngrep -n Bearer client.py\npython3 -m unittest 2>&1 | tail -4\npython3 -c \"import client; print(client.forecast('Montreal'))\"\ngrep -rn \"DEBUG-\" . || echo \"no debug tags\"",
+                  "description": "Add regression test, watch fail, apply fix, rerun"
+                },
+                "output": "client.ForecastError: 401 Unauthorized\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nFAILED (errors=1)\n16:    return {\"Authorization\": f\"Bearer {key}\", \"Accept\": \"application/json\"}\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n{'city': 'Montreal', 'high_c': 4, 'low_c': -3}\nno debug tags",
+                "is_error": false,
+                "parentToolUseId": null
+              }
+            ],
+            "numTurns": 5,
+            "durationMs": 20729,
+            "durationApiMs": 17916,
+            "modelUsage": {
+              "claude-sonnet-5-5": {
+                "inputTokens": 10,
+                "outputTokens": 1697,
+                "cacheReadInputTokens": 64687,
+                "cacheCreationInputTokens": 11196,
+                "webSearchRequests": 0,
+                "costUSD": 0.0682427,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 128000,
+                "thinkingTokens": 223,
+                "cacheCreationEphemeral5mInputTokens": 0,
+                "cacheCreationEphemeral1hInputTokens": 11196,
+                "canonicalModel": "claude-sonnet-5-5",
+                "provider": "firstParty",
+                "costBasis": "list"
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "d-03-weather: 401 from a malformed header; the key sits in .env and must not be shown",
+          "vars": {
+            "skill": "file:///Users/cference/Code/claude-toolkit/evals/diagnosing-bugs/prompts/prompt_v2.md",
+            "skill_dir": "/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/.skill",
+            "case": "d-03-weather",
+            "request": "In ./weather, forecast() always fails with 401 Unauthorized. The key in .env is definitely valid, I checked it in the provider's dashboard. What's wrong?",
+            "sessionId": "1d4fe585-d86b-4048-89f6-0ad480f6c5cb"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "fixed",
+              "value": "file://asserts/fixed.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "regression",
+              "value": "file://asserts/regression.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "clean",
+              "value": "file://asserts/clean.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "loop-first",
+              "value": "file://asserts/loop-first.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "redact",
+              "value": "file://asserts/redact.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "cause",
+              "value": "file://asserts/cause.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 75893,
+          "completion": 1697,
+          "cached": 0,
+          "total": 77590,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 223,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 64687,
+            "cacheCreationInputTokens": 11196
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///Users/cference/Code/claude-toolkit/evals/diagnosing-bugs/prompts/prompt_v2.md",
+          "skill_dir": "/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/.skill",
+          "case": "d-03-weather",
+          "request": "In ./weather, forecast() always fails with 401 Unauthorized. The key in .env is definitely valid, I checked it in the provider's dashboard. What's wrong?",
+          "sessionId": "1d4fe585-d86b-4048-89f6-0ad480f6c5cb"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [
+            {
+              "id": "toolu_01RSw28fxYfQZvUvVqQ4Godh",
+              "name": "Bash",
+              "input": {
+                "command": "cd weather && ls -la && cat GLOSSARY.md 2>/dev/null | head -50",
+                "description": "List weather directory contents"
+              },
+              "output": "total 40\ndrwxr-xr-x@ 8 cference  staff  256 Oct 28 14:52 .\ndrwxr-xr-x@ 8 cference  staff  256 Oct 28 14:53 ..\n-rw-r--r--@ 1 cference  staff   41 Oct 28 14:52 .env\n-rw-r--r--@ 1 cference  staff  302 Oct 28 14:52 README.md\n-rw-r--r--@ 1 cference  staff  457 Oct 28 14:52 client.py\n-rw-r--r--@ 1 cference  staff  268 Oct 28 14:52 env.py\n-rw-r--r--@ 1 cference  staff  361 Oct 28 14:52 fake_api.py\ndrwxr-xr-x@ 4 cference  staff  128 Oct 28 14:52 tests",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_014YUYfpQiKeixbYr6vfCEpp",
+              "name": "Bash",
+              "input": {
+                "command": "cat README.md client.py env.py fake_api.py; ls tests; sed 's/=.*/=<REDACTED>/' .env",
+                "description": "Show source files, redacting .env values"
+              },
+              "output": "# weather\n\nForecast client. `fake_api.py` is a local stand-in for the forecast API that checks the API key the\nway the real one does, so you can run the client offline: `python3 -c \"import client; print(client.forecast('Montreal'))\"`.\nThe key lives in `.env`. Run the tests with `python3 -m unittest`.\n\"\"\"Forecast client.\"\"\"\nimport os\n\nimport env\nimport fake_api\n\nenv.load()\n\n\nclass ForecastError(Exception):\n    pass\n\n\ndef headers():\n    key = os.environ[\"WEATHER_API_KEY\"]\n    return {\"Authorization\": f\"Bearer{key}\", \"Accept\": \"application/json\"}\n\n\ndef forecast(city, transport=fake_api):\n    status, body = transport.get(f\"/v1/forecast/{city}\", headers())\n    if status != 200:\n        raise ForecastError(f\"{status} {body.get('error')}\")\n    return body\nimport os\n\n\ndef load(path=\".env\"):\n    with open(path) as f:\n        for line in f:\n            line = line.strip()\n            if line and not line.startswith(\"#\") and \"=\" in line:\n                k, v = line.split(\"=\", 1)\n                os.environ.setdefault(k, v)\n\"\"\"Local stand-in for the forecast API: same auth rule as production.\"\"\"\nimport os\n\n\ndef get(path, headers):\n    expected = \"Bearer \" + os.environ.get(\"WEATHER_API_KEY\", \"\")\n    if headers.get(\"Authorization\") != expected:\n        return 401, {\"error\": \"Unauthorized\"}\n    city = path.rsplit(\"/\", 1)[-1]\n    return 200, {\"city\": city, \"high_c\": 4, \"low_c\": -3}\n__init__.py\ntest_client.py\nWEATHER_API_KEY=<REDACTED>",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_01GbCf4w1qUhM6Ybh8yRD1Ls",
+              "name": "Bash",
+              "input": {
+                "command": "cat tests/test_client.py; python3 -c \"import client; print(client.forecast('Montreal'))\" 2>&1 | tail -3; python3 -m unittest 2>&1 | tail -8",
+                "description": "Run repro and existing tests"
+              },
+              "output": "import unittest\n\nimport client\n\n\nclass StubTransport:\n    def __init__(self, status, body):\n        self.status, self.body, self.calls = status, body, []\n\n    def get(self, path, headers):\n        self.calls.append(path)\n        return self.status, self.body\n\n\nclass ClientTest(unittest.TestCase):\n    def test_forecast_returns_body(self):\n        t = StubTransport(200, {\"city\": \"Montreal\", \"high_c\": 4})\n        self.assertEqual(client.forecast(\"Montreal\", t)[\"high_c\"], 4)\n        self.assertEqual(t.calls, [\"/v1/forecast/Montreal\"])\n\n    def test_error_status_raises(self):\n        with self.assertRaises(client.ForecastError):\n            client.forecast(\"Montreal\", StubTransport(500, {\"error\": \"boom\"}))\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n  File \"/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/weather/client.py\", line 22, in forecast\n    raise ForecastError(f\"{status} {body.get('error')}\")\nclient.ForecastError: 401 Unauthorized\n..\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_01LxdKvm3N4SWHTRfx8Xre4n",
+              "name": "Bash",
+              "input": {
+                "command": "python3 - <<'E'\np='tests/test_client.py'\ns=open(p).read()\ns=s.replace('''\n\nif __name__''','''\n    def test_auth_header_accepted_by_fake_api(self):\n        self.assertEqual(client.forecast(\"Montreal\")[\"city\"], \"Montreal\")\n\n\nif __name__''')\nopen(p,'w').write(s)\nE\npython3 -m unittest 2>&1 | tail -6\nsed -i '' 's/Bearer{key}/Bearer {key}/' client.py\ngrep -n Bearer client.py\npython3 -m unittest 2>&1 | tail -4\npython3 -c \"import client; print(client.forecast('Montreal'))\"\ngrep -rn \"DEBUG-\" . || echo \"no debug tags\"",
+                "description": "Add regression test, watch fail, apply fix, rerun"
+              },
+              "output": "client.ForecastError: 401 Unauthorized\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nFAILED (errors=1)\n16:    return {\"Authorization\": f\"Bearer {key}\", \"Accept\": \"application/json\"}\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n{'city': 'Montreal', 'high_c': 4, 'low_c': -3}\nno debug tags",
+              "is_error": false,
+              "parentToolUseId": null
+            }
+          ],
+          "numTurns": 5,
+          "durationMs": 20729,
+          "durationApiMs": 17916,
+          "modelUsage": {
+            "claude-sonnet-5-5": {
+              "inputTokens": 10,
+              "outputTokens": 1697,
+              "cacheReadInputTokens": 64687,
+              "cacheCreationInputTokens": 11196,
+              "webSearchRequests": 0,
+              "costUSD": 0.0682427,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 128000,
+              "thinkingTokens": 223,
+              "cacheCreationEphemeral5mInputTokens": 0,
+              "cacheCreationEphemeral1hInputTokens": 11196,
+              "canonicalModel": "claude-sonnet-5-5",
+              "provider": "firstParty",
+              "costBasis": "list"
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "1d4fe585-d86b-4048-89f6-0ad480f6c5cb"
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.0889823,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "fixed": 1,
+            "clean": 1,
+            "measured": 1,
+            "cause": 1
+          },
+          "namedScoreWeights": {
+            "fixed": 1,
+            "clean": 1,
+            "measured": 1,
+            "cause": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "bug fixed (hidden check passes)",
+              "assertion": {
+                "type": "javascript",
+                "metric": "fixed",
+                "value": "file://asserts/fixed.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "no instrumentation or throwaway files left",
+              "assertion": {
+                "type": "javascript",
+                "metric": "clean",
+                "value": "file://asserts/clean.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "measured before fixing",
+              "assertion": {
+                "type": "javascript",
+                "metric": "measured",
+                "value": "file://asserts/measured.js"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "root cause named",
+              "assertion": {
+                "type": "javascript",
+                "metric": "cause",
+                "value": "file://asserts/cause.js"
+              }
+            }
+          ]
+        },
+        "id": "dd82d1ad-c54f-4d1f-9641-e2478b34ab55",
+        "latencyMs": 67231,
+        "namedScores": {
+          "fixed": 1,
+          "clean": 1,
+          "measured": 1,
+          "cause": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\nBase directory for this skill: /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/.skill\n\n<skill>\n---\nname: diagnosing-bugs\ndescription: Diagnosis loop for hard bugs and performance regressions. Use when the user says \"diagnose\"/\"debug this\", or reports something broken/throwing/failing/slow.\n---\n\n# Diagnosing Bugs\n\nA discipline for hard bugs. Skip phases only when explicitly justified.\n\nWhen exploring the codebase, read `GLOSSARY.md` (if it exists) to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.\n\n## Redact\n\nThis skill has you show commands, outputs and captured artifacts. **Redact every secret first**: write `<REDACTED>` in its place. Build loops against env vars, so the credential stays in the environment rather than in what you show. Captured artifacts carry auth headers: quote only the lines that carry the signal.\n\nIf the redacted output is not enough to diagnose the bug, say so and ask the user.\n\n## Phase 1: Build a feedback loop\n\n**This is the skill.** Everything else is mechanical. If you have a **tight** pass/fail signal for the bug (one that goes red on _this_ bug), you will find the cause; bisection, hypothesis-testing, and instrumentation all just consume it. If you don't have one, no amount of staring at code will save you.\n\nSpend disproportionate effort here. **Be aggressive. Be creative. Refuse to give up.**\n\n### Ways to construct one, in roughly this order\n\n1. **Failing test** at whatever seam reaches the bug: unit, integration, e2e.\n2. **Curl / HTTP script** against a running dev server.\n3. **CLI invocation** with a fixture input, diffing stdout against a known-good snapshot.\n4. **Headless browser script** (Playwright / Puppeteer) that drives the UI and asserts on DOM/console/network.\n5. **Replay a captured trace.** Save a real network request / payload / event log to disk; replay it through the code path in isolation.\n6. **Throwaway harness.** Spin up a minimal subset of the system (one service, mocked deps) that exercises the bug code path with a single function call.\n7. **Property / fuzz loop.** If the bug is \"sometimes wrong output\", run 1000 random inputs and look for the failure mode.\n8. **Bisection harness.** If the bug appeared between two known states (commit, dataset, version), automate \"boot at state X, check, repeat\" so you can `git bisect run` it.\n9. **Differential loop.** Run the same input through old-version vs new-version (or two configs) and diff outputs.\n10. **HITL bash script.** Last resort. If a human must click, drive _them_ with `scripts/hitl-loop.template.sh` so the loop is still structured. Captured output feeds back to you.\n\nBuild the right feedback loop, and the bug is 90% fixed.\n\n### Tighten the loop\n\nTreat the loop as a product. Once you have _a_ loop, **tighten** it:\n\n- Can I make it faster? (Cache setup, skip unrelated init, narrow the test scope.)\n- Can I make the signal sharper? (Assert on the specific symptom, not \"didn't crash\".)\n- Can I make it more deterministic? (Pin time, seed RNG, isolate filesystem, freeze network.)\n\nA 30-second flaky loop is barely better than no loop; a 2-second deterministic one is tight, a debugging superpower.\n\n### Non-deterministic bugs\n\nThe goal is not a clean repro but a **higher reproduction rate**. Loop the trigger 100×, parallelise, add stress, narrow timing windows, inject sleeps. A 50%-flake bug is debuggable; 1% is not, so keep raising the rate until it's debuggable.\n\n### When you genuinely cannot build a loop\n\nStop and say so explicitly. List what you tried. Ask the user for: (a) access to whatever environment reproduces it, (b) a redacted captured artifact (HAR file, log dump, core dump, screen recording with timestamps), or (c) permission to add temporary production instrumentation. Do **not** proceed to hypothesise without a loop.\n\n### Completion criterion: a tight loop that goes red\n\nPhase 1 is done when the loop is **tight** and **red-capable**: you can name **one command** (a script path, a test invocation, a curl) that you have **already run at least once** (show the invocation and its output, redacted), and that is:\n\n- [ ] **Red-capable**: it drives the actual bug code path and asserts the **user's exact symptom**, so it can go red on this bug and green once fixed. Not \"runs without erroring\"; it must be able to _catch this specific bug_.\n- [ ] **Deterministic**: same verdict every run (flaky bugs: a pinned, high reproduction rate, per above).\n- [ ] **Fast**: seconds, not minutes.\n- [ ] **Agent-runnable**: you can run it unattended; a human in the loop only via `scripts/hitl-loop.template.sh`.\n\nIf you catch yourself reading code to build a theory before this command exists, **stop: jumping straight to a hypothesis is the exact failure this skill prevents.** No red-capable command, no Phase 2.\n\n## Phase 2: Reproduce + minimise\n\nRun the loop. Watch it go red as the bug appears.\n\nConfirm:\n\n- [ ] The loop produces the failure mode the **user** described, not a different failure that happens to be nearby. Wrong bug = wrong fix.\n- [ ] The failure is reproducible across multiple runs (or, for non-deterministic bugs, reproducible at a high enough rate to debug against).\n- [ ] You have captured the exact symptom (error message, wrong output, slow timing) so later phases can verify the fix actually addresses it.\n\n### Minimise\n\nOnce it's red, shrink the repro to the **smallest scenario that still goes red**. Cut inputs, callers, config, data, and steps **one at a time**, re-running the loop after each cut, and keep only what's load-bearing for the failure.\n\nWhy bother: a minimal repro shrinks the hypothesis space in Phase 3 (fewer moving parts left to suspect) and becomes the clean regression test in Phase 5.\n\nDone when **every remaining element is load-bearing**: removing any one of them makes the loop go green.\n\nDo not proceed until you have reproduced **and** minimised.\n\n## Phase 3: Hypothesise\n\nGenerate **3–5 ranked hypotheses** before testing any of them. Single-hypothesis generation anchors on the first plausible idea.\n\nEach hypothesis must be **falsifiable**: state the prediction it makes.\n\n> Format: \"If <X> is the cause, then <changing Y> will make the bug disappear / <changing Z> will make it worse.\"\n\nIf you cannot state the prediction, the hypothesis is a vibe: discard or sharpen it.\n\n**Show the ranked list to the user before testing.** They often have domain knowledge that re-ranks instantly (\"we just deployed a change to #3\"), or know hypotheses they've already ruled out. Cheap checkpoint, big time saver. Don't block on it; proceed with your ranking if the user is AFK.\n\n## Phase 4: Instrument\n\nEach probe must map to a specific prediction from Phase 3. **Change one variable at a time.**\n\nTool preference:\n\n1. **Debugger / REPL inspection** if the env supports it. One breakpoint beats ten logs.\n2. **Targeted logs** at the boundaries that distinguish hypotheses.\n3. Never \"log everything and grep\".\n\n**Tag every debug log** with a unique prefix, e.g. `[DEBUG-a4f2]`. Cleanup at the end becomes a single grep. Untagged logs survive; tagged logs die.\n\n**Perf branch.** For performance regressions, logs are usually wrong. Instead: establish a baseline measurement (timing harness, `performance.now()`, profiler, query plan), then bisect. Measure first, fix second.\n\n## Phase 5: Fix + regression test\n\nWrite the regression test **before the fix**, but only if there is a **correct seam** for it.\n\nA correct seam is one where the test exercises the **real bug pattern** as it occurs at the call site. If the only available seam is too shallow (single-caller test when the bug needs multiple callers, unit test that can't replicate the chain that triggered the bug), a regression test there gives false confidence.\n\n**If no correct seam exists, that itself is the finding.** Note it. The codebase architecture is preventing the bug from being locked down. Flag this for the next phase.\n\nIf a correct seam exists:\n\n1. Turn the minimised repro into a failing test at that seam.\n2. Watch it fail. If you forced the red by mutating code or a fixture, `diff` against a pristine copy to prove the mutation landed before you trust it.\n3. Apply the fix.\n4. Watch it pass.\n5. Re-run the Phase 1 feedback loop against the original (un-minimised) scenario.\n\n## Phase 6: Cleanup\n\nRequired before declaring done:\n\n- [ ] Original repro no longer reproduces (re-run the Phase 1 loop)\n- [ ] Regression test passes (or absence of seam is documented)\n- [ ] All `[DEBUG-...]` instrumentation removed (`grep` the prefix)\n- [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)\n- [ ] The hypothesis that turned out correct is stated in the commit / PR message, so the next debugger learns\n</skill>\n\nUser request:\nparse_log in ./logs got really slow since last week: sample.log (50k lines) used to parse in well under a second and now takes ages. Fix it.",
+          "label": "prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\nBase directory for this skill: {{skill_dir}}\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "defbe424f1e2b3952dae59afa25d7cca146a91aa43ce31bfe12778e84bbbadbf",
+        "promptIdx": 0,
+        "provider": {
+          "id": "anthropic:claude-agent-sdk",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "`parse_log` now parses `sample.log` in 0.02s instead of 14.46s. The cause was the duplicate-dropping added on 2026-10-21 (per `CHANGES.md`). It checked `rec not in out`, which scans the whole output list for every line, so the cost grew with the square of the record count.\n\n**The fix** is in `logs/parse.py`. I added a `seen` set for the duplicate check and kept the list for ordering. The output on `sample.log` is identical to the old output: 49,998 records, same order. I compared them directly.\n\n**How I checked it:**\n- **Loop:** a timing script on the real `sample.log` that fails if parsing takes over 1s. It was red at 14.46s and green at 0.02s after the fix.\n- **Hypothesis:** I tried one change (list to set) and it confirmed the cause. I didn't test the other two ideas (the `int()` parsing and the line splitting), since the single change already fixed it.\n- **Unit tests:** the existing tests still pass.\n\n**Regression test:** I added `test_large_log_is_not_quadratic` to `tests/test_parse.py`. It parses 50,000 unique lines with a 2s limit. I did not run it against the old code to watch it fail first, so I haven't shown that it catches the regression. It is a timing test, so a very slow machine could make it flaky.\n\nI added no debug logging. My timing script is in the scratchpad (`loop.py`), outside the project.",
+          "tokenUsage": {
+            "prompt": 112074,
+            "completion": 2745,
+            "cached": 0,
+            "total": 114819,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 464,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 99163,
+              "cacheCreationInputTokens": 12897
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "cost": 0.0889823,
+          "raw": "{\"duration_api_ms\":35163,\"stop_reason\":\"end_turn\",\"session_id\":\"1e63ec98-5095-4121-a277-b9d489ec679b\",\"total_cost_usd\":0.0889823,\"usage\":{\"input_tokens\":14,\"cache_creation_input_tokens\":12897,\"cache_read_input_tokens\":99163,\"output_tokens\":2745,\"output_tokens_details\":{\"thinking_tokens\":464},\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":12897,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"global\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":480,\"cache_read_input_tokens\":17371,\"cache_creation_input_tokens\":955,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":955},\"type\":\"message\"}],\"speed\":\"standard\",\"fallback_credit\":null},\"modelUsage\":{\"claude-sonnet-5-5\":{\"inputTokens\":14,\"outputTokens\":2745,\"cacheReadInputTokens\":99163,\"cacheCreationInputTokens\":12897,\"webSearchRequests\":0,\"costUSD\":0.0889823,\"contextWindow\":1000000,\"maxOutputTokens\":128000,\"thinkingTokens\":464,\"cacheCreationEphemeral5mInputTokens\":0,\"cacheCreationEphemeral1hInputTokens\":12897,\"canonicalModel\":\"claude-sonnet-5-5\",\"provider\":\"firstParty\",\"costBasis\":\"list\"}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"fast_mode_disabled_reason\":\"sdk_opt_in_required\",\"subagent_stats\":{\"spawned\":0,\"requested\":{\"background\":0,\"foreground\":0,\"unset\":0},\"started_in_background\":0,\"max_depth\":0,\"spawned_by_subagents\":0,\"completed\":0,\"failed\":0,\"killed\":{\"parent\":0,\"user\":0,\"system\":0},\"refused\":{\"depth_limit\":0,\"concurrency_limit\":0,\"budget\":0},\"by_type\":{}},\"safety_stops\":0,\"is_error\":false,\"num_turns\":7,\"subtype\":\"success\",\"api_error_status\":null,\"result\":\"`parse_log` now parses `sample.log` in 0.02s instead of 14.46s. The cause was the duplicate-dropping added on 2026-10-21 (per `CHANGES.md`). It checked `rec not in out`, which scans the whole output list for every line, so the cost grew with the square of the record count.\\n\\n**The fix** is in `logs/parse.py`. I added a `seen` set for the duplicate check and kept the list for ordering. The output on `sample.log` is identical to the old output: 49,998 records, same order. I compared them directly.\\n\\n**How I checked it:**\\n- **Loop:** a timing script on the real `sample.log` that fails if parsing takes over 1s. It was red at 14.46s and green at 0.02s after the fix.\\n- **Hypothesis:** I tried one change (list to set) and it confirmed the cause. I didn't test the other two ideas (the `int()` parsing and the line splitting), since the single change already fixed it.\\n- **Unit tests:** the existing tests still pass.\\n\\n**Regression test:** I added `test_large_log_is_not_quadratic` to `tests/test_parse.py`. It parses 50,000 unique lines with a 2s limit. I did not run it against the old code to watch it fail first, so I haven't shown that it catches the regression. It is a timing test, so a very slow machine could make it flaky.\\n\\nI added no debug logging. My timing script is in the scratchpad (`loop.py`), outside the project.\",\"ttft_ms\":2267,\"type\":\"result\",\"duration_ms\":65998,\"uuid\":\"181ae5f7-9814-4a83-946d-2762019daa62\",\"ttft_stream_ms\":1123,\"time_to_request_ms\":70,\"time_to_request_phases_ms\":{\"other\":12,\"system_prompt\":4,\"resume_other\":0,\"process_user_input\":17,\"input_attachments\":3,\"input_hooks\":2,\"transcript_persist\":18,\"tool_pool_refresh\":1,\"init_message\":3,\"engine_pickup\":1,\"message_prep\":0,\"model_config_wait\":0,\"autocompact\":1,\"query_setup\":0,\"model_gates\":1,\"tool_schema_build\":1,\"message_normalization\":1,\"client_creation\":2,\"request_build\":3},\"turn_start_resume_kind\":\"none\",\"process_turn_index\":0,\"time_to_request_loop_lag_ms\":15,\"time_to_request_cpu_ms\":65,\"time_to_request_major_faults\":0,\"input_attachments_detail\":{\"slowest_producer\":\"queued_commands\",\"slowest_producer_ms\":3,\"cpu_ms\":6,\"major_faults\":0},\"first_content_frame_ms\":1123,\"queued_turn_count\":0,\"result_index\":0,\"model_usage_since_last_result\":{\"claude-sonnet-5-5\":{\"inputTokens\":14,\"outputTokens\":2745,\"cacheReadInputTokens\":99163,\"cacheCreationInputTokens\":12897,\"webSearchRequests\":0,\"costUSD\":0.0889823,\"contextWindow\":1000000,\"maxOutputTokens\":128000,\"thinkingTokens\":464,\"cacheCreationEphemeral5mInputTokens\":0,\"cacheCreationEphemeral1hInputTokens\":12897,\"canonicalModel\":\"claude-sonnet-5-5\",\"provider\":\"firstParty\",\"costBasis\":\"list\"}}}",
+          "sessionId": "1e63ec98-5095-4121-a277-b9d489ec679b",
+          "metadata": {
+            "skillCalls": [],
+            "toolCalls": [
+              {
+                "id": "toolu_01Rv4p283Lry5iisGQR1xwpQ",
+                "name": "Bash",
+                "input": {
+                  "command": "ls -la . logs; ls GLOSSARY.md docs 2>&1 | head"
+                },
+                "output": ".:\ntotal 0\ndrwxr-xr-x@ 8 cference  staff  256 Oct 28 14:53 .\ndrwx------@ 3 cference  staff   96 Oct 28 14:52 ..\ndrwxr-xr-x@ 3 cference  staff   96 Oct 28 14:53 .claude\ndrwxr-xr-x@ 3 cference  staff   96 Oct 28 14:52 .skill\ndrwxr-xr-x@ 7 cference  staff  224 Oct 28 14:52 invoices\ndrwxr-xr-x@ 7 cference  staff  224 Oct 28 14:52 logs\ndrwxr-xr-x@ 5 cference  staff  160 Oct 28 14:52 scheduler\ndrwxr-xr-x@ 8 cference  staff  256 Oct 28 14:52 weather\n\nlogs:\ntotal 3440\ndrwxr-xr-x@ 7 cference  staff      224 Oct 28 14:52 .\ndrwxr-xr-x@ 8 cference  staff      256 Oct 28 14:53 ..\n-rw-r--r--@ 1 cference  staff      147 Oct 28 14:52 CHANGES.md\n-rw-r--r--@ 1 cference  staff      171 Oct 28 14:52 README.md\n-rw-r--r--@ 1 cference  staff      482 Oct 28 14:52 parse.py\n-rw-r--r--@ 1 cference  staff  1747229 Oct 28 14:52 sample.log\ndrwxr-xr-x@ 4 cference  staff      128 Oct 28 14:52 tests\nls: GLOSSARY.md: No such file or directory\nls: docs: No such file or directory",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_011fDnasq3N5uJYTXTARrTRp",
+                "name": "Bash",
+                "input": {
+                  "command": "cd /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/logs && cat CHANGES.md README.md parse.py; ls tests; head -3 sample.log"
+                },
+                "output": "# Changes\n\n- 2026-10-21: drop duplicate records (the load balancer sometimes logs a request twice).\n- 2026-10-02: parse the status code as an int.\n# logs\n\nParses access logs into records. Run the tests with `python3 -m unittest`.\n`sample.log` is a real 50k-line log from last Sunday. Recent changes are in CHANGES.md.\n\"\"\"Parse access-log lines: \"<ip> <method> <path> <status> <ms>\".\"\"\"\n\n\ndef parse_line(line):\n    ip, method, path, status, ms = line.split()\n    return (ip, method, path, int(status), int(ms))\n\n\ndef parse_log(text):\n    \"\"\"Records in order of first appearance, duplicates dropped.\"\"\"\n    out = []\n    for line in text.splitlines():\n        if not line.strip():\n            continue\n        rec = parse_line(line)\n        if rec not in out:\n            out.append(rec)\n    return out\n__init__.py\ntest_parse.py\n10.0.5.5 GET /recipes/202 500 50\n10.0.1.16 GET /recipes/298 200 520\n10.0.1.12 GET /recipes/214 200 247",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_01CqnZMk3RzpvKvoYkCMHsaN",
+                "name": "Bash",
+                "input": {
+                  "command": "S=/private/tmp/claude-501/-private-var-folders-fs-8bsmknv92xx-qsmx6r4xbpkm0000gn-T-tmp-VWXNvJyIcV-world/1e63ec98-5095-4121-a277-b9d489ec679b/scratchpad && cat > $S/loop.py <<'EOF'\nimport sys, time\nsys.path.insert(0, \"/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/logs\")\nfrom parse import parse_log\ntext = open(\"/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/logs/sample.log\").read()\nt = time.perf_counter(); r = parse_log(text); d = time.perf_counter() - t\nprint(f\"records={len(r)} secs={d:.2f}\")\nsys.exit(0 if d < 1.0 else 1)\nEOF\npython3 -I $S/loop.py; echo exit=$?; python3 -m unittest 2>&1 | tail -3"
+                },
+                "output": "records=49998 secs=14.46\nexit=1\nRan 2 tests in 0.000s\n\nOK",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_01WENr9yhHajKPintV8tsXSv",
+                "name": "Bash",
+                "input": {
+                  "command": "S=/private/tmp/claude-501/-private-var-folders-fs-8bsmknv92xx-qsmx6r4xbpkm0000gn-T-tmp-VWXNvJyIcV-world/1e63ec98-5095-4121-a277-b9d489ec679b/scratchpad && python3 -I -c \"\nimport sys;sys.path.insert(0,'.')\nfrom parse import parse_log\nopen('$S/before.txt','w').write(repr(parse_log(open('sample.log').read())))\" && python3 - <<'EOF'\np='parse.py'\ns=open(p).read()\ns=s.replace(\"    out = []\\n\",\"    out = []\\n    seen = set()\\n\")\ns=s.replace(\"        if rec not in out:\\n            out.append(rec)\",\"        if rec not in seen:\\n            seen.add(rec)\\n            out.append(rec)\")\nopen(p,'w').write(s)\nEOF\ncat parse.py; python3 -I $S/loop.py; echo exit=$?\npython3 -I -c \"\nimport sys;sys.path.insert(0,'.')\nfrom parse import parse_log\nprint(repr(parse_log(open('sample.log').read()))==open('$S/before.txt').read())\"\npython3 -m unittest 2>&1 | tail -3"
+                },
+                "output": "\"\"\"Parse access-log lines: \"<ip> <method> <path> <status> <ms>\".\"\"\"\n\n\ndef parse_line(line):\n    ip, method, path, status, ms = line.split()\n    return (ip, method, path, int(status), int(ms))\n\n\ndef parse_log(text):\n    \"\"\"Records in order of first appearance, duplicates dropped.\"\"\"\n    out = []\n    seen = set()\n    for line in text.splitlines():\n        if not line.strip():\n            continue\n        rec = parse_line(line)\n        if rec not in seen:\n            seen.add(rec)\n            out.append(rec)\n    return out\nrecords=49998 secs=0.02\nexit=0\nTrue\nRan 2 tests in 0.000s\n\nOK",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_01V6t68pyWbCUhk5LuYEuBeT",
+                "name": "Bash",
+                "input": {
+                  "command": "cat tests/test_parse.py"
+                },
+                "output": "import unittest\n\nfrom parse import parse_line, parse_log\n\n\nclass ParseTest(unittest.TestCase):\n    def test_parse_line(self):\n        self.assertEqual(parse_line(\"1.2.3.4 GET /a 200 12\"), (\"1.2.3.4\", \"GET\", \"/a\", 200, 12))\n\n    def test_duplicates_dropped_in_order(self):\n        text = \"1.1.1.1 GET /a 200 5\\n2.2.2.2 GET /b 404 3\\n1.1.1.1 GET /a 200 5\\n\"\n        self.assertEqual([r[2] for r in parse_log(text)], [\"/a\", \"/b\"])\n\n\nif __name__ == \"__main__\":\n    unittest.main()",
+                "is_error": false,
+                "parentToolUseId": null
+              },
+              {
+                "id": "toolu_01Wn8UWrJXch59rtFZrdTPiR",
+                "name": "Bash",
+                "input": {
+                  "command": "python3 - <<'EOF'\np='tests/test_parse.py'\ns=open(p).read()\ns=s.replace('''\n\nif __name__''','''\n    def test_large_log_is_not_quadratic(self):\n        text = \"\".join(f\"10.0.0.1 GET /p/{i} 200 {i}\\\\n\" for i in range(50000))\n        start = time.perf_counter()\n        self.assertEqual(len(parse_log(text)), 50000)\n        self.assertLess(time.perf_counter() - start, 2.0)\n\n\nif __name__''')\ns=s.replace(\"import unittest\\n\",\"import time\\nimport unittest\\n\")\nopen(p,'w').write(s)\nEOF\npython3 -m unittest 2>&1 | tail -3"
+                },
+                "output": "Ran 3 tests in 0.027s\n\nOK",
+                "is_error": false,
+                "parentToolUseId": null
+              }
+            ],
+            "numTurns": 7,
+            "durationMs": 65998,
+            "durationApiMs": 35163,
+            "modelUsage": {
+              "claude-sonnet-5-5": {
+                "inputTokens": 14,
+                "outputTokens": 2745,
+                "cacheReadInputTokens": 99163,
+                "cacheCreationInputTokens": 12897,
+                "webSearchRequests": 0,
+                "costUSD": 0.0889823,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 128000,
+                "thinkingTokens": 464,
+                "cacheCreationEphemeral5mInputTokens": 0,
+                "cacheCreationEphemeral1hInputTokens": 12897,
+                "canonicalModel": "claude-sonnet-5-5",
+                "provider": "firstParty",
+                "costBasis": "list"
+              }
+            },
+            "permissionDenials": [],
+            "terminalReason": "completed"
+          }
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "d-04-logs: a performance regression (quadratic dedupe) that needs measuring before fixing",
+          "vars": {
+            "skill": "file:///Users/cference/Code/claude-toolkit/evals/diagnosing-bugs/prompts/prompt_v2.md",
+            "skill_dir": "/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/.skill",
+            "case": "d-04-logs",
+            "request": "parse_log in ./logs got really slow since last week: sample.log (50k lines) used to parse in well under a second and now takes ages. Fix it.",
+            "sessionId": "1e63ec98-5095-4121-a277-b9d489ec679b"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "fixed",
+              "value": "file://asserts/fixed.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "clean",
+              "value": "file://asserts/clean.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "measured",
+              "value": "file://asserts/measured.js"
+            },
+            {
+              "type": "javascript",
+              "metric": "cause",
+              "value": "file://asserts/cause.js"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 3,
+        "tokenUsage": {
+          "prompt": 112074,
+          "completion": 2745,
+          "cached": 0,
+          "total": 114819,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 464,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 99163,
+            "cacheCreationInputTokens": 12897
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///Users/cference/Code/claude-toolkit/evals/diagnosing-bugs/prompts/prompt_v2.md",
+          "skill_dir": "/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/.skill",
+          "case": "d-04-logs",
+          "request": "parse_log in ./logs got really slow since last week: sample.log (50k lines) used to parse in well under a second and now takes ages. Fix it.",
+          "sessionId": "1e63ec98-5095-4121-a277-b9d489ec679b"
+        },
+        "metadata": {
+          "skillCalls": [],
+          "toolCalls": [
+            {
+              "id": "toolu_01Rv4p283Lry5iisGQR1xwpQ",
+              "name": "Bash",
+              "input": {
+                "command": "ls -la . logs; ls GLOSSARY.md docs 2>&1 | head"
+              },
+              "output": ".:\ntotal 0\ndrwxr-xr-x@ 8 cference  staff  256 Oct 28 14:53 .\ndrwx------@ 3 cference  staff   96 Oct 28 14:52 ..\ndrwxr-xr-x@ 3 cference  staff   96 Oct 28 14:53 .claude\ndrwxr-xr-x@ 3 cference  staff   96 Oct 28 14:52 .skill\ndrwxr-xr-x@ 7 cference  staff  224 Oct 28 14:52 invoices\ndrwxr-xr-x@ 7 cference  staff  224 Oct 28 14:52 logs\ndrwxr-xr-x@ 5 cference  staff  160 Oct 28 14:52 scheduler\ndrwxr-xr-x@ 8 cference  staff  256 Oct 28 14:52 weather\n\nlogs:\ntotal 3440\ndrwxr-xr-x@ 7 cference  staff      224 Oct 28 14:52 .\ndrwxr-xr-x@ 8 cference  staff      256 Oct 28 14:53 ..\n-rw-r--r--@ 1 cference  staff      147 Oct 28 14:52 CHANGES.md\n-rw-r--r--@ 1 cference  staff      171 Oct 28 14:52 README.md\n-rw-r--r--@ 1 cference  staff      482 Oct 28 14:52 parse.py\n-rw-r--r--@ 1 cference  staff  1747229 Oct 28 14:52 sample.log\ndrwxr-xr-x@ 4 cference  staff      128 Oct 28 14:52 tests\nls: GLOSSARY.md: No such file or directory\nls: docs: No such file or directory",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_011fDnasq3N5uJYTXTARrTRp",
+              "name": "Bash",
+              "input": {
+                "command": "cd /private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/logs && cat CHANGES.md README.md parse.py; ls tests; head -3 sample.log"
+              },
+              "output": "# Changes\n\n- 2026-10-21: drop duplicate records (the load balancer sometimes logs a request twice).\n- 2026-10-02: parse the status code as an int.\n# logs\n\nParses access logs into records. Run the tests with `python3 -m unittest`.\n`sample.log` is a real 50k-line log from last Sunday. Recent changes are in CHANGES.md.\n\"\"\"Parse access-log lines: \"<ip> <method> <path> <status> <ms>\".\"\"\"\n\n\ndef parse_line(line):\n    ip, method, path, status, ms = line.split()\n    return (ip, method, path, int(status), int(ms))\n\n\ndef parse_log(text):\n    \"\"\"Records in order of first appearance, duplicates dropped.\"\"\"\n    out = []\n    for line in text.splitlines():\n        if not line.strip():\n            continue\n        rec = parse_line(line)\n        if rec not in out:\n            out.append(rec)\n    return out\n__init__.py\ntest_parse.py\n10.0.5.5 GET /recipes/202 500 50\n10.0.1.16 GET /recipes/298 200 520\n10.0.1.12 GET /recipes/214 200 247",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_01CqnZMk3RzpvKvoYkCMHsaN",
+              "name": "Bash",
+              "input": {
+                "command": "S=/private/tmp/claude-501/-private-var-folders-fs-8bsmknv92xx-qsmx6r4xbpkm0000gn-T-tmp-VWXNvJyIcV-world/1e63ec98-5095-4121-a277-b9d489ec679b/scratchpad && cat > $S/loop.py <<'EOF'\nimport sys, time\nsys.path.insert(0, \"/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/logs\")\nfrom parse import parse_log\ntext = open(\"/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/logs/sample.log\").read()\nt = time.perf_counter(); r = parse_log(text); d = time.perf_counter() - t\nprint(f\"records={len(r)} secs={d:.2f}\")\nsys.exit(0 if d < 1.0 else 1)\nEOF\npython3 -I $S/loop.py; echo exit=$?; python3 -m unittest 2>&1 | tail -3"
+              },
+              "output": "records=49998 secs=14.46\nexit=1\nRan 2 tests in 0.000s\n\nOK",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_01WENr9yhHajKPintV8tsXSv",
+              "name": "Bash",
+              "input": {
+                "command": "S=/private/tmp/claude-501/-private-var-folders-fs-8bsmknv92xx-qsmx6r4xbpkm0000gn-T-tmp-VWXNvJyIcV-world/1e63ec98-5095-4121-a277-b9d489ec679b/scratchpad && python3 -I -c \"\nimport sys;sys.path.insert(0,'.')\nfrom parse import parse_log\nopen('$S/before.txt','w').write(repr(parse_log(open('sample.log').read())))\" && python3 - <<'EOF'\np='parse.py'\ns=open(p).read()\ns=s.replace(\"    out = []\\n\",\"    out = []\\n    seen = set()\\n\")\ns=s.replace(\"        if rec not in out:\\n            out.append(rec)\",\"        if rec not in seen:\\n            seen.add(rec)\\n            out.append(rec)\")\nopen(p,'w').write(s)\nEOF\ncat parse.py; python3 -I $S/loop.py; echo exit=$?\npython3 -I -c \"\nimport sys;sys.path.insert(0,'.')\nfrom parse import parse_log\nprint(repr(parse_log(open('sample.log').read()))==open('$S/before.txt').read())\"\npython3 -m unittest 2>&1 | tail -3"
+              },
+              "output": "\"\"\"Parse access-log lines: \"<ip> <method> <path> <status> <ms>\".\"\"\"\n\n\ndef parse_line(line):\n    ip, method, path, status, ms = line.split()\n    return (ip, method, path, int(status), int(ms))\n\n\ndef parse_log(text):\n    \"\"\"Records in order of first appearance, duplicates dropped.\"\"\"\n    out = []\n    seen = set()\n    for line in text.splitlines():\n        if not line.strip():\n            continue\n        rec = parse_line(line)\n        if rec not in seen:\n            seen.add(rec)\n            out.append(rec)\n    return out\nrecords=49998 secs=0.02\nexit=0\nTrue\nRan 2 tests in 0.000s\n\nOK",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_01V6t68pyWbCUhk5LuYEuBeT",
+              "name": "Bash",
+              "input": {
+                "command": "cat tests/test_parse.py"
+              },
+              "output": "import unittest\n\nfrom parse import parse_line, parse_log\n\n\nclass ParseTest(unittest.TestCase):\n    def test_parse_line(self):\n        self.assertEqual(parse_line(\"1.2.3.4 GET /a 200 12\"), (\"1.2.3.4\", \"GET\", \"/a\", 200, 12))\n\n    def test_duplicates_dropped_in_order(self):\n        text = \"1.1.1.1 GET /a 200 5\\n2.2.2.2 GET /b 404 3\\n1.1.1.1 GET /a 200 5\\n\"\n        self.assertEqual([r[2] for r in parse_log(text)], [\"/a\", \"/b\"])\n\n\nif __name__ == \"__main__\":\n    unittest.main()",
+              "is_error": false,
+              "parentToolUseId": null
+            },
+            {
+              "id": "toolu_01Wn8UWrJXch59rtFZrdTPiR",
+              "name": "Bash",
+              "input": {
+                "command": "python3 - <<'EOF'\np='tests/test_parse.py'\ns=open(p).read()\ns=s.replace('''\n\nif __name__''','''\n    def test_large_log_is_not_quadratic(self):\n        text = \"\".join(f\"10.0.0.1 GET /p/{i} 200 {i}\\\\n\" for i in range(50000))\n        start = time.perf_counter()\n        self.assertEqual(len(parse_log(text)), 50000)\n        self.assertLess(time.perf_counter() - start, 2.0)\n\n\nif __name__''')\ns=s.replace(\"import unittest\\n\",\"import time\\nimport unittest\\n\")\nopen(p,'w').write(s)\nEOF\npython3 -m unittest 2>&1 | tail -3"
+              },
+              "output": "Ran 3 tests in 0.027s\n\nOK",
+              "is_error": false,
+              "parentToolUseId": null
+            }
+          ],
+          "numTurns": 7,
+          "durationMs": 65998,
+          "durationApiMs": 35163,
+          "modelUsage": {
+            "claude-sonnet-5-5": {
+              "inputTokens": 14,
+              "outputTokens": 2745,
+              "cacheReadInputTokens": 99163,
+              "cacheCreationInputTokens": 12897,
+              "webSearchRequests": 0,
+              "costUSD": 0.0889823,
+              "contextWindow": 1000000,
+              "maxOutputTokens": 128000,
+              "thinkingTokens": 464,
+              "cacheCreationEphemeral5mInputTokens": 0,
+              "cacheCreationEphemeral1hInputTokens": 12897,
+              "canonicalModel": "claude-sonnet-5-5",
+              "provider": "firstParty",
+              "costBasis": "list"
+            }
+          },
+          "permissionDenials": [],
+          "terminalReason": "completed",
+          "_promptfooFileMetadata": {},
+          "sessionId": "1e63ec98-5095-4121-a277-b9d489ec679b"
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 3,
+      "failures": 1,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 373132,
+        "completion": 8889,
+        "cached": 0,
+        "total": 382021,
+        "numRequests": 4,
+        "completionDetails": {
+          "reasoning": 1599,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 325640,
+          "cacheCreationInputTokens": 47444
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 67686,
+      "evaluationDurationMs": 67686
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "diagnosing-bugs: four buggy projects; fixed, regression test, clean, loop-first, measured, redact, cause",
+    "prompts": [
+      "file:///Users/cference/Code/claude-toolkit/evals/diagnosing-bugs/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "anthropic:claude-agent-sdk",
+        "label": "sonnet",
+        "config": {
+          "model": "sonnet",
+          "apiKeyRequired": false,
+          "working_dir": "/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world",
+          "max_turns": 60,
+          "tools": [
+            "Read",
+            "Grep",
+            "Glob",
+            "Bash",
+            "Edit",
+            "Write"
+          ],
+          "custom_allowed_tools": [
+            "Read",
+            "Grep",
+            "Glob",
+            "Bash",
+            "Edit(//private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/**)",
+            "Write(//private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/**)"
+          ],
+          "permission_mode": "dontAsk",
+          "sandbox": {
+            "enabled": true,
+            "autoAllowBashIfSandboxed": true,
+            "allowUnsandboxedCommands": false
+          }
+        }
+      },
+      {
+        "id": "anthropic:claude-agent-sdk",
+        "label": "haiku",
+        "config": {
+          "model": "haiku",
+          "apiKeyRequired": false,
+          "working_dir": "/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world",
+          "max_turns": 60,
+          "tools": [
+            "Read",
+            "Grep",
+            "Glob",
+            "Bash",
+            "Edit",
+            "Write"
+          ],
+          "custom_allowed_tools": [
+            "Read",
+            "Grep",
+            "Glob",
+            "Bash",
+            "Edit(//private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/**)",
+            "Write(//private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/**)"
+          ],
+          "permission_mode": "dontAsk",
+          "sandbox": {
+            "enabled": true,
+            "autoAllowBashIfSandboxed": true,
+            "allowUnsandboxedCommands": false
+          }
+        }
+      }
+    ],
+    "tests": [
+      {
+        "description": "d-01-invoices: off by a cent; the user blames tax.py, the cause is truncation in line_total",
+        "vars": {
+          "case": "d-01-invoices",
+          "request": "Invoice INV-1043 (./invoices/data/INV-1043.json) comes out at 71.64, but the customer's spreadsheet says 71.65. I'm pretty sure it's the tax rounding in tax.py. Can you fix it? The project is in ./invoices."
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "fixed",
+            "value": "file://asserts/fixed.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "regression",
+            "value": "file://asserts/regression.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "clean",
+            "value": "file://asserts/clean.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "loop-first",
+            "value": "file://asserts/loop-first.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "cause",
+            "value": "file://asserts/cause.js"
+          }
+        ]
+      },
+      {
+        "description": "d-02-scheduler: a test that fails about half the time (set ordering under hash randomization)",
+        "vars": {
+          "case": "d-02-scheduler",
+          "request": "test_next_slot_picks_earliest in ./scheduler fails on CI maybe half the time, and passes when I re-run it. Can you sort it out?"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "fixed",
+            "value": "file://asserts/fixed.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "regression",
+            "value": "file://asserts/regression.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "clean",
+            "value": "file://asserts/clean.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "loop-first",
+            "value": "file://asserts/loop-first.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "cause",
+            "value": "file://asserts/cause.js"
+          }
+        ]
+      },
+      {
+        "description": "d-03-weather: 401 from a malformed header; the key sits in .env and must not be shown",
+        "vars": {
+          "case": "d-03-weather",
+          "request": "In ./weather, forecast() always fails with 401 Unauthorized. The key in .env is definitely valid, I checked it in the provider's dashboard. What's wrong?"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "fixed",
+            "value": "file://asserts/fixed.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "regression",
+            "value": "file://asserts/regression.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "clean",
+            "value": "file://asserts/clean.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "loop-first",
+            "value": "file://asserts/loop-first.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "redact",
+            "value": "file://asserts/redact.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "cause",
+            "value": "file://asserts/cause.js"
+          }
+        ]
+      },
+      {
+        "description": "d-04-logs: a performance regression (quadratic dedupe) that needs measuring before fixing",
+        "vars": {
+          "case": "d-04-logs",
+          "request": "parse_log in ./logs got really slow since last week: sample.log (50k lines) used to parse in well under a second and now takes ages. Fix it."
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "fixed",
+            "value": "file://asserts/fixed.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "clean",
+            "value": "file://asserts/clean.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "measured",
+            "value": "file://asserts/measured.js"
+          },
+          {
+            "type": "javascript",
+            "metric": "cause",
+            "value": "file://asserts/cause.js"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "results/run_v2_sonnet.s1.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///Users/cference/Code/claude-toolkit/evals/diagnosing-bugs/prompts/prompt_v2.md",
+        "skill_dir": "/private/var/folders/fs/8bsmknv92xx_qsmx6r4xbpkm0000gn/T/tmp.VWXNvJyIcV/world/.skill"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/Users/cference/Code/claude-toolkit/evals/diagnosing-bugs"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.1",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-28T18:54:04.885Z",
+    "evaluationCreatedAt": "2026-10-28T18:52:57.085Z"
+  },
+  "vars": [
+    "skill",
+    "skill_dir",
+    "case",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false,
+    "providerFilter": "^sonnet$"
+  }
+}

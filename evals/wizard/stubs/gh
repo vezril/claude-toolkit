@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Eval stub for gh: logs what the wizard asked for. The value of a secret goes to a
+# separate file (never the log) so the hidden check can trace it; a value piped on
+# stdin is drained only when no --body/-b gave it, so the stub never eats the wizard's
+# own input.
+case "$1 $2" in
+  "auth status") exit 0 ;;
+  "repo view") echo "example/pantry"; exit 0 ;;
+  "secret set"|"variable set")
+    val=""
+    args=("$@")
+    for ((i=0; i<${#args[@]}; i++)); do
+      case "${args[i]}" in --body|-b) val="${args[i+1]}" ;; --body=*) val="${args[i]#--body=}" ;; esac
+    done
+    if [[ -z "$val" ]] && [ ! -t 0 ]; then val="$(cat)"; fi
+    echo "GH $1 set $3" >> "$WIZARD_LOG"
+    printf '%s %s\n' "$3" "$val" >> "${WIZARD_LOG}.values"
+    exit 0 ;;
+  *) echo "GH $*" >> "$WIZARD_LOG"; exit 0 ;;
+esac
