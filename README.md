@@ -89,6 +89,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **ansible** — agentless, idempotent configuration management / infrastructure as code.
 - **terraform** — declarative IaC: providers/resources/state/modules, write→plan→apply, remote state & locking, policy-as-code & security scanning (provisioning; complements ansible's config management).
 - **docker** — containerizing apps (*Docker in Action*): containers vs VMs, image layers & Dockerfiles, volumes, networking, Docker Compose, and an orchestration intro.
+- **finch** — the Docker-free alternative (AWS/open source): nerdctl + containerd + BuildKit inside a Lima VM. The VM lifecycle and the `finch.yaml` schema, build/run/compose, host mounts and why the VM isn't a security boundary, ECR/osxkeychain auth, SOCI lazy loading, cosign signing, DevContainers — i.e. everything that *isn't* the Docker model `docker` already covers. Verified against Finch v1.19.0 and the `runfinch/finch` config source, not just the docs site.
 - **site-reliability-engineering** — Google SRE: SLIs/SLOs/error budgets, toil, golden signals, on-call & blameless postmortems.
 - **wizard** — generates an interactive bash wizard for the steps only a human can do (provisioning, credentials and CI secrets, a third-party dashboard, a one-off cutover): it reads `.env*` and the workflows' `secrets.*`/`vars.*` first, opens each URL, captures values with hidden input, writes `.env` and GitHub secrets/variables, and gates every irreversible step on a yes. Doesn't fire for steps the agent can do itself. *(Imported from Matt Pocock's [mattpocock/skills](https://github.com/mattpocock/skills), MIT; built eval-first, changes and license in the skill's `UPSTREAM.md`.)*
 
@@ -327,6 +328,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `dockerhub-setup` |  |  |  |  |
 | `domain-driven-design` | 96% | 100% | sonnet | ✅ Shipped (PR #56) — ubiquitous-language glossary made part of the deliverable |
 | `event-storming` |  |  |  |  |
+| `finch` | 44% | 100% | sonnet | Baseline 6/8/6 of 16 across the 3 runs; skill 16/16 on all 3. 8 cases fail the baseline every run: read-only home mount, Rosetta's macOS-26 floor, SOCI, cosign-keyless-unsupported, Containerfile auto-detect, DevContainers wiring, `creds_helpers`+`credsStore`, "VM = isolation" pushback. Skill was 100% from v1, so no patch — iteration went into the *suite*: added a `no-hallucination` criterion (baseline invents `finch vm ssh`, `finch soci create`), and N=3 overturned an N=1 read that had credited the model with 3 facts it doesn't reliably know. Ships a paired naive-baseline arm. Log: `evals/finch/iteration-log.md` |
 | `flipper-unleashed` |  |  |  |  |
 | `flipper-zero` |  |  |  |  |
 | `follow-up` |  |  |  |  |
