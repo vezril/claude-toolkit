@@ -132,6 +132,15 @@ Verified from the source route table (~97 routes). Grouped, with GitHub's paths:
   message), or the web UI. Changing labels is possible, so label-as-state is a viable model.
 - **No repo deletion, no issue deletion, no reviews/review-comments API, no teams, no search,
   no Actions/Checks** (status API only), **no git blobs/trees/commits write API**.
+- **`GET /api/v3/user/repos` and `GET /api/v3/user/orgs` are broken by route shadowing** —
+  confirmed live on 4.48.0, both answer `404 {"message":"Not Found"}` *while correctly
+  authenticated*. 4.48.0 added `GET /api/v3/user/:id` for numeric-ID lookup, and
+  `ApiUserControllerBase` is mixed into `ApiController` after `ApiRepositoryControllerBase`;
+  Scalatra tests later-mixed routes first, so `/user/repos` matches `/user/:id` with
+  `id = "repos"`, finds no such account, and 404s. The guard is innocent — `usersOnly` returns
+  **401**, so a 404 here proves the route never matched rather than that your token is bad.
+  **Use `GET /api/v3/users/<login>/repos` and `/users/<login>/orgs` instead**, which work.
+  `POST /api/v3/user/repos` is unaffected, being a different verb.
 - **`GET /api/v3/rate_limit` returns `404 {"message":"Rate limiting is not enabled."}`** —
   copying GitHub Enterprise. Tooling that preflights rate limits will read that as a hard failure.
 - **Unimplemented routes return `404`, not `501`.** A catch-all maps every unmatched
@@ -254,8 +263,10 @@ adapter, because it changes the item schema.
    `GET /api/v3/users` is unauthenticated and leaks every account's email.
 3. **Page by "short page", never by `Link`.** Issues and pulls are fixed at 25 and ignore `per_page`.
 4. **Issues are create/read/comment only.** No close or edit via API — labels or commit keywords.
-5. **Set the base URL**, and enable SSH explicitly on 29418 if you want it.
-6. **Back up `GITBUCKET_HOME`** before any upgrade; config precedence is property → env → file.
+5. **Prefer `/users/<login>/…` over `/user/…`** for repo and org lists — the `/user/` forms are
+   shadowed by `/user/:id` on 4.48.0 and 404 even when authenticated.
+6. **Set the base URL**, and enable SSH explicitly on 29418 if you want it.
+7. **Back up `GITBUCKET_HOME`** before any upgrade; config precedence is property → env → file.
 
 ## Related
 
