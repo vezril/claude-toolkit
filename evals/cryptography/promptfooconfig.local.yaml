@@ -1,0 +1,107 @@
+# DERIVED FILE -- do not hand-edit.
+# Regenerate with: python3 evals/_provider/make-local-configs.py evals/cryptography
+#
+# WITH-SKILL arm. Tests and asserts come verbatim from promptfooconfig.yaml (the CI arm);
+# only the providers differ, swapped to the shared exec: scripts in
+# evals/_provider/ for machines where anthropic:claude-agent-sdk cannot
+# authenticate. Deliberately not named promptfooconfig.yaml, so CI's
+# auto-discovery ignores it.
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+#
+# Cases avoid the easy wins (ECB bad, use HMAC, use Argon2) that any model knows, and
+# target where *Cryptography Engineering* is specific or counter-intuitive: it CHANGED
+# its mode advice from CTR to CBC-with-random-IV because applications mishandle nonces,
+# and its 2n rule means 256-bit keys for 128-bit security.
+#
+# Run: npx promptfoo@latest eval -c evals/cryptography/promptfooconfig.yaml --no-cache
+description: "cryptography - CE-specific judgment calls a general model gets wrong"
+prompts:
+  - file://prompt.txt
+providers:
+  - id: exec:../_provider/claude.sh
+    label: sonnet
+defaultTest:
+  vars:
+    skill: file://../../skills/cryptography/SKILL.md
+  options:
+    provider:
+      id: exec:../_provider/claude-grader.sh
+      config:
+        model: sonnet
+        apiKeyRequired: false
+        max_turns: 5
+tests:
+  - description: "cipher mode - CE's nonce-misuse reasoning, not just 'use GCM'"
+    vars: { request: file://cases/mode.txt }
+    assert:
+      - type: javascript
+        metric: accuracy
+        value: |
+          // Must reason about nonce/IV misuse risk, which is CE's stated reason for the change.
+          if (!/nonce|\bIV\b/i.test(output)) throw new Error('no discussion of nonce/IV handling');
+          if (!/reus|repeat|unique|catastroph|misuse|mishandl/i.test(output))
+            throw new Error('did not raise nonce reuse/uniqueness as the deciding risk');
+          return true;
+      - type: javascript
+        metric: accuracy
+        value: |
+          if (!/CBC/i.test(output)) throw new Error("did not mention CBC-with-random-IV, CE's current recommendation");
+          if (/\bECB\b/i.test(output) && !/never|not acceptable|avoid|insecure|don'?t/i.test(output))
+            throw new Error('mentioned ECB without condemning it');
+          return true;
+      - type: javascript
+        metric: accuracy
+        value: |
+          if (!/authenticat|AEAD|\bMAC\b|GCM|CCM/i.test(output))
+            throw new Error('did not require authentication alongside encryption');
+          return true;
+
+  - description: "hash(key||msg) as a MAC - length extension"
+    vars: { request: file://cases/mac.txt }
+    assert:
+      - type: javascript
+        metric: accuracy
+        value: |
+          if (!/length[- ]extension/i.test(output)) throw new Error('did not name the length-extension attack');
+          if (!/HMAC/i.test(output)) throw new Error('did not prescribe HMAC');
+          return true;
+
+  - description: "key sizes - the 2n rule gives 256-bit symmetric for 128-bit security"
+    vars: { request: file://cases/keysize.txt }
+    assert:
+      - type: javascript
+        metric: accuracy
+        value: |
+          if (!/256/.test(output)) throw new Error('did not recommend a 256-bit symmetric key for 128-bit security');
+          if (!/2048|3072/.test(output)) throw new Error('did not give an RSA size of at least 2048');
+          return true;
+      - type: javascript
+        metric: accuracy
+        value: |
+          // The reasoning, not just the number: generic birthday / MITM attacks halve strength.
+          if (!/birthday|meet-in-the-middle|generic attack|half|2n|twice/i.test(output))
+            throw new Error('did not explain why the key is twice the security level');
+          return true;
+
+  - description: "GCM nonce reuse after a counter rollback - catastrophic, act now"
+    vars: { request: file://cases/nonce.txt }
+    assert:
+      - type: javascript
+        metric: safety
+        value: |
+          if (!/catastroph|severe|critical|urgent|immediately|serious/i.test(output))
+            throw new Error('did not convey that GCM nonce reuse is catastrophic rather than merely bad');
+          return true;
+      - type: javascript
+        metric: accuracy
+        value: |
+          // The specific consequence: forgery capability, not just plaintext XOR.
+          if (!/authentication key|auth key|forge|forgery|GHASH|universal hash/i.test(output))
+            throw new Error('did not state that nonce reuse exposes the authentication key / enables forgery');
+          return true;
+      - type: javascript
+        metric: accuracy
+        value: |
+          if (!/rotat|new key|rekey|re-key|replace the key/i.test(output))
+            throw new Error('did not require rotating the key');
+          return true;

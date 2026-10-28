@@ -1,0 +1,660 @@
+{
+  "evalId": "eval-WoP-2026-10-28T20:52:11",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-28T20:52:11.196Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+        "label": "evals/design-patterns/prompt-baseline.txt: You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+        "id": "12b0452a5ef6d626f0a4c5d71efbaee2878cc039591c5708295794749e10fff6",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2.65,
+          "testPassCount": 2,
+          "testFailCount": 1,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 5,
+          "assertFailCount": 1,
+          "totalLatencyMs": 52937,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 1,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "restraint": 1,
+            "routing": 3.3,
+            "accuracy": 1
+          },
+          "namedScoresCount": {
+            "restraint": 1,
+            "routing": 4,
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1,
+            "routing": 4,
+            "accuracy": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "routing": 1,
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "routing": 1,
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "routing",
+                "value": "if (!/sealed (trait|abstract)|algebraic data type|\\bADT\\b/i.test(output))\n  throw new Error('did not reach for a sealed trait / ADT instead of Visitor');\nif (!/pattern match|\\bmatch\\b|exhaustiv/i.test(output))\n  throw new Error('did not mention exhaustive pattern matching');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "// The precise trade-off: Visitor eases new TYPES, ADTs ease new OPERATIONS.\nif (!/expression problem|adding (new )?(types|operations)|which axis|axis (of )?change/i.test(output))\n  throw new Error('did not surface the expression-problem trade-off (types vs operations axis)');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "e381acf4-e17e-40e2-ac21-ef60bc099300",
+        "latencyMs": 19330,
+        "namedScores": {
+          "routing": 1,
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\nI'm writing an interpreter in Scala with an AST of about 12 node types. I need to add several operations over it (eval, pretty-print, type-check). Should I implement the Visitor pattern? Show me how you'd structure it.",
+          "label": "evals/design-patterns/prompt-baseline.txt: You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+          "config": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          }
+        },
+        "promptId": "12b0452a5ef6d626f0a4c5d71efbaee2878cc039591c5708295794749e10fff6",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No, don't use Visitor in Scala. A `sealed trait` ADT with pattern matching gives you the same thing with far less code, and the compiler checks that every match covers all 12 nodes.\n\nVisitor mostly makes up for languages that lack pattern matching. It makes adding new node types easy and new operations hard. Your situation is the opposite: the node set is fixed at about 12 and you expect to keep adding operations (eval, pretty-print, type-check, and later optimize or compile). That is the case ADTs handle best.\n\n```scala\n// Ast.scala\nsealed trait Expr\ncase class Num(n: Double)                          extends Expr\ncase class Bool(b: Boolean)                        extends Expr\ncase class Var(name: String)                       extends Expr\ncase class BinOp(op: Op, l: Expr, r: Expr)         extends Expr\ncase class If(c: Expr, t: Expr, e: Expr)           extends Expr\ncase class Let(name: String, v: Expr, body: Expr)  extends Expr\ncase class Lam(param: String, ty: Type, body: Expr) extends Expr\ncase class App(f: Expr, arg: Expr)                 extends Expr\n// ...remaining nodes\n\nenum Op { case Add, Sub, Mul, Eq, Lt }\nenum Type { case TNum, TBool; case TFun(a: Type, b: Type) }\n```\n\nWrite each operation as its own object or file with a total match:\n\n```scala\n// Eval.scala\nenum Value { case N(n: Double); case B(b: Boolean); case Closure(p: String, body: Expr, env: Env) }\ntype Env = Map[String, Value]\n\nobject Eval:\n  def apply(e: Expr, env: Env = Map.empty): Either[EvalError, Value] = e match\n    case Num(n)        => Right(Value.N(n))\n    case Bool(b)       => Right(Value.B(b))\n    case Var(x)        => env.get(x).toRight(EvalError.Unbound(x))\n    case If(c, t, f)   => apply(c, env).flatMap {\n                            case Value.B(true)  => apply(t, env)\n                            case Value.B(false) => apply(f, env)\n                            case v              => Left(EvalError.NotBool(v))\n                          }\n    case Let(x, v, b)  => apply(v, env).flatMap(vv => apply(b, env + (x -> vv)))\n    case Lam(p, _, b)  => Right(Value.Closure(p, b, env))\n    case App(f, a)     => ??? // eval f, eval a, bind param, eval body\n    case BinOp(o, l, r)=> ???\n```\n\n```scala\n// Pretty.scala\nobject Pretty:\n  def apply(e: Expr): String = e match\n    case Num(n)         => n.toString\n    case Var(x)         => x\n    case BinOp(o, l, r) => s\"(${apply(l)} ${sym(o)} ${apply(r)})\"\n    case If(c, t, f)    => s\"if ${apply(c)} then ${apply(t)} else ${apply(f)}\"\n    // ...\n```\n\n```scala\n// TypeCheck.scala\nobject TypeCheck:\n  def apply(e: Expr, ctx: Map[String, Type] = Map.empty): Either[TypeError, Type] = e match\n    case Num(_)  => Right(Type.TNum)\n    case Var(x)  => ctx.get(x).toRight(TypeError.Unbound(x))\n    case Lam(p, t, b) => apply(b, ctx + (p -> t)).map(Type.TFun(t, _))\n    // ...\n```\n\n**Why this works**\n- **New operation:** add one file and touch nothing else.\n- **New node:** adding a case to the `sealed trait` produces a non-exhaustive match warning in every operation that needs updating. Visitor gives you a similar signal by breaking compilation, but you pay for it with boilerplate. Turn on `-Wconf:msg=match may not be exhaustive:e` to make it an error.\n- **Return types:** each operation returns its own type. Visitor needs a generic `Visitor[R]` or mutable state to do that.\n- **Recursion:** it's plain recursion, with no `accept` and no double dispatch.\n\n**When to reconsider.** If you need third parties to add node types without recompiling (a plugin system), use an open trait with a typeclass (`trait Eval[A]`, with instances per node) instead. This is the tagless-final or typeclass route. It's more machinery, and you don't need it for a closed 12-node language.\n\n**Two refinements as the code grows**\n- If you want to skip the boilerplate of traversing every child in transformations like constant folding, add one generic `def map(f: Expr => Expr): Expr` on `Expr`. Don't add a visitor for this.\n- Consider separating the surface AST from a typed or elaborated AST, so the type-checker's output isn't the same shape as its input. That is a bigger design choice than Visitor versus match, but it's usually the next one you'll face."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "visitor over an AST - ADTs + exhaustive match, and the expression problem",
+          "vars": {
+            "request": "file:///private/tmp/t1/evals/design-patterns/cases/visitor.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "routing",
+              "value": "if (!/sealed (trait|abstract)|algebraic data type|\\bADT\\b/i.test(output))\n  throw new Error('did not reach for a sealed trait / ADT instead of Visitor');\nif (!/pattern match|\\bmatch\\b|exhaustiv/i.test(output))\n  throw new Error('did not mention exhaustive pattern matching');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "// The precise trade-off: Visitor eases new TYPES, ADTs ease new OPERATIONS.\nif (!/expression problem|adding (new )?(types|operations)|which axis|axis (of )?change/i.test(output))\n  throw new Error('did not surface the expression-problem trade-off (types vs operations axis)');\nreturn true;\n"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/visitor.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "restraint": 1,
+            "routing": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1,
+            "routing": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "if (!/anti-?pattern|global (mutable )?state|testab|hides? depend|hidden depend/i.test(output))\n  throw new Error('delivered a Singleton without flagging it as global mutable state / anti-pattern');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "routing",
+                "value": "if (!/pass(ing)? (the )?depend|inject|explicit depend|\\bobject\\b/i.test(output))\n  throw new Error('did not offer explicit dependency passing (or a stateless object) instead');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "0e30700b-6567-4dcf-8445-e17339fa91b6",
+        "latencyMs": 13069,
+        "namedScores": {
+          "restraint": 1,
+          "routing": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\nI need one shared config object across my whole application. Give me a Singleton implementation.",
+          "label": "evals/design-patterns/prompt-baseline.txt: You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+          "config": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          }
+        },
+        "promptId": "12b0452a5ef6d626f0a4c5d71efbaee2878cc039591c5708295794749e10fff6",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "You didn't name a language, so here are Scala and Python versions. Both load the config once, immutably.\n\n**Scala**: an `object` is the singleton, with thread-safe lazy init built in.\n\n```scala\nfinal case class Config(dbUrl: String, port: Int, debug: Boolean)\n\nobject Config:\n  lazy val instance: Config = load()\n\n  private def load(): Config =\n    Config(\n      dbUrl = sys.env.getOrElse(\"DB_URL\", \"jdbc:postgresql://localhost/app\"),\n      port  = sys.env.get(\"PORT\").fold(8080)(_.toInt),\n      debug = sys.env.get(\"DEBUG\").contains(\"true\")\n    )\n```\n\nUse it as `Config.instance.port`.\n\n**Python**: a module-level cached function is the idiomatic singleton, and `lru_cache` makes it thread-safe enough for this.\n\n```python\nfrom dataclasses import dataclass\nfrom functools import lru_cache\nimport os\n\n@dataclass(frozen=True)\nclass Config:\n    db_url: str\n    port: int\n    debug: bool\n\n@lru_cache(maxsize=1)\ndef get_config() -> Config:\n    return Config(\n        db_url=os.getenv(\"DB_URL\", \"postgresql://localhost/app\"),\n        port=int(os.getenv(\"PORT\", \"8080\")),\n        debug=os.getenv(\"DEBUG\") == \"true\",\n    )\n```\n\nTwo things keep this from becoming global mutable state:\n- **Immutable config.** `case class` and `frozen=True` mean nothing can change it after load.\n- **Inject it at the edges.** Read it once in `main` and pass the `Config` to the components that need it, instead of calling `Config.instance` everywhere. Tests can then build their own `Config(...)`. GoF's Singleton is widely treated as an anti-pattern for this reason, because it hides dependencies and makes testing hard.\n\nIf you want Java, TypeScript, or another language, tell me which."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "singleton requested by name - must push back, not deliver it",
+          "vars": {
+            "request": "file:///private/tmp/t1/evals/design-patterns/cases/singleton.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "if (!/anti-?pattern|global (mutable )?state|testab|hides? depend|hidden depend/i.test(output))\n  throw new Error('delivered a Singleton without flagging it as global mutable state / anti-pattern');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "routing",
+              "value": "if (!/pass(ing)? (the )?depend|inject|explicit depend|\\bobject\\b/i.test(output))\n  throw new Error('did not offer explicit dependency passing (or a stateless object) instead');\nreturn true;\n"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/singleton.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "The response leads with 'Use a PricingStrategy interface, one concrete class per algorithm' and spends nearly all its length on the full class hierarchy. The function-based alternative appears only in a closing 'Simpler option' paragraph. That paragraph has no code and is hedged ('if the algorithms are stateless and small'), and it ends by saying to keep the named classes for configuration, logging or separate tests. It mentions that Strategy is just a function parameter in Scala and other FP-leaning code. It never says the class hierarchy is unnecessary ceremony in languages with first-class functions, and Java itself has lambdas. Pricing algorithms like these (a flat price, a percentage discount, a tiered price) are naturally plain functions, yet the response frames the classes as the main recommendation. A reader would likely conclude the class hierarchy is the right answer.",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.65,
+          "reason": "The response leads with 'Use a PricingStrategy interface, one concrete class per algorithm' and spends nearly all its length on the full class hierarchy. The function-based alternative appears only in a closing 'Simpler option' paragraph. That paragraph has no code and is hedged ('if the algorithms are stateless and small'), and it ends by saying to keep the named classes for configuration, logging or separate tests. It mentions that Strategy is just a function parameter in Scala and other FP-leaning code. It never says the class hierarchy is unnecessary ceremony in languages with first-class functions, and Java itself has lambdas. Pricing algorithms like these (a flat price, a percentage discount, a tiered price) are naturally plain functions, yet the response frames the classes as the main recommendation. A reader would likely conclude the class hierarchy is the right answer.",
+          "namedScores": {
+            "routing": 0.65
+          },
+          "namedScoreWeights": {
+            "routing": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "routing",
+                "value": "const prose = /pass(ing)? a function|first-?class function|higher-?order|just a function|function (value|type|alias)|collapses? to a function|reduces? to a function/i.test(output);\n// A function *type* is the same claim expressed as code: `type Pricing = Order => BigDecimal`.\nconst funcType = /type\\s+\\w+\\s*=\\s*[^\\n=]*=>/.test(output) || /:\\s*\\w+\\s*=>\\s*\\w+/.test(output);\nif (!prose && !funcType)\n  throw new Error('never offered the function-based alternative to the Strategy class hierarchy');\nreturn true;\n"
+              }
+            },
+            {
+              "assertion": {
+                "type": "llm-rubric",
+                "metric": "routing",
+                "value": "The response does not stop at a textbook Strategy implementation. It makes clear that in a language with first-class functions the trait plus concrete-class hierarchy is unnecessary ceremony, and shows or recommends the simpler form where a pricing algorithm is just a function value. It is allowed to show the classic structure first, but it must not leave the reader thinking the class hierarchy is the right answer here."
+              },
+              "pass": false,
+              "score": 0.3,
+              "reason": "The response leads with 'Use a PricingStrategy interface, one concrete class per algorithm' and spends nearly all its length on the full class hierarchy. The function-based alternative appears only in a closing 'Simpler option' paragraph. That paragraph has no code and is hedged ('if the algorithms are stateless and small'), and it ends by saying to keep the named classes for configuration, logging or separate tests. It mentions that Strategy is just a function parameter in Scala and other FP-leaning code. It never says the class hierarchy is unnecessary ceremony in languages with first-class functions, and Java itself has lambdas. Pricing algorithms like these (a flat price, a percentage discount, a tiered price) are naturally plain functions, yet the response frames the classes as the main recommendation. A reader would likely conclude the class hierarchy is the right answer.",
+              "tokensUsed": {
+                "total": 0,
+                "prompt": 0,
+                "completion": 0,
+                "cached": 0,
+                "numRequests": 0,
+                "completionDetails": {
+                  "reasoning": 0,
+                  "acceptedPrediction": 0,
+                  "rejectedPrediction": 0
+                }
+              },
+              "metadata": {
+                "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\nUse a `PricingStrategy` interface, one concrete class per algorithm, and a context object that holds the current strategy and delegates to it. I've used Java because you didn't name a language, and I can translate it if you use something else.\\n\\n**1. Interface (the stable part)**\\n\\n```java\\npublic interface PricingStrategy {\\n    Money price(Order order);\\n}\\n```\\n\\nGive it the narrowest signature all three algorithms can share. If one needs extra inputs, such as customer tier or date, put them on `Order` or a `PricingContext` parameter. Don't add strategy-specific methods, because then the caller has to know which strategy it holds.\\n\\n**2. Concrete strategies (the varying part)**\\n\\n```java\\npublic final class StandardPricing implements PricingStrategy {\\n    public Money price(Order o) { return o.subtotal(); }\\n}\\n\\npublic final class PercentDiscountPricing implements PricingStrategy {\\n    private final BigDecimal rate; // e.g. 0.15\\n    public PercentDiscountPricing(BigDecimal rate) { this.rate = rate; }\\n    public Money price(Order o) {\\n        return o.subtotal().multiply(BigDecimal.ONE.subtract(rate));\\n    }\\n}\\n\\npublic final class TieredVolumePricing implements PricingStrategy {\\n    private final NavigableMap<Integer, BigDecimal> unitPriceByMinQty;\\n    public TieredVolumePricing(NavigableMap<Integer, BigDecimal> tiers) {\\n        this.unitPriceByMinQty = tiers;\\n    }\\n    public Money price(Order o) {\\n        var unit = unitPriceByMinQty.floorEntry(o.quantity()).getValue();\\n        return Money.of(unit).multiply(o.quantity());\\n    }\\n}\\n```\\n\\nEach strategy takes its own configuration through its constructor and holds no mutable state, so one instance can be shared safely.\\n\\n**3. Context (where the runtime swap happens)**\\n\\n```java\\npublic class PricingService {\\n    private volatile PricingStrategy strategy;\\n\\n    public PricingService(PricingStrategy initial) {\\n        this.strategy = Objects.requireNonNull(initial);\\n    }\\n    public void setStrategy(PricingStrategy s) { this.strategy = Objects.requireNonNull(s); }\\n\\n    public Money quote(Order order) { return strategy.price(order); }\\n}\\n```\\n\\nThe context only knows the interface. It has no `if`/`switch` on a pricing type. `volatile` matters only if multiple threads can swap the strategy.\\n\\n**4. Choosing at runtime**\\n\\n```java\\nvar service = new PricingService(new StandardPricing());\\nservice.setStrategy(new PercentDiscountPricing(new BigDecimal(\\\"0.15\\\")));\\nservice.setStrategy(new TieredVolumePricing(tiers));\\n```\\n\\nIf the choice comes from config or user input, do the lookup once, for example in a `Map<String, PricingStrategy>` registry or a factory. That is the only place that should name the concrete classes.\\n\\n**Pitfalls**\\n- **Leaky interface:** if callers do `instanceof` checks on the strategy, the abstraction has failed.\\n- **Per-order choice:** if the algorithm depends on each order, such as its customer or its date, don't swap one shared service. Pass the strategy per call, or select it in a resolver.\\n- **Testing:** test each strategy in isolation with plain inputs, and test the context with a stub strategy.\\n\\n**Simpler option:** if the algorithms are stateless and small, you don't need the classes. `PricingStrategy` can be a functional interface (`Function<Order, Money>`) and each algorithm a lambda or static method. In Scala or other FP-leaning code, Strategy is just a function parameter. Keep the named classes if you want per-algorithm configuration, logging, or separate test files.\\n</Output>\\n<Rubric>\\nThe response does not stop at a textbook Strategy implementation. It makes clear that in a language with first-class functions the trait plus concrete-class hierarchy is unnecessary ceremony, and shows or recommends the simpler form where a pricing algorithm is just a function value. It is allowed to show the classic structure first, but it must not leave the reader thinking the class hierarchy is the right answer here.\\n</Rubric>\"}]"
+              }
+            }
+          ]
+        },
+        "id": "815c9b1b-e9fe-460d-8ce2-e2eff15d032b",
+        "latencyMs": 20538,
+        "namedScores": {
+          "routing": 0.65
+        },
+        "prompt": {
+          "raw": "You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\nI have three different pricing algorithms and I want to swap between them at runtime. Walk me through implementing the Strategy pattern properly, with the interface and the concrete classes.",
+          "label": "evals/design-patterns/prompt-baseline.txt: You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+          "config": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          }
+        },
+        "promptId": "12b0452a5ef6d626f0a4c5d71efbaee2878cc039591c5708295794749e10fff6",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Use a `PricingStrategy` interface, one concrete class per algorithm, and a context object that holds the current strategy and delegates to it. I've used Java because you didn't name a language, and I can translate it if you use something else.\n\n**1. Interface (the stable part)**\n\n```java\npublic interface PricingStrategy {\n    Money price(Order order);\n}\n```\n\nGive it the narrowest signature all three algorithms can share. If one needs extra inputs, such as customer tier or date, put them on `Order` or a `PricingContext` parameter. Don't add strategy-specific methods, because then the caller has to know which strategy it holds.\n\n**2. Concrete strategies (the varying part)**\n\n```java\npublic final class StandardPricing implements PricingStrategy {\n    public Money price(Order o) { return o.subtotal(); }\n}\n\npublic final class PercentDiscountPricing implements PricingStrategy {\n    private final BigDecimal rate; // e.g. 0.15\n    public PercentDiscountPricing(BigDecimal rate) { this.rate = rate; }\n    public Money price(Order o) {\n        return o.subtotal().multiply(BigDecimal.ONE.subtract(rate));\n    }\n}\n\npublic final class TieredVolumePricing implements PricingStrategy {\n    private final NavigableMap<Integer, BigDecimal> unitPriceByMinQty;\n    public TieredVolumePricing(NavigableMap<Integer, BigDecimal> tiers) {\n        this.unitPriceByMinQty = tiers;\n    }\n    public Money price(Order o) {\n        var unit = unitPriceByMinQty.floorEntry(o.quantity()).getValue();\n        return Money.of(unit).multiply(o.quantity());\n    }\n}\n```\n\nEach strategy takes its own configuration through its constructor and holds no mutable state, so one instance can be shared safely.\n\n**3. Context (where the runtime swap happens)**\n\n```java\npublic class PricingService {\n    private volatile PricingStrategy strategy;\n\n    public PricingService(PricingStrategy initial) {\n        this.strategy = Objects.requireNonNull(initial);\n    }\n    public void setStrategy(PricingStrategy s) { this.strategy = Objects.requireNonNull(s); }\n\n    public Money quote(Order order) { return strategy.price(order); }\n}\n```\n\nThe context only knows the interface. It has no `if`/`switch` on a pricing type. `volatile` matters only if multiple threads can swap the strategy.\n\n**4. Choosing at runtime**\n\n```java\nvar service = new PricingService(new StandardPricing());\nservice.setStrategy(new PercentDiscountPricing(new BigDecimal(\"0.15\")));\nservice.setStrategy(new TieredVolumePricing(tiers));\n```\n\nIf the choice comes from config or user input, do the lookup once, for example in a `Map<String, PricingStrategy>` registry or a factory. That is the only place that should name the concrete classes.\n\n**Pitfalls**\n- **Leaky interface:** if callers do `instanceof` checks on the strategy, the abstraction has failed.\n- **Per-order choice:** if the algorithm depends on each order, such as its customer or its date, don't swap one shared service. Pass the strategy per call, or select it in a resolver.\n- **Testing:** test each strategy in isolation with plain inputs, and test the context with a stub strategy.\n\n**Simpler option:** if the algorithms are stateless and small, you don't need the classes. `PricingStrategy` can be a functional interface (`Function<Order, Money>`) and each algorithm a lambda or static method. In Scala or other FP-leaning code, Strategy is just a function parameter. Keep the named classes if you want per-algorithm configuration, logging, or separate test files."
+        },
+        "score": 0.65,
+        "success": false,
+        "testCase": {
+          "description": "strategy requested by name - it is just passing a function",
+          "vars": {
+            "request": "file:///private/tmp/t1/evals/design-patterns/cases/strategy.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "routing",
+              "value": "const prose = /pass(ing)? a function|first-?class function|higher-?order|just a function|function (value|type|alias)|collapses? to a function|reduces? to a function/i.test(output);\n// A function *type* is the same claim expressed as code: `type Pricing = Order => BigDecimal`.\nconst funcType = /type\\s+\\w+\\s*=\\s*[^\\n=]*=>/.test(output) || /:\\s*\\w+\\s*=>\\s*\\w+/.test(output);\nif (!prose && !funcType)\n  throw new Error('never offered the function-based alternative to the Strategy class hierarchy');\nreturn true;\n"
+            },
+            {
+              "type": "llm-rubric",
+              "metric": "routing",
+              "value": "The response does not stop at a textbook Strategy implementation. It makes clear that in a language with first-class functions the trait plus concrete-class hierarchy is unnecessary ceremony, and shows or recommends the simpler form where a pricing algorithm is just a function value. It is allowed to show the classic structure first, but it must not leave the reader thinking the class hierarchy is the right answer here."
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/strategy.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 1,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 33863,
+      "evaluationDurationMs": 33863
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "design-patterns - the critical lens: what modern languages already give you -- NAIVE BASELINE (no skill in context)",
+    "prompts": [
+      "file:///private/tmp/t1/evals/design-patterns/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "visitor over an AST - ADTs + exhaustive match, and the expression problem",
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/visitor.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "routing",
+            "value": "if (!/sealed (trait|abstract)|algebraic data type|\\bADT\\b/i.test(output))\n  throw new Error('did not reach for a sealed trait / ADT instead of Visitor');\nif (!/pattern match|\\bmatch\\b|exhaustiv/i.test(output))\n  throw new Error('did not mention exhaustive pattern matching');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "// The precise trade-off: Visitor eases new TYPES, ADTs ease new OPERATIONS.\nif (!/expression problem|adding (new )?(types|operations)|which axis|axis (of )?change/i.test(output))\n  throw new Error('did not surface the expression-problem trade-off (types vs operations axis)');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "singleton requested by name - must push back, not deliver it",
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/singleton.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "if (!/anti-?pattern|global (mutable )?state|testab|hides? depend|hidden depend/i.test(output))\n  throw new Error('delivered a Singleton without flagging it as global mutable state / anti-pattern');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "routing",
+            "value": "if (!/pass(ing)? (the )?depend|inject|explicit depend|\\bobject\\b/i.test(output))\n  throw new Error('did not offer explicit dependency passing (or a stateless object) instead');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "strategy requested by name - it is just passing a function",
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/strategy.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "routing",
+            "value": "const prose = /pass(ing)? a function|first-?class function|higher-?order|just a function|function (value|type|alias)|collapses? to a function|reduces? to a function/i.test(output);\n// A function *type* is the same claim expressed as code: `type Pricing = Order => BigDecimal`.\nconst funcType = /type\\s+\\w+\\s*=\\s*[^\\n=]*=>/.test(output) || /:\\s*\\w+\\s*=>\\s*\\w+/.test(output);\nif (!prose && !funcType)\n  throw new Error('never offered the function-based alternative to the Strategy class hierarchy');\nreturn true;\n"
+          },
+          {
+            "type": "llm-rubric",
+            "metric": "routing",
+            "value": "The response does not stop at a textbook Strategy implementation. It makes clear that in a language with first-class functions the trait plus concrete-class hierarchy is unnecessary ceremony, and shows or recommends the simpler form where a pricing algorithm is just a function value. It is allowed to show the classic structure first, but it must not leave the reader thinking the class hierarchy is the right answer here."
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "/tmp/t2res/design-patterns_baseline_3.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "options": {
+        "provider": {
+          "id": "exec:../_provider/claude-grader.sh",
+          "config": {
+            "model": "sonnet",
+            "apiKeyRequired": false,
+            "max_turns": 5
+          }
+        }
+      },
+      "vars": {},
+      "assert": [],
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/t1/evals/design-patterns"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-28T20:52:45.092Z",
+    "evaluationCreatedAt": "2026-10-28T20:52:11.196Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

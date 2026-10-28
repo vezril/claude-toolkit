@@ -1,0 +1,91 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+#
+# Cases target the skill's "modern/critical lens", not the GoF catalog. A model
+# reciting Gang of Four is easy; the skill's claim is that first-class functions and
+# ADTs dissolve several patterns, and that the Visitor trade-off is the expression
+# problem. Each case asks for a pattern by name so a naive arm will happily build it.
+#
+# Run: npx promptfoo@latest eval -c evals/design-patterns/promptfooconfig.yaml --no-cache
+description: "design-patterns - the critical lens: what modern languages already give you"
+prompts:
+  - file://prompt.txt
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config:
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 5
+defaultTest:
+  vars:
+    skill: file://../../skills/design-patterns/SKILL.md
+  options:
+    provider:
+      id: anthropic:claude-agent-sdk
+      config:
+        model: sonnet
+        apiKeyRequired: false
+        max_turns: 5
+tests:
+  - description: "visitor over an AST - ADTs + exhaustive match, and the expression problem"
+    vars: { request: file://cases/visitor.txt }
+    assert:
+      - type: javascript
+        metric: routing
+        value: |
+          if (!/sealed (trait|abstract)|algebraic data type|\bADT\b/i.test(output))
+            throw new Error('did not reach for a sealed trait / ADT instead of Visitor');
+          if (!/pattern match|\bmatch\b|exhaustiv/i.test(output))
+            throw new Error('did not mention exhaustive pattern matching');
+          return true;
+      - type: javascript
+        metric: accuracy
+        value: |
+          // The precise trade-off: Visitor eases new TYPES, ADTs ease new OPERATIONS.
+          if (!/expression problem|adding (new )?(types|operations)|which axis|axis (of )?change/i.test(output))
+            throw new Error('did not surface the expression-problem trade-off (types vs operations axis)');
+          return true;
+
+  - description: "singleton requested by name - must push back, not deliver it"
+    vars: { request: file://cases/singleton.txt }
+    assert:
+      - type: javascript
+        metric: restraint
+        value: |
+          if (!/anti-?pattern|global (mutable )?state|testab|hides? depend|hidden depend/i.test(output))
+            throw new Error('delivered a Singleton without flagging it as global mutable state / anti-pattern');
+          return true;
+      - type: javascript
+        metric: routing
+        value: |
+          if (!/pass(ing)? (the )?depend|inject|explicit depend|\bobject\b/i.test(output))
+            throw new Error('did not offer explicit dependency passing (or a stateless object) instead');
+          return true;
+
+  - description: "strategy requested by name - it is just passing a function"
+    vars: { request: file://cases/strategy.txt }
+    assert:
+      # ASSERT REWRITTEN after the first run -- see iteration-log.md. The original
+      # pair was wrong in both directions: it accepted a bare "=>" (present in any
+      # Scala lambda, so it could pass on an answer that never mentioned functions)
+      # and it demanded a historical framing (1994 / GoF / "workaround") that the
+      # skill nowhere requires. The skill's actual instruction is to check whether a
+      # function already expresses the pattern more directly, so that is what is asserted.
+      - type: javascript
+        metric: routing
+        value: |
+          const prose = /pass(ing)? a function|first-?class function|higher-?order|just a function|function (value|type|alias)|collapses? to a function|reduces? to a function/i.test(output);
+          // A function *type* is the same claim expressed as code: `type Pricing = Order => BigDecimal`.
+          const funcType = /type\s+\w+\s*=\s*[^\n=]*=>/.test(output) || /:\s*\w+\s*=>\s*\w+/.test(output);
+          if (!prose && !funcType)
+            throw new Error('never offered the function-based alternative to the Strategy class hierarchy');
+          return true;
+      - type: llm-rubric
+        metric: routing
+        value: >-
+          The response does not stop at a textbook Strategy implementation. It makes
+          clear that in a language with first-class functions the trait plus
+          concrete-class hierarchy is unnecessary ceremony, and shows or recommends
+          the simpler form where a pricing algorithm is just a function value. It is
+          allowed to show the classic structure first, but it must not leave the
+          reader thinking the class hierarchy is the right answer here.
