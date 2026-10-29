@@ -203,8 +203,15 @@ def proposal_paths(proposal: dict) -> list:
     return sorted({f for t in (proposal or {}).get("tasks") or [] for f in (t.get("files") or [])})
 
 
-def _under(path: str, prefix: str) -> bool:
-    """True when a declared path sits at or under a configured prefix."""
+def under(path: str, prefix: str) -> bool:
+    """True when a path sits at or under a configured prefix.
+
+    Public because both halves of the path gates use it: the *planned* paths here, and the
+    *realized* diff in `check-punch-out.py`. `verify` compares the two, so a prefix that
+    matched a plan and not the diff that implemented it would be a false finding. Note this
+    is a path-segment test, not a string prefix — `nx_neptune` must not match
+    `nx_neptune_extra/foo.py`.
+    """
     p, q = str(path).strip("/"), str(prefix).strip("/")
     return bool(q) and (p == q or p.startswith(q + "/"))
 
@@ -212,7 +219,7 @@ def _under(path: str, prefix: str) -> bool:
 def _prefix_hits(paths: list, cfg: dict, key: str) -> list:
     hits = []
     for prefix in ((cfg or {}).get("punch_out") or {}).get(key) or []:
-        matched = [p for p in paths if _under(p, prefix)]
+        matched = [p for p in paths if under(p, prefix)]
         if matched:
             hits.append((str(prefix), matched))
     return hits

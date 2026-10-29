@@ -47,6 +47,16 @@ punch_out:
   retry_limit: 3
   contract_paths: [the-lexicon]     # a diff here is a breaking-change trigger
   protected_paths: [.github, charts, hooks]
+  # Both path lists match by path *segment*, not string prefix: `lib` covers `lib/core.py`
+  # and not `lib_extra/core.py`. Keep them as narrow as the surface other callers actually
+  # reach — a prefix naming a whole package fires on every change inside it, including ones
+  # that break nobody, and a gate that always fires teaches people to wave it through.
+  #
+  # The realized diff these match is scoped to *the item being checked*: the commits whose
+  # message names its key, plus the uncommitted working tree. Two items worked on one branch
+  # therefore do not inherit each other's changes. The cost is that a commit naming no item
+  # key is attributed to nobody and its paths go unchecked — `check-punch-out.py --json`
+  # reports that count under `diff_attribution.commits_unattributed`, and says so on stderr.
   # Ceilings for the derived triggers. Tune them against real runs rather than editing
   # scripts/delivery-flow/triggers.py.
   epic_ceiling: 4            # more epics than this derives a scope trigger
