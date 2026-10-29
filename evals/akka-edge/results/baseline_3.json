@@ -1,0 +1,378 @@
+{
+  "evalId": "eval-ODA-2026-10-29T19:58:08",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:58:08.336Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "label": "evals/akka-edge/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "id": "afc292c8783e3ec57db7eb60afd44f7f9090041cf70b84aed9a4d02244928f2d",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 0,
+          "totalLatencyMs": 30255,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 2
+          },
+          "namedScoresCount": {
+            "accuracy": 2
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/local.first|store.and.forward|catch.up|offline|intermittent|buffer/i.test(output)) throw new Error('designs for intermittent connectivity with local-first and catch-up');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "1c01130d-9f2a-41f9-92a1-b7e66913a973",
+        "latencyMs": 14365,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nEdge devices lose network for hours at a time. How should the service behave?",
+          "label": "evals/akka-edge/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "afc292c8783e3ec57db7eb60afd44f7f9090041cf70b84aed9a4d02244928f2d",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Each edge node should be fully autonomous. It keeps working locally while offline and catches up on its own when the network returns.\n\n- **Local-first writes:** The edge accepts device input (HTTP, MQTT or UDP) and persists events to a local store, such as embedded H2 in file mode. Nothing on the request path waits on the cloud.\n- **Edge dials out:** The edge opens every gRPC connection to the cloud, because the cloud can't reach through NAT or firewalls. After an outage it just reconnects.\n- **Store-and-forward upstream:** Use Projection over gRPC with producer push for edge→cloud telemetry. The edge remembers its offset, so after hours offline it resumes from the last acknowledged event. Delivery is at-least-once with offset dedup, so the cloud side must be idempotent.\n- **Catch-up downstream:** For cloud→edge data (config, commands), the edge consumes a cloud projection from its stored offset. Use dynamic filters so each edge pulls only its own data. Hours of backlog then stays small.\n- **Multi-writer state:** If both sides write the same entity, use Replicated Event Sourcing over gRPC. Each replica has its own DB, and conflicts resolve with CRDT-style merge logic. Design for eventual consistency and don't assume strong consistency across the link.\n- **Bound the local store:** Size disk for the longest expected outage, and add retention or compaction. Also decide what happens if the disk fills, such as dropping low-value telemetry first.\n- **Cloud side:** Don't alert on a single silent edge. Track last-seen and offset lag per edge, and alert only past a threshold longer than your normal outage.\n- **Tiny devices:** On very constrained hardware, use Akka Edge Rust, which keeps its offset across restarts. Otherwise use a GraalVM native image.\n\nCommands that need a live cloud round trip (remote actuation, for example) can't be guaranteed during an outage. Queue them with an expiry, and have the edge reject stale ones on reconnect."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "connectivity",
+          "vars": {
+            "request": "file:///private/tmp/b6/evals/akka-edge/cases/connectivity.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/local.first|store.and.forward|catch.up|offline|intermittent|buffer/i.test(output)) throw new Error('designs for intermittent connectivity with local-first and catch-up');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-edge/cases/connectivity.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/dynamic filter|filter/i.test(output)) throw new Error('prescribes dynamic filters to replicate only what is needed');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "09f5202d-631b-4f7f-816b-ab4bdafef82c",
+        "latencyMs": 15890,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nEvery edge node is getting the whole event stream and it's expensive. Options?",
+          "label": "evals/akka-edge/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "afc292c8783e3ec57db7eb60afd44f7f9090041cf70b84aed9a4d02244928f2d",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Stop replicating everything: filter the stream so each edge only receives what it needs. In Akka Projection gRPC you can do that at three levels.\n\n1. **Producer-side filter (static).** On the `EventProducerSource`, add a `transformation` that drops events or maps them to a smaller public shape. Use it to cut data nobody at the edge should see, such as internal events or large payloads. It applies to every consumer, so it won't separate one edge from another.\n2. **Tags or topic filters (per-edge, declarative).** Tag events with something like region or site. Each edge's consumer then sets `ConsumerFilter` topic or tag include and exclude criteria. The edge sends these when it connects, so the cloud never sends the unwanted events. This is usually the best fit.\n3. **Dynamic entity-id filters (per-edge, at runtime).** Use `ConsumerFilter.updateConsumerFilter` to include or remove specific entity ids while the stream is running. Use it when relevance changes, for example when a device moves between sites. Start from an exclude-all default and include only the entities that edge owns.\n\nTwo cost reducers to combine with these:\n- **Start from snapshots or a custom offset.** A new edge doesn't replay the whole history.\n- **\"Many consumers\" firehose.** If many edges read the same stream, put one intermediary projection in front of the journal so the database isn't queried once per edge.\n\nIf the expensive part is edge→cloud (telemetry), use projection with producer push and filter or aggregate on the edge before sending.\n\nWhich direction is expensive, and what do you key edges on (site, region, device)? With that I can say which of the three levels fits, and I can check the code here for what's already configured."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "filters",
+          "vars": {
+            "request": "file:///private/tmp/b6/evals/akka-edge/cases/filters.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/dynamic filter|filter/i.test(output)) throw new Error('prescribes dynamic filters to replicate only what is needed');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-edge/cases/filters.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 15907,
+      "evaluationDurationMs": 15907
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-edge — EDD — NAIVE BASELINE",
+    "prompts": [
+      "file:///private/tmp/b6/evals/akka-edge/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "connectivity",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-edge/cases/connectivity.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/local.first|store.and.forward|catch.up|offline|intermittent|buffer/i.test(output)) throw new Error('designs for intermittent connectivity with local-first and catch-up');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "filters",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-edge/cases/filters.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/dynamic filter|filter/i.test(output)) throw new Error('prescribes dynamic filters to replicate only what is needed');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-edge/results/baseline_3.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/private/tmp/b6/evals/akka-edge"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:58:24.286Z",
+    "evaluationCreatedAt": "2026-10-29T19:58:08.336Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

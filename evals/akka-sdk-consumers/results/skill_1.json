@@ -1,0 +1,391 @@
+{
+  "evalId": "eval-hl5-2026-10-29T19:53:15",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:53:15.523Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/akka-sdk-consumers/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "271651bf4949f568f39d264c919fdcbd813b2a70c4ffbaf0d0281fa2078fec69",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 0,
+          "totalLatencyMs": 15374,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 2
+          },
+          "namedScoresCount": {
+            "accuracy": 2
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/ignore\\(\\)|ignore|skip/i.test(output)) throw new Error('says ignore() events you do not care about');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "761e4371-a487-4cbc-97c3-1f78940e8fa0",
+        "latencyMs": 7147,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-sdk-consumers\ndescription: Akka SDK Consumers (Java) — components that consume a stream of events/changes (from Event Sourced Entities, Key Value Entities, Workflows, another Akka service's stream, or a Kafka/Google Pub-Sub topic) and optionally produce to a topic or service stream. Covers defining a Consumer (extend Consumer, @Consume.FromEventSourcedEntity/FromKeyValueEntity/FromWorkflow/FromTopic/FromServiceStream, the effects().produce/done/ignore API), producing out (@Produce.ToTopic/ToServiceStream), brokerless service-to-service eventing, at-least-once delivery and the need for deduplication, CloudEvents metadata, and testing. Use to react to entity/workflow changes, integrate with Kafka/PubSub, propagate events between services, or build projections to external systems in an Akka SDK service. Part of the Akka SDK (Java); see akka-sdk for the model and akka-sdk-views for in-service read models.\n---\n\n# Akka SDK — Consumers\n\nA **Consumer** consumes a stream of events/changes and optionally **produces** to a topic or service stream. Sources: [[akka-sdk-event-sourced-entities]] journals, [[akka-sdk-key-value-entities]] state changes, [[akka-sdk-workflows]] state, another Akka service's stream, or a **Kafka / Google Pub-Sub** topic. The way to react to changes, do eventing in/out, and propagate events between services. Part of the [[akka-sdk]] (Java).\n\nCross-links: [[akka-sdk]] (meta), [[akka-sdk-views]] (in-service read models), [[alpakka]] (the Core Kafka library), [[akka-projections]].\n\n## Defining a consumer\n\n```java\n@Component(id = \"counter-events-consumer\")\n@Consume.FromEventSourcedEntity(CounterEntity.class)\npublic class CounterEventsConsumer extends Consumer {\n  public Effect onEvent(CounterEvent event) {\n    return switch (event) {\n      case CounterEvent.ValueIncreased v  -> { /* side effect via ComponentClient/HttpClient */ yield effects().done(); }\n      case CounterEvent.ValueMultiplied v -> effects().ignore();   // skip this one\n    };\n  }\n}\n```\n\nEffect API: `effects().done()` (processed OK), `effects().ignore()` (skip), `effects().produce(payload[, metadata])` (publish, when annotated `@Produce.*`). Every consumer needs `@Component(id)`. Sources:\n- `@Consume.FromEventSourcedEntity(X.class)` — handle events (exceptions → redelivery; add `@SnapshotHandler` to start from snapshots on long histories).\n- `@Consume.FromKeyValueEntity(X.class)` — receive the **most recent** state (not necessarily every change); optional `@DeleteHandler`.\n- `@Consume.FromWorkflow(X.class)` — workflow state changes.\n- `@Consume.FromTopic(\"name\")` — broker messages (CloudEvents; handler chosen by `ce-type`; `byte[]` param for binary).\n- `@Consume.FromServiceStream(service = \"...\", id = \"...\")` — another Akka service's published stream.\n\n## Producing out\n\n```java\n@Component(id = \"counter-journal-to-topic\")\n@Consume.FromEventSourcedEntity(CounterEntity.class)\n@Produce.ToTopic(\"counter-events\")\npublic class CounterToTopic extends Consumer {\n  public Effect onEvent(CounterEvent e) { return effects().produce(e); }\n}\n```\n- `@Produce.ToTopic(\"name\")` publishes to Kafka/PubSub; set the CloudEvent subject (`ce-subject`) in metadata to preserve per-entity ordering.\n- `@Produce.ServiceStream(id = \"...\")` + `@Acl(allow = @Acl.Matcher(service = \"*\"))` does **brokerless service-to-service eventing** (no Kafka needed): transform internal events to a public API type, `ignore()` what you don't expose; consumers use `@Consume.FromServiceStream`.\n\n## Always-apply defaults\n\n1. **All delivery is at-least-once → handle duplicates** — the SDK does **not** dedup automatically; make updates idempotent or track sequence numbers.\n2. **Transform internal events to public types when producing** (don't leak internal models across a service boundary); `ignore()` events you don't expose.\n3. **For per-entity ordering in a topic**, set `ce-subject` from `messageContext().eventSubject()` in the produced metadata.\n4. **Use a [[akka-sdk-views]] view, not a consumer, for in-service queryable read models**; use consumers to project to *external* systems or other services.\n5. **Don't fail on events you don't care about** — `ignore()` them; only let real processing errors propagate (they trigger redelivery).\n6. **Externalize source/topic names** with `${VAR}` where they vary by environment (changing a resolved name restarts the consumer from the start of the stream).\n\n## Anti-patterns (flag in review)\n\n- Assuming exactly-once / no duplicates (it's at-least-once — dedup yourself); non-idempotent side effects without dedup.\n- Relying on a KV-entity consumer to observe every intermediate change (only the latest is guaranteed).\n- Publishing internal event/state types to a topic or other service; building an in-service query model with a consumer instead of a [[akka-sdk-views]] view.\n\n## Testing\n\n`TestKitSupport` with `TestKit.Settings.DEFAULT.withTopicIncomingMessages(\"...\").withTopicOutgoingMessages(\"...\")`; publish via `testKit.getTopicIncomingMessages(name).publish(cmd, subjectId)` and assert with `getTopicOutgoingMessages(name).expectOneTyped(Type.class)`. Or run the Google Pub-Sub emulator for ITs. Run topic tests sequentially / clear between tests.\n\n## Related\n\n- [[akka-sdk]] · [[akka-sdk-event-sourced-entities]] · [[akka-sdk-key-value-entities]] · [[akka-sdk-workflows]] · [[akka-sdk-views]]\n- [[alpakka]] (Core Kafka connector) · [[akka-projections]] (Core projections / read sides).\n- Source: https://doc.akka.io/sdk/consuming-producing.html\n</skill>\n\nUser request:\nMy consumer throws on event types it doesn't handle, and the platform keeps redelivering. What should it do?",
+          "label": "evals/akka-sdk-consumers/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "271651bf4949f568f39d264c919fdcbd813b2a70c4ffbaf0d0281fa2078fec69",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Return `effects().ignore()` for event types you don't handle. Only let real processing errors propagate, because an exception is what triggers redelivery.\n\n```java\npublic Effect onEvent(CounterEvent event) {\n  return switch (event) {\n    case CounterEvent.ValueIncreased v  -> { /* handle */ yield effects().done(); }\n    default                             -> effects().ignore();\n  };\n}\n```\n\n- **Sealed event types:** list the ignored cases explicitly instead of using `default`. The compiler then flags any new event you forgot to classify.\n- **Producing consumers (`@Produce.*`):** `ignore()` is also how you skip events you don't want to publish.\n- **Real failures:** delivery is at-least-once, so keep the side effects of handled events idempotent. Redelivery will repeat them."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "ignore",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-sdk-consumers/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-sdk-consumers/cases/ignore.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/ignore\\(\\)|ignore|skip/i.test(output)) throw new Error('says ignore() events you do not care about');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-sdk-consumers/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-sdk-consumers/cases/ignore.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/only the latest|not guarantee|no\\b|cannot|intermediate|event.sourc/i.test(output)) throw new Error('says only the latest state is guaranteed');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "fdd339cf-f28a-4e8a-9022-d97ecfb38754",
+        "latencyMs": 8227,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-sdk-consumers\ndescription: Akka SDK Consumers (Java) — components that consume a stream of events/changes (from Event Sourced Entities, Key Value Entities, Workflows, another Akka service's stream, or a Kafka/Google Pub-Sub topic) and optionally produce to a topic or service stream. Covers defining a Consumer (extend Consumer, @Consume.FromEventSourcedEntity/FromKeyValueEntity/FromWorkflow/FromTopic/FromServiceStream, the effects().produce/done/ignore API), producing out (@Produce.ToTopic/ToServiceStream), brokerless service-to-service eventing, at-least-once delivery and the need for deduplication, CloudEvents metadata, and testing. Use to react to entity/workflow changes, integrate with Kafka/PubSub, propagate events between services, or build projections to external systems in an Akka SDK service. Part of the Akka SDK (Java); see akka-sdk for the model and akka-sdk-views for in-service read models.\n---\n\n# Akka SDK — Consumers\n\nA **Consumer** consumes a stream of events/changes and optionally **produces** to a topic or service stream. Sources: [[akka-sdk-event-sourced-entities]] journals, [[akka-sdk-key-value-entities]] state changes, [[akka-sdk-workflows]] state, another Akka service's stream, or a **Kafka / Google Pub-Sub** topic. The way to react to changes, do eventing in/out, and propagate events between services. Part of the [[akka-sdk]] (Java).\n\nCross-links: [[akka-sdk]] (meta), [[akka-sdk-views]] (in-service read models), [[alpakka]] (the Core Kafka library), [[akka-projections]].\n\n## Defining a consumer\n\n```java\n@Component(id = \"counter-events-consumer\")\n@Consume.FromEventSourcedEntity(CounterEntity.class)\npublic class CounterEventsConsumer extends Consumer {\n  public Effect onEvent(CounterEvent event) {\n    return switch (event) {\n      case CounterEvent.ValueIncreased v  -> { /* side effect via ComponentClient/HttpClient */ yield effects().done(); }\n      case CounterEvent.ValueMultiplied v -> effects().ignore();   // skip this one\n    };\n  }\n}\n```\n\nEffect API: `effects().done()` (processed OK), `effects().ignore()` (skip), `effects().produce(payload[, metadata])` (publish, when annotated `@Produce.*`). Every consumer needs `@Component(id)`. Sources:\n- `@Consume.FromEventSourcedEntity(X.class)` — handle events (exceptions → redelivery; add `@SnapshotHandler` to start from snapshots on long histories).\n- `@Consume.FromKeyValueEntity(X.class)` — receive the **most recent** state (not necessarily every change); optional `@DeleteHandler`.\n- `@Consume.FromWorkflow(X.class)` — workflow state changes.\n- `@Consume.FromTopic(\"name\")` — broker messages (CloudEvents; handler chosen by `ce-type`; `byte[]` param for binary).\n- `@Consume.FromServiceStream(service = \"...\", id = \"...\")` — another Akka service's published stream.\n\n## Producing out\n\n```java\n@Component(id = \"counter-journal-to-topic\")\n@Consume.FromEventSourcedEntity(CounterEntity.class)\n@Produce.ToTopic(\"counter-events\")\npublic class CounterToTopic extends Consumer {\n  public Effect onEvent(CounterEvent e) { return effects().produce(e); }\n}\n```\n- `@Produce.ToTopic(\"name\")` publishes to Kafka/PubSub; set the CloudEvent subject (`ce-subject`) in metadata to preserve per-entity ordering.\n- `@Produce.ServiceStream(id = \"...\")` + `@Acl(allow = @Acl.Matcher(service = \"*\"))` does **brokerless service-to-service eventing** (no Kafka needed): transform internal events to a public API type, `ignore()` what you don't expose; consumers use `@Consume.FromServiceStream`.\n\n## Always-apply defaults\n\n1. **All delivery is at-least-once → handle duplicates** — the SDK does **not** dedup automatically; make updates idempotent or track sequence numbers.\n2. **Transform internal events to public types when producing** (don't leak internal models across a service boundary); `ignore()` events you don't expose.\n3. **For per-entity ordering in a topic**, set `ce-subject` from `messageContext().eventSubject()` in the produced metadata.\n4. **Use a [[akka-sdk-views]] view, not a consumer, for in-service queryable read models**; use consumers to project to *external* systems or other services.\n5. **Don't fail on events you don't care about** — `ignore()` them; only let real processing errors propagate (they trigger redelivery).\n6. **Externalize source/topic names** with `${VAR}` where they vary by environment (changing a resolved name restarts the consumer from the start of the stream).\n\n## Anti-patterns (flag in review)\n\n- Assuming exactly-once / no duplicates (it's at-least-once — dedup yourself); non-idempotent side effects without dedup.\n- Relying on a KV-entity consumer to observe every intermediate change (only the latest is guaranteed).\n- Publishing internal event/state types to a topic or other service; building an in-service query model with a consumer instead of a [[akka-sdk-views]] view.\n\n## Testing\n\n`TestKitSupport` with `TestKit.Settings.DEFAULT.withTopicIncomingMessages(\"...\").withTopicOutgoingMessages(\"...\")`; publish via `testKit.getTopicIncomingMessages(name).publish(cmd, subjectId)` and assert with `getTopicOutgoingMessages(name).expectOneTyped(Type.class)`. Or run the Google Pub-Sub emulator for ITs. Run topic tests sequentially / clear between tests.\n\n## Related\n\n- [[akka-sdk]] · [[akka-sdk-event-sourced-entities]] · [[akka-sdk-key-value-entities]] · [[akka-sdk-workflows]] · [[akka-sdk-views]]\n- [[alpakka]] (Core Kafka connector) · [[akka-projections]] (Core projections / read sides).\n- Source: https://doc.akka.io/sdk/consuming-producing.html\n</skill>\n\nUser request:\nI need to observe every intermediate change of a key-value entity via a consumer. Workable?",
+          "label": "evals/akka-sdk-consumers/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "271651bf4949f568f39d264c919fdcbd813b2a70c4ffbaf0d0281fa2078fec69",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No, not reliably. A consumer on a Key Value Entity (`@Consume.FromKeyValueEntity`) is only guaranteed to receive the **most recent** state, so intermediate changes can be skipped or coalesced.\n\nIf you need every change, use one of these:\n- **Event Sourced Entity.** Consumers on its journal (`@Consume.FromEventSourcedEntity`) see every event, at-least-once. This is the right model when each transition matters.\n- **Emit changes explicitly.** If you have to stay with a KV entity, have the code that updates it also publish each change, for example through a workflow step or a command that writes to a topic. This is more work and easier to get wrong than switching to an ES entity.\n\nDelivery is at-least-once either way, so make the consumer idempotent or track sequence numbers."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "kv-intermediate",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-sdk-consumers/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-sdk-consumers/cases/kv-intermediate.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/only the latest|not guarantee|no\\b|cannot|intermediate|event.sourc/i.test(output)) throw new Error('says only the latest state is guaranteed');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-sdk-consumers/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-sdk-consumers/cases/kv-intermediate.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 8250,
+      "evaluationDurationMs": 8250
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-sdk-consumers — EDD",
+    "prompts": [
+      "file:///private/tmp/b6/evals/akka-sdk-consumers/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "ignore",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-consumers/cases/ignore.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/ignore\\(\\)|ignore|skip/i.test(output)) throw new Error('says ignore() events you do not care about');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "kv-intermediate",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-consumers/cases/kv-intermediate.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/only the latest|not guarantee|no\\b|cannot|intermediate|event.sourc/i.test(output)) throw new Error('says only the latest state is guaranteed');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-sdk-consumers/results/skill_1.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b6/skills/akka-sdk-consumers/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b6/evals/akka-sdk-consumers"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:53:23.833Z",
+    "evaluationCreatedAt": "2026-10-29T19:53:15.523Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}
