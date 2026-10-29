@@ -1,0 +1,537 @@
+{
+  "evalId": "eval-Q1L-2026-10-29T18:20:53",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T18:20:53.725Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/swift-concurrency-expert/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "edb0cdebb913b0e3eb16ad15cd13ba9086cbfc85d39d60de3d8b77a0d920d7c7",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 3,
+          "testPassCount": 3,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 4,
+          "assertFailCount": 0,
+          "totalLatencyMs": 30112,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 3,
+            "restraint": 1
+          },
+          "namedScoresCount": {
+            "accuracy": 3,
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 3,
+            "restraint": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "restraint": 1,
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1,
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "if (!/unchecked|not|don'?t|avoid|last resort|silenc|suppress|unsafe/i.test(output)) throw new Error('pushes back on @unchecked Sendable as a silencer');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/@MainActor|isolat|smallest|minimal/i.test(output)) throw new Error('offers the smallest safe isolation fix');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "9b8815ec-bdc1-49a4-b020-24b5caed26f2",
+        "latencyMs": 10040,
+        "namedScores": {
+          "restraint": 1,
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: swift-concurrency-expert\ndescription: Swift Concurrency review and remediation for Swift 6.2+. Use when asked to review Swift Concurrency usage, improve concurrency compliance, or fix Swift concurrency compiler errors.\n---\n\n# Swift Concurrency Expert\n\n## Overview\n\nReview and fix Swift Concurrency issues in Swift 6.2+ codebases by applying actor isolation, Sendable safety, and modern concurrency patterns with minimal behavior changes.\n\n## Workflow\n\n### 1. Triage the issue\n\n- Capture the exact compiler diagnostics and the offending symbol(s)\n- Check project concurrency settings: Swift language version (6.2+), strict concurrency level\n- Check if approachable concurrency (default actor isolation / main-actor-by-default) is enabled\n- Identify the current actor context (`@MainActor`, `actor`, `nonisolated`)\n- Confirm whether the code is UI-bound or intended to run off the main actor\n\n### 2. Apply the smallest safe fix\n\nPrefer edits that preserve existing behavior while satisfying data-race safety.\n\n**Common fixes:**\n\n| Issue | Fix |\n|-------|-----|\n| UI-bound types | Annotate the type or members with `@MainActor` |\n| Protocol conformance on main actor types | Make conformance isolated: `extension Foo: @MainActor SomeProtocol` |\n| Global/static state | Protect with `@MainActor` or move into an actor |\n| Background work | Use `@concurrent` async function on a `nonisolated` type |\n| Sendable errors | Prefer immutable/value types; add `Sendable` only when correct |\n\n## Swift 6.2 Key Changes\n\n### Default Actor Isolation\n\nSwift 6.2 stays single-threaded by default until you choose to introduce concurrency:\n\n```swift\n// In Swift 6.2 with approachable concurrency enabled,\n// this no longer produces a data race error\n@MainActor\nfinal class StickerModel {\n    let photoProcessor = PhotoProcessor()\n\n    func extractSticker(_ item: PhotosPickerItem) async throws -> Sticker? {\n        guard let data = try await item.loadTransferable(type: Data.self) else {\n            return nil\n        }\n        // Safe - runs on main actor by default\n        return await photoProcessor.extractSticker(data: data, with: item.itemIdentifier)\n    }\n}\n```\n\n### Isolated Conformances\n\nConformances that need main actor state are now supported:\n\n```swift\nprotocol Exportable {\n    func export()\n}\n\n// Isolated conformance - safe because compiler ensures\n// it's only used on the main actor\nextension StickerModel: @MainActor Exportable {\n    func export() {\n        photoProcessor.exportAsPNG()\n    }\n}\n```\n\n### Protecting Global State\n\n```swift\n// Protect with @MainActor\n@MainActor\nfinal class StickerLibrary {\n    static let shared: StickerLibrary = .init()\n}\n\n// Or enable main-actor-by-default mode for the whole project\n```\n\n### Offloading Work to Background\n\nUse `@concurrent` to explicitly run code on the concurrent thread pool:\n\n```swift\nnonisolated struct PhotoProcessor {\n    @concurrent\n    func process(data: Data) async -> ProcessedPhoto? {\n        // Runs on background thread\n    }\n}\n\n// Caller adds await\nprocessedPhotos[item.id] = await PhotoProcessor().process(data: data)\n```\n\n## Migration Checklist\n\n1. Check Swift version in build settings (needs 6.2+)\n2. Enable approachable concurrency features in build settings\n3. Run Swift migration tooling: `swift.org/migration`\n4. Fix remaining compiler errors using patterns above\n5. Test thoroughly - concurrency bugs may surface at runtime\n\n## Common Patterns\n\n### UI-Bound Class\n```swift\n@MainActor\nfinal class ViewModel {\n    var items: [Item] = []\n\n    func load() async {\n        items = try await service.fetchItems()\n    }\n}\n```\n\n### Background Processing\n```swift\nnonisolated struct ImageProcessor {\n    @concurrent\n    static func resize(_ image: UIImage, to size: CGSize) async -> UIImage {\n        // Heavy work runs off main actor\n    }\n}\n```\n\n### Actor for Shared Mutable State\n```swift\nactor Cache {\n    private var storage: [String: Data] = [:]\n\n    func get(_ key: String) -> Data? {\n        storage[key]\n    }\n\n    func set(_ key: String, value: Data) {\n        storage[key] = value\n    }\n}\n```\n\n## Build Settings\n\nEnable in Xcode under Swift Compiler - Concurrency:\n- `SWIFT_STRICT_CONCURRENCY` = complete\n- Approachable concurrency features (Swift 6.2+)\n\nOr in Package.swift:\n```swift\nswiftSettings: [\n    .enableExperimentalFeature(\"StrictConcurrency\")\n]\n```\n\n## Related\n\n- [[swiftui-view-refactor]], [[swiftui-performance-audit]] — applying concurrency in SwiftUI.\n- [[functional-programming]] — immutability and value semantics that make concurrency safe.\n- [[tdd]] — tests around concurrent behavior.\n</skill>\n\nUser request:\nI'm getting 'Main actor-isolated property cannot be referenced from a non-isolated context'. Should I just mark the whole class @unchecked Sendable to make it compile?",
+          "label": "evals/swift-concurrency-expert/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "edb0cdebb913b0e3eb16ad15cd13ba9086cbfc85d39d60de3d8b77a0d920d7c7",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No, `@unchecked Sendable` only silences the compiler. It doesn't fix the race, and it won't address this error, which is about actor isolation, not Sendable.\n\nPick the fix that matches what the code is:\n\n- **UI-bound class:** Mark it `@MainActor`. If the non-isolated caller is async, `await` the access.\n- **Protocol conformance reads main-actor state:** Use an isolated conformance, `extension Foo: @MainActor SomeProtocol`.\n- **Background work needs the data:** Mark the function `@concurrent` on a `nonisolated` type. Pass in the values it needs (copy them on the main actor first) rather than reaching back into the class.\n- **Shared mutable state used from many contexts:** Move it into an `actor`.\n\nIf the project has approachable concurrency / main-actor-by-default on (Swift 6.2), many of these errors disappear without annotations.\n\nPaste the exact diagnostic, the property, and the calling function, and I can give the specific fix."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "smallest-fix",
+          "vars": {
+            "skill": "file:///private/tmp/b4/skills/swift-concurrency-expert/SKILL.md",
+            "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/smallest-fix.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "if (!/unchecked|not|don'?t|avoid|last resort|silenc|suppress|unsafe/i.test(output)) throw new Error('pushes back on @unchecked Sendable as a silencer');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/@MainActor|isolat|smallest|minimal/i.test(output)) throw new Error('offers the smallest safe isolation fix');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b4/skills/swift-concurrency-expert/SKILL.md",
+          "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/smallest-fix.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/actor|@MainActor|Mutex|allocator|nonisolated\\(unsafe\\)|let\\b/i.test(output)) throw new Error('offers actor / immutability rather than a lock-by-hand');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "555106a3-efd7-4411-a3ae-06abc3142672",
+        "latencyMs": 11027,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: swift-concurrency-expert\ndescription: Swift Concurrency review and remediation for Swift 6.2+. Use when asked to review Swift Concurrency usage, improve concurrency compliance, or fix Swift concurrency compiler errors.\n---\n\n# Swift Concurrency Expert\n\n## Overview\n\nReview and fix Swift Concurrency issues in Swift 6.2+ codebases by applying actor isolation, Sendable safety, and modern concurrency patterns with minimal behavior changes.\n\n## Workflow\n\n### 1. Triage the issue\n\n- Capture the exact compiler diagnostics and the offending symbol(s)\n- Check project concurrency settings: Swift language version (6.2+), strict concurrency level\n- Check if approachable concurrency (default actor isolation / main-actor-by-default) is enabled\n- Identify the current actor context (`@MainActor`, `actor`, `nonisolated`)\n- Confirm whether the code is UI-bound or intended to run off the main actor\n\n### 2. Apply the smallest safe fix\n\nPrefer edits that preserve existing behavior while satisfying data-race safety.\n\n**Common fixes:**\n\n| Issue | Fix |\n|-------|-----|\n| UI-bound types | Annotate the type or members with `@MainActor` |\n| Protocol conformance on main actor types | Make conformance isolated: `extension Foo: @MainActor SomeProtocol` |\n| Global/static state | Protect with `@MainActor` or move into an actor |\n| Background work | Use `@concurrent` async function on a `nonisolated` type |\n| Sendable errors | Prefer immutable/value types; add `Sendable` only when correct |\n\n## Swift 6.2 Key Changes\n\n### Default Actor Isolation\n\nSwift 6.2 stays single-threaded by default until you choose to introduce concurrency:\n\n```swift\n// In Swift 6.2 with approachable concurrency enabled,\n// this no longer produces a data race error\n@MainActor\nfinal class StickerModel {\n    let photoProcessor = PhotoProcessor()\n\n    func extractSticker(_ item: PhotosPickerItem) async throws -> Sticker? {\n        guard let data = try await item.loadTransferable(type: Data.self) else {\n            return nil\n        }\n        // Safe - runs on main actor by default\n        return await photoProcessor.extractSticker(data: data, with: item.itemIdentifier)\n    }\n}\n```\n\n### Isolated Conformances\n\nConformances that need main actor state are now supported:\n\n```swift\nprotocol Exportable {\n    func export()\n}\n\n// Isolated conformance - safe because compiler ensures\n// it's only used on the main actor\nextension StickerModel: @MainActor Exportable {\n    func export() {\n        photoProcessor.exportAsPNG()\n    }\n}\n```\n\n### Protecting Global State\n\n```swift\n// Protect with @MainActor\n@MainActor\nfinal class StickerLibrary {\n    static let shared: StickerLibrary = .init()\n}\n\n// Or enable main-actor-by-default mode for the whole project\n```\n\n### Offloading Work to Background\n\nUse `@concurrent` to explicitly run code on the concurrent thread pool:\n\n```swift\nnonisolated struct PhotoProcessor {\n    @concurrent\n    func process(data: Data) async -> ProcessedPhoto? {\n        // Runs on background thread\n    }\n}\n\n// Caller adds await\nprocessedPhotos[item.id] = await PhotoProcessor().process(data: data)\n```\n\n## Migration Checklist\n\n1. Check Swift version in build settings (needs 6.2+)\n2. Enable approachable concurrency features in build settings\n3. Run Swift migration tooling: `swift.org/migration`\n4. Fix remaining compiler errors using patterns above\n5. Test thoroughly - concurrency bugs may surface at runtime\n\n## Common Patterns\n\n### UI-Bound Class\n```swift\n@MainActor\nfinal class ViewModel {\n    var items: [Item] = []\n\n    func load() async {\n        items = try await service.fetchItems()\n    }\n}\n```\n\n### Background Processing\n```swift\nnonisolated struct ImageProcessor {\n    @concurrent\n    static func resize(_ image: UIImage, to size: CGSize) async -> UIImage {\n        // Heavy work runs off main actor\n    }\n}\n```\n\n### Actor for Shared Mutable State\n```swift\nactor Cache {\n    private var storage: [String: Data] = [:]\n\n    func get(_ key: String) -> Data? {\n        storage[key]\n    }\n\n    func set(_ key: String, value: Data) {\n        storage[key] = value\n    }\n}\n```\n\n## Build Settings\n\nEnable in Xcode under Swift Compiler - Concurrency:\n- `SWIFT_STRICT_CONCURRENCY` = complete\n- Approachable concurrency features (Swift 6.2+)\n\nOr in Package.swift:\n```swift\nswiftSettings: [\n    .enableExperimentalFeature(\"StrictConcurrency\")\n]\n```\n\n## Related\n\n- [[swiftui-view-refactor]], [[swiftui-performance-audit]] — applying concurrency in SwiftUI.\n- [[functional-programming]] — immutability and value semantics that make concurrency safe.\n- [[tdd]] — tests around concurrent behavior.\n</skill>\n\nUser request:\nI have a mutable global var for app config, accessed from several tasks. How do I make it concurrency-safe in Swift 6?",
+          "label": "evals/swift-concurrency-expert/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "edb0cdebb913b0e3eb16ad15cd13ba9086cbfc85d39d60de3d8b77a0d920d7c7",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Put the config behind an isolation boundary and make the value a `Sendable` struct. Which boundary depends on how the tasks read it.\n\n**1. Tasks can `await` it (default choice): an actor**\n\n```swift\nstruct AppConfig: Sendable {\n    var apiURL: URL\n    var timeout: Duration\n}\n\nactor ConfigStore {\n    static let shared = ConfigStore(AppConfig(apiURL: defaultURL, timeout: .seconds(30)))\n    private var config: AppConfig\n    init(_ config: AppConfig) { self.config = config }\n\n    func current() -> AppConfig { config }\n    func update(_ change: (inout AppConfig) -> Void) { change(&config) }\n}\n\n// Callers\nlet cfg = await ConfigStore.shared.current()\n```\n\nReads return a copy of an immutable snapshot. Take one snapshot per operation, so the config can't change halfway through.\n\n**2. Mostly UI-driven: `@MainActor`**\n\n```swift\n@MainActor var appConfig = AppConfig(...)\n```\n\nOr set main-actor-by-default in 6.2. Tasks off the main actor then use `await`.\n\n**3. Synchronous reads needed (no `await`): `Mutex`**\n\n```swift\nimport Synchronization\n\nfinal class ConfigBox: Sendable {\n    private let state = Mutex(AppConfig(...))\n    var current: AppConfig { state.withLock { $0 } }\n    func update(_ f: (inout AppConfig) -> Void) { state.withLock { f(&$0) } }\n}\nlet config = ConfigBox()   // `let` global: Sendable, so no error\n```\n\n`Mutex` needs iOS 18 / macOS 15 or later.\n\n**Avoid:**\n- `nonisolated(unsafe) var`. It silences the compiler but leaves the race.\n- `@unchecked Sendable` without a lock.\n\nIf the config is set once at launch and never changes, make it a `let` of a `Sendable` struct. Then you need no isolation at all."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "global-state",
+          "vars": {
+            "skill": "file:///private/tmp/b4/skills/swift-concurrency-expert/SKILL.md",
+            "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/global-state.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/actor|@MainActor|Mutex|allocator|nonisolated\\(unsafe\\)|let\\b/i.test(output)) throw new Error('offers actor / immutability rather than a lock-by-hand');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b4/skills/swift-concurrency-expert/SKILL.md",
+          "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/global-state.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/nonisolated|detach|Task\\.detached|background|off the main actor|concurrentPerform/i.test(output)) throw new Error('moves work off the main actor correctly');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "d8a95d71-f941-465f-a017-1ce62558db8b",
+        "latencyMs": 9045,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: swift-concurrency-expert\ndescription: Swift Concurrency review and remediation for Swift 6.2+. Use when asked to review Swift Concurrency usage, improve concurrency compliance, or fix Swift concurrency compiler errors.\n---\n\n# Swift Concurrency Expert\n\n## Overview\n\nReview and fix Swift Concurrency issues in Swift 6.2+ codebases by applying actor isolation, Sendable safety, and modern concurrency patterns with minimal behavior changes.\n\n## Workflow\n\n### 1. Triage the issue\n\n- Capture the exact compiler diagnostics and the offending symbol(s)\n- Check project concurrency settings: Swift language version (6.2+), strict concurrency level\n- Check if approachable concurrency (default actor isolation / main-actor-by-default) is enabled\n- Identify the current actor context (`@MainActor`, `actor`, `nonisolated`)\n- Confirm whether the code is UI-bound or intended to run off the main actor\n\n### 2. Apply the smallest safe fix\n\nPrefer edits that preserve existing behavior while satisfying data-race safety.\n\n**Common fixes:**\n\n| Issue | Fix |\n|-------|-----|\n| UI-bound types | Annotate the type or members with `@MainActor` |\n| Protocol conformance on main actor types | Make conformance isolated: `extension Foo: @MainActor SomeProtocol` |\n| Global/static state | Protect with `@MainActor` or move into an actor |\n| Background work | Use `@concurrent` async function on a `nonisolated` type |\n| Sendable errors | Prefer immutable/value types; add `Sendable` only when correct |\n\n## Swift 6.2 Key Changes\n\n### Default Actor Isolation\n\nSwift 6.2 stays single-threaded by default until you choose to introduce concurrency:\n\n```swift\n// In Swift 6.2 with approachable concurrency enabled,\n// this no longer produces a data race error\n@MainActor\nfinal class StickerModel {\n    let photoProcessor = PhotoProcessor()\n\n    func extractSticker(_ item: PhotosPickerItem) async throws -> Sticker? {\n        guard let data = try await item.loadTransferable(type: Data.self) else {\n            return nil\n        }\n        // Safe - runs on main actor by default\n        return await photoProcessor.extractSticker(data: data, with: item.itemIdentifier)\n    }\n}\n```\n\n### Isolated Conformances\n\nConformances that need main actor state are now supported:\n\n```swift\nprotocol Exportable {\n    func export()\n}\n\n// Isolated conformance - safe because compiler ensures\n// it's only used on the main actor\nextension StickerModel: @MainActor Exportable {\n    func export() {\n        photoProcessor.exportAsPNG()\n    }\n}\n```\n\n### Protecting Global State\n\n```swift\n// Protect with @MainActor\n@MainActor\nfinal class StickerLibrary {\n    static let shared: StickerLibrary = .init()\n}\n\n// Or enable main-actor-by-default mode for the whole project\n```\n\n### Offloading Work to Background\n\nUse `@concurrent` to explicitly run code on the concurrent thread pool:\n\n```swift\nnonisolated struct PhotoProcessor {\n    @concurrent\n    func process(data: Data) async -> ProcessedPhoto? {\n        // Runs on background thread\n    }\n}\n\n// Caller adds await\nprocessedPhotos[item.id] = await PhotoProcessor().process(data: data)\n```\n\n## Migration Checklist\n\n1. Check Swift version in build settings (needs 6.2+)\n2. Enable approachable concurrency features in build settings\n3. Run Swift migration tooling: `swift.org/migration`\n4. Fix remaining compiler errors using patterns above\n5. Test thoroughly - concurrency bugs may surface at runtime\n\n## Common Patterns\n\n### UI-Bound Class\n```swift\n@MainActor\nfinal class ViewModel {\n    var items: [Item] = []\n\n    func load() async {\n        items = try await service.fetchItems()\n    }\n}\n```\n\n### Background Processing\n```swift\nnonisolated struct ImageProcessor {\n    @concurrent\n    static func resize(_ image: UIImage, to size: CGSize) async -> UIImage {\n        // Heavy work runs off main actor\n    }\n}\n```\n\n### Actor for Shared Mutable State\n```swift\nactor Cache {\n    private var storage: [String: Data] = [:]\n\n    func get(_ key: String) -> Data? {\n        storage[key]\n    }\n\n    func set(_ key: String, value: Data) {\n        storage[key] = value\n    }\n}\n```\n\n## Build Settings\n\nEnable in Xcode under Swift Compiler - Concurrency:\n- `SWIFT_STRICT_CONCURRENCY` = complete\n- Approachable concurrency features (Swift 6.2+)\n\nOr in Package.swift:\n```swift\nswiftSettings: [\n    .enableExperimentalFeature(\"StrictConcurrency\")\n]\n```\n\n## Related\n\n- [[swiftui-view-refactor]], [[swiftui-performance-audit]] — applying concurrency in SwiftUI.\n- [[functional-programming]] — immutability and value semantics that make concurrency safe.\n- [[tdd]] — tests around concurrent behavior.\n</skill>\n\nUser request:\nHeavy JSON parsing on the main actor is hanging my UI. How do I move it off?",
+          "label": "evals/swift-concurrency-expert/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "edb0cdebb913b0e3eb16ad15cd13ba9086cbfc85d39d60de3d8b77a0d920d7c7",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Mark the parser `nonisolated` and `@concurrent`, then `await` it from your `@MainActor` code. That runs the decode on the concurrent pool and keeps the UI free.\n\n```swift\nnonisolated struct FeedParser {\n    @concurrent\n    static func parse(_ data: Data) async throws -> [Item] {\n        try JSONDecoder().decode([Item].self, from: data)\n    }\n}\n\n@MainActor\nfinal class ViewModel {\n    var items: [Item] = []\n\n    func load(_ data: Data) async throws {\n        items = try await FeedParser.parse(data)  // decode off-main, assign on main\n    }\n}\n```\n\n- **Sendable:** `Item` must be `Sendable` to cross back to the main actor. Plain structs with value-type members are, and you can add `Sendable` explicitly. If `Item` is a class, make it an immutable `final class` or turn it into a struct.\n- **Approachable concurrency:** with main-actor-by-default on, unannotated types are `@MainActor`. Mark the parser and the `Item` model `nonisolated`, or `@concurrent` has no effect on the type's isolation. Also mark `Item`'s `Decodable` conformance `nonisolated` if the compiler complains about isolated conformances.\n- **Why `@concurrent`:** a plain `nonisolated async` function in Swift 6.2 runs on the caller's actor by default, so the main actor would still block.\n\nIf you share the parser code and any compiler diagnostics, I can give exact edits."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "offload",
+          "vars": {
+            "skill": "file:///private/tmp/b4/skills/swift-concurrency-expert/SKILL.md",
+            "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/offload.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/nonisolated|detach|Task\\.detached|background|off the main actor|concurrentPerform/i.test(output)) throw new Error('moves work off the main actor correctly');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b4/skills/swift-concurrency-expert/SKILL.md",
+          "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/offload.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 3,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 11052,
+      "evaluationDurationMs": 11052
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "swift-concurrency-expert — EDD",
+    "prompts": [
+      "file:///private/tmp/b4/evals/swift-concurrency-expert/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "smallest-fix",
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/smallest-fix.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "if (!/unchecked|not|don'?t|avoid|last resort|silenc|suppress|unsafe/i.test(output)) throw new Error('pushes back on @unchecked Sendable as a silencer');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/@MainActor|isolat|smallest|minimal/i.test(output)) throw new Error('offers the smallest safe isolation fix');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "global-state",
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/global-state.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/actor|@MainActor|Mutex|allocator|nonisolated\\(unsafe\\)|let\\b/i.test(output)) throw new Error('offers actor / immutability rather than a lock-by-hand');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "offload",
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/offload.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/nonisolated|detach|Task\\.detached|background|off the main actor|concurrentPerform/i.test(output)) throw new Error('moves work off the main actor correctly');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/swift-concurrency-expert/results/skill_1.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b4/skills/swift-concurrency-expert/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b4/evals/swift-concurrency-expert"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T18:21:04.827Z",
+    "evaluationCreatedAt": "2026-10-29T18:20:53.725Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

@@ -322,7 +322,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `computer-networks` |  |  |  |  |
 | `cooklang` |  |  |  |  |
 | `cqrs-event-sourcing` |  |  |  |  |
-| `cross-examine` |  |  |  | **Still unevaluated.** `evals/cross-examine/` is named after this skill but binds `agent: agents/adversarial-validator.md` — it scores that agent, not this skill (0% → 100%, see below). Needs its own suite. |
+| `cross-examine` | 67% | 100% | sonnet | Suite at `evals/cross-examine-skill/` (the older `evals/cross-examine/` tests the `adversarial-validator` **agent**, not this skill). Gain is the procedural rule that **REFUTED means rerun the producing step, not patch the holes** — baseline PFF, skill PPP. Log: `evals/_batch4/iteration-log.md` |
 | `cryptography` | 50% | 100% | sonnet | The discriminator is **reasoning, not recommendations**. Baseline passes the CBC-with-random-IV case I built the suite around, but fails the 2n rule FFF — it gives 256-bit/RSA-2048 and cannot say why — and treats a GCM nonce-counter rollback as a bug to fix rather than a key-compromise needing rotation. Noisiest baseline in the batch (1/4, 3/4, 2/4). Log: `evals/cryptography/iteration-log.md` |
 | `design-patterns` | 67% | 100% | sonnet | **First run was an assert bug, not a skill gap** — it scored FFF in *both* arms because one assert accepted a bare `=>` and another demanded a GoF/1994 framing the skill never requires; rewritten and both arms re-run from scratch. Post-fix, Visitor and Singleton are base-strong (PPP) and only Strategy moves — the naive arm never offers the function form. Log: `evals/design-patterns/iteration-log.md` |
 | `detect-ai` | 25% | 100% | sonnet | **Widest gap in the repo.** Naive arm passes only the restraint case (won't supply a verdict for a misconduct accusation); it fails all three quantitative ones and notably won't volunteer that a sub-100-word sample is too short — it answers anyway. One unstable case in the skill arm (`short`, P-F-P) left recorded rather than smoothed. Uses `llm-rubric` on 4 asserts. Log: `evals/detect-ai/iteration-log.md` |
@@ -345,7 +345,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `dsm-neurodevelopmental` | 80% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
 | `dsm-ocd-related` | 80% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
 | `dsm-other-conditions` | 60% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
-| `dsm-other-mental` | 60% | 60% | sonnet | Rails + routing suite (batch 2). **No delta** at 3/5 both arms; the manual's residual chapter and the thinnest skill. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-other-mental` | 100% | 100% | sonnet | **Corrected from 3/5 → 3/5.** Two asserts had been broken since batch 2 by an unescaped apostrophe (`chapter's`), so two of five cases threw on every run in both arms. Fixed; the true score is 5/5 → 5/5 — still a tie, but the earlier figure was an artifact. Log: `evals/_batch4/iteration-log.md` |
 | `dsm-paraphilic` | 100% | 100% | sonnet | Rails + routing suite (batch 2). **No delta** — baseline already 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
 | `dsm-personality` | 60% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
 | `dsm-schizophrenia-spectrum` | 80% | 80% | sonnet | **No measurable delta.** Baseline has the removed subtypes, the duration gradient and the bizarre-delusion change. Skill arm flapped on its own refuse-to-diagnose case (3/5/3) — possible rails-vs-content tension, noted for investigation. Log: `evals/_dsm/iteration-log.md` |
@@ -354,7 +354,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `dsm-somatic-symptom` | 60% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
 | `dsm-substance-related` | 100% | 100% | sonnet | **No measurable delta.** Baseline already has the abuse/dependence merger, caffeine having no use disorder, internet gaming being Section III only, and alcohol withdrawal being potentially fatal. Log: `evals/_dsm/iteration-log.md` |
 | `dsm-trauma-stressor` | 60% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
-| `event-storming` |  |  |  |  |
+| `event-storming` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already has orange past-tense domain events and frames hot spots as valuable output. Log: `evals/_batch4/iteration-log.md` |
 | `finch` | 44% | 100% | sonnet | Baseline 6/8/6 of 16 across the 3 runs; skill 16/16 on all 3. 8 cases fail the baseline every run: read-only home mount, Rosetta's macOS-26 floor, SOCI, cosign-keyless-unsupported, Containerfile auto-detect, DevContainers wiring, `creds_helpers`+`credsStore`, "VM = isolation" pushback. Skill was 100% from v1, so no patch — iteration went into the *suite*: added a `no-hallucination` criterion (baseline invents `finch vm ssh`, `finch soci create`), and N=3 overturned an N=1 read that had credited the model with 3 facts it doesn't reliably know. Ships a paired naive-baseline arm. Log: `evals/finch/iteration-log.md` |
 | `flipper-unleashed` |  |  |  |  |
 | `flipper-zero` |  |  |  |  |
@@ -364,12 +364,12 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `game-ai` |  |  |  |  |
 | `game-audio` |  |  |  |  |
 | `game-design` | 50% | 100% | sonnet | **Treat the number as soft** — 2 cases, both arms unstable (baseline ran 2/2, 0/2, 1/2), so one flip moves it 50 points. The real finding is the ethics case: asked for the most effective retention-and-spending mechanics, the naive arm supplies them with no pushback in 2 of 3 runs; with the skill it names and declines the dark patterns every time. Log: `evals/game-design/iteration-log.md` |
-| `game-development` |  |  |  |  |
+| `game-development` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already routes to prototyping/find-the-fun and requires playtesting as the gate. Log: `evals/_batch4/iteration-log.md` |
 | `game-graphics` |  |  |  |  |
 | `game-math` |  |  |  |  |
 | `game-physics` |  |  |  |  |
-| `game-production` |  |  |  |  |
-| `game-programming-patterns` |  |  |  |  |
+| `game-production` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already pushes back on crunch and raises scope cutting. Log: `evals/_batch4/iteration-log.md` |
+| `game-programming-patterns` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already warns against speculative patterns and reaches for State over flag tangles. Log: `evals/_batch4/iteration-log.md` |
 | `gcp-alloydb` |  |  |  |  |
 | `gcp-api-gateway` |  |  |  |  |
 | `gcp-apigee` |  |  |  |  |
@@ -435,7 +435,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `github-branch-protection` | 67% | 100% | sonnet | ✅ Shipped (PR #58) — confirm-means-ask guardrail; real house-spec floor |
 | `github-issue-fix-flow` | 88% | 100% | sonnet | Format-convention floor (--comments intake, fix/issue-N, Closes #N); no patch |
 | `github-new-repo` | 83% | 100% | sonnet | ✅ Shipped (PR #59) — an extra ask never aborts the authorized creation |
-| `godot` |  |  |  |  |
+| `godot` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already prescribes scene composition over deep inheritance and the right `_ready`/`_physics_process` split. Log: `evals/_batch4/iteration-log.md` |
 | `graph-databases` |  |  |  |  |
 | `gremlin` |  |  |  |  |
 | `grilling` | 60% | 99% | haiku | ✅ Imported EDD-first (`evals/grilling/`): upstream skill certified as is on **haiku**, 89/90 over two samples (Sonnet the same); v1 asked downstream questions early and had no round format |
@@ -510,9 +510,9 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `spec-driven-development` | 0% | 100% | sonnet | ✅ Shipped (PR #47) — 2 measured gaps patched |
 | `stripe-payments` |  |  |  |  |
 | `swgoh-expert` |  |  |  |  |
-| `swift-concurrency-expert` |  |  |  |  |
+| `swift-concurrency-expert` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already pushes back on `@unchecked Sendable` and offers the smallest isolation fix. Log: `evals/_batch4/iteration-log.md` |
 | `swiftui-liquid-glass` |  |  |  |  |
-| `swiftui-performance-audit` |  |  |  |  |
+| `swiftui-performance-audit` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already demands code before diagnosing and requires profiling before optimising. Log: `evals/_batch4/iteration-log.md` |
 | `swiftui-ui-patterns` |  |  |  |  |
 | `swiftui-view-refactor` |  |  |  |  |
 | `tcp-ip` |  |  |  |  |
@@ -522,10 +522,10 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `toolkit-archive` |  |  |  |  |
 | `ttrpg-storytelling` |  |  |  |  |
 | `typescript` |  |  |  |  |
-| `ux-design` |  |  |  |  |
+| `ux-design` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already refuses dark patterns and invokes Jakob's Law. Scored FFF in both arms until I fixed an apostrophe bug in my own assert. Log: `evals/_batch4/iteration-log.md` |
 | `vault-graphrag` |  |  |  |  |
 | `vue` |  |  |  |  |
-| `web-development` |  |  |  |  |
+| `web-development` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already reasons about rendering strategy from auth/SEO characteristics rather than dogma. Log: `evals/_batch4/iteration-log.md` |
 | `webassembly` |  |  |  |  |
 | `webkit` |  |  |  |  |
 | `webui-quickfix-demo` |  |  |  |  |
