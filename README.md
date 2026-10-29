@@ -212,6 +212,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 **Health & wellbeing**
 
+- **dsm-5** — the DSM-5-TR (APA, 2022) classification system as a meta/router skill plus **22 diagnostic-chapter sub-skills**, organised like the Akka suite. The meta skill covers the definition of a mental disorder, criteria-as-necessary-but-not-sufficient, specifiers/subtypes/severity, "other specified" vs "unspecified", the differential-diagnosis method, the cross-cutting dimensional measures (Level 1/2, WHODAS 2.0), the Cultural Formulation Interview, ICD-10-CM coding, and what changed in the TR. **Hard rails throughout: not a diagnostic instrument, never diagnose a person, crisis content outranks the taxonomy, and criteria text is named rather than reproduced** (the manual is APA-copyrighted). Chapters: `dsm-neurodevelopmental`, `dsm-schizophrenia-spectrum`, `dsm-bipolar`, `dsm-depressive`, `dsm-anxiety`, `dsm-ocd-related`, `dsm-trauma-stressor`, `dsm-dissociative`, `dsm-somatic-symptom`, `dsm-feeding-eating`, `dsm-elimination`, `dsm-sleep-wake`, `dsm-sexual-dysfunctions`, `dsm-gender-dysphoria`, `dsm-disruptive-impulse-conduct`, `dsm-substance-related`, `dsm-neurocognitive`, `dsm-personality`, `dsm-paraphilic`, `dsm-other-mental`, `dsm-medication-induced`, `dsm-other-conditions`.
 - **phq-9** — walk someone through the PHQ-9 depression screening questionnaire as a warm, one-question-at-a-time supportive check-in (verbatim instrument, 0–27 scoring + severity bands, functional-impairment item, PHQ-2 pre-screen), with hard rails the roleplay never overrides: it's a **screen, not a diagnosis**; **not a replacement for professional care**; and any endorsement of item 9 (self-harm) triggers a real, non-fictional safety response + crisis resources (988/911/findahelpline.com) regardless of the total. From the PHQ-9 instrument PDFs + Wikipedia/MDCalc/safe-interpretation sources.
 - **gad-7** — walk someone through the GAD-7 generalized-anxiety screening questionnaire as a warm, one-question-at-a-time supportive check-in (verbatim instrument, 0–21 scoring + severity bands, functional-impairment item, GAD-2 pre-screen, the ≥10 threshold; also screens panic/social-anxiety/PTSD, not just GAD), with hard rails the roleplay never overrides: it's a **screen, not a diagnosis**, and **not a replacement for professional care**. No self-harm item, but surfaces real crisis resources (988/911/findahelpline.com) if distress arises. Sibling of **phq-9**; anxiety and depression often co-occur.
 
@@ -329,6 +330,29 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `docker` | 83% | 100% | sonnet | ✅ Shipped (PR #51) — 3 linter-derived practices added (secret ENV, exec form, pinned installs) |
 | `dockerhub-setup` | 50% | 100% | sonnet | Fully deterministic suite, no judge. **The baseline never echoes a password pasted into chat (0 leaks in 3 runs)** — what it misses is treating that paste as a rotation event, and noting that Actions secret values are never readable back. Skill arm isn't rock-solid (3/4 twice, on the unreadable-values note). Log: `evals/dockerhub-setup/iteration-log.md` |
 | `domain-driven-design` | 96% | 100% | sonnet | ✅ Shipped (PR #56) — ubiquitous-language glossary made part of the deliverable |
+| `dsm-5` |  |  |  | Not yet evaluated |
+| `dsm-anxiety` |  |  |  | Not yet evaluated |
+| `dsm-bipolar` |  |  |  | Not yet evaluated |
+| `dsm-depressive` |  |  |  | Not yet evaluated |
+| `dsm-disruptive-impulse-conduct` |  |  |  | Not yet evaluated |
+| `dsm-dissociative` |  |  |  | Not yet evaluated |
+| `dsm-elimination` |  |  |  | Not yet evaluated |
+| `dsm-feeding-eating` |  |  |  | Not yet evaluated |
+| `dsm-gender-dysphoria` |  |  |  | Not yet evaluated |
+| `dsm-medication-induced` |  |  |  | Not yet evaluated |
+| `dsm-neurocognitive` |  |  |  | Not yet evaluated |
+| `dsm-neurodevelopmental` |  |  |  | Not yet evaluated |
+| `dsm-ocd-related` |  |  |  | Not yet evaluated |
+| `dsm-other-conditions` |  |  |  | Not yet evaluated |
+| `dsm-other-mental` |  |  |  | Not yet evaluated |
+| `dsm-paraphilic` |  |  |  | Not yet evaluated |
+| `dsm-personality` |  |  |  | Not yet evaluated |
+| `dsm-schizophrenia-spectrum` |  |  |  | Not yet evaluated |
+| `dsm-sexual-dysfunctions` |  |  |  | Not yet evaluated |
+| `dsm-sleep-wake` |  |  |  | Not yet evaluated |
+| `dsm-somatic-symptom` |  |  |  | Not yet evaluated |
+| `dsm-substance-related` |  |  |  | Not yet evaluated |
+| `dsm-trauma-stressor` |  |  |  | Not yet evaluated |
 | `event-storming` |  |  |  |  |
 | `finch` | 44% | 100% | sonnet | Baseline 6/8/6 of 16 across the 3 runs; skill 16/16 on all 3. 8 cases fail the baseline every run: read-only home mount, Rosetta's macOS-26 floor, SOCI, cosign-keyless-unsupported, Containerfile auto-detect, DevContainers wiring, `creds_helpers`+`credsStore`, "VM = isolation" pushback. Skill was 100% from v1, so no patch — iteration went into the *suite*: added a `no-hallucination` criterion (baseline invents `finch vm ssh`, `finch soci create`), and N=3 overturned an N=1 read that had credited the model with 3 facts it doesn't reliably know. Ships a paired naive-baseline arm. Log: `evals/finch/iteration-log.md` |
 | `flipper-unleashed` |  |  |  |  |
