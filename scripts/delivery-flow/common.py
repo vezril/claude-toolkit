@@ -496,6 +496,78 @@ def outward_refusal(item: str, action: str, start: Path = None):
             "signature — " + "; ".join(reasons))
 
 
+def repo_registry() -> Path:
+    """Where the opted-in repos are listed. Read at call time, not import time, so an
+    override reaches a subprocess started after this module was first imported — tests set
+    it, and reading it once at import meant they wrote to the real registry instead."""
+    return Path(os.environ.get("DELIVERY_FLOW_REPOS",
+                               "~/.config/delivery-flow/repos")).expanduser()
+
+
+def known_repos(registry: Path = None) -> list:
+    """Every repo that has opted into delivery-flow, newest last. Missing ones are dropped.
+
+    A hook is handed the *session's* `cwd`, never the directory a command actually wrote to, so
+    it cannot learn the target repo from its payload: a shell command can `cd`, hold the path in
+    a variable, or use an absolute path from an unrelated cwd. Three separate hooks were each
+    guessing, and each missed. This is the registry they consult instead — written by
+    `init-delivery-flow.py` when a repo opts in, so there is nothing to infer.
+    """
+    registry = registry or repo_registry()
+    out = []
+    try:
+        lines = registry.read_text().splitlines()
+    except OSError:
+        return out
+    for line in lines:
+        line = line.split("#", 1)[0].strip()
+        if not line:
+            continue
+        path = Path(line).expanduser()
+        if path not in out and is_delivery_repo(path):
+            out.append(path)
+    return out
+
+
+def register_repo(repo: Path, registry: Path = None) -> bool:
+    """Record a repo in the registry. True if it was added, False if already there."""
+    registry = registry or repo_registry()
+    repo = Path(repo).expanduser().resolve()
+    existing = []
+    try:
+        existing = [l.split("#", 1)[0].strip() for l in registry.read_text().splitlines()]
+    except OSError:
+        pass
+    if str(repo) in existing:
+        return False
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    with registry.open("a") as f:
+        f.write(f"{repo}\n")
+    return True
+
+
+def candidate_repos(payload: dict, extra=None) -> list:
+    """Every delivery repo a hook should consider for this tool call, cwd-derived ones FIRST.
+
+    Order matters and this order is deliberate. A caller that wants one repo should pick the
+    one that actually holds the thing it is looking for — the item's `.current-step`, its open
+    punch-out — not simply the head of this list. But where a caller must choose blind, the
+    session's own repo is the better guess than an arbitrary registry entry, so it leads.
+    """
+    out = []
+    for base in [Path(payload.get("cwd") or ".")] + list(extra or []):
+        try:
+            repo = repo_root(Path(base))
+        except OSError:
+            continue
+        if repo not in out and is_delivery_repo(repo):
+            out.append(repo)
+    for repo in known_repos():
+        if repo not in out:
+            out.append(repo)
+    return out
+
+
 def trace_path(repo: Path, item: str) -> Path:
     return repo / "delivery" / item / "trace.jsonl"
 

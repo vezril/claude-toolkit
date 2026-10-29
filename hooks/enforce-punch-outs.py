@@ -67,6 +67,10 @@ def main() -> int:
     sys.path.insert(0, str(HELPERS))
     import common
 
+    # cwd-based on purpose. A merge, push or deploy command runs *in* the repo it affects, so
+    # the session cwd is the right answer here — and consulting the registry would make this
+    # hook fire on tool calls that touch no delivery repo at all, losing the inertness every
+    # part of this plugin depends on.
     repo = common.repo_root(Path(payload.get("cwd") or "."))
     if not common.is_delivery_repo(repo):
         return 0

@@ -30,7 +30,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import CONFIG_NAME, load_profiles  # noqa: E402
+from common import CONFIG_NAME, load_profiles, register_repo  # noqa: E402
 
 # (marker, test command) — first match wins, most specific first.
 TEST_COMMANDS = [
@@ -252,7 +252,13 @@ def main(argv=None) -> int:
         return 0
 
     target.write_text(text)
+    # Record the repo so the hooks can find it. They are handed the *session's* cwd, never the
+    # directory a command wrote to, so without this they guess — and each of the three guessed
+    # wrong at least once, letting artifacts through unchecked and leaving the trace empty.
+    added = register_repo(repo)
     print(f"wrote {target}\n")
+    print(f"  registry:       {'added' if added else 'already listed'} in "
+          "~/.config/delivery-flow/repos")
     print(f"  profile:        {args.profile}")
     print(f"  tracker:        {'jira (' + args.jira_project + ')' if args.jira_project else 'github-issues'}")
     print(f"  forge:          {forge['kind']} onto {forge['base']}")

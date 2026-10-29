@@ -77,7 +77,13 @@ def main() -> int:
         return 0
 
     common = _common()
-    repo = common.repo_root(Path(payload.get("cwd") or "."))
+    # The registry, not the payload's cwd. `cwd` is the session's directory, so a run driven
+    # against another repo recorded no steps at all — the audit trail was empty while the
+    # pipeline looked fine. Found on the first complete run: three SubagentStop events, zero
+    # step records, and a report showing $0.0000.
+    repos = common.candidate_repos(payload)
+    repo = next((r for r in repos if any((r / "delivery").glob("*/.current-step"))),
+                repos[0] if repos else common.repo_root(Path(payload.get("cwd") or ".")))
     if not common.is_delivery_repo(repo):
         return 0
 

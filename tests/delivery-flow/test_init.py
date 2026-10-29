@@ -5,6 +5,7 @@ Run: python3 tests/delivery-flow/test_init.py
 """
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -43,7 +44,8 @@ def repo(files=(), dirs=(), remote="git@github.com:acme/svc.git", branch="main",
 
 def run(d, *args):
     return subprocess.run([sys.executable, str(INIT), str(d), *args],
-                          capture_output=True, text=True)
+                          capture_output=True, text=True,
+                              env={**os.environ, "DELIVERY_FLOW_REPOS": str(Path(tempfile.gettempdir()) / "df-test-repos")})
 
 
 class TestDetection(unittest.TestCase):
@@ -171,7 +173,8 @@ class TestTheResultIsUsable(unittest.TestCase):
         run(d, "--jira-project", "LDGR")
         (d / "delivery" / "LDGR-1").mkdir(parents=True)
         out = subprocess.run([sys.executable, str(FLOW), "LDGR-1", "--repo", str(d)],
-                             capture_output=True, text=True)
+                             capture_output=True, text=True,
+                              env={**os.environ, "DELIVERY_FLOW_REPOS": str(Path(tempfile.gettempdir()) / "df-test-repos")})
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertIn("profile triage", out.stdout)
         self.assertIn("Next: intake", out.stdout)

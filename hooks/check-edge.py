@@ -82,6 +82,15 @@ def _cd_targets(command: str) -> list:
     return out
 
 
+def _registered_bases() -> list:
+    """Opted-in repos, as bases a relative artifact fragment may belong to."""
+    try:
+        common, _, _, _, _ = _helpers()
+        return list(common.known_repos())
+    except Exception:
+        return []
+
+
 def written_paths(payload: dict) -> list:
     """Every path this tool call may have written, as absolute paths.
 
@@ -92,7 +101,12 @@ def written_paths(payload: dict) -> list:
     tool = payload.get("tool_name", "")
     ti = payload.get("tool_input") or {}
     cwd = Path(payload.get("cwd") or ".")
-    out, bases = [], [cwd]
+    # Registered repos are extra *bases*, not extra things to scan. The regex always recovers
+    # the `delivery/<ITEM>/<file>` fragment even from `"$R/delivery/K/f.json"` — what it cannot
+    # recover is the base `$R` expands to. Supplying the opted-in repos as candidate bases
+    # closes that without making the hook fire on calls that touch no delivery repo at all,
+    # which scanning the whole registry did (and which broke inertness).
+    out, bases = [], [cwd] + _registered_bases()
     if tool in ("Write", "Edit", "MultiEdit", "NotebookEdit"):
         for key in ("file_path", "notebook_path"):
             if ti.get(key):
@@ -102,6 +116,13 @@ def written_paths(payload: dict) -> list:
         bases += _cd_targets(command)
         for token in BASH_PATH_RE.findall(command):
             out.append(Path(token))
+            # The leading character class swallows whatever precedes `delivery/` — in
+            # `"$R/delivery/K/f.json"` it captures `R/delivery/K/f.json`, because `$` stops it
+            # but `R` and `/` do not. Joining that to a base yields `<base>/R/delivery/...`,
+            # which never exists. So also consider the fragment from `delivery/` onward.
+            cut = token.find("delivery/")
+            if cut > 0:
+                out.append(Path(token[cut:]))
 
     resolved = []
     for p in out:
@@ -256,7 +277,6 @@ def changed_artifacts(payload: dict, common, schemas: dict) -> list:
     bases = [Path(payload.get("cwd") or ".")]
     if payload.get("tool_name") == "Bash":
         bases += _cd_targets((payload.get("tool_input") or {}).get("command", ""))
-
     repos, out = [], []
     for base in bases:
         try:
@@ -309,11 +329,10 @@ def main() -> int:
     # bug got through in one afternoon. So the list is built from the paths under
     # consideration rather than guessed at — every hand-written enumeration of "places to
     # look" has missed one.
-    candidates = [Path(payload.get("cwd") or ".")]
+    gate = [Path(payload.get("cwd") or ".")] + [p.parent for p in paths]
     if payload.get("tool_name") == "Bash":
-        candidates += _cd_targets((payload.get("tool_input") or {}).get("command", ""))
-    candidates += [p.parent for p in paths]
-    if not any(common.is_delivery_repo(c) for c in candidates if str(c)):
+        gate += _cd_targets((payload.get("tool_input") or {}).get("command", ""))
+    if not any(common.is_delivery_repo(c) for c in gate if str(c)):
         return 0
 
     # Union with what actually changed on disk, so a write the command text hid still gets
