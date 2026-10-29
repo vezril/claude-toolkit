@@ -32,8 +32,15 @@ vault:
 test_command: "sbt test"     # what `verify` runs
 
 artifacts:
-  commit: true               # commit delivery/<KEY>/ to the work branch, so the audit
-                             # trail travels with the PR and both machines aggregate
+  root: delivery             # where a run's artifacts live. Relative keeps them in the repo;
+                             # absolute puts them anywhere — typically the Obsidian vault,
+                             # which is itself a git repo synced between machines, so the
+                             # trail is still versioned and still aggregates. Default
+                             # `delivery/` inside the repo.
+  commit: true               # commit the artifact root to the work branch, so the audit
+                             # trail travels with the PR and both machines aggregate.
+                             # Meaningless when `root` is outside the repo — the vault's own
+                             # git is doing that job instead.
 
 punch_out:
   cost_budget_usd: 5.00      # API-equivalent, per item
@@ -109,4 +116,13 @@ allow_uncertified: [propose, vault-update]   # steps that may run without certif
   under them, a change goes from ticket to PR without stopping. Lower them to be asked more.
 - **`artifacts.commit: true`** is the default for a reason — traces committed to the work
   branch are how two machines' runs end up in one report.
+- **`artifacts.root` outside the repo takes over that job.** Point it at the vault and the
+  vault's own git provides the versioning and the cross-machine sync, which is why
+  `commit` stops mattering there. Two things to get right: give the runs their own
+  subdirectory rather than mixing them into `deliveries/`, where recall scans for notes and
+  would start reading `trace.jsonl` as a decision; and prefix it with an underscore
+  (`_runs`) so Obsidian keeps a few hundred JSON files out of search and the graph view,
+  the same convention `_templates` uses.
+- **A configured root means that directory and no other.** Path matching is anchored to it, so
+  an unrelated directory that happens to be called `delivery` is not mistaken for the root.
 - **Roster overrides replace**, so an override is the whole entry for that kind of work.

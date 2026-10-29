@@ -38,7 +38,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from common import is_delivery_repo, load_json, repo_root  # noqa: E402
+from common import artifact_root, is_delivery_repo, load_json, repo_root  # noqa: E402
 from stories import missing_from, sources_for, stories_from, story_filename  # noqa: E402
 
 
@@ -57,7 +57,7 @@ def main(argv=None) -> int:
     if not is_delivery_repo(repo):
         print(f"{repo} is not a delivery-flow repo", file=sys.stderr)
         return 2
-    item_dir = repo / "delivery" / args.item
+    item_dir = artifact_root(repo) / args.item
     if not item_dir.is_dir():
         print(f"no such item: {item_dir}", file=sys.stderr)
         return 2

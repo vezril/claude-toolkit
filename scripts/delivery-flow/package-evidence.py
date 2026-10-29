@@ -36,7 +36,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from common import PLUGIN_ROOT, known_repos  # noqa: E402
+from common import PLUGIN_ROOT, artifact_root, known_repos  # noqa: E402
 
 # criterion -> (directory, the question a reviewer answers from it)
 CRITERIA = [
@@ -153,7 +153,7 @@ def collect_runs(repos: list, dest: Path, manifest: list, dry: bool) -> dict:
     census = {"completed": 0, "failed": 0, "punched-out": 0, "abandoned": 0,
               "discarded": 0, "items": []}
     for repo in repos:
-        root = repo / "delivery"
+        root = artifact_root(repo)
         if not root.is_dir():
             continue
         for item_dir in sorted(p for p in root.iterdir() if p.is_dir()):

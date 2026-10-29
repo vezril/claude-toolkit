@@ -95,7 +95,7 @@ def main() -> int:
 
     # 2–4 need to know which item is in flight.
     item, _ = None, None
-    current = sorted((repo / "delivery").glob("*/.current-step")) if (repo / "delivery").exists() else []
+    current = sorted(common.artifact_root(repo).glob("*/.current-step")) if common.artifact_root(repo).exists() else []
     if current:
         doc, err = common.load_json(current[0])
         item = (doc or {}).get("item") or current[0].parent.name if not err else current[0].parent.name
@@ -116,14 +116,14 @@ def main() -> int:
     if cmd and any(re.search(p if isinstance(p, str) else str(p), cmd) for p in patterns):
         decision, ok = None, False
         if item:
-            decision, err = common.load_json(repo / "delivery" / item / "decisions" / "deploy.json")
+            decision, err = common.load_json(common.artifact_root(repo) / item / "decisions" / "deploy.json")
             if not err:
                 allowed = (cfg.get("decisions") or {}).get("allowed_signers") or "~/.config/delivery-flow/allowed_signers"
                 ok, reason = common.verify_decision(decision, Path(allowed))
                 ok = ok and decision.get("choice") == "proceed"
         if not ok:
             auto = (deploy_cfg.get("auto_roll") or {})
-            triage, _ = common.load_json(repo / "delivery" / (item or "") / "triage.json") if item else (None, "x")
+            triage, _ = common.load_json(common.artifact_root(repo) / (item or "") / "triage.json") if item else (None, "x")
             routine = bool(auto.get("routine_bumps")) and triage is not None \
                 and not triage.get("architecture_change") and not triage.get("breaking_change")
             if routine:
@@ -137,7 +137,7 @@ def main() -> int:
 
     # 2. An open punch-out stops everything outward and everything downstream.
     if item:
-        item_dir = repo / "delivery" / item
+        item_dir = common.artifact_root(repo) / item
         open_ones = []
         for p in sorted(item_dir.glob("punch-out-*.md")):
             dec, err = common.load_json(item_dir / "decisions" / (p.stem + ".json"))

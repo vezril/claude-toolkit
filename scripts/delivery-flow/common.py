@@ -15,7 +15,11 @@ SENTINEL_SUFFIX = ".sentinel.json"
 PLUGIN_ROOT = Path(os.environ.get("CLAUDE_PLUGIN_ROOT", Path(__file__).resolve().parents[2]))
 SCHEMA_DIR = PLUGIN_ROOT / "schemas"
 
-# delivery/<ITEM-KEY>/<artifact>, the only place artifacts live.
+# <root>/<ITEM-KEY>/<artifact>. The root is `delivery/` inside the repo by default, and
+# `artifacts.root` can point it anywhere — typically the Obsidian vault, which is itself a git
+# repo synced between machines, so the trail is still versioned and still aggregates. The
+# pattern is built per call because the root is per repo.
+ARTIFACT_DIR = "delivery"
 ARTIFACT_RE = re.compile(r"(?:^|/)delivery/([A-Za-z0-9][A-Za-z0-9._-]*)/([A-Za-z0-9][A-Za-z0-9._-]*)$")
 
 
@@ -36,10 +40,47 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def parse_artifact_path(path):
-    """Return (item_key, filename) for a path inside delivery/<ITEM>/, else (None, None)."""
-    m = ARTIFACT_RE.search(str(path).replace(os.sep, "/"))
+def parse_artifact_path(path, root: Path = None):
+    """(item_key, filename) for a path inside the artifact root, else (None, None).
+
+    With no `root` this matches the default `delivery/<ITEM>/<file>` anywhere in the path, which
+    is what the hooks relied on before the root was configurable. With a `root` it matches that
+    directory specifically, so a configured vault root is recognised and an unrelated directory
+    that merely happens to be called `delivery` is not.
+    """
+    text = str(path).replace(os.sep, "/")
+    if root is not None:
+        base = str(Path(root)).replace(os.sep, "/").rstrip("/")
+        if text.startswith(base + "/"):
+            rest = text[len(base) + 1:].split("/")
+            if len(rest) == 2 and rest[0] and rest[1]:
+                return rest[0], rest[1]
+        return (None, None)
+    m = ARTIFACT_RE.search(text)
     return (m.group(1), m.group(2)) if m else (None, None)
+
+
+def artifact_root(repo: Path, cfg: dict = None) -> Path:
+    """Where this repo's run artifacts live.
+
+    `artifacts.root` in `.delivery-flow.yaml`: absolute to put them outside the repo (the vault),
+    relative to keep them inside it. Defaults to `<repo>/delivery`, so a repo that says nothing
+    behaves exactly as before — the submission under review must not move.
+    """
+    if cfg is None:
+        try:
+            cfg = load_config(repo)
+        except OSError:
+            cfg = {}
+    configured = ((cfg or {}).get("artifacts") or {}).get("root")
+    if not configured:
+        return repo / ARTIFACT_DIR
+    path = Path(str(configured)).expanduser()
+    return path if path.is_absolute() else repo / path
+
+
+def item_dir(repo: Path, item: str, cfg: dict = None) -> Path:
+    return artifact_root(repo, cfg) / item
 
 
 def load_schemas(schema_dir: Path = None) -> dict:
@@ -458,7 +499,12 @@ def outward_refusal(item: str, action: str, start: Path = None):
     if not is_delivery_repo(repo):
         return f"{repo} is not a delivery-flow repo, so {action} has no policy to check"
 
-    item_dir = repo / "delivery" / item
+    cfg_for_root = None
+    try:
+        cfg_for_root = load_config(repo)
+    except OSError:
+        pass
+    item_dir = artifact_root(repo, cfg_for_root) / item
     blocking = open_punch_outs(item_dir) if item_dir.is_dir() else []
     if blocking:
         names = ", ".join(f"{p['punch_out']} ({p['trigger']}) is {p['state']}" for p in blocking)
@@ -568,8 +614,8 @@ def candidate_repos(payload: dict, extra=None) -> list:
     return out
 
 
-def trace_path(repo: Path, item: str) -> Path:
-    return repo / "delivery" / item / "trace.jsonl"
+def trace_path(repo: Path, item: str, cfg: dict = None) -> Path:
+    return artifact_root(repo, cfg) / item / "trace.jsonl"
 
 
 def append_trace(repo: Path, item: str, record: dict) -> None:

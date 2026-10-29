@@ -26,7 +26,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import CONFIG_NAME, is_delivery_repo, load_json, repo_root  # noqa: E402
+from common import CONFIG_NAME, artifact_root, is_delivery_repo, load_json, repo_root  # noqa: E402
 
 TASK_LINE_RE = re.compile(
     r"^(?P<indent>[ \t]*)-\s*\[(?P<mark>[ xX])\]\s*(?P<id>T[0-9]+)\b(?P<rest>.*)$", re.M)
@@ -83,7 +83,7 @@ def main(argv=None) -> int:
     if not is_delivery_repo(repo):
         print(f"{repo} is not a delivery-flow repo: no {CONFIG_NAME} at its root", file=sys.stderr)
         return 2
-    item_dir = repo / "delivery" / args.item
+    item_dir = artifact_root(repo) / args.item
 
     proposal, err = load_json(item_dir / "proposal.json")
     if err:

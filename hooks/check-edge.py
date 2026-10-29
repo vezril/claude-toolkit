@@ -287,7 +287,7 @@ def changed_artifacts(payload: dict, common, schemas: dict) -> list:
             repos.append(repo)
 
     for repo in repos:
-        root = repo / "delivery"
+        root = common.artifact_root(repo)
         if not root.is_dir():
             continue
         for path in sorted(root.glob("*/*")):
@@ -374,7 +374,7 @@ def main() -> int:
         if not ran:
             continue
         step = None
-        current = repo / "delivery" / item / ".current-step"
+        current = common.artifact_root(repo) / item / ".current-step"
         if current.exists():
             try:
                 step = json.loads(current.read_text()).get("step")

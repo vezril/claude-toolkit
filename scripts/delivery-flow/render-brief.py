@@ -23,7 +23,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import brief  # noqa: E402
-from common import (CONFIG_NAME, is_delivery_repo, load_json,  # noqa: E402
+from common import (CONFIG_NAME, artifact_root, is_delivery_repo, load_json,  # noqa: E402
                     open_punch_outs, repo_root)
 
 
@@ -62,7 +62,7 @@ def main(argv=None) -> int:
     if not is_delivery_repo(repo):
         print(f"{repo} is not a delivery-flow repo: no {CONFIG_NAME} at its root", file=sys.stderr)
         return 2
-    item_dir = repo / "delivery" / args.item
+    item_dir = artifact_root(repo) / args.item
     if not item_dir.is_dir():
         print(f"no such item: {args.item}", file=sys.stderr)
         return 2

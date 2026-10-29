@@ -33,7 +33,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import (CONFIG_NAME, is_delivery_repo, load_config, load_json,  # noqa: E402
+from common import (CONFIG_NAME, artifact_root, is_delivery_repo, load_config, load_json,  # noqa: E402
                     load_profiles, open_punch_outs, repo_root, select_profile)
 
 MAX_RERUNS = 3
@@ -236,7 +236,7 @@ def first_missing(item_dir: Path, rows: list, has_vault: bool, path_kind):
 
 
 def status(repo: Path, item: str, profile: dict, profiles: list) -> dict:
-    item_dir = repo / "delivery" / item
+    item_dir = artifact_root(repo) / item
     cfg = load_config(repo)
     has_vault = bool((cfg.get("vault") or {}).get("binding"))
 

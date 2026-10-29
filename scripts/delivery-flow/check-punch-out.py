@@ -33,7 +33,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import triggers as trigger_rules  # noqa: E402  (the local `triggers()` owns that name)
-from common import is_delivery_repo, load_config, load_json, repo_root  # noqa: E402
+from common import artifact_root, is_delivery_repo, load_config, load_json, repo_root  # noqa: E402
 
 DEFAULT_RETRY_LIMIT = 3
 
@@ -66,7 +66,7 @@ def read_trace(item_dir: Path) -> list:
 
 
 def triggers(repo: Path, item: str, step: str, cfg: dict) -> list:
-    item_dir = repo / "delivery" / item
+    item_dir = artifact_root(repo) / item
     policy = cfg.get("punch_out") or {}
     found = []
 
@@ -199,7 +199,7 @@ def main(argv=None) -> int:
     if not is_delivery_repo(repo):
         print(f"{repo} is not a delivery-flow repo", file=sys.stderr)
         return 2
-    item_dir = repo / "delivery" / args.item
+    item_dir = artifact_root(repo) / args.item
     if not item_dir.exists():
         print(f"no such item: {args.item}", file=sys.stderr)
         return 2

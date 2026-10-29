@@ -63,7 +63,7 @@ def tier_of(model: str) -> str:
 
 def current_step(repo: Path, common):
     """The step the orchestrator said it was running, and for which item."""
-    for path in sorted((repo / "delivery").glob("*/.current-step")) if (repo / "delivery").exists() else []:
+    for path in sorted(common.artifact_root(repo).glob("*/.current-step")) if common.artifact_root(repo).exists() else []:
         doc, err = common.load_json(path)
         if not err and doc.get("step"):
             return doc.get("item") or path.parent.name, doc["step"]
@@ -117,7 +117,7 @@ def main() -> int:
         return 0
 
     # The main session's transcript grows across steps, so only count what is new.
-    state_path = repo / "delivery" / item / ".trace-state.json"
+    state_path = common.artifact_root(repo) / item / ".trace-state.json"
     state, _ = common.load_json(state_path)
     state = state or {}
     already = set(state.get(state_key) or [])
