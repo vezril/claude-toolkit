@@ -108,8 +108,8 @@
 
 ## 9b. Evidence package
 
-- [ ] 9b.1 `scripts/delivery-flow/package-evidence.py`: one directory per examined criterion (workflow definition, guardrails, punch-out evidence, end-to-end rate, audit trail) plus a README mapping each to its criterion; refuses to build if any chain step fails `check-certification.py`
-- [ ] 9b.2 Dry-run the package and read it as a reviewer would: can a stranger trace one failure to its origin step, and see a bypass attempt blocked?
+- [x] 9b.1 `scripts/delivery-flow/package-evidence.py`: five directories, one per examined criterion, each headed by the single question a reviewer answers from it, plus a README, `RESIDUALS.md`, `CERTIFICATION.txt` and a `MANIFEST.txt` of every file's source path and sha256 — the package can be diffed against the repo rather than trusted. It copies verbatim and never summarises: a summary would be a new document nobody has checked. Refusal verified by breaking a chain step's `prompt_sha256` — exit 1, nothing built. `--allow-uncertified` stamps the README **DRAFT — NOT FOR SUBMISSION** so a draft cannot be mistaken for one
+- [x] 9b.2 Read as a reviewer would, and both questions answer: a failure traces to `step: project-memory | artifact: project-context.json | no readable sentinel`, and `3-punch-out-evidence/bypass-report.md` opens with 23 of 23 blocked plus the four harness defects the runs found. Three signed decisions ship with the runs. **One honest weakness:** the only traceable edge failure belongs to the discarded run, so a reviewer reading only clean runs sees no failure at all — more real runs fix that, nothing else does
 
 ## 10. Verification
 
