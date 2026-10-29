@@ -159,6 +159,134 @@ class TestEdgeUnderExternalRoot(unittest.TestCase):
         self.assertEqual(out.returncode, 0)
 
 
+class TestTheSentinelLandsAfterTheArtifact(unittest.TestCase):
+    """The node contract, reproduced exactly: Write the artifact, then Bash the sentinel.
+
+    `SKILL.md` specifies that ordering, so the hook fires on the artifact's write while the
+    sentinel does not yet exist. That first verdict is a legitimate failure *for the instant
+    it was taken* — and before this fix it was permanent. The sentinel landed a moment later
+    and nothing re-checked: `written_paths` found nothing in the Bash call (its regex needs a
+    literal `delivery/`, which a configured root need not have, and its character class
+    excludes the space in `Amazon RAG`), and `changed_artifacts` skipped the artifact because
+    its bytes had not changed since the failing record.
+
+    So a correct artifact with a correct sentinel blocked AN-3702 forever, and rerunning the
+    step reproduced the same deadlock because the rerun repeats the same ordering.
+    """
+
+    def sentinel_via_bash(self, r, name, step):
+        """The sentinel written the way a node writes it: a separate Bash call."""
+        command = (f'python3 "{SCRIPTS / "write-sentinel.py"}" '
+                   f'"{r.item_dir / name}" --step {step}')
+        subprocess.run(command, shell=True, capture_output=True, text=True)
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                   "cwd": str(r.repo), "tool_input": {"command": command}}
+        return subprocess.run([sys.executable, str(EDGE)], input=json.dumps(payload),
+                              capture_output=True, text=True)
+
+    def test_the_failure_is_cleared_when_the_sentinel_arrives(self):
+        r = ExternalRoot()
+        r.write("triage.json", TRIAGE)
+
+        first = r.edge("triage.json")
+        self.assertEqual(2, first.returncode, "a missing sentinel must fail at the time")
+        self.assertIn("sentinel", first.stderr)
+        records = [x for x in r.trace() if x.get("artifact") == "triage.json"]
+        self.assertEqual(1, len(records))
+        self.assertEqual(1, records[-1]["edge"]["exit"])
+
+        out = self.sentinel_via_bash(r, "triage.json", "triage")
+        self.assertEqual(0, out.returncode, out.stderr)
+        records = [x for x in r.trace() if x.get("artifact") == "triage.json"]
+        self.assertEqual(2, len(records), f"the edge did not run again: {r.trace()}")
+        self.assertEqual(0, records[-1]["edge"]["exit"],
+                         f"the stale failure was never cleared: {records[-1]['edge']}")
+
+    def test_flow_status_is_no_longer_blocked(self):
+        """The symptom the run actually presented with."""
+        r = ExternalRoot()
+        r.write("item.json", {"key": r.item, "title": "t", "body": "acceptance: b",
+                              "status": "Open", "url": "https://example.invalid/1",
+                              "source": "jira", "labels": [], "links": []})
+        r.sentinel("item.json", "intake")
+        r.edge("item.json")
+        r.write("triage.json", TRIAGE)
+        r.edge("triage.json")
+        self.sentinel_via_bash(r, "triage.json", "triage")
+        out = subprocess.run([sys.executable, str(SCRIPTS / "flow-status.py"),
+                              r.item, "--repo", str(r.repo)], capture_output=True, text=True)
+        self.assertNotIn("BLOCKED", out.stdout, out.stdout)
+
+    def test_a_still_broken_artifact_stays_failed(self):
+        """Re-evaluation must not amount to forgiveness. The retry re-runs the check; an
+        artifact that is genuinely wrong fails it again."""
+        r = ExternalRoot()
+        r.write("triage.json", {**TRIAGE, "type": "enhancement"})
+        self.assertEqual(2, r.edge("triage.json").returncode)
+        out = self.sentinel_via_bash(r, "triage.json", "triage")
+        self.assertEqual(2, out.returncode, "a schema violation must survive the retry")
+        records = [x for x in r.trace() if x.get("artifact") == "triage.json"]
+        self.assertEqual(1, records[-1]["edge"]["exit"])
+
+    def test_a_passing_record_still_suppresses_rechecking(self):
+        """The sha gate's real job. Only a failure is retried, or the trace triples."""
+        r = ExternalRoot()
+        r.write("breakdown.json", breakdown())
+        r.sentinel("breakdown.json", "breakdown")
+        self.assertEqual(0, r.edge("breakdown.json").returncode)
+        before = len([x for x in r.trace() if x.get("artifact") == "breakdown.json"])
+        self.assertEqual(1, before)
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                   "cwd": str(r.repo), "tool_input": {"command": "ls -la"}}
+        for _ in range(3):
+            subprocess.run([sys.executable, str(EDGE)], input=json.dumps(payload),
+                           capture_output=True, text=True)
+        after = len([x for x in r.trace() if x.get("artifact") == "breakdown.json"])
+        self.assertEqual(before, after, "a passing edge was re-recorded")
+
+
+class TestBashPathsResolveAgainstTheRoot(unittest.TestCase):
+    """Seam 1: find the artifact from the real roots, not from the command's spelling."""
+
+    def test_the_root_spelled_out_in_the_command_is_found(self):
+        r = ExternalRoot()
+        r.write("triage.json", TRIAGE)
+        command = f'python3 write-sentinel.py "{r.item_dir / "triage.json"}" --step triage'
+        found = [str(p) for p in _edge_module().rooted_paths(command, [r.runs])]
+        self.assertIn(str(r.item_dir / "triage.json"), found)
+
+    def test_a_root_held_in_a_variable_is_found_by_its_tail(self):
+        r = ExternalRoot()
+        r.write("triage.json", TRIAGE)
+        command = f'R="{r.runs}"; python3 write-sentinel.py "$R/{r.item}/triage.json"'
+        found = [str(p) for p in _edge_module().rooted_paths(command, [r.runs])]
+        self.assertIn(str(r.item_dir / "triage.json"), found)
+
+    def test_a_space_in_the_root_is_not_what_breaks_it(self):
+        r = ExternalRoot()
+        self.assertIn(" ", str(r.runs), "the fixture must keep its space")
+        r.write("triage.json", TRIAGE)
+        command = f'cat x > "{r.item_dir / "triage.json"}"'
+        found = [str(p) for p in _edge_module().rooted_paths(command, [r.runs])]
+        self.assertIn(str(r.item_dir / "triage.json"), found)
+
+    def test_an_unmentioned_item_is_not_invented(self):
+        r = ExternalRoot()
+        found = _edge_module().rooted_paths("echo hello", [r.runs])
+        self.assertEqual([], found)
+
+    def test_no_registered_roots_means_no_paths(self):
+        self.assertEqual([], _edge_module().rooted_paths("cat x > /a/AN-1/triage.json", []))
+
+
+def _edge_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("check_edge_mod", EDGE)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 class TestEnforceUnderExternalRoot(unittest.TestCase):
     def test_a_decision_write_is_denied(self):
         """The hook that matters most: nobody but a human writes a decision."""
