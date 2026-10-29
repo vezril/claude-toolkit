@@ -1,0 +1,398 @@
+{
+  "evalId": "eval-YZz-2026-10-29T19:12:37",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:12:37.606Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "label": "evals/akka-sdk-agents/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "id": "706503c7c8b53c06b2fcf3842a79552369f22a885677c364f4faea23f87ff1aa",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 3,
+          "assertFailCount": 0,
+          "totalLatencyMs": 29417,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 3
+          },
+          "namedScoresCount": {
+            "accuracy": 3
+          },
+          "namedScoreWeights": {
+            "accuracy": 3
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/cannot|can'?t|not a tool|never chain|Workflow/i.test(output)) throw new Error('says an agent cannot be a tool for another agent; use Workflows');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "d926c488-ae2b-4660-afc5-003e1e3b8d5d",
+        "latencyMs": 16592,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nI want agent A to call agent B as one of its tools. How do I wire that?",
+          "label": "evals/akka-sdk-agents/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "706503c7c8b53c06b2fcf3842a79552369f22a885677c364f4faea23f87ff1aa",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "In the Akka SDK you can't make one Agent a tool of another. Agents can't be function tools, and chaining them directly is flagged as an anti-pattern. There are two supported ways to get the same effect.\n\n**1. Orchestrate from a Workflow (recommended).** The workflow calls A, then B, and passes results between them. Reuse one session id so both agents share context:\n\n```java\ncomponentClient.forAgent().inSession(sessionId).method(AgentA::query).invoke(input);\ncomponentClient.forAgent().inSession(sessionId).method(AgentB::query).invoke(aResult);\n```\n\nGive each agent call its own workflow step. Set a step timeout (about 60s) and a bounded recovery so a slow model call doesn't retry forever.\n\n**2. Let A choose B at runtime.** Use `AgentRegistry` and `dynamicCall`. Annotate B with `@Component(id=..., name=..., description=...)` so it's discoverable. The workflow then asks the registry which agent to run. This is for runtime-selected agents.\n\n**If you want B's capability inside A's tool loop,** wrap B's logic in a plain function tool on A. That means a method annotated `@FunctionTool` that holds B's logic or calls the same service. Register it with `effects().tools(...)`. `akka.javasdk.agent.max-tool-call-steps` limits how many tool calls A can make.\n\nI haven't looked at the code in `evals/akka-sdk-agents`, and this is based on the skill's guidance. For the exact workflow and `dynamicCall` syntax, see `references/tools-memory-orchestration-testing.md` in the skill. If you tell me which of the three you want, I can implement it in this project."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "chaining",
+          "vars": {
+            "request": "file:///private/tmp/b5/evals/akka-sdk-agents/cases/chaining.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/cannot|can'?t|not a tool|never chain|Workflow/i.test(output)) throw new Error('says an agent cannot be a tool for another agent; use Workflows');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/akka-sdk-agents/cases/chaining.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/Workflow/i.test(output)) throw new Error('names Workflow');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/AgentRegistry|dynamicCall|registry/i.test(output)) throw new Error('names AgentRegistry / dynamicCall');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "7d5db9ee-23ec-49e6-b31a-087fda272dff",
+        "latencyMs": 12825,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nWhat orchestrates a multi-step agent flow in the Akka SDK?",
+          "label": "evals/akka-sdk-agents/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "706503c7c8b53c06b2fcf3842a79552369f22a885677c364f4faea23f87ff1aa",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "A **Workflow** orchestrates multi-step agent flows. It gives you durable execution, retries, and step timeouts.\n\n- **Agents:** each agent does one thing, and you compose them from a Workflow. An agent can't be a tool for another agent, so you shouldn't chain agents directly.\n- **Calling an agent:** each workflow step calls an agent through `ComponentClient`: `componentClient.forAgent().inSession(sessionId).method(MyAgent::query).invoke(...)`. Using the workflow id as the session id lets the collaborating agents share memory and tracing.\n- **Resilience:** AI calls are slow, so set a step timeout (for example 60s) and bound the recovery so a step doesn't retry forever.\n- **Dynamic selection:** if the next agent is only known at runtime, use `AgentRegistry` with `dynamicCall`.\n\nThis comes from the `akka-sdk-agents` skill, which summarizes the Akka SDK docs (https://doc.akka.io/sdk/agents.html). I didn't check it against the live docs."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "orchestrate",
+          "vars": {
+            "request": "file:///private/tmp/b5/evals/akka-sdk-agents/cases/orchestrate.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/Workflow/i.test(output)) throw new Error('names Workflow');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/AgentRegistry|dynamicCall|registry/i.test(output)) throw new Error('names AgentRegistry / dynamicCall');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/akka-sdk-agents/cases/orchestrate.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 16606,
+      "evaluationDurationMs": 16606
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-sdk-agents — EDD — NAIVE BASELINE",
+    "prompts": [
+      "file:///private/tmp/b5/evals/akka-sdk-agents/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "chaining",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/akka-sdk-agents/cases/chaining.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/cannot|can'?t|not a tool|never chain|Workflow/i.test(output)) throw new Error('says an agent cannot be a tool for another agent; use Workflows');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "orchestrate",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/akka-sdk-agents/cases/orchestrate.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/Workflow/i.test(output)) throw new Error('names Workflow');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/AgentRegistry|dynamicCall|registry/i.test(output)) throw new Error('names AgentRegistry / dynamicCall');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-sdk-agents/results/baseline_2.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/private/tmp/b5/evals/akka-sdk-agents"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:12:54.254Z",
+    "evaluationCreatedAt": "2026-10-29T19:12:37.606Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

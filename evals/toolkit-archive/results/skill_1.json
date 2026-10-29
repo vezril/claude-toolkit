@@ -1,0 +1,395 @@
+{
+  "evalId": "eval-Cxr-2026-10-29T19:21:23",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:21:23.929Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/toolkit-archive/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "354bbdd5fe9b0143bfd991a9b3867a36cab1a538cea0867f626c8ed5c7ee018d",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 1,
+          "testPassCount": 1,
+          "testFailCount": 1,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 1,
+          "assertFailCount": 1,
+          "totalLatencyMs": 27363,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 0,
+            "safety": 1
+          },
+          "namedScoresCount": {
+            "accuracy": 1,
+            "safety": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1,
+            "safety": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "safety": 1
+          },
+          "namedScoreWeights": {
+            "safety": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "safety",
+                "value": "if (!/referrer|still (uses|references)|never archive|refuse|not|blocked/i.test(output)) throw new Error('refuses to archive a component an active one still uses');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "a076cc4d-12b7-4547-8eb0-02875066cfa2",
+        "latencyMs": 19119,
+        "namedScores": {
+          "safety": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: toolkit-archive\ndescription: \"Retire a toolkit component (skill, workflow, or script) by moving it into the repo's archive/ folder with a RETIRED.md that documents what it was, why it was retired, and what replaced it — then de-index it from the README and remove any installed copies under ~/.claude. Use when a component is superseded or obsolete and its content should be preserved for future reference instead of deleted. Refuses to archive a component that active components still reference.\"\nargument-hint: \"<component-path> [replaced-by...]   (e.g. skills/new-scala-service new-scala-pekko-service)\"\nlicense: MIT\n---\n\n# Toolkit archive (retire a component)\n\nRetirement is a **move, not a copy** — the component's files land verbatim in\n`archive/<name>/` and disappear from every active surface in the same change. An active\ncomponent and its archived copy must never coexist.\n\n## Inputs\n\n- `COMPONENT` — first argument: a repo-relative path (`skills/<name>`, `workflows/<name>.js`)\n  or an absolute path for components living outside the repo (e.g.\n  `~/.claude/skills/<name>`). If missing, ask which component to retire and stop.\n- `REPLACED_BY` — remaining arguments: successor component name(s). If none given, ask —\n  \"nothing\" is an acceptable answer, but it must be the human's answer.\n- `REASON` — why it's being retired. Never invent this: if it isn't clear from the\n  conversation, ask.\n\n## Step 1 — referrer guard\n\nSearch the repo's **active** components for references to the component's name:\n\n```\ngrep -rn \"<name>\" skills/ workflows/ agents/ hooks/ scripts/ --include=\"*\" -l\n```\n\nExclude the component's own files and pure-history matches (CHANGELOG-style mentions).\nIf any active component still references it, **STOP** — report the referrers and do not\nmove anything. The successors must take over those references first.\n\n## Step 2 — move\n\n- `git mv <component> archive/<name>` when the component is inside the repo (preserves\n  history). For an outside-the-repo component (e.g. only in `~/.claude/skills/`), copy the\n  tree into `archive/<name>/` instead — that copy IS the preservation; the original is\n  removed in Step 4.\n- Move files **verbatim**: no reformatting, no \"cleanup\", no frontmatter edits. The archive\n  is a historical record, not a refactor.\n\n## Step 3 — RETIRED.md\n\nWrite `archive/<name>/RETIRED.md` with all four fields (none optional):\n\n```markdown\n# RETIRED: <name>\n\n- **What it was:** <one paragraph + component type (skill / workflow / script)>\n- **Why retired:** <the actual reason>\n- **Replaced by:** <successor(s), or explicitly \"nothing\">\n- **Retired on:** <absolute date, YYYY-MM-DD>\n```\n\nThe component's own documentation rides along unchanged — RETIRED.md sits beside it, it\ndoes not rewrite it.\n\n## Step 4 — de-index and de-install\n\n- Remove the component's entries from `README.md` (skill index, Workflows section). A\n  retired component still in the index is a stale doc.\n- Remove installed copies so it can't keep firing from a stale install:\n  `~/.claude/skills/<name>/`, `~/.claude/workflows/<name>.js` — check both, delete what\n  exists, and report each deletion (or \"no installed copies found\").\n\n## Step 5 — report (no commit)\n\nSummarize: what moved where, the RETIRED.md fields, index edits, installed copies removed.\nLeave everything **uncommitted** — shipping is git-ship's job, so the human reviews the\nretirement as one diff.\n\n## Guardrails\n\n- Referrer guard is absolute: never archive a component an active component still uses.\n- Ask, don't invent: reason and successor come from the human.\n- Never edit the archived files themselves; only add RETIRED.md next to them.\n- Deleting installed copies under `~/.claude` is the ONLY deletion this skill performs,\n  and only for the component being archived.\n- No commit, no push, no PR — hand off to git-ship.\n</skill>\n\nUser request:\nArchive the `merge` skill. Something still references it but I want it gone.",
+          "label": "evals/toolkit-archive/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "354bbdd5fe9b0143bfd991a9b3867a36cab1a538cea0867f626c8ed5c7ee018d",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "I didn't archive `merge`, and nothing has moved. The skill's referrer guard is absolute, and you've told me an active component still references `merge`. The skill says to stop and have the successors take over those references first.\n\nI also couldn't run the check myself. Bash is disabled in this session, and the IDE search tool only has the main checkout open (`/Users/mferecal/Code/claude-toolkit`), not this worktree. I didn't want to report referrers from a different checkout.\n\nTo proceed, I need one of these:\n- **Enable Bash** (or open this worktree in the IDE). I'll list the exact referrers so you can repoint them.\n- **Name the referrers and say what replaces `merge`.** I'll hold the archive until they're fixed.\n- **Override the guard explicitly.** That contradicts the skill's guardrails, so you'd need to say so plainly, and the archive would leave dangling references.\n\nI also still need the reason for retiring it and the successor(s), or an explicit \"nothing\", for `RETIRED.md`."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "referrer",
+          "vars": {
+            "skill": "file:///private/tmp/b5/skills/toolkit-archive/SKILL.md",
+            "request": "file:///private/tmp/b5/evals/toolkit-archive/cases/referrer.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "safety",
+              "value": "if (!/referrer|still (uses|references)|never archive|refuse|not|blocked/i.test(output)) throw new Error('refuses to archive a component an active one still uses');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b5/skills/toolkit-archive/SKILL.md",
+          "request": "file:///private/tmp/b5/evals/toolkit-archive/cases/referrer.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "Custom function threw error: says the component and its archived copy must never coexist\nStack Trace: Error: says the component and its archived copy must never coexist\n    at eval (eval at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2672:27), <anonymous>:3:91)\n    at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2673:34)\n    at runAssertionInternal (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5778:24)\n    at runAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5792:31)\n    at runAndRecordAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5893:24)\n    at file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5916:20\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:151:38\n    at replenish (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:447:21)\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:452:13\n    at Object.eachOfLimit (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:478:36)\nif (!/never coexist|not coexist|cannot both|one or the other|remove/i.test(output)) throw new Error('says the component and its archived copy must never coexist');\nreturn true;",
+        "gradingResult": {
+          "pass": false,
+          "score": 0,
+          "reason": "Custom function threw error: says the component and its archived copy must never coexist\nStack Trace: Error: says the component and its archived copy must never coexist\n    at eval (eval at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2672:27), <anonymous>:3:91)\n    at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2673:34)\n    at runAssertionInternal (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5778:24)\n    at runAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5792:31)\n    at runAndRecordAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5893:24)\n    at file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5916:20\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:151:38\n    at replenish (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:447:21)\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:452:13\n    at Object.eachOfLimit (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:478:36)\nif (!/never coexist|not coexist|cannot both|one or the other|remove/i.test(output)) throw new Error('says the component and its archived copy must never coexist');\nreturn true;",
+          "namedScores": {
+            "accuracy": 0
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Custom function threw error: says the component and its archived copy must never coexist\nStack Trace: Error: says the component and its archived copy must never coexist\n    at eval (eval at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2672:27), <anonymous>:3:91)\n    at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2673:34)\n    at runAssertionInternal (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5778:24)\n    at runAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5792:31)\n    at runAndRecordAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5893:24)\n    at file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5916:20\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:151:38\n    at replenish (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:447:21)\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:452:13\n    at Object.eachOfLimit (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:478:36)\nif (!/never coexist|not coexist|cannot both|one or the other|remove/i.test(output)) throw new Error('says the component and its archived copy must never coexist');\nreturn true;",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/never coexist|not coexist|cannot both|one or the other|remove/i.test(output)) throw new Error('says the component and its archived copy must never coexist');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "8eed133b-75de-4abf-9076-6f409b5dea46",
+        "latencyMs": 8244,
+        "namedScores": {
+          "accuracy": 0
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: toolkit-archive\ndescription: \"Retire a toolkit component (skill, workflow, or script) by moving it into the repo's archive/ folder with a RETIRED.md that documents what it was, why it was retired, and what replaced it — then de-index it from the README and remove any installed copies under ~/.claude. Use when a component is superseded or obsolete and its content should be preserved for future reference instead of deleted. Refuses to archive a component that active components still reference.\"\nargument-hint: \"<component-path> [replaced-by...]   (e.g. skills/new-scala-service new-scala-pekko-service)\"\nlicense: MIT\n---\n\n# Toolkit archive (retire a component)\n\nRetirement is a **move, not a copy** — the component's files land verbatim in\n`archive/<name>/` and disappear from every active surface in the same change. An active\ncomponent and its archived copy must never coexist.\n\n## Inputs\n\n- `COMPONENT` — first argument: a repo-relative path (`skills/<name>`, `workflows/<name>.js`)\n  or an absolute path for components living outside the repo (e.g.\n  `~/.claude/skills/<name>`). If missing, ask which component to retire and stop.\n- `REPLACED_BY` — remaining arguments: successor component name(s). If none given, ask —\n  \"nothing\" is an acceptable answer, but it must be the human's answer.\n- `REASON` — why it's being retired. Never invent this: if it isn't clear from the\n  conversation, ask.\n\n## Step 1 — referrer guard\n\nSearch the repo's **active** components for references to the component's name:\n\n```\ngrep -rn \"<name>\" skills/ workflows/ agents/ hooks/ scripts/ --include=\"*\" -l\n```\n\nExclude the component's own files and pure-history matches (CHANGELOG-style mentions).\nIf any active component still references it, **STOP** — report the referrers and do not\nmove anything. The successors must take over those references first.\n\n## Step 2 — move\n\n- `git mv <component> archive/<name>` when the component is inside the repo (preserves\n  history). For an outside-the-repo component (e.g. only in `~/.claude/skills/`), copy the\n  tree into `archive/<name>/` instead — that copy IS the preservation; the original is\n  removed in Step 4.\n- Move files **verbatim**: no reformatting, no \"cleanup\", no frontmatter edits. The archive\n  is a historical record, not a refactor.\n\n## Step 3 — RETIRED.md\n\nWrite `archive/<name>/RETIRED.md` with all four fields (none optional):\n\n```markdown\n# RETIRED: <name>\n\n- **What it was:** <one paragraph + component type (skill / workflow / script)>\n- **Why retired:** <the actual reason>\n- **Replaced by:** <successor(s), or explicitly \"nothing\">\n- **Retired on:** <absolute date, YYYY-MM-DD>\n```\n\nThe component's own documentation rides along unchanged — RETIRED.md sits beside it, it\ndoes not rewrite it.\n\n## Step 4 — de-index and de-install\n\n- Remove the component's entries from `README.md` (skill index, Workflows section). A\n  retired component still in the index is a stale doc.\n- Remove installed copies so it can't keep firing from a stale install:\n  `~/.claude/skills/<name>/`, `~/.claude/workflows/<name>.js` — check both, delete what\n  exists, and report each deletion (or \"no installed copies found\").\n\n## Step 5 — report (no commit)\n\nSummarize: what moved where, the RETIRED.md fields, index edits, installed copies removed.\nLeave everything **uncommitted** — shipping is git-ship's job, so the human reviews the\nretirement as one diff.\n\n## Guardrails\n\n- Referrer guard is absolute: never archive a component an active component still uses.\n- Ask, don't invent: reason and successor come from the human.\n- Never edit the archived files themselves; only add RETIRED.md next to them.\n- Deleting installed copies under `~/.claude` is the ONLY deletion this skill performs,\n  and only for the component being archived.\n- No commit, no push, no PR — hand off to git-ship.\n</skill>\n\nUser request:\nCan I leave the live copy in place while the archived copy exists, just in case?",
+          "label": "evals/toolkit-archive/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "354bbdd5fe9b0143bfd991a9b3867a36cab1a538cea0867f626c8ed5c7ee018d",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No. The skill requires retirement to be a move, so the live copy and the archived copy can't coexist. A leftover install under `~/.claude` can keep firing from a stale copy, and a retired component left in the README index is a stale doc.\n\nNothing is lost by following that rule. The archive keeps the files verbatim, and `git mv` keeps the history, so you can restore the component with `git mv archive/<name> <original path>`.\n\nIf you want a safety net before retiring, don't archive yet. Or archive and review the uncommitted diff before handing off to git-ship.\n\nTo proceed, I need:\n- the component path (e.g. `skills/<name>`)\n- the successor name(s), or \"nothing\"\n- the reason it's being retired"
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "coexist",
+          "vars": {
+            "skill": "file:///private/tmp/b5/skills/toolkit-archive/SKILL.md",
+            "request": "file:///private/tmp/b5/evals/toolkit-archive/cases/coexist.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/never coexist|not coexist|cannot both|one or the other|remove/i.test(output)) throw new Error('says the component and its archived copy must never coexist');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b5/skills/toolkit-archive/SKILL.md",
+          "request": "file:///private/tmp/b5/evals/toolkit-archive/cases/coexist.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      }
+    ],
+    "stats": {
+      "successes": 1,
+      "failures": 1,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 19136,
+      "evaluationDurationMs": 19136
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "toolkit-archive — EDD",
+    "prompts": [
+      "file:///private/tmp/b5/evals/toolkit-archive/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "referrer",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/toolkit-archive/cases/referrer.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "safety",
+            "value": "if (!/referrer|still (uses|references)|never archive|refuse|not|blocked/i.test(output)) throw new Error('refuses to archive a component an active one still uses');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "coexist",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/toolkit-archive/cases/coexist.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/never coexist|not coexist|cannot both|one or the other|remove/i.test(output)) throw new Error('says the component and its archived copy must never coexist');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/toolkit-archive/results/skill_1.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b5/skills/toolkit-archive/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b5/evals/toolkit-archive"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:21:43.104Z",
+    "evaluationCreatedAt": "2026-10-29T19:21:23.929Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

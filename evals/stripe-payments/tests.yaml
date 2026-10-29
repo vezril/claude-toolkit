@@ -1,0 +1,33 @@
+# stripe-payments: shared matrix, used verbatim by both arms. Deterministic asserts only.
+
+- description: "fulfill"
+  vars: { request: file://cases/fulfill.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/webhook/i.test(output)) throw new Error('says fulfil from webhooks');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/close.{0,20}tab|settle|days|unreliable|not.{0,20}success page|don'?t.{0,25}success/i.test(output)) throw new Error('explains why the success page is unreliable');
+        return true;
+
+- description: "signature"
+  vars: { request: file://cases/signature.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/raw (request )?body|raw body|unparsed|before.{0,20}pars/i.test(output)) throw new Error('identifies the raw-body requirement');
+        return true;
+
+- description: "idempotent"
+  vars: { request: file://cases/idempotent.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/idempot|dedup|event\.id|at least once/i.test(output)) throw new Error('prescribes idempotent fulfilment / dedupe on event id');
+        return true;
