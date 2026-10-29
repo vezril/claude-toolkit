@@ -27,7 +27,9 @@ from pathlib import Path
 
 HELPERS = Path(__file__).resolve().parents[1] / "scripts" / "delivery-flow"
 
-DECISION_PATHS = re.compile(r"delivery/[^/\s]+/decisions/|punch-out-\d+\.(?:md|json)|decide\.py")
+# Root-agnostic: `<root>/<ITEM>/decisions/` where the root may be anywhere, so the item
+# directory plus `decisions/` is the stable part. Keeps the punch-out files and decide.py.
+DECISION_PATHS = re.compile(r"[^/\s]+/decisions/|punch-out-\d+\.(?:md|json)|decide\.py")
 MERGE = re.compile(r"\bgh\s+pr\s+merge\b|\bgh\s+api\b[^|;]*\bpulls/\d+/merge\b|\bgit\s+push\b[^|;]*\b(?:main|master)\b")
 # Outward actions, in any argument order: `gh api -X POST …/issues/…` and
 # `gh api …/issues/… -X POST` are the same thing, and a breach found both.
@@ -53,12 +55,6 @@ def deny(reason: str) -> int:
 
 def main() -> int:
     raw = sys.stdin.read()
-    # Cheap bail-out, but a delegation carries no paths: it must still reach the check below.
-    if ("delivery/" not in raw
-            and not re.search(r'"tool_name":\s*"(?:Task|Agent)"', raw)
-            and not re.search(r"gh |helm |flux |docker push|git push|decide\.py"
-                              r"|curl|wget|httpie|\bhttp\b", raw)):
-        return 0
     try:
         payload = json.loads(raw)
     except (json.JSONDecodeError, ValueError):
@@ -66,6 +62,15 @@ def main() -> int:
 
     sys.path.insert(0, str(HELPERS))
     import common
+
+    # The gate is a filesystem fact: is this working directory a delivery-flow repo. It used
+    # to be `"delivery/" not in raw`, a text match on the payload — and an early exit that
+    # depends on the command spelling `delivery/` is an early exit an artifact can be written
+    # behind. With `artifacts.root` pointing outside the repo, the string never appears at
+    # all, so this hook went inert exactly where it was most needed: it is the one that stops
+    # an agent writing its own decision.
+    if not common.is_delivery_repo(Path(payload.get("cwd") or ".")):
+        return 0
 
     # cwd-based on purpose. A merge, push or deploy command runs *in* the repo it affects, so
     # the session cwd is the right answer here — and consulting the registry would make this
@@ -100,7 +105,12 @@ def main() -> int:
         doc, err = common.load_json(current[0])
         item = (doc or {}).get("item") or current[0].parent.name if not err else current[0].parent.name
     if not item:
-        m = re.search(r"delivery/([^/\s\"]+)/", text)
+        # The configured root first — under `artifacts.root` the text contains that path and
+        # never the word `delivery` — then the default shape for an unconfigured repo.
+        root_text = str(common.artifact_root(repo)).replace("\\", "/")
+        m = re.search(re.escape(root_text) + r"/([^/\s\"]+)/", text)
+        if not m:
+            m = re.search(r"delivery/([^/\s\"]+)/", text)
         item = m.group(1) if m else None
 
     cmd = ti.get("command", "") if tool == "Bash" else ""

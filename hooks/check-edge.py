@@ -32,12 +32,10 @@ HELPERS = Path(__file__).resolve().parents[1] / "scripts" / "delivery-flow"
 
 # Any path under delivery/<ITEM-KEY>/, in a tool input or a shell command. Checked against
 # the raw payload first: a session that writes nothing there costs one regex and exits.
-# A fast path for the overwhelmingly common case: a tool call in a repo that has no
-# .delivery-flow.yaml. Deliberately NOT a text match on the command — an early exit that
-# depends on the command spelling `delivery/` is an early exit an artifact can be written
-# behind, which is how the first version of this hook let three real writes through. The
-# gate below is a filesystem fact instead: one existence check per candidate directory.
-DELIVERY_HINT = re.compile(r"delivery/[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9]")
+# No text-match hint here on purpose. An early exit that depends on the command spelling
+# `delivery/` is an early exit an artifact can be written behind, which is how the first
+# version of this hook let three real writes through. `main` gates on a filesystem fact
+# instead: is anything in reach a delivery-flow repo.
 
 
 def _helpers():
@@ -225,7 +223,7 @@ def check_artifact(path: Path, schemas: dict, common, validator, trigger_rules, 
     return not problems, problems, ran
 
 
-def policy_disagreements(path: Path, common, trigger_rules) -> list:
+def policy_disagreements(path: Path, common, trigger_rules, repo: Path = None) -> list:
     """Where triage.json's gating flags and the artifacts part company.
 
     Recorded on the edge, never failed on: the derivations available before any code exists
@@ -237,7 +235,14 @@ def policy_disagreements(path: Path, common, trigger_rules) -> list:
     if path.name not in ("triage.json", "breakdown.json", "proposal.json"):
         return []
     item_dir = path.parent
-    cfg = common.load_config(common.repo_root(item_dir))
+    # The repo is passed in, not re-derived from the artifact path. Under a configured
+    # `artifacts.root` the artifact lives outside the repo entirely, so walking up from it
+    # finds no `.delivery-flow.yaml` and `load_config` raised — taking the whole hook down
+    # with it, on a valid artifact.
+    try:
+        cfg = common.load_config(repo if repo is not None else common.repo_root(item_dir))
+    except OSError:
+        return []
     if path.name == "proposal.json":
         return trigger_rules.proposal_disagreements(common.load_json(path)[0], cfg)
     return trigger_rules.disagreements(
@@ -293,7 +298,11 @@ def changed_artifacts(payload: dict, common, schemas: dict) -> list:
         for path in sorted(root.glob("*/*")):
             if not path.is_file():
                 continue
-            item, filename = common.parse_artifact_path(path)
+            # Parsed against *this* root. Without it the match falls through to the default
+            # `delivery/<ITEM>/<file>` pattern, returns (None, None) for a configured root,
+            # and every artifact under it is skipped — the glob above was already correct and
+            # the result was thrown away one line later.
+            item, filename = common.parse_artifact_path(path, root)
             if not item:
                 continue
             # Artifacts only. A sentinel is checked as part of its artifact's edge, so
@@ -309,6 +318,25 @@ def changed_artifacts(payload: dict, common, schemas: dict) -> list:
             if current != last_traced_sha(repo, item, filename, common):
                 out.append(path)
     return out
+
+
+def identify(path: Path, common, payload: dict):
+    """(item, filename, repo) for an artifact path, under either layout.
+
+    The default `delivery/<ITEM>/<file>` is tried first so nothing about the in-repo layout
+    changes. A configured `artifacts.root` can sit anywhere — outside the repo entirely — so
+    where the default does not match, each candidate repo's own root is tried.
+    """
+    fallback = common.repo_root(path.parent if path.parent.exists()
+                                else Path(payload.get("cwd") or "."))
+    item, filename = common.parse_artifact_path(path)
+    if item:
+        return item, filename, fallback
+    for candidate in common.candidate_repos(payload, [path.parent]):
+        item, filename = common.parse_artifact_path(path, common.artifact_root(candidate))
+        if item:
+            return item, filename, candidate
+    return None, None, fallback
 
 
 def main() -> int:
@@ -356,10 +384,9 @@ def main() -> int:
     schemas = common.load_schemas()
     failures = []
     for path in paths:
-        item, filename = common.parse_artifact_path(path)
+        item, filename, repo = identify(path, common, payload)
         if not item:
             continue
-        repo = common.repo_root(path.parent if path.parent.exists() else Path(payload.get("cwd") or "."))
         if not common.is_delivery_repo(repo):
             continue
         if not path.exists():
@@ -397,7 +424,7 @@ def main() -> int:
         }
         if metrics:
             record["metrics"] = metrics
-        disagreement = policy_disagreements(path, common, trigger_rules)
+        disagreement = policy_disagreements(path, common, trigger_rules, repo)
         if disagreement:
             record["policy_disagreement"] = disagreement
         common.append_trace(repo, item, record)
