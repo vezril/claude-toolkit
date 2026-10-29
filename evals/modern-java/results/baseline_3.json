@@ -1,0 +1,519 @@
+{
+  "evalId": "eval-9e9-2026-10-29T17:12:31",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T17:12:31.487Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "label": "evals/modern-java/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "id": "84357094b3b66191a8e4fd4ab824e1f876204ff05fd97b4572fbcaefd1533f1d",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 3,
+          "testPassCount": 3,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 4,
+          "assertFailCount": 0,
+          "totalLatencyMs": 30507,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 3,
+            "restraint": 1
+          },
+          "namedScoresCount": {
+            "accuracy": 3,
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 3,
+            "restraint": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/record|immutab|final/i.test(output)) throw new Error('prescribes record/immutability -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "// BROADENED: a correct answer said \"Non-final public fields: anyone can change\n// them\", which is the accessibility point, and failed because the regex wanted\n// \"no public field\". Match the concept, not one phrasing.\nif (!/private|accessib|encapsulat|public field|final field|record/i.test(output)) throw new Error('did not address accessibility / public fields');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "52b50ce4-9d66-4b99-a934-f63ba90c818c",
+        "latencyMs": 13952,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nReview this: a public class Config with public non-final fields, setters for each, and a no-arg constructor. It's a config holder.",
+          "label": "evals/modern-java/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "84357094b3b66191a8e4fd4ab824e1f876204ff05fd97b4572fbcaefd1533f1d",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "This design is a mutable bag of state, and I'd replace it with an immutable `record`.\n\n**Problems**\n- **Public non-final fields plus setters.** The setters add nothing, since the fields are already writable. Any code can change config at any time, and every reader has to ask who else holds a reference.\n- **No validation.** A no-arg constructor leaves the object half-built, with nulls and zeros, until someone calls the setters. Bad values only show up later and far from where they were set (fail fast, Item 49).\n- **Not thread-safe.** Non-final fields shared across threads have no happens-before guarantee. A reader can see stale or partly updated config.\n- **Open to mutation after startup.** Config should be fixed once built. Nothing stops code from changing it mid-run.\n- **No value semantics.** There's no `equals`, `hashCode` or `toString`. If you add them by hand, mutable fields make them risky (a mutated key breaks hash lookups).\n\n**Fix**\n\n```java\npublic record Config(String host, int port, Duration timeout, List<String> tags) {\n    public Config {\n        Objects.requireNonNull(host, \"host\");\n        Objects.requireNonNull(timeout, \"timeout\");\n        if (port < 1 || port > 65535) throw new IllegalArgumentException(\"port: \" + port);\n        tags = List.copyOf(tags); // defensive copy, immutable\n    }\n}\n```\n\n- **Many fields or optional ones:** add a small `Builder` that validates in `build()`. Alternatively, add `withX(...)` copy methods that return a new record.\n- **Defaults:** use a static factory such as `Config.defaults()`.\n- **A framework needs a no-arg constructor and setters** (older Spring or JavaBeans binding, say): keep the bean at the edge. Bind it, then convert to the immutable record straight away and pass only the record around."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "immutability",
+          "vars": {
+            "request": "file:///private/tmp/b3/evals/modern-java/cases/immutability.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/record|immutab|final/i.test(output)) throw new Error('prescribes record/immutability -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "// BROADENED: a correct answer said \"Non-final public fields: anyone can change\n// them\", which is the accessibility point, and failed because the regex wanted\n// \"no public field\". Match the concept, not one phrasing.\nif (!/private|accessib|encapsulat|public field|final field|record/i.test(output)) throw new Error('did not address accessibility / public fields');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/modern-java/cases/immutability.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/empty (list|collection)|never (return )?null|emptyList|Collections\\.empty|return.{0,20}empty/i.test(output)) throw new Error('prescribes returning an empty collection -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "0ae3141e-f7b1-4341-af2b-50bb18d0029d",
+        "latencyMs": 8029,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nMy method returns null when the list is empty, and callers check for it. Fine?",
+          "label": "evals/modern-java/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "84357094b3b66191a8e4fd4ab824e1f876204ff05fd97b4572fbcaefd1533f1d",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "No. For a method that returns a collection, return an empty list (`List.of()`) instead of null (Effective Java Item 54).\n\n- **Null forces a check at every call site.** One caller that forgets it gets an NPE.\n- **An empty list needs no special case.** Callers can loop or stream over it, and an empty result just does nothing.\n- **Allocation isn't a concern.** `List.of()` and `Collections.emptyList()` return a shared immutable instance.\n\nIf \"no result\" differs from \"empty\" (for example, \"not found\" vs \"found zero\"), return `Optional<List<T>>`, or better, model it explicitly with an exception or a sealed result type. Most of the time the two don't differ, so the empty list is enough.\n\nThen delete the null checks in the callers. If the method is public API, that is a behavior change, so check who depends on the null."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "nulls",
+          "vars": {
+            "request": "file:///private/tmp/b3/evals/modern-java/cases/nulls.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/empty (list|collection)|never (return )?null|emptyList|Collections\\.empty|return.{0,20}empty/i.test(output)) throw new Error('prescribes returning an empty collection -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/modern-java/cases/nulls.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "if (!/not|avoid|don'?t|return (type|value)s? only|field|parameter/i.test(output)) throw new Error('warns against Optional for fields/parameters -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "9e139e64-cd6f-4bec-9c60-06ff033126ed",
+        "latencyMs": 8526,
+        "namedScores": {
+          "restraint": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nShould I use Optional for my fields and method parameters?",
+          "label": "evals/modern-java/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "84357094b3b66191a8e4fd4ab824e1f876204ff05fd97b4572fbcaefd1533f1d",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "**Return types: yes. Fields and parameters: no.**\n\n- **Return values:** Use `Optional<T>` when \"no result\" is a normal outcome and the caller must handle it, such as `findById`. This is what it was designed for (Effective Java Item 55).\n- **Fields:** Avoid it. `Optional` isn't `Serializable`, and it adds an extra object and indirection. A nullable field with a null-safe getter that returns `Optional` is cleaner:\n  ```java\n  private final String nickname; // may be null\n  public Optional<String> nickname() { return Optional.ofNullable(nickname); }\n  ```\n- **Parameters:** Avoid it. Callers can still pass `null` instead of an `Optional`, and they have to wrap every argument. Use an overload, or two methods, or a required parameter.\n- **Never:** Don't use it in collections or maps (return an empty collection instead). Don't call `Optional.get()` without checking first. Don't use `Optional` for primitives, where `OptionalInt`, `OptionalLong` and `OptionalDouble` exist.\n\nRecords are a partial exception. A record component of type `Optional` is tolerable if you want that to be part of the public API, but a nullable component with an `Optional` accessor is still the more common choice."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "optional",
+          "vars": {
+            "request": "file:///private/tmp/b3/evals/modern-java/cases/optional.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "if (!/not|avoid|don'?t|return (type|value)s? only|field|parameter/i.test(output)) throw new Error('warns against Optional for fields/parameters -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/modern-java/cases/optional.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 3,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 13967,
+      "evaluationDurationMs": 13967
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "modern-java — EDD — NAIVE BASELINE",
+    "prompts": [
+      "file:///private/tmp/b3/evals/modern-java/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "immutability",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/modern-java/cases/immutability.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/record|immutab|final/i.test(output)) throw new Error('prescribes record/immutability -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "// BROADENED: a correct answer said \"Non-final public fields: anyone can change\n// them\", which is the accessibility point, and failed because the regex wanted\n// \"no public field\". Match the concept, not one phrasing.\nif (!/private|accessib|encapsulat|public field|final field|record/i.test(output)) throw new Error('did not address accessibility / public fields');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "nulls",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/modern-java/cases/nulls.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/empty (list|collection)|never (return )?null|emptyList|Collections\\.empty|return.{0,20}empty/i.test(output)) throw new Error('prescribes returning an empty collection -- not found');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "optional",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/modern-java/cases/optional.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "if (!/not|avoid|don'?t|return (type|value)s? only|field|parameter/i.test(output)) throw new Error('warns against Optional for fields/parameters -- not found');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/modern-java/results/baseline_3.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/private/tmp/b3/evals/modern-java"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T17:12:45.503Z",
+    "evaluationCreatedAt": "2026-10-29T17:12:31.487Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

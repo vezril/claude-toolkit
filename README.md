@@ -264,7 +264,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 |---|---|---|---|---|
 | `6502-assembly` |  |  |  |  |
 | `agent-interoperability` |  |  |  |  |
-| `agentic-workflows` |  |  |  |  |
+| `agentic-workflows` | 100% | 100% | sonnet | No delta on 3 cases — baseline already pushes back on multi-agent-by-default and names the workflow patterns. Log: `evals/_batch3/iteration-log.md` |
 | `ai-layoff-radar` |  |  |  |  |
 | `akka` | 96% | 100% | sonnet | Routing base-strong; naive omits the serializer from the k8s cluster checklist; no patch |
 | `akka-actors` | 96% | 100% | sonnet | Typed largely base-strong; naive replyTo discipline gap; no patch |
@@ -453,12 +453,12 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `malbolge` |  |  |  |  |
 | `markdown` |  |  |  |  |
 | `merge` | 96% | 96% | sonnet | ✅ Shipped (PR #49) — house version rules + over-wait regression fixed |
-| `modern-java` |  |  |  |  |
+| `modern-java` | 100% | 100% | sonnet | No delta on 3 cases. Run 1 showed an apparent *regression* that was my assert rejecting "public fields" vs "no public field"; fixed and re-run. Log: `evals/_batch3/iteration-log.md` |
 | `morning` | 50% | 100% | sonnet | 2nd-biggest lift; run exposed the provider skill-contamination bug (isolation rule) |
 | `multiplayer-networking` |  |  |  |  |
 | `native-app-profiling` |  |  |  |  |
 | `network-engineering` |  |  |  |  |
-| `network-security` |  |  |  |  |
+| `network-security` | 100% | 100% | sonnet | No delta on 2 cases — baseline already prescribes segmentation, default-deny and upstream DDoS mitigation. Log: `evals/_batch3/iteration-log.md` |
 | `nextjs` |  |  |  |  |
 | `nginx` |  |  |  |  |
 | `nodejs` |  |  |  |  |
@@ -483,9 +483,9 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `promptfoo` |  |  |  |  |
 | `python` | 71% | 100% | sonnet | Modern-idiom contract lift (pathlib, hints, EAFP); no patch |
 | `python-networkx` |  |  |  |  |
-| `python-package` |  |  |  |  |
+| `python-package` | 50% | 100% | sonnet | **Territory rail.** Naive arm agrees to write tests when asked; the skill declines (it is the production-only half of a split pair). Log: `evals/_batch3/iteration-log.md` |
 | `python-tests` |  |  |  |  |
-| `python-uv-build` |  |  |  |  |
+| `python-uv-build` | 67% | 100% | sonnet | **Territory rail** plus the generated-file rule (`uv.lock` is not scaffolded). Cases ask for the rule, not the action — see the harness limitation in the log. Log: `evals/_batch3/iteration-log.md` |
 | `quebec-charter-rights` |  |  |  |  |
 | `quebec-civil-code` |  |  |  |  |
 | `quebec-housing-rights` |  |  |  |  |
@@ -493,8 +493,8 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `quebec-municipal-law` |  |  |  |  |
 | `react` |  |  |  |  |
 | `readability` |  |  |  |  |
-| `release-app-store-changelog` |  |  |  |  |
-| `release-macos-spm-packaging` |  |  |  |  |
+| `release-app-store-changelog` | 100% | 100% | sonnet | No delta on 2 cases — baseline already triages to user-facing changes and uses New/Improved/Fixed. Log: `evals/_batch3/iteration-log.md` |
+| `release-macos-spm-packaging` | 100% | 100% | sonnet | No delta on 2 cases — baseline already has the `.app` bundle layout, `Info.plist` and `LSUIElement`. Log: `evals/_batch3/iteration-log.md` |
 | `repo-starter-docs` | 54% | 100% | sonnet | Biggest round-3 floor: MIT-by-default + honest README template; no patch |
 | `requirements-engineering` | 67% | 100% | sonnet | ✅ Shipped (PR #46) — 3 measured gaps patched |
 | `scala` | 92% | 100% | sonnet | House-convention floor (`from` factories, AnyFunSpec); no patch |
@@ -505,7 +505,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `secure-coding` | 100% | 100% | sonnet | Base-model-strong; skill precision-safe (no over-flag) |
 | `site-reliability-engineering` |  |  |  |  |
 | `software-architecture` | 92% | 100% | sonnet | Base-strong; +trade-off discipline, no patch |
-| `software-design` |  |  |  |  |
+| `software-design` | 67% | 100% | sonnet | **Deep-module judgment.** Shown five single-method classes and asked "good separation of concerns?", the naive arm approves; the skill names it shallow modules / classitis. Log: `evals/_batch3/iteration-log.md` |
 | `spec-driven-development` | 0% | 100% | sonnet | ✅ Shipped (PR #47) — 2 measured gaps patched |
 | `stripe-payments` |  |  |  |  |
 | `swgoh-expert` |  |  |  |  |

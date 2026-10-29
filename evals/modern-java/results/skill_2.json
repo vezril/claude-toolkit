@@ -1,0 +1,534 @@
+{
+  "evalId": "eval-uD3-2026-10-29T17:12:58",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T17:12:58.201Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/modern-java/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "655c94713b00f1d2bc741541ba1b25a0f52068d4ac0e783b350dfc31c5ee6b0c",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 3,
+          "testPassCount": 3,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 4,
+          "assertFailCount": 0,
+          "totalLatencyMs": 26288,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 3,
+            "restraint": 1
+          },
+          "namedScoresCount": {
+            "accuracy": 3,
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 3,
+            "restraint": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/record|immutab|final/i.test(output)) throw new Error('prescribes record/immutability -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "// BROADENED: a correct answer said \"Non-final public fields: anyone can change\n// them\", which is the accessibility point, and failed because the regex wanted\n// \"no public field\". Match the concept, not one phrasing.\nif (!/private|accessib|encapsulat|public field|final field|record/i.test(output)) throw new Error('did not address accessibility / public fields');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "901a5240-f9e2-46c6-b7d3-d5bb4a5abe26",
+        "latencyMs": 10803,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: modern-java\ndescription: \"Best practices for writing modern Java (Java 21 LTS), distilled from Joshua Bloch's *Effective Java* (3rd ed., all 90 items) and updated with current language features (records, sealed types, pattern matching for switch and record patterns, virtual threads, text blocks, sequenced collections, enhanced instanceof, var). Covers object creation and destruction, methods common to all objects (equals/hashCode/toString/Comparable), classes and interfaces, generics, enums and annotations, lambdas and streams, method design, exceptions, concurrency, and serialization. Use this whenever writing, reviewing, refactoring, or designing ANY Java code — defining a class, API, or method; choosing between a class and a record; handling errors; writing generics; using streams or Optionals; doing concurrency; or deciding an idiom — even if the user doesn't say \\\"Effective Java\\\" or \\\"best practices.\\\" Apply these defaults proactively on any .java work: prefer immutability, program to interfaces, fail fast, and use modern Java features over their legacy equivalents.\"\n---\n\n# Modern Java\n\nHow to write clear, correct, robust Java, targeting **Java 21 LTS**. The foundation is Joshua Bloch's *Effective Java* (3rd ed., 90 items); this skill keeps his reasoning but **defaults to modern language features** (records, sealed types, pattern matching, virtual threads, etc.) where they supersede the 2018 advice, and flags what's now dated. Apply these as defaults on any Java code, not only when asked.\n\nIf the user's explicit instructions or an existing codebase's conventions conflict with this skill, those win. Otherwise this is the default style.\n\n## Guiding principles (from the book's introduction)\n\nMost items derive from a few ideas — when in doubt, fall back to these:\n\n- **Clarity and simplicity first.** A component's user should never be surprised by its behavior. Make components as small as possible but no smaller. This skill is *not* primarily about performance — write clear, correct code, then optimize only where measurement demands it (Item 67).\n- **Fail fast.** Detect errors as soon as possible, ideally at compile time, otherwise as early as possible at runtime (validate parameters, Item 49). Push correctness into the type system.\n- **Minimize mutability and accessibility.** Immutable objects and the smallest possible API surface are the two most reliable ways to reduce bugs.\n- **Program to interfaces; favor composition over inheritance.** Depend on abstractions; reach for composition before subclassing.\n- **Rules are defaults, not laws.** Violate them occasionally with good reason — but know the rule first.\n\n## Modern Java baseline (Java 21) — default to these\n\nBloch's 2018 text predates much of this. On Java 21, prefer:\n\n- **`record`** for immutable data carriers — replaces most hand-written value classes, the telescoping-constructor problem, much of the Builder boilerplate, and auto-generates `equals`/`hashCode`/`toString` (Items 10–12, 17). Add compact constructors for validation/normalization and defensive copies.\n- **`sealed` interfaces/classes + pattern matching** — a sealed hierarchy of records is an **algebraic data type**; `switch` with pattern matching (and record patterns) handles it exhaustively, with the compiler checking all cases. This is the modern replacement for tagged classes (Item 23) and for the Visitor pattern. Prefer it for closed type hierarchies.\n- **`switch` expressions** (arrow form, exhaustive, yields a value) over fall-through statement switches.\n- **Pattern matching for `instanceof`** — `if (o instanceof String s) {…}` — over cast-after-check.\n- **Virtual threads** (Item 80 updated) — for high-concurrency blocking I/O, `Executors.newVirtualThreadPerTaskExecutor()`; cheap to create, so \"thread per task\" is again viable. Still prefer the `java.util.concurrent` executors/tasks model over raw threads.\n- **Text blocks** (`\"\"\"…\"\"\"`) for multi-line strings.\n- **`var`** for local variables when the initializer makes the type obvious (Item 57 spirit: keep scope tight, names clear) — not for fields or APIs.\n- **Sequenced collections** (`SequencedCollection`/`getFirst`/`getLast`) and the modern collection factories (`List.of`, `Map.of`, `Stream.toList()`).\n- **`Optional`** as a return type for \"maybe absent\" (Item 55) — never for fields or parameters, and never `Optional.get()` without checking.\n\n## How to use this skill\n\nThe 90 items, faithfully covered and modernized, live in four thematic references — read the one matching the task:\n\n- **`references/objects-and-classes.md`** — Items 1–25: creating/destroying objects (static factories, builders, DI, avoiding finalizers, try-with-resources), methods common to all objects (`equals`, `hashCode`, `toString`, `clone`, `Comparable`), and class/interface design (accessibility, **immutability**, composition over inheritance, interfaces, **records & sealed types**). Read for \"how do I define this class/type/API.\"\n- **`references/generics-enums-functional.md`** — Items 26–48: generics (no raw types, wildcards, generic methods), enums & annotations (enums over int constants, `EnumSet`/`EnumMap`), and lambdas & streams (lambdas/method refs, standard functional interfaces, side-effect-free streams, `Collection` vs `Stream` returns). Read for generics, enums, or functional-style code.\n- **`references/methods-exceptions-general.md`** — Items 49–77: method design (validate params, defensive copies, signatures, overloading/varargs, return empties not null, `Optional`, Javadoc), general programming (scope, for-each, know the libraries, avoid float/double for money, boxing, strings), and exceptions (checked vs unchecked, standard exceptions, failure atomicity, don't ignore). Read for method/API signatures or error handling.\n- **`references/concurrency-and-serialization.md`** — Items 78–90: concurrency (synchronize shared mutable state, prefer executors/tasks + **virtual threads**, `java.util.concurrent` over `wait`/`notify`, document thread safety) and serialization (avoid Java serialization; if forced, defensive `readObject`, serialization proxies). Read for threading or serialization.\n\n## Always-apply defaults (the short list)\n\nWhen writing Java without a specific question, these change the most code and should be automatic:\n\n1. **Make classes immutable** unless there's a reason not to; if mutable, minimize mutability. Use `record` for data; `final` fields; no setters.\n2. **Minimize accessibility** — everything as private as possible; no public fields (use accessors, or a record's accessors).\n3. **Favor composition over inheritance;** design for inheritance or forbid it (`final`/sealed). Prefer interfaces to abstract classes.\n4. **Static factory methods** over public constructors when naming, caching, or returning a subtype helps (Item 1).\n5. **No raw types; fix all unchecked warnings** (Items 26–27). Prefer generic, type-safe APIs.\n6. **Validate parameters and fail fast;** make defensive copies of mutable inputs/outputs (Items 49–50).\n7. **Return empty collections/arrays, never null;** use `Optional` for scalar \"maybe\" returns (Items 54–55).\n8. **Exceptions for exceptional conditions only;** unchecked for programming errors, checked only for recoverable conditions you expect callers to handle; never swallow an exception (Items 69–77).\n9. **`equals`/`hashCode` together or not at all;** prefer records so the compiler writes them correctly (Items 10–11).\n10. **Prefer the standard libraries** (`java.util`, `java.util.concurrent`, `java.util.function`) over rolling your own (Item 59).\n\n## Notable anti-patterns (flag these in review)\n\n- Mutable public fields; setters everywhere; God objects.\n- Raw types (`List` instead of `List<String>`); suppressing unchecked warnings without justification.\n- Returning `null` for collections/absent values; `Optional` fields or parameters; `optional.get()` without `isPresent`.\n- Tagged classes / `int` \"type\" constants / `switch` on a type code — use sealed types + pattern matching or enums.\n- `equals` without `hashCode`; hand-written `equals`/`hashCode`/`toString` where a record fits.\n- Inheritance for code reuse across package boundaries; subclassing a class not designed for it.\n- Checked exceptions for unrecoverable errors; empty `catch` blocks; exceptions for control flow.\n- Raw `Thread`/`wait`/`notify`; sharing mutable state without synchronization; `synchronized` over-broadly.\n- Implementing `Serializable` casually; using Java serialization for new designs (use JSON/protobuf etc.).\n- `float`/`double` for money (use `BigDecimal` or integer cents); String concatenation in loops (use `StringBuilder`).\n\n## Related\n\n- [[design-patterns]] — Bloch references GoF throughout; static factories, builders, and the sealed-type/pattern-matching replacement for Visitor connect directly.\n- [[functional-programming]], [[scala]] — many EJ principles (immutability, ADTs via sealed types + records, programming to interfaces, errors as values via `Optional`) are FP ideas; useful context since this repo's primary language is Scala, though this skill is pure Java.\n- [[tdd]] — fail-fast validation and small, interface-based components are what make Java code testable.\n- Source: *Effective Java*, 3rd ed., Joshua Bloch (Addison-Wesley, 2018), all 90 items. Item rules are faithful; the Java 21 modernizations (records, sealed types, pattern matching, virtual threads, etc.) and \"default to modern\" stance are added per request.\n</skill>\n\nUser request:\nReview this: a public class Config with public non-final fields, setters for each, and a no-arg constructor. It's a config holder.",
+          "label": "evals/modern-java/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "655c94713b00f1d2bc741541ba1b25a0f52068d4ac0e783b350dfc31c5ee6b0c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Replace it with an immutable `record`. The class as described breaks several defaults.\n\n**Problems**\n- **Public non-final fields** let any caller change state and bypass validation (Items 15–16). Setters on top of that are redundant.\n- **Setters plus a no-arg constructor** create a half-built object that can be observed in an invalid state (Item 17). It also isn't thread-safe without extra synchronization, which is a risk for config shared across threads.\n- **No fail-fast validation**, so a bad value surfaces far from where it was set (Item 49).\n- **No `equals`, `hashCode` or `toString`** (Items 10–12). A record generates all three.\n- **Mutable inputs such as `List` or `Map` fields** aren't defensively copied (Item 50).\n\n**Fix** (field names are illustrative)\n```java\npublic record Config(String host, int port, Duration timeout, List<String> tags) {\n    public Config {\n        Objects.requireNonNull(host, \"host\");\n        Objects.requireNonNull(timeout, \"timeout\");\n        if (port < 1 || port > 65_535) throw new IllegalArgumentException(\"port: \" + port);\n        tags = List.copyOf(tags);   // defensive, immutable copy\n    }\n\n    public static Config defaults() {\n        return new Config(\"localhost\", 8080, Duration.ofSeconds(30), List.of());\n    }\n\n    public Config withPort(int port) {\n        return new Config(host, port, timeout, tags);\n    }\n}\n```\n\n- **Defaults:** the `defaults()` factory replaces the no-arg constructor.\n- **Changing one value:** use `withX` copy methods to derive a modified config.\n- **Many optional fields (roughly 5 or more):** add a small `Builder` that ends in `build()`, so the record constructor validates once.\n- **Existing setter callers:** migrate them to `withX` or the builder. If a framework such as Spring or Jackson needs JavaBean setters, the record works with modern versions of both. Keep the mutable class only if you hit a hard constraint."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "immutability",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/modern-java/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/modern-java/cases/immutability.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/record|immutab|final/i.test(output)) throw new Error('prescribes record/immutability -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "// BROADENED: a correct answer said \"Non-final public fields: anyone can change\n// them\", which is the accessibility point, and failed because the regex wanted\n// \"no public field\". Match the concept, not one phrasing.\nif (!/private|accessib|encapsulat|public field|final field|record/i.test(output)) throw new Error('did not address accessibility / public fields');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/modern-java/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/modern-java/cases/immutability.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/empty (list|collection)|never (return )?null|emptyList|Collections\\.empty|return.{0,20}empty/i.test(output)) throw new Error('prescribes returning an empty collection -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "d939a4fd-0ac3-49e9-a65a-271df1ba62e5",
+        "latencyMs": 6559,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: modern-java\ndescription: \"Best practices for writing modern Java (Java 21 LTS), distilled from Joshua Bloch's *Effective Java* (3rd ed., all 90 items) and updated with current language features (records, sealed types, pattern matching for switch and record patterns, virtual threads, text blocks, sequenced collections, enhanced instanceof, var). Covers object creation and destruction, methods common to all objects (equals/hashCode/toString/Comparable), classes and interfaces, generics, enums and annotations, lambdas and streams, method design, exceptions, concurrency, and serialization. Use this whenever writing, reviewing, refactoring, or designing ANY Java code — defining a class, API, or method; choosing between a class and a record; handling errors; writing generics; using streams or Optionals; doing concurrency; or deciding an idiom — even if the user doesn't say \\\"Effective Java\\\" or \\\"best practices.\\\" Apply these defaults proactively on any .java work: prefer immutability, program to interfaces, fail fast, and use modern Java features over their legacy equivalents.\"\n---\n\n# Modern Java\n\nHow to write clear, correct, robust Java, targeting **Java 21 LTS**. The foundation is Joshua Bloch's *Effective Java* (3rd ed., 90 items); this skill keeps his reasoning but **defaults to modern language features** (records, sealed types, pattern matching, virtual threads, etc.) where they supersede the 2018 advice, and flags what's now dated. Apply these as defaults on any Java code, not only when asked.\n\nIf the user's explicit instructions or an existing codebase's conventions conflict with this skill, those win. Otherwise this is the default style.\n\n## Guiding principles (from the book's introduction)\n\nMost items derive from a few ideas — when in doubt, fall back to these:\n\n- **Clarity and simplicity first.** A component's user should never be surprised by its behavior. Make components as small as possible but no smaller. This skill is *not* primarily about performance — write clear, correct code, then optimize only where measurement demands it (Item 67).\n- **Fail fast.** Detect errors as soon as possible, ideally at compile time, otherwise as early as possible at runtime (validate parameters, Item 49). Push correctness into the type system.\n- **Minimize mutability and accessibility.** Immutable objects and the smallest possible API surface are the two most reliable ways to reduce bugs.\n- **Program to interfaces; favor composition over inheritance.** Depend on abstractions; reach for composition before subclassing.\n- **Rules are defaults, not laws.** Violate them occasionally with good reason — but know the rule first.\n\n## Modern Java baseline (Java 21) — default to these\n\nBloch's 2018 text predates much of this. On Java 21, prefer:\n\n- **`record`** for immutable data carriers — replaces most hand-written value classes, the telescoping-constructor problem, much of the Builder boilerplate, and auto-generates `equals`/`hashCode`/`toString` (Items 10–12, 17). Add compact constructors for validation/normalization and defensive copies.\n- **`sealed` interfaces/classes + pattern matching** — a sealed hierarchy of records is an **algebraic data type**; `switch` with pattern matching (and record patterns) handles it exhaustively, with the compiler checking all cases. This is the modern replacement for tagged classes (Item 23) and for the Visitor pattern. Prefer it for closed type hierarchies.\n- **`switch` expressions** (arrow form, exhaustive, yields a value) over fall-through statement switches.\n- **Pattern matching for `instanceof`** — `if (o instanceof String s) {…}` — over cast-after-check.\n- **Virtual threads** (Item 80 updated) — for high-concurrency blocking I/O, `Executors.newVirtualThreadPerTaskExecutor()`; cheap to create, so \"thread per task\" is again viable. Still prefer the `java.util.concurrent` executors/tasks model over raw threads.\n- **Text blocks** (`\"\"\"…\"\"\"`) for multi-line strings.\n- **`var`** for local variables when the initializer makes the type obvious (Item 57 spirit: keep scope tight, names clear) — not for fields or APIs.\n- **Sequenced collections** (`SequencedCollection`/`getFirst`/`getLast`) and the modern collection factories (`List.of`, `Map.of`, `Stream.toList()`).\n- **`Optional`** as a return type for \"maybe absent\" (Item 55) — never for fields or parameters, and never `Optional.get()` without checking.\n\n## How to use this skill\n\nThe 90 items, faithfully covered and modernized, live in four thematic references — read the one matching the task:\n\n- **`references/objects-and-classes.md`** — Items 1–25: creating/destroying objects (static factories, builders, DI, avoiding finalizers, try-with-resources), methods common to all objects (`equals`, `hashCode`, `toString`, `clone`, `Comparable`), and class/interface design (accessibility, **immutability**, composition over inheritance, interfaces, **records & sealed types**). Read for \"how do I define this class/type/API.\"\n- **`references/generics-enums-functional.md`** — Items 26–48: generics (no raw types, wildcards, generic methods), enums & annotations (enums over int constants, `EnumSet`/`EnumMap`), and lambdas & streams (lambdas/method refs, standard functional interfaces, side-effect-free streams, `Collection` vs `Stream` returns). Read for generics, enums, or functional-style code.\n- **`references/methods-exceptions-general.md`** — Items 49–77: method design (validate params, defensive copies, signatures, overloading/varargs, return empties not null, `Optional`, Javadoc), general programming (scope, for-each, know the libraries, avoid float/double for money, boxing, strings), and exceptions (checked vs unchecked, standard exceptions, failure atomicity, don't ignore). Read for method/API signatures or error handling.\n- **`references/concurrency-and-serialization.md`** — Items 78–90: concurrency (synchronize shared mutable state, prefer executors/tasks + **virtual threads**, `java.util.concurrent` over `wait`/`notify`, document thread safety) and serialization (avoid Java serialization; if forced, defensive `readObject`, serialization proxies). Read for threading or serialization.\n\n## Always-apply defaults (the short list)\n\nWhen writing Java without a specific question, these change the most code and should be automatic:\n\n1. **Make classes immutable** unless there's a reason not to; if mutable, minimize mutability. Use `record` for data; `final` fields; no setters.\n2. **Minimize accessibility** — everything as private as possible; no public fields (use accessors, or a record's accessors).\n3. **Favor composition over inheritance;** design for inheritance or forbid it (`final`/sealed). Prefer interfaces to abstract classes.\n4. **Static factory methods** over public constructors when naming, caching, or returning a subtype helps (Item 1).\n5. **No raw types; fix all unchecked warnings** (Items 26–27). Prefer generic, type-safe APIs.\n6. **Validate parameters and fail fast;** make defensive copies of mutable inputs/outputs (Items 49–50).\n7. **Return empty collections/arrays, never null;** use `Optional` for scalar \"maybe\" returns (Items 54–55).\n8. **Exceptions for exceptional conditions only;** unchecked for programming errors, checked only for recoverable conditions you expect callers to handle; never swallow an exception (Items 69–77).\n9. **`equals`/`hashCode` together or not at all;** prefer records so the compiler writes them correctly (Items 10–11).\n10. **Prefer the standard libraries** (`java.util`, `java.util.concurrent`, `java.util.function`) over rolling your own (Item 59).\n\n## Notable anti-patterns (flag these in review)\n\n- Mutable public fields; setters everywhere; God objects.\n- Raw types (`List` instead of `List<String>`); suppressing unchecked warnings without justification.\n- Returning `null` for collections/absent values; `Optional` fields or parameters; `optional.get()` without `isPresent`.\n- Tagged classes / `int` \"type\" constants / `switch` on a type code — use sealed types + pattern matching or enums.\n- `equals` without `hashCode`; hand-written `equals`/`hashCode`/`toString` where a record fits.\n- Inheritance for code reuse across package boundaries; subclassing a class not designed for it.\n- Checked exceptions for unrecoverable errors; empty `catch` blocks; exceptions for control flow.\n- Raw `Thread`/`wait`/`notify`; sharing mutable state without synchronization; `synchronized` over-broadly.\n- Implementing `Serializable` casually; using Java serialization for new designs (use JSON/protobuf etc.).\n- `float`/`double` for money (use `BigDecimal` or integer cents); String concatenation in loops (use `StringBuilder`).\n\n## Related\n\n- [[design-patterns]] — Bloch references GoF throughout; static factories, builders, and the sealed-type/pattern-matching replacement for Visitor connect directly.\n- [[functional-programming]], [[scala]] — many EJ principles (immutability, ADTs via sealed types + records, programming to interfaces, errors as values via `Optional`) are FP ideas; useful context since this repo's primary language is Scala, though this skill is pure Java.\n- [[tdd]] — fail-fast validation and small, interface-based components are what make Java code testable.\n- Source: *Effective Java*, 3rd ed., Joshua Bloch (Addison-Wesley, 2018), all 90 items. Item rules are faithful; the Java 21 modernizations (records, sealed types, pattern matching, virtual threads, etc.) and \"default to modern\" stance are added per request.\n</skill>\n\nUser request:\nMy method returns null when the list is empty, and callers check for it. Fine?",
+          "label": "evals/modern-java/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "655c94713b00f1d2bc741541ba1b25a0f52068d4ac0e783b350dfc31c5ee6b0c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No. Return an empty collection instead. Callers shouldn't need a special case, and any caller who forgets the null check gets an NPE (Effective Java Item 54).\n\n```java\npublic List<Cheese> getCheeses() {\n    return List.copyOf(cheesesInStock);   // empty list when there are none\n}\n```\n\nCallers can then iterate directly with no null check. `List.of()` or `Collections.emptyList()` work too if you're returning a fixed empty value, because they're immutable and don't allocate each time.\n\nIf you're returning a single value that may be absent, use `Optional<T>`. Never use it for a collection, since the empty collection already means \"nothing\"."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "nulls",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/modern-java/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/modern-java/cases/nulls.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/empty (list|collection)|never (return )?null|emptyList|Collections\\.empty|return.{0,20}empty/i.test(output)) throw new Error('prescribes returning an empty collection -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/modern-java/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/modern-java/cases/nulls.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "if (!/not|avoid|don'?t|return (type|value)s? only|field|parameter/i.test(output)) throw new Error('warns against Optional for fields/parameters -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "351dbaae-e022-432f-a358-389a37384791",
+        "latencyMs": 8926,
+        "namedScores": {
+          "restraint": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: modern-java\ndescription: \"Best practices for writing modern Java (Java 21 LTS), distilled from Joshua Bloch's *Effective Java* (3rd ed., all 90 items) and updated with current language features (records, sealed types, pattern matching for switch and record patterns, virtual threads, text blocks, sequenced collections, enhanced instanceof, var). Covers object creation and destruction, methods common to all objects (equals/hashCode/toString/Comparable), classes and interfaces, generics, enums and annotations, lambdas and streams, method design, exceptions, concurrency, and serialization. Use this whenever writing, reviewing, refactoring, or designing ANY Java code — defining a class, API, or method; choosing between a class and a record; handling errors; writing generics; using streams or Optionals; doing concurrency; or deciding an idiom — even if the user doesn't say \\\"Effective Java\\\" or \\\"best practices.\\\" Apply these defaults proactively on any .java work: prefer immutability, program to interfaces, fail fast, and use modern Java features over their legacy equivalents.\"\n---\n\n# Modern Java\n\nHow to write clear, correct, robust Java, targeting **Java 21 LTS**. The foundation is Joshua Bloch's *Effective Java* (3rd ed., 90 items); this skill keeps his reasoning but **defaults to modern language features** (records, sealed types, pattern matching, virtual threads, etc.) where they supersede the 2018 advice, and flags what's now dated. Apply these as defaults on any Java code, not only when asked.\n\nIf the user's explicit instructions or an existing codebase's conventions conflict with this skill, those win. Otherwise this is the default style.\n\n## Guiding principles (from the book's introduction)\n\nMost items derive from a few ideas — when in doubt, fall back to these:\n\n- **Clarity and simplicity first.** A component's user should never be surprised by its behavior. Make components as small as possible but no smaller. This skill is *not* primarily about performance — write clear, correct code, then optimize only where measurement demands it (Item 67).\n- **Fail fast.** Detect errors as soon as possible, ideally at compile time, otherwise as early as possible at runtime (validate parameters, Item 49). Push correctness into the type system.\n- **Minimize mutability and accessibility.** Immutable objects and the smallest possible API surface are the two most reliable ways to reduce bugs.\n- **Program to interfaces; favor composition over inheritance.** Depend on abstractions; reach for composition before subclassing.\n- **Rules are defaults, not laws.** Violate them occasionally with good reason — but know the rule first.\n\n## Modern Java baseline (Java 21) — default to these\n\nBloch's 2018 text predates much of this. On Java 21, prefer:\n\n- **`record`** for immutable data carriers — replaces most hand-written value classes, the telescoping-constructor problem, much of the Builder boilerplate, and auto-generates `equals`/`hashCode`/`toString` (Items 10–12, 17). Add compact constructors for validation/normalization and defensive copies.\n- **`sealed` interfaces/classes + pattern matching** — a sealed hierarchy of records is an **algebraic data type**; `switch` with pattern matching (and record patterns) handles it exhaustively, with the compiler checking all cases. This is the modern replacement for tagged classes (Item 23) and for the Visitor pattern. Prefer it for closed type hierarchies.\n- **`switch` expressions** (arrow form, exhaustive, yields a value) over fall-through statement switches.\n- **Pattern matching for `instanceof`** — `if (o instanceof String s) {…}` — over cast-after-check.\n- **Virtual threads** (Item 80 updated) — for high-concurrency blocking I/O, `Executors.newVirtualThreadPerTaskExecutor()`; cheap to create, so \"thread per task\" is again viable. Still prefer the `java.util.concurrent` executors/tasks model over raw threads.\n- **Text blocks** (`\"\"\"…\"\"\"`) for multi-line strings.\n- **`var`** for local variables when the initializer makes the type obvious (Item 57 spirit: keep scope tight, names clear) — not for fields or APIs.\n- **Sequenced collections** (`SequencedCollection`/`getFirst`/`getLast`) and the modern collection factories (`List.of`, `Map.of`, `Stream.toList()`).\n- **`Optional`** as a return type for \"maybe absent\" (Item 55) — never for fields or parameters, and never `Optional.get()` without checking.\n\n## How to use this skill\n\nThe 90 items, faithfully covered and modernized, live in four thematic references — read the one matching the task:\n\n- **`references/objects-and-classes.md`** — Items 1–25: creating/destroying objects (static factories, builders, DI, avoiding finalizers, try-with-resources), methods common to all objects (`equals`, `hashCode`, `toString`, `clone`, `Comparable`), and class/interface design (accessibility, **immutability**, composition over inheritance, interfaces, **records & sealed types**). Read for \"how do I define this class/type/API.\"\n- **`references/generics-enums-functional.md`** — Items 26–48: generics (no raw types, wildcards, generic methods), enums & annotations (enums over int constants, `EnumSet`/`EnumMap`), and lambdas & streams (lambdas/method refs, standard functional interfaces, side-effect-free streams, `Collection` vs `Stream` returns). Read for generics, enums, or functional-style code.\n- **`references/methods-exceptions-general.md`** — Items 49–77: method design (validate params, defensive copies, signatures, overloading/varargs, return empties not null, `Optional`, Javadoc), general programming (scope, for-each, know the libraries, avoid float/double for money, boxing, strings), and exceptions (checked vs unchecked, standard exceptions, failure atomicity, don't ignore). Read for method/API signatures or error handling.\n- **`references/concurrency-and-serialization.md`** — Items 78–90: concurrency (synchronize shared mutable state, prefer executors/tasks + **virtual threads**, `java.util.concurrent` over `wait`/`notify`, document thread safety) and serialization (avoid Java serialization; if forced, defensive `readObject`, serialization proxies). Read for threading or serialization.\n\n## Always-apply defaults (the short list)\n\nWhen writing Java without a specific question, these change the most code and should be automatic:\n\n1. **Make classes immutable** unless there's a reason not to; if mutable, minimize mutability. Use `record` for data; `final` fields; no setters.\n2. **Minimize accessibility** — everything as private as possible; no public fields (use accessors, or a record's accessors).\n3. **Favor composition over inheritance;** design for inheritance or forbid it (`final`/sealed). Prefer interfaces to abstract classes.\n4. **Static factory methods** over public constructors when naming, caching, or returning a subtype helps (Item 1).\n5. **No raw types; fix all unchecked warnings** (Items 26–27). Prefer generic, type-safe APIs.\n6. **Validate parameters and fail fast;** make defensive copies of mutable inputs/outputs (Items 49–50).\n7. **Return empty collections/arrays, never null;** use `Optional` for scalar \"maybe\" returns (Items 54–55).\n8. **Exceptions for exceptional conditions only;** unchecked for programming errors, checked only for recoverable conditions you expect callers to handle; never swallow an exception (Items 69–77).\n9. **`equals`/`hashCode` together or not at all;** prefer records so the compiler writes them correctly (Items 10–11).\n10. **Prefer the standard libraries** (`java.util`, `java.util.concurrent`, `java.util.function`) over rolling your own (Item 59).\n\n## Notable anti-patterns (flag these in review)\n\n- Mutable public fields; setters everywhere; God objects.\n- Raw types (`List` instead of `List<String>`); suppressing unchecked warnings without justification.\n- Returning `null` for collections/absent values; `Optional` fields or parameters; `optional.get()` without `isPresent`.\n- Tagged classes / `int` \"type\" constants / `switch` on a type code — use sealed types + pattern matching or enums.\n- `equals` without `hashCode`; hand-written `equals`/`hashCode`/`toString` where a record fits.\n- Inheritance for code reuse across package boundaries; subclassing a class not designed for it.\n- Checked exceptions for unrecoverable errors; empty `catch` blocks; exceptions for control flow.\n- Raw `Thread`/`wait`/`notify`; sharing mutable state without synchronization; `synchronized` over-broadly.\n- Implementing `Serializable` casually; using Java serialization for new designs (use JSON/protobuf etc.).\n- `float`/`double` for money (use `BigDecimal` or integer cents); String concatenation in loops (use `StringBuilder`).\n\n## Related\n\n- [[design-patterns]] — Bloch references GoF throughout; static factories, builders, and the sealed-type/pattern-matching replacement for Visitor connect directly.\n- [[functional-programming]], [[scala]] — many EJ principles (immutability, ADTs via sealed types + records, programming to interfaces, errors as values via `Optional`) are FP ideas; useful context since this repo's primary language is Scala, though this skill is pure Java.\n- [[tdd]] — fail-fast validation and small, interface-based components are what make Java code testable.\n- Source: *Effective Java*, 3rd ed., Joshua Bloch (Addison-Wesley, 2018), all 90 items. Item rules are faithful; the Java 21 modernizations (records, sealed types, pattern matching, virtual threads, etc.) and \"default to modern\" stance are added per request.\n</skill>\n\nUser request:\nShould I use Optional for my fields and method parameters?",
+          "label": "evals/modern-java/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "655c94713b00f1d2bc741541ba1b25a0f52068d4ac0e783b350dfc31c5ee6b0c",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "**No, not for either.** Bloch's Item 55 says `Optional` is for return types meaning \"maybe absent.\"\n\n**Fields:** Don't use `Optional`. It isn't `Serializable`, it adds an allocation, and the field itself can still be `null`. Use a nullable field and expose it through an accessor that returns `Optional`:\n\n```java\nprivate final String nickname; // may be null\n\npublic Optional<String> nickname() { return Optional.ofNullable(nickname); }\n```\n\nIn a record, make the component nullable and override the accessor the same way.\n\n**Parameters:** Don't use `Optional` here either. The caller can still pass `null` for the `Optional`, and every call site has to wrap its argument. Use an overload instead, or require a non-null value and validate it with `Objects.requireNonNull`:\n\n```java\nvoid send(Message m)                 { send(m, DEFAULT_TIMEOUT); }\nvoid send(Message m, Duration timeout) { ... }\n```\n\n**Return types:** Use `Optional` for a scalar that may be absent. For collections, return an empty collection instead."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "optional",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/modern-java/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/modern-java/cases/optional.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "if (!/not|avoid|don'?t|return (type|value)s? only|field|parameter/i.test(output)) throw new Error('warns against Optional for fields/parameters -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/modern-java/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/modern-java/cases/optional.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 3,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 10821,
+      "evaluationDurationMs": 10821
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "modern-java — EDD",
+    "prompts": [
+      "file:///private/tmp/b3/evals/modern-java/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "immutability",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/modern-java/cases/immutability.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/record|immutab|final/i.test(output)) throw new Error('prescribes record/immutability -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "// BROADENED: a correct answer said \"Non-final public fields: anyone can change\n// them\", which is the accessibility point, and failed because the regex wanted\n// \"no public field\". Match the concept, not one phrasing.\nif (!/private|accessib|encapsulat|public field|final field|record/i.test(output)) throw new Error('did not address accessibility / public fields');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "nulls",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/modern-java/cases/nulls.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/empty (list|collection)|never (return )?null|emptyList|Collections\\.empty|return.{0,20}empty/i.test(output)) throw new Error('prescribes returning an empty collection -- not found');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "optional",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/modern-java/cases/optional.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "if (!/not|avoid|don'?t|return (type|value)s? only|field|parameter/i.test(output)) throw new Error('warns against Optional for fields/parameters -- not found');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/modern-java/results/skill_2.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b3/skills/modern-java/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b3/evals/modern-java"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T17:13:09.080Z",
+    "evaluationCreatedAt": "2026-10-29T17:12:58.201Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

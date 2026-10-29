@@ -1,0 +1,418 @@
+{
+  "evalId": "eval-QMM-2026-10-29T17:03:19",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T17:03:19.523Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "label": "evals/release-macos-spm-packaging/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "id": "81584eb662f780db57d27c1c4f2b3ff7f71dd11aa2d99ae187e5f0f72458e49a",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 4,
+          "assertFailCount": 0,
+          "totalLatencyMs": 23295,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 4
+          },
+          "namedScoresCount": {
+            "accuracy": 4
+          },
+          "namedScoreWeights": {
+            "accuracy": 4
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 3
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/\\.app|bundle/i.test(output)) throw new Error('covers the .app bundle -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/Info\\.plist/i.test(output)) throw new Error('mentions Info.plist -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/Contents\\/MacOS|Contents\\//i.test(output)) throw new Error('gives the bundle layout -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "cda4195b-3653-4ebe-be55-260c03e65993",
+        "latencyMs": 13703,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nI have a SwiftPM executable. How do I ship it as a real macOS .app?",
+          "label": "evals/release-macos-spm-packaging/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "81584eb662f780db57d27c1c4f2b3ff7f71dd11aa2d99ae187e5f0f72458e49a",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "SwiftPM only builds the bare executable. You assemble the `.app` bundle yourself with a script, then sign and notarize it.\n\n**1. Build and assemble** (`Scripts/package_app.sh`):\n\n```bash\n#!/bin/bash\nset -e\nsource version.env\n\nswift build -c release\nAPP=\".build/release/$APP_NAME.app\"\nrm -rf \"$APP\"\nmkdir -p \"$APP/Contents/MacOS\" \"$APP/Contents/Resources\"\ncp \".build/release/$APP_NAME\" \"$APP/Contents/MacOS/\"\ncp -r Resources/* \"$APP/Contents/Resources/\" 2>/dev/null || true\n```\n\nThen write `Contents/Info.plist` with at least these keys:\n- `CFBundleExecutable`\n- `CFBundleIdentifier`\n- `CFBundleName`\n- `CFBundleVersion`\n- `CFBundleShortVersionString`\n- `CFBundlePackageType` set to `APPL`\n- `LSMinimumSystemVersion`\n\nFor a menu bar app, add `LSUIElement` set to `true`. Keep the values in a `version.env` (`APP_NAME`, `BUNDLE_ID`, `VERSION`, `BUILD_NUMBER`, `MIN_MACOS`) and generate the plist from it.\n\n**2. Sign.**\n- For local use, run `codesign --force --sign - \"$APP\"`.\n- For distribution, run `codesign --force --options runtime --sign \"Developer ID Application: Your Name\" \"$APP\"`.\n\n**3. Notarize and staple.**\n```bash\nditto -c -k --keepParent \"$APP\" App.zip\nxcrun notarytool submit App.zip --apple-id you@example.com --team-id TEAMID \\\n    --password \"@keychain:AC_PASSWORD\" --wait\nxcrun stapler staple \"$APP\"\nditto -c -k --keepParent \"$APP\" App-$VERSION.zip   # re-zip with the stapled ticket\n```\n\n**4. Ship.** Upload the zip, for example with `gh release create v$VERSION App-$VERSION.zip`.\n\nNotarization needs a paid Apple Developer ID certificate and an app-specific password stored in your keychain. Without them, the app only runs locally or after the user right-clicks and chooses Open.\n\nIf your target uses `resources:`, SwiftPM also emits a `MyApp_MyApp.bundle` next to the binary. Copy that into `Contents/Resources/` too, or `Bundle.module` will crash at launch.\n\nI can write these scripts into your package if you tell me the app name and bundle ID."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "bundle",
+          "vars": {
+            "request": "file:///private/tmp/b3/evals/release-macos-spm-packaging/cases/bundle.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/\\.app|bundle/i.test(output)) throw new Error('covers the .app bundle -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/Info\\.plist/i.test(output)) throw new Error('mentions Info.plist -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/Contents\\/MacOS|Contents\\//i.test(output)) throw new Error('gives the bundle layout -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/release-macos-spm-packaging/cases/bundle.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/LSUIElement|agent|menu ?bar/i.test(output)) throw new Error('names LSUIElement or the agent-app setting -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "6572bd50-ae00-4aee-b7d9-dbc103d9b4cd",
+        "latencyMs": 9592,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nIt's a menu bar app with no dock icon. Anything special?",
+          "label": "evals/release-macos-spm-packaging/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "81584eb662f780db57d27c1c4f2b3ff7f71dd11aa2d99ae187e5f0f72458e49a",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Yes. Set `LSUIElement` to `true` in the bundle's `Info.plist`. In a hand-assembled SwiftPM bundle, that means adding it to the plist your packaging script writes:\n\n```xml\n<key>LSUIElement</key>\n<true/>\n```\n\nSigning, hardened runtime and notarization don't change.\n\n- **Runtime alternative:** `NSApp.setActivationPolicy(.accessory)` does the same thing. The plist key is better because the dock icon never flashes at launch.\n- **Activation:** an agent app doesn't come to the front on its own. Call `NSApp.activate(ignoringOtherApps: true)` before showing a window, such as settings or an about panel. Without it the window opens behind other apps and can't take keyboard focus.\n- **Menus:** there's no app menu bar, so Cmd-Q and Cmd-, don't work unless a window is key. Add an explicit Quit item to the status menu.\n- **SwiftUI:** use `MenuBarExtra` for the status item. The `Settings` scene is unreliable in accessory apps, so open your own window instead.\n- **Launch at login:** use `SMAppService.mainApp.register()`. It needs a properly signed bundle with a stable bundle ID.\n- **Quitting:** with no dock icon, the status item is the only way to quit. Keep a Quit item in its menu so it can't get stuck running."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "menubar",
+          "vars": {
+            "request": "file:///private/tmp/b3/evals/release-macos-spm-packaging/cases/menubar.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/LSUIElement|agent|menu ?bar/i.test(output)) throw new Error('names LSUIElement or the agent-app setting -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/release-macos-spm-packaging/cases/menubar.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 13717,
+      "evaluationDurationMs": 13717
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "release-macos-spm-packaging — EDD — NAIVE BASELINE",
+    "prompts": [
+      "file:///private/tmp/b3/evals/release-macos-spm-packaging/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "bundle",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/release-macos-spm-packaging/cases/bundle.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/\\.app|bundle/i.test(output)) throw new Error('covers the .app bundle -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/Info\\.plist/i.test(output)) throw new Error('mentions Info.plist -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/Contents\\/MacOS|Contents\\//i.test(output)) throw new Error('gives the bundle layout -- not found');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "menubar",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/release-macos-spm-packaging/cases/menubar.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/LSUIElement|agent|menu ?bar/i.test(output)) throw new Error('names LSUIElement or the agent-app setting -- not found');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/release-macos-spm-packaging/results/baseline_2.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/private/tmp/b3/evals/release-macos-spm-packaging"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T17:03:33.292Z",
+    "evaluationCreatedAt": "2026-10-29T17:03:19.523Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

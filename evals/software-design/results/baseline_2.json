@@ -1,0 +1,516 @@
+{
+  "evalId": "eval-5cK-2026-10-29T17:04:56",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T17:04:56.014Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "label": "evals/software-design/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "id": "8a5eb44773f3ab06486a9e2dadffa4a26117375391cd572c93ce71d6d96b2b92",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 3,
+          "testPassCount": 3,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 4,
+          "assertFailCount": 0,
+          "totalLatencyMs": 38932,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 4
+          },
+          "namedScoresCount": {
+            "accuracy": 4
+          },
+          "namedScoreWeights": {
+            "accuracy": 4
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/shallow|deep module|too many|thin|classitis|interface.{0,30}(complex|bigger)/i.test(output)) throw new Error('identifies shallow modules / classitis -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/deep/i.test(output)) throw new Error('uses the deep-module framing -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "220f3d9b-e3a2-496b-9d4d-e6650c642450",
+        "latencyMs": 15553,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nReview this design: I've split my user service into UserValidator, UserMapper, UserFetcher, UserCacheKeyBuilder and UserResponseShaper, each one class with one small method. Good separation of concerns?",
+          "label": "evals/software-design/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a5eb44773f3ab06486a9e2dadffa4a26117375391cd572c93ce71d6d96b2b92",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Not really. Five one-method classes is classitis: shallow modules that add interface and wiring without hiding much.\n\n- **`UserCacheKeyBuilder` and `UserMapper`:** Each is probably a one-liner, such as `\"user:\" + id`. A class for that adds an interface without hiding any complexity. Make it a private function next to the cache logic.\n- **Validate → fetch → map → shape:** This splits the code by execution order (temporal decomposition) instead of by knowledge. A change like adding a field touches the mapper, the shaper, and possibly the validator. That is change amplification.\n- **Information leakage:** The fetcher, the cache key builder, and the cache logic all need to agree on how users are keyed and stored. That knowledge should live in one place.\n- **Who orchestrates:** Something now has to call all five in order. That caller holds the real complexity, and the split doesn't reduce it.\n\n**Better design:**\n- **`UserService`:** one deep module with a small interface, like `getUser(id)` and `updateUser(cmd)`. It hides caching, fetching, validation, and mapping behind that interface.\n- **Private helpers:** Keep the pieces as private methods inside it.\n- **Separate classes:** Split one out only if it hides a real decision, such as a `UserRepository` that hides the storage and cache strategy. Do the same if it has its own reason to change, or if you need it as a seam for tests.\n- **Two designs:** If you're unsure, sketch both versions of the interface and compare them.\n\nThe caveat is that if some of these classes are large or reused elsewhere, such as a validator with many rules, keep those. Judge each one by whether it hides complexity, not by its size."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "deep-modules",
+          "vars": {
+            "request": "file:///private/tmp/b3/evals/software-design/cases/deep-modules.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/shallow|deep module|too many|thin|classitis|interface.{0,30}(complex|bigger)/i.test(output)) throw new Error('identifies shallow modules / classitis -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/deep/i.test(output)) throw new Error('uses the deep-module framing -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/software-design/cases/deep-modules.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/define.{0,20}(error|exception).{0,20}out of existence|out of existence|can'?t occur|cannot occur|idempotent|eliminat/i.test(output)) throw new Error('offers define-errors-out-of-existence -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "0fb75831-f6e2-41b7-b7e5-5d896d638922",
+        "latencyMs": 14490,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nMy API throws six different exceptions the caller has to handle. How should I clean this up?",
+          "label": "evals/software-design/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a5eb44773f3ab06486a9e2dadffa4a26117375391cd572c93ce71d6d96b2b92",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Make the API absorb the errors instead of exposing them. Six exceptions is a sign the interface leaks the implementation's failure modes to every caller. Work through these in order:\n\n1. **Define errors out of existence.** For each exception, ask whether the operation can be redefined so that case is normal. Deleting something that's already gone, or creating something that already exists with the same content, can just succeed (idempotent). Many of the six probably go away here.\n2. **Mask and retry low down.** Transient failures like timeouts, throttling, and connection resets should be retried inside the API. Callers shouldn't see them unless retries are exhausted.\n3. **Group what's left by what the caller can do about it.** Callers rarely care about six causes. They care about a few responses, such as:\n   - retry later (transient)\n   - fix the input (invalid request)\n   - give up or escalate (not found, permission, unrecoverable)\n\n   Collapse the six into 2–3 exception types based on these responses, and keep the original cause attached for debugging. A base class like `ApiException` with `Transient`, `InvalidRequest`, and `Fatal` subclasses lets callers handle the whole family in one place.\n4. **Crash on the unrecoverable.** If no caller can do anything useful with an exception (corrupted state, programmer error), make it an unchecked or fatal error rather than part of the contract.\n\nIf you share the six exceptions, I can suggest which to remove, which to mask, and what the grouping should look like. A Scala/FP codebase could use an ADT or `Either` for the remaining cases."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "errors",
+          "vars": {
+            "request": "file:///private/tmp/b3/evals/software-design/cases/errors.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/define.{0,20}(error|exception).{0,20}out of existence|out of existence|can'?t occur|cannot occur|idempotent|eliminat/i.test(output)) throw new Error('offers define-errors-out-of-existence -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/software-design/cases/errors.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/design it twice|two (genuinely )?different|alternative design|second design|more than one design/i.test(output)) throw new Error('prescribes designing it twice -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "3aa29b80-9d95-434d-9c7b-90a755ba949d",
+        "latencyMs": 8889,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nI've got an interface design I'm happy with. Anything else before I implement?",
+          "label": "evals/software-design/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "8a5eb44773f3ab06486a9e2dadffa4a26117375391cd572c93ce71d6d96b2b92",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "I can't see the design. Nothing in this conversation includes it, so paste it or give me the file path and I'll review it.\n\nUntil then, here are the checks that most often catch problems before implementation:\n\n- **Design it twice:** sketch one meaningfully different alternative and compare. Skip this only if you already did.\n- **Depth:** is the interface much simpler than the implementation behind it? If the signature is nearly as complex as the body, the module is shallow.\n- **Leaks:** does the interface expose a storage format, ordering, or internal state that callers shouldn't depend on?\n- **Errors:** which failure modes can you define out of existence, for example with idempotent deletes or empty results instead of exceptions?\n- **Usage:** write the two or three most common call sites first. If they're awkward, fix the interface now.\n- **Defaults:** does the common case need zero configuration?"
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "design-twice",
+          "vars": {
+            "request": "file:///private/tmp/b3/evals/software-design/cases/design-twice.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/design it twice|two (genuinely )?different|alternative design|second design|more than one design/i.test(output)) throw new Error('prescribes designing it twice -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/software-design/cases/design-twice.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 3,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 15571,
+      "evaluationDurationMs": 15571
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "software-design — EDD — NAIVE BASELINE",
+    "prompts": [
+      "file:///private/tmp/b3/evals/software-design/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "deep-modules",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/software-design/cases/deep-modules.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/shallow|deep module|too many|thin|classitis|interface.{0,30}(complex|bigger)/i.test(output)) throw new Error('identifies shallow modules / classitis -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/deep/i.test(output)) throw new Error('uses the deep-module framing -- not found');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "errors",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/software-design/cases/errors.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/define.{0,20}(error|exception).{0,20}out of existence|out of existence|can'?t occur|cannot occur|idempotent|eliminat/i.test(output)) throw new Error('offers define-errors-out-of-existence -- not found');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "design-twice",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/software-design/cases/design-twice.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/design it twice|two (genuinely )?different|alternative design|second design|more than one design/i.test(output)) throw new Error('prescribes designing it twice -- not found');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/software-design/results/baseline_2.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/private/tmp/b3/evals/software-design"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T17:05:11.640Z",
+    "evaluationCreatedAt": "2026-10-29T17:04:56.014Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}
