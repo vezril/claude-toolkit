@@ -53,7 +53,8 @@ def _helpers():
         return mod
 
     return (common, _load("validate_artifact", "validate-artifact.py"), brief, trigger_rules,
-            _load("validate_proposal", "validate-proposal.py"))
+            _load("validate_proposal", "validate-proposal.py"),
+            _load("flow_status", "flow-status.py"))
 
 
 # Paths inside a Bash command line; quotes and redirects are stripped by the split.
@@ -83,7 +84,7 @@ def _cd_targets(command: str) -> list:
 def _registered_bases() -> list:
     """Opted-in repos, as bases a relative artifact fragment may belong to."""
     try:
-        common, _, _, _, _ = _helpers()
+        common = _helpers()[0]
         return list(common.known_repos())
     except Exception:
         return []
@@ -160,6 +161,30 @@ def check_brief(path: Path, common, brief) -> tuple:
 # a checker of its own rather than being waved through. `pr.md` and `post.md` belong here too
 # once their contracts are written.
 TERMINAL_PROSE = {"summary.md": check_brief}
+
+# The edge name recorded when a routing-table artifact has no schema to check it against.
+# Readers key on this string rather than on `exit: 0`, which an unchecked artifact shares
+# with a checked one that passed.
+NO_SCHEMA = "no-schema"
+
+
+def unschemad(flow_status, common, schemas: dict) -> set:
+    """Routing-table artifacts that no schema governs.
+
+    Eight of them today: implementation, verify, challenge-implementation, pr-opened, posted
+    and vault-updated, plus the `pr.md` and `post.md` prose. Every one is in the `full`
+    profile past `propose`, so this is plausibly a profile whose edges were never built
+    rather than a regression — but the pipeline could not say which, because a missing
+    schema was a bare `continue` in `changed_artifacts`: no check, and no record that none
+    ran. `flow-status.py` printed "no edge recorded" against a **✓**, and the trace that
+    criterion 4 is computed from held nothing at all.
+
+    Recording the gap is not the same as closing it. These artifacts still get no check; what
+    changes is that the absence is now countable, the way an uncertified step is countable
+    because it records `certified: false` instead of quietly not being certified.
+    """
+    return {a for a, *_ in flow_status.STEPS
+            if a not in TERMINAL_PROSE and common.schema_for(a, schemas) is None}
 
 
 def check_artifact(path: Path, schemas: dict, common, validator, trigger_rules, proposal_rules) -> tuple:
@@ -269,7 +294,7 @@ def last_traced_sha(repo: Path, item: str, filename: str, common):
     return found
 
 
-def changed_artifacts(payload: dict, common, schemas: dict) -> list:
+def changed_artifacts(payload: dict, common, schemas: dict, governed: set = frozenset()) -> list:
     """Artifacts that are new or whose bytes changed since an edge last saw them.
 
     Content, not command text. Detecting writes by regexing a Bash command line loses to
@@ -312,7 +337,14 @@ def changed_artifacts(payload: dict, common, schemas: dict) -> list:
             # `schema_for`, not `filename in schemas`: the glob-keyed artifacts (rendered
             # stories) never match an exact key, so an exact lookup skipped them here even
             # though `check_artifact` below would have governed them.
-            if common.schema_for(filename, schemas) is None and filename not in TERMINAL_PROSE:
+            #
+            # `governed` carries the routing-table artifacts that no schema covers. They are
+            # collected rather than skipped so the trace can record that nothing checked
+            # them; everything else with no schema (punch-outs, decisions, `.current-step`,
+            # `trace.jsonl` itself) is not an artifact this hook governs and must stay out,
+            # or the trail fills with records of its own writes.
+            if (common.schema_for(filename, schemas) is None
+                    and filename not in TERMINAL_PROSE and filename not in governed):
                 continue
             try:
                 current = common.sha256(path)
@@ -349,8 +381,9 @@ def main() -> int:
     except (json.JSONDecodeError, ValueError):
         return 0  # not our business to fail a tool call over a malformed payload
 
-    common, validator, brief, trigger_rules, proposal_rules = _helpers()
+    common, validator, brief, trigger_rules, proposal_rules, flow_status = _helpers()
     schemas = common.load_schemas()
+    governed = unschemad(flow_status, common, schemas)
     paths = written_paths(payload)
 
     # Bail only when nothing in reach is a delivery-flow repo — a filesystem fact, not a text
@@ -377,7 +410,7 @@ def main() -> int:
             return str(path)
 
     seen = {_key(p) for p in paths}
-    for p in changed_artifacts(payload, common, schemas):
+    for p in changed_artifacts(payload, common, schemas, governed):
         if _key(p) not in seen:
             seen.add(_key(p))
             paths.append(p)
@@ -396,8 +429,13 @@ def main() -> int:
             continue  # a command that mentioned the path without writing it
 
         metrics = {}
+        no_schema = filename in governed
         if filename in TERMINAL_PROSE:
             ok, problems, ran, metrics = TERMINAL_PROSE[filename](path, common, brief)
+        elif no_schema:
+            # Nothing is checked here; the record exists so that "nothing was checked" is a
+            # fact in the trail rather than a silence in it.
+            ok, problems, ran = True, [], [NO_SCHEMA]
         else:
             ok, problems, ran = check_artifact(path, schemas, common, validator, trigger_rules,
                                                proposal_rules)
@@ -410,7 +448,9 @@ def main() -> int:
                 step = json.loads(current.read_text()).get("step")
             except (json.JSONDecodeError, ValueError, OSError):
                 step = None
-        summary = "ok" if ok else "; ".join(problems)
+        # Never "ok" for an unchecked artifact: that word is the whole false-success.
+        summary = ("no schema declares this artifact, so no edge ran" if no_schema
+                   else "ok" if ok else "; ".join(problems))
         record = {
             "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "item": item,

@@ -351,10 +351,16 @@ def render(st: dict) -> str:
             mark, note = " ", ""
         elif (r["edge"] or {}).get("exit"):
             mark, note = "✗", f"edge failed: {r['edge']['summary'][:60]}"
+        elif (r["edge"] or {}).get("name") == "no-schema":
+            # Not a tick. The artifact is present and nothing checked it, which is a
+            # different state from "checked and fine" and has to read as one.
+            mark, note = "?", "unchecked: no schema declares this artifact"
         elif r["edge"]:
             mark, note = "✓", "edge ok"
         else:
-            mark, note = "✓", "no edge recorded"
+            # Present, and not even a record saying nothing ran. Before the no-schema record
+            # existed this was the only sign of an unchecked artifact, and it was a ✓.
+            mark, note = "?", "no edge recorded"
         lines.append(f"  [{mark}] {r['artifact']:<32} {r['step']:<24} {note}")
     for c in st.get("challenges") or []:
         if c["unreadable"]:

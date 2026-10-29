@@ -32,6 +32,36 @@ what makes a later hand-edit detectable at all. `write-outcome.py` compares ever
 against its last traced sha and marks the run `failed` with reason `manual-correction` on a
 mismatch — so "how many runs were corrected by hand" is a number you can state.
 
+## `name: "no-schema"` — the artifact nothing checked
+
+Eight artifacts in the routing table have no schema to be checked against:
+`implementation.json`, `verify.json`, `challenge-implementation.json`, `pr-opened.json`,
+`posted.json`, `vault-updated.json`, and the `pr.md` / `post.md` prose. All eight sit in the
+`full` profile past `propose`, so this is most likely a profile whose edges were never built
+rather than a regression — but the pipeline could not say so, because a missing schema was a
+silent skip. No check ran, nothing recorded that none had, and `flow-status.py` printed
+"no edge recorded" beside a **✓**.
+
+They now get a record saying exactly that:
+
+```json
+{"artifact": "verify.json", "sha256": "7c1d04…",
+ "edge": {"name": "no-schema", "exit": 0,
+          "summary": "no schema declares this artifact, so no edge ran"}}
+```
+
+**Read it by `name`, never by `exit`.** `exit: 0` here means "nothing failed because nothing
+ran", which an unchecked artifact shares with a checked one that passed — collapsing the two is
+the whole defect. `delivery-report.py` counts these in its own `Unchecked` column, separate
+from `Failed edges`, and `flow-status.py` marks them `?` rather than `✓`.
+
+Recording the gap is not closing it: those eight artifacts are still unchecked. What changed is
+that the absence is countable, the way an uncertified step is countable because it records
+`certified: false` instead of quietly not being certified. An artifact declared in neither the
+routing table nor `schemas/` is still skipped silently — there is nothing to compare it against.
+
+## Optional fields
+
 Two optional fields appear on edge records:
 
 ```json
