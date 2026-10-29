@@ -282,7 +282,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `akka-persistence-plugins` | 83% | 100% | sonnet | Naive misses R2DBC-default + backtracking-duplicates; no patch |
 | `akka-projections` | 83% | 100% | sonnet | Naive misses the 10x tag rule + withSaveOffset; no patch |
 | `akka-sdk` | 96% | 100% | sonnet | Kalix-lineage catalog known; naive wobbles on the no-@Acl default-deny; no patch |
-| `akka-sdk-agents` |  |  |  |  |
+| `akka-sdk-agents` | 50% | 100% | sonnet | **The one gain in the batch.** Baseline FPF on *an Agent cannot be a tool for another agent — orchestrate with Workflows*; skill PPP. Consistent with the Akka SDK family holding the lowest baselines in the table, the one domain where the model reliably hallucinates API. Log: `evals/_batch5/iteration-log.md` |
 | `akka-sdk-consumers` |  |  |  |  |
 | `akka-sdk-endpoints` |  |  |  |  |
 | `akka-sdk-event-sourced-entities` | 79% | 100% | sonnet | Biggest round-4 floor: naive hallucinates SDK API (deletion/consistency); no patch |
@@ -356,7 +356,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `dsm-trauma-stressor` | 60% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
 | `event-storming` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already has orange past-tense domain events and frames hot spots as valuable output. Log: `evals/_batch4/iteration-log.md` |
 | `finch` | 44% | 100% | sonnet | Baseline 6/8/6 of 16 across the 3 runs; skill 16/16 on all 3. 8 cases fail the baseline every run: read-only home mount, Rosetta's macOS-26 floor, SOCI, cosign-keyless-unsupported, Containerfile auto-detect, DevContainers wiring, `creds_helpers`+`credsStore`, "VM = isolation" pushback. Skill was 100% from v1, so no patch — iteration went into the *suite*: added a `no-hallucination` criterion (baseline invents `finch vm ssh`, `finch soci create`), and N=3 overturned an N=1 read that had credited the model with 3 facts it doesn't reliably know. Ships a paired naive-baseline arm. Log: `evals/finch/iteration-log.md` |
-| `flipper-unleashed` |  |  |  |  |
+| `flipper-unleashed` | 100% | 100% | sonnet | No delta — baseline already separates the region unlock from DangerousSettings and warns about the latter. Log: `evals/_batch5/iteration-log.md` |
 | `flipper-zero` |  |  |  |  |
 | `follow-up` |  |  |  |  |
 | `functional-programming` | 96% | 100% | sonnet | Base-strong; skill fixes the impure-shuffle fragility; no patch |
@@ -428,7 +428,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `gcp-workflows` |  |  |  |  |
 | `git` | 96% | 100% | sonnet | Sole gap: ~50-char imperative subjects; rescue/safety calls base-strong; no patch |
 | `git-ship` | 100% | 100% | sonnet | Base-strong (universal ship-safety instincts); neutral-safe, no patch |
-| `gitbucket` |  |  |  | Not yet evaluated |
+| `gitbucket` | 100% | 100% | sonnet | **Tie, but weak evidence.** I verified the model getting these facts wrong against a live 4.48.0 instance, yet it scored 3/3 — because my cases were refusal-shaped (*does not invent*, *declines the premise*) rather than fact-shaped. A fact-shaped rerun would likely show a delta. Log: `evals/_batch5/iteration-log.md` |
 | `github-actions` | 83% | 96% | sonnet | ✅ Shipped (PR #50) — pwn-request safe pattern + SHA-pin phrasing made imperative |
 | `github-actions-python-ci` | 100% | 100% | sonnet | Guardrails base-strong + deterministic scaffold contract 10/10 (actionlint); no patch |
 | `github-actions-scala-ci` | n/a (script) | 10/10 contract | — | Deterministic scaffold-contract harness; guardrail layer measured in python-ci |
@@ -465,7 +465,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `nodejs` |  |  |  |  |
 | `nx-neptune` |  |  |  |  |
 | `opencypher` |  |  |  |  |
-| `openclaw-agents` |  |  |  |  |
+| `openclaw-agents` | 100% | 100% | sonnet | No delta — baseline already explains the async `runId` contract and `sessions_spawn` delegation. Log: `evals/_batch5/iteration-log.md` |
 | `operating-systems` |  |  |  |  |
 | `os-concurrency` |  |  |  |  |
 | `os-file-systems-and-persistence` |  |  |  |  |
@@ -480,12 +480,12 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `portapack-mayhem` |  |  |  |  |
 | `prime` | 58% | 100% | sonnet | Biggest round-2 lift: confidence/evidence discipline; no patch |
 | `procedural-generation` |  |  |  |  |
-| `prompt-edd` |  |  |  |  |
+| `prompt-edd` | 100% | 100% | sonnet | No delta — baseline already refuses to write an iteration log before running evals, and refuses to weaken an assert to raise a score. Log: `evals/_batch5/iteration-log.md` |
 | `promptfoo` |  |  |  |  |
 | `python` | 71% | 100% | sonnet | Modern-idiom contract lift (pathlib, hints, EAFP); no patch |
 | `python-networkx` |  |  |  |  |
 | `python-package` | 50% | 100% | sonnet | **Territory rail.** Naive arm agrees to write tests when asked; the skill declines (it is the production-only half of a split pair). Log: `evals/_batch3/iteration-log.md` |
-| `python-tests` |  |  |  |  |
+| `python-tests` | 100% | 100% | sonnet | No delta. Scored FFF in both arms until I fixed a runtime bug in my own assert (unescaped slash). Log: `evals/_batch5/iteration-log.md` |
 | `python-uv-build` | 67% | 100% | sonnet | **Territory rail** plus the generated-file rule (`uv.lock` is not scaffolded). Cases ask for the rule, not the action — see the harness limitation in the log. Log: `evals/_batch3/iteration-log.md` |
 | `quebec-charter-rights` |  |  |  |  |
 | `quebec-civil-code` |  |  |  |  |
@@ -501,14 +501,14 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `scala` | 92% | 100% | sonnet | House-convention floor (`from` factories, AnyFunSpec); no patch |
 | `scala-pekko-server` | n/a (script) | pair harness green | — | Deterministic pair contract harness (territory, purity, components, refusals) |
 | `scala-pekko-tests` | n/a (script) | pair harness green | — | Deterministic pair contract harness (pkg-from-production, test territory, spec coverage) |
-| `scala-sbt-build` |  |  |  |  |
+| `scala-sbt-build` | 100% | 100% | sonnet | No delta — baseline already declines out-of-territory work and refuses to overwrite an existing `build.sbt`. Log: `evals/_batch5/iteration-log.md` |
 | `sdlc-orchestration` | 100% | 100% | sonnet | Base-strong; governance inferable from stated facts; neutral-safe, no patch |
 | `secure-coding` | 100% | 100% | sonnet | Base-model-strong; skill precision-safe (no over-flag) |
 | `site-reliability-engineering` |  |  |  |  |
 | `software-architecture` | 92% | 100% | sonnet | Base-strong; +trade-off discipline, no patch |
 | `software-design` | 67% | 100% | sonnet | **Deep-module judgment.** Shown five single-method classes and asked "good separation of concerns?", the naive arm approves; the skill names it shallow modules / classitis. Log: `evals/_batch3/iteration-log.md` |
 | `spec-driven-development` | 0% | 100% | sonnet | ✅ Shipped (PR #47) — 2 measured gaps patched |
-| `stripe-payments` |  |  |  |  |
+| `stripe-payments` | 100% | 100% | sonnet | No delta — baseline already fulfils from webhooks, verifies against the raw body, and dedupes on event id. Log: `evals/_batch5/iteration-log.md` |
 | `swgoh-expert` |  |  |  |  |
 | `swift-concurrency-expert` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already pushes back on `@unchecked Sendable` and offers the smallest isolation fix. Log: `evals/_batch4/iteration-log.md` |
 | `swiftui-liquid-glass` |  |  |  |  |
@@ -519,11 +519,11 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `tdd` | 46% | 100% | sonnet | Big lift; skill already optimal, no patch |
 | `terraform` |  |  |  |  |
 | `test-strategy` | 100% | 100% | sonnet | Base-model-strong; skill neutral, no patch |
-| `toolkit-archive` |  |  |  |  |
+| `toolkit-archive` | 100% | 100% | sonnet | No delta — baseline already refuses to archive a component an active one still references. Log: `evals/_batch5/iteration-log.md` |
 | `ttrpg-storytelling` |  |  |  |  |
 | `typescript` |  |  |  |  |
 | `ux-design` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already refuses dark patterns and invokes Jakob's Law. Scored FFF in both arms until I fixed an apostrophe bug in my own assert. Log: `evals/_batch4/iteration-log.md` |
-| `vault-graphrag` |  |  |  |  |
+| `vault-graphrag` | 100% | 100% | sonnet | No delta — baseline already upserts rather than duplicating, and relies on backlinks over hand-maintained reverse indexes. Log: `evals/_batch5/iteration-log.md` |
 | `vue` |  |  |  |  |
 | `web-development` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already reasons about rendering strategy from auth/SEO characteristics rather than dogma. Log: `evals/_batch4/iteration-log.md` |
 | `webassembly` |  |  |  |  |

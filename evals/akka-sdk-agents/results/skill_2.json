@@ -1,0 +1,411 @@
+{
+  "evalId": "eval-ZkM-2026-10-29T19:13:30",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:13:30.379Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/akka-sdk-agents/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "1f9f4a1df139b1c3a078311e76fdd697762e5600b4dcedce7079964f16cb7107",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 3,
+          "assertFailCount": 0,
+          "totalLatencyMs": 15793,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 3
+          },
+          "namedScoresCount": {
+            "accuracy": 3
+          },
+          "namedScoreWeights": {
+            "accuracy": 3
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/cannot|can'?t|not a tool|never chain|Workflow/i.test(output)) throw new Error('says an agent cannot be a tool for another agent; use Workflows');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "2268c6f7-c985-48f0-9e38-edec45d3c977",
+        "latencyMs": 9760,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-sdk-agents\ndescription: The Akka SDK Agents component (Java) — a stateful, durable component that calls an LLM to perform one well-defined task, with built-in session memory, function/tool calling, structured output, streaming, guardrails, and LLM-as-judge evaluation. Covers defining an Agent (extend Agent, @Component, the effects() API — system/user messages, model(), memory(), tools(), responseAs/responseConformsTo, onFailure, thenReply), model/provider configuration (OpenAI, Anthropic, Gemini, Bedrock, local), session memory, function tools and MCP tools, multi-agent orchestration via Workflows and the AgentRegistry/dynamicCall, guardrails, evaluation, and deterministic testing with TestModelProvider. Use when building AI/LLM features in an Akka SDK service — agents, chatbots, RAG, tool-using assistants, multi-agent systems — or any time an Akka component needs to call a model. Part of the Akka SDK (Java); see akka-sdk for the meta model and akka-sdk-workflows for orchestration.\n---\n\n# Akka SDK — Agents\n\nAn **Agent** is a lightweight, **single-purpose, stateful, durable** component that interacts with an LLM to accomplish one discrete goal. It maintains contextual **session memory**, can call **tools** (function calling), and gets the same durability/scaling/observability as every Akka SDK component — conversation history survives node failures with no custom recovery code. Part of the [[akka-sdk]] (Java).\n\nCross-links: [[akka-sdk]] (meta), [[akka-sdk-workflows]] (orchestrate agents), [[akka-sdk-endpoints]] (expose them), [[akka-sdk-event-sourced-entities]] (memory is an ESE under the hood).\n\n## When to use an Agent (and when not)\n\nUse an Agent when you need to interpret intent / generate content / decide via an LLM, maintain multi-turn context, or call tools dynamically. **Do not** use one for stateful business logic without AI (→ [[akka-sdk-event-sourced-entities]]/[[akka-sdk-key-value-entities]]), for deterministic multi-step orchestration (→ [[akka-sdk-workflows]]), or for plain request/response with no model (→ [[akka-sdk-endpoints]]). **One agent class per role; each agent does one thing** — compose many small agents via Workflows.\n\n## Defining an Agent\n\n```java\n@Component(id = \"activity-agent\")          // unique id; @Component(name=, description=) feed the AgentRegistry for planning\npublic class ActivityAgent extends Agent {\n  public Effect<String> query(String message) {   // exactly ONE public command handler; one or no parameter (wrap many in a record)\n    return effects()\n      .systemMessage(\"You are an activity suggestion assistant...\")\n      .userMessage(message)\n      .thenReply();\n  }\n}\n```\n\nThe declarative `effects()` API can: set `systemMessage`/`userMessage` (or `systemMessageFromTemplate(...)`, multimodal `UserMessage.from(...)`); pick the `model(...)`; configure `memory(...)`; register `tools(...)`/`mcpTools(...)`; shape output with `responseAs(T.class)` / `responseConformsTo(T.class)`; handle errors with `onFailure(...)`; and terminate with `.thenReply()` / `.reply(...)`. Use `streamEffects()` returning `StreamEffect` for token streaming. Inject `ComponentClient` to enrich requests from entities/views (RAG).\n\n## Calling an agent\n\nBind every call to a **session id** (the scope of memory, tracing, and evaluation grouping):\n\n```java\nString reply = componentClient.forAgent().inSession(sessionId).method(ActivityAgent::query).invoke(\"Meeting in London\");\n```\n\nUse a fresh `UUID` when no multi-step/collaboration is needed; reuse the same session id (commonly the workflow id) so collaborating agents share context. **Drive agents from a [[akka-sdk-workflows]] Workflow** for durable execution, retries, and timeouts — AI calls are slow (set a step timeout, e.g. 60s, and a bounded recovery so it doesn't retry forever).\n\n## Model / provider configuration\n\n```hocon\nakka.javasdk.agent {\n  model-provider = openai\n  openai { model-name = \"gpt-4o-mini\"; api-key = ${?OPENAI_API_KEY} }\n}\n```\nOverride per agent with `.model(ModelProvider.openAi().withModelName(\"gpt-4o\").withTemperature(0.6).withMaxTokens(10000))`. Providers: `openAi()`, `anthropic()`, Bedrock, `googleAiGemini()`, Hugging Face; local LocalAI/Ollama; or `ModelProvider.custom(...)` wrapping a LangChain4J model. `ModelProvider.fromConfig(\"...\")` selects a named config block per agent.\n\n## Always-apply defaults\n\n1. **One goal per agent, one handler per agent;** wrap multi-field input in a record. Bind calls to a session id.\n2. **Orchestrate with Workflows, never chain agents directly** (an Agent cannot be a tool for another agent). Use `AgentRegistry` + `dynamicCall` only for runtime-selected agents.\n3. **Prefer `responseConformsTo(...)` for structured output** on OpenAI/Gemini (auto JSON schema); use `responseAs(...)` + prompt instructions + `onFailure` elsewhere.\n4. **Set workflow step timeouts and bounded recovery** around agent calls; `akka.javasdk.agent.max-tool-call-steps` bounds the tool loop.\n5. **Enable guardrails and evaluators by config** (not app code) for inputs/outputs; treat token usage as a cost to watch (`withDetailedReply()` exposes it).\n6. **Test deterministically with `TestModelProvider`** in `TestKitSupport`; evaluate quality with LLM-as-judge evaluators separately.\n\n## Anti-patterns (flag in review)\n\n- Chaining agents as tools; multiple goals in one agent; calling an agent without a session id.\n- Unbounded retries on slow model calls (no step timeout); ignoring token spend.\n- Free-form text where a structured response is needed; no `onFailure` fallback for bad JSON / rate limits.\n- Building business logic on session memory without compaction (unbounded growth); stateful guardrail/interceptor objects (must be thread-safe/stateless).\n\n## How to use this skill\n\n- **`references/prompts-models-responses.md`** — system/user messages, prompt templates, multimodal input, model/provider config, structured responses, streaming, calling/sessions, and failure handling.\n- **`references/tools-memory-orchestration-testing.md`** — function tools (4 ways) & MCP tools, session memory (providers, filtering, interceptors, compaction), multi-agent orchestration (Workflows, `AgentRegistry`, `dynamicCall`), guardrails, LLM evaluation, and deterministic testing.\n\n## Related\n\n- [[akka-sdk]] — the component model, `ComponentClient`, deployment.\n- [[akka-sdk-workflows]] — durable orchestration of one or many agents (the recommended way to run agents).\n- [[akka-sdk-endpoints]] — expose an agent over HTTP/SSE or MCP.\n- Source: Akka SDK docs, https://doc.akka.io/sdk/agents.html (+ sub-pages) and https://doc.akka.io/concepts/ai-agents.html.\n</skill>\n\nUser request:\nI want agent A to call agent B as one of its tools. How do I wire that?",
+          "label": "evals/akka-sdk-agents/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "1f9f4a1df139b1c3a078311e76fdd697762e5600b4dcedce7079964f16cb7107",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "You can't. In the Akka SDK an Agent can't be a tool for another agent. Orchestrate them from a Workflow instead, with both agents sharing one session id so they share context.\n\n```java\n// inside a Workflow step\nString draft = componentClient.forAgent().inSession(sessionId)\n    .method(AgentA::query).invoke(input);\n\nString result = componentClient.forAgent().inSession(sessionId)\n    .method(AgentB::query).invoke(draft);\n```\n\n- Use the workflow id as `sessionId`.\n- Give each agent step a timeout (about 60s) and bounded recovery.\n- Have Workflow transitions pick B (or skip it) from A's structured output (`responseConformsTo`).\n- If B has to be chosen at runtime, look it up with `AgentRegistry` and call it with `dynamicCall` from the Workflow, not from A.\n\nIf you want, I can sketch the full Workflow for your A and B."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "chaining",
+          "vars": {
+            "skill": "file:///private/tmp/b5/skills/akka-sdk-agents/SKILL.md",
+            "request": "file:///private/tmp/b5/evals/akka-sdk-agents/cases/chaining.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/cannot|can'?t|not a tool|never chain|Workflow/i.test(output)) throw new Error('says an agent cannot be a tool for another agent; use Workflows');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b5/skills/akka-sdk-agents/SKILL.md",
+          "request": "file:///private/tmp/b5/evals/akka-sdk-agents/cases/chaining.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/Workflow/i.test(output)) throw new Error('names Workflow');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/AgentRegistry|dynamicCall|registry/i.test(output)) throw new Error('names AgentRegistry / dynamicCall');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "25a541f2-c271-476e-a4df-991277e85f2d",
+        "latencyMs": 6033,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-sdk-agents\ndescription: The Akka SDK Agents component (Java) — a stateful, durable component that calls an LLM to perform one well-defined task, with built-in session memory, function/tool calling, structured output, streaming, guardrails, and LLM-as-judge evaluation. Covers defining an Agent (extend Agent, @Component, the effects() API — system/user messages, model(), memory(), tools(), responseAs/responseConformsTo, onFailure, thenReply), model/provider configuration (OpenAI, Anthropic, Gemini, Bedrock, local), session memory, function tools and MCP tools, multi-agent orchestration via Workflows and the AgentRegistry/dynamicCall, guardrails, evaluation, and deterministic testing with TestModelProvider. Use when building AI/LLM features in an Akka SDK service — agents, chatbots, RAG, tool-using assistants, multi-agent systems — or any time an Akka component needs to call a model. Part of the Akka SDK (Java); see akka-sdk for the meta model and akka-sdk-workflows for orchestration.\n---\n\n# Akka SDK — Agents\n\nAn **Agent** is a lightweight, **single-purpose, stateful, durable** component that interacts with an LLM to accomplish one discrete goal. It maintains contextual **session memory**, can call **tools** (function calling), and gets the same durability/scaling/observability as every Akka SDK component — conversation history survives node failures with no custom recovery code. Part of the [[akka-sdk]] (Java).\n\nCross-links: [[akka-sdk]] (meta), [[akka-sdk-workflows]] (orchestrate agents), [[akka-sdk-endpoints]] (expose them), [[akka-sdk-event-sourced-entities]] (memory is an ESE under the hood).\n\n## When to use an Agent (and when not)\n\nUse an Agent when you need to interpret intent / generate content / decide via an LLM, maintain multi-turn context, or call tools dynamically. **Do not** use one for stateful business logic without AI (→ [[akka-sdk-event-sourced-entities]]/[[akka-sdk-key-value-entities]]), for deterministic multi-step orchestration (→ [[akka-sdk-workflows]]), or for plain request/response with no model (→ [[akka-sdk-endpoints]]). **One agent class per role; each agent does one thing** — compose many small agents via Workflows.\n\n## Defining an Agent\n\n```java\n@Component(id = \"activity-agent\")          // unique id; @Component(name=, description=) feed the AgentRegistry for planning\npublic class ActivityAgent extends Agent {\n  public Effect<String> query(String message) {   // exactly ONE public command handler; one or no parameter (wrap many in a record)\n    return effects()\n      .systemMessage(\"You are an activity suggestion assistant...\")\n      .userMessage(message)\n      .thenReply();\n  }\n}\n```\n\nThe declarative `effects()` API can: set `systemMessage`/`userMessage` (or `systemMessageFromTemplate(...)`, multimodal `UserMessage.from(...)`); pick the `model(...)`; configure `memory(...)`; register `tools(...)`/`mcpTools(...)`; shape output with `responseAs(T.class)` / `responseConformsTo(T.class)`; handle errors with `onFailure(...)`; and terminate with `.thenReply()` / `.reply(...)`. Use `streamEffects()` returning `StreamEffect` for token streaming. Inject `ComponentClient` to enrich requests from entities/views (RAG).\n\n## Calling an agent\n\nBind every call to a **session id** (the scope of memory, tracing, and evaluation grouping):\n\n```java\nString reply = componentClient.forAgent().inSession(sessionId).method(ActivityAgent::query).invoke(\"Meeting in London\");\n```\n\nUse a fresh `UUID` when no multi-step/collaboration is needed; reuse the same session id (commonly the workflow id) so collaborating agents share context. **Drive agents from a [[akka-sdk-workflows]] Workflow** for durable execution, retries, and timeouts — AI calls are slow (set a step timeout, e.g. 60s, and a bounded recovery so it doesn't retry forever).\n\n## Model / provider configuration\n\n```hocon\nakka.javasdk.agent {\n  model-provider = openai\n  openai { model-name = \"gpt-4o-mini\"; api-key = ${?OPENAI_API_KEY} }\n}\n```\nOverride per agent with `.model(ModelProvider.openAi().withModelName(\"gpt-4o\").withTemperature(0.6).withMaxTokens(10000))`. Providers: `openAi()`, `anthropic()`, Bedrock, `googleAiGemini()`, Hugging Face; local LocalAI/Ollama; or `ModelProvider.custom(...)` wrapping a LangChain4J model. `ModelProvider.fromConfig(\"...\")` selects a named config block per agent.\n\n## Always-apply defaults\n\n1. **One goal per agent, one handler per agent;** wrap multi-field input in a record. Bind calls to a session id.\n2. **Orchestrate with Workflows, never chain agents directly** (an Agent cannot be a tool for another agent). Use `AgentRegistry` + `dynamicCall` only for runtime-selected agents.\n3. **Prefer `responseConformsTo(...)` for structured output** on OpenAI/Gemini (auto JSON schema); use `responseAs(...)` + prompt instructions + `onFailure` elsewhere.\n4. **Set workflow step timeouts and bounded recovery** around agent calls; `akka.javasdk.agent.max-tool-call-steps` bounds the tool loop.\n5. **Enable guardrails and evaluators by config** (not app code) for inputs/outputs; treat token usage as a cost to watch (`withDetailedReply()` exposes it).\n6. **Test deterministically with `TestModelProvider`** in `TestKitSupport`; evaluate quality with LLM-as-judge evaluators separately.\n\n## Anti-patterns (flag in review)\n\n- Chaining agents as tools; multiple goals in one agent; calling an agent without a session id.\n- Unbounded retries on slow model calls (no step timeout); ignoring token spend.\n- Free-form text where a structured response is needed; no `onFailure` fallback for bad JSON / rate limits.\n- Building business logic on session memory without compaction (unbounded growth); stateful guardrail/interceptor objects (must be thread-safe/stateless).\n\n## How to use this skill\n\n- **`references/prompts-models-responses.md`** — system/user messages, prompt templates, multimodal input, model/provider config, structured responses, streaming, calling/sessions, and failure handling.\n- **`references/tools-memory-orchestration-testing.md`** — function tools (4 ways) & MCP tools, session memory (providers, filtering, interceptors, compaction), multi-agent orchestration (Workflows, `AgentRegistry`, `dynamicCall`), guardrails, LLM evaluation, and deterministic testing.\n\n## Related\n\n- [[akka-sdk]] — the component model, `ComponentClient`, deployment.\n- [[akka-sdk-workflows]] — durable orchestration of one or many agents (the recommended way to run agents).\n- [[akka-sdk-endpoints]] — expose an agent over HTTP/SSE or MCP.\n- Source: Akka SDK docs, https://doc.akka.io/sdk/agents.html (+ sub-pages) and https://doc.akka.io/concepts/ai-agents.html.\n</skill>\n\nUser request:\nWhat orchestrates a multi-step agent flow in the Akka SDK?",
+          "label": "evals/akka-sdk-agents/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "1f9f4a1df139b1c3a078311e76fdd697762e5600b4dcedce7079964f16cb7107",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "A **Workflow** orchestrates multi-step agent flows in the Akka SDK. Don't chain agents directly, and an Agent can't be a tool for another agent.\n\n- Each workflow step calls an agent through `componentClient.forAgent().inSession(sessionId)`. Reuse one session id (commonly the workflow id) so the agents share context.\n- Set a step timeout (about 60s) and bounded recovery, because model calls are slow.\n- For agents chosen at runtime, use `AgentRegistry` with `dynamicCall`.\n\nSee the `akka-sdk-workflows` skill for the workflow API."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "orchestrate",
+          "vars": {
+            "skill": "file:///private/tmp/b5/skills/akka-sdk-agents/SKILL.md",
+            "request": "file:///private/tmp/b5/evals/akka-sdk-agents/cases/orchestrate.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/Workflow/i.test(output)) throw new Error('names Workflow');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/AgentRegistry|dynamicCall|registry/i.test(output)) throw new Error('names AgentRegistry / dynamicCall');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b5/skills/akka-sdk-agents/SKILL.md",
+          "request": "file:///private/tmp/b5/evals/akka-sdk-agents/cases/orchestrate.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 9775,
+      "evaluationDurationMs": 9775
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-sdk-agents — EDD",
+    "prompts": [
+      "file:///private/tmp/b5/evals/akka-sdk-agents/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "chaining",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/akka-sdk-agents/cases/chaining.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/cannot|can'?t|not a tool|never chain|Workflow/i.test(output)) throw new Error('says an agent cannot be a tool for another agent; use Workflows');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "orchestrate",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/akka-sdk-agents/cases/orchestrate.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/Workflow/i.test(output)) throw new Error('names Workflow');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/AgentRegistry|dynamicCall|registry/i.test(output)) throw new Error('names AgentRegistry / dynamicCall');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-sdk-agents/results/skill_2.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b5/skills/akka-sdk-agents/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b5/evals/akka-sdk-agents"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:13:40.193Z",
+    "evaluationCreatedAt": "2026-10-29T19:13:30.379Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

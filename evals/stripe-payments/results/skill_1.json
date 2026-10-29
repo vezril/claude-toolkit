@@ -1,0 +1,531 @@
+{
+  "evalId": "eval-WZl-2026-10-29T19:25:31",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:25:31.971Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/stripe-payments/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "ec83b2623da87b55a5c0c02fe78ec3d01efd05206a98a711f9145d1dc83cbe2b",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 3,
+          "testPassCount": 3,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 4,
+          "assertFailCount": 0,
+          "totalLatencyMs": 36493,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 4
+          },
+          "namedScoresCount": {
+            "accuracy": 4
+          },
+          "namedScoreWeights": {
+            "accuracy": 4
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/webhook/i.test(output)) throw new Error('says fulfil from webhooks');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/close.{0,20}tab|settle|days|unreliable|not.{0,20}success page|don'?t.{0,25}success/i.test(output)) throw new Error('explains why the success page is unreliable');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "db24ca34-bd8c-4a9d-ae67-a3586e6bfcd7",
+        "latencyMs": 12151,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: stripe-payments\ndescription: \"Building, reviewing, and debugging Stripe payment integrations, distilled from the live docs.stripe.com API reference and guides (fetched 2026-09, API version 2026-08-26.dahlia). Covers the mental model (Checkout Session → PaymentIntent → Charge; SetupIntent → PaymentMethod; Customer; Invoice → Subscription), choosing an integration (Stripe-hosted Checkout vs Elements with the Checkout Sessions API vs raw PaymentIntents + Payment Element — Stripe now recommends Checkout Sessions by default), the PaymentIntent/SetupIntent status machine (requires_payment_method → requires_action → processing → requires_capture → succeeded/canceled), webhook-driven fulfillment (signature verification on the raw body, 5-minute tolerance, duplicate/out-of-order delivery, 3-day live retries, checkout.session.completed + async_payment_succeeded, idempotent fulfill function), saving cards and off-session charges (setup_future_usage, off_session=true, authentication_required recovery), manual capture and authorization windows, subscriptions (incomplete 23-hour window, past_due/unpaid/paused, invoice.paid provisioning, invoice.created blocking finalization up to 72h), refunds/cancel vs refund, disputes and declines, Connect charge types (direct, destination, separate charges and transfers, application_fee_amount, on_behalf_of, reverse_transfer), and API conventions (secret/restricted/publishable keys, form-encoded v1 vs JSON v2, Stripe-Version pinning, error types, Idempotency-Key 24h, cursor pagination, expand depth 4, Search API eventual consistency, metadata 50/40/500 limits, rate limits 100/25 rps). Use when integrating Stripe payments or billing, writing a Stripe webhook handler, choosing between Checkout and PaymentIntents, handling 3DS/SCA or declines, implementing refunds/subscriptions/Connect payouts, debugging a Stripe API error or signature failure, or reviewing Stripe code for correctness and security.\"\nlicense: MIT\n---\n\n# Stripe Payments\n\nHow to build a Stripe payments integration that is **correct under retries, redirects, async payment methods, and malicious input** — the four things that break naive integrations. Distilled from the live [API reference](https://docs.stripe.com/api) and guides (fetched 2026-09; current API version `2026-08-26.dahlia`). Cross-links: [[secure-coding]] (keys, webhook trust boundary), [[cryptography]] (HMAC-SHA256 signature verification), [[cqrs-event-sourcing]] (webhooks as an event stream: at-least-once, unordered), [[nodejs]] / [[python]] / [[nextjs]] for the server side.\n\n> **Freshness.** Stripe ships monthly API releases and renames client APIs. Treat exact function names and version strings here as a dated snapshot; when writing code against a real account, confirm against the SDK version actually installed (`Stripe-Version` is pinned per SDK release) and the live docs. Stripe also publishes its own agent skills and an MCP server (`stripe agent setup`) — complementary to this skill, which focuses on the *why* and the failure modes.\n\n## The mental model\n\n**Objects, not charges.** Modern Stripe never \"creates a charge\" directly. You create an *intent* and Stripe drives it through a state machine, creating the underlying `Charge` objects as attempts happen.\n\n```\nCheckout Session ──(mode=payment)──▶ PaymentIntent ──attempts──▶ Charge(s) ──▶ Refund(s) / Dispute\n                 ──(mode=setup)────▶ SetupIntent  ──────────────▶ PaymentMethod (attached to Customer)\n                 ──(mode=subscription)▶ Subscription ──each period──▶ Invoice ──▶ PaymentIntent\n```\n\n- **PaymentIntent** = \"collect this amount from someone.\" Owns status, retries, 3DS, capture.\n- **SetupIntent** = \"save this payment method for later, no money now.\" Same status machine minus capture.\n- **Checkout Session** = a higher-level wrapper that creates the intent/subscription for you and adds line items, tax, discounts, shipping, currency localization. Some features (Adaptive Pricing) exist *only* here.\n- **Customer** (or, in preview, a customer-configured v2 `Account`) = the thing saved payment methods and subscriptions hang off. Store `cus_…` against your user record.\n- **Event** = an immutable record of a state change, pushed to your webhook. *Events, not redirects, are the source of truth.*\n\n**The client never decides money.** Amounts, prices, and what's being bought are computed server-side. The browser only ever receives a `client_secret` (scoped to one intent/session) and the **publishable** key.\n\n## Choose the integration (decide this first)\n\n| You want | Use | Complexity | Client confirm |\n|---|---|---|---|\n| Fastest path, Stripe-hosted page, redirect | **Checkout Session**, `ui_mode` default (hosted page), redirect to `session.url` | 2/5 | none — Stripe hosts it |\n| Your own page/branding, Stripe handles tax/discounts/shipping | **Checkout Session** with `ui_mode: \"elements\"` + Payment Element | 3/5 | `checkout.confirm()` / `actions.confirm()` |\n| Full control, you compute everything, or user explicitly asks | **PaymentIntent** + Payment Element | higher | `stripe.confirmPayment()` |\n| Save a card now, charge later | **SetupIntent** (or Checkout `mode=setup`) | — | `stripe.confirmSetup()` |\n| Recurring billing | **Checkout `mode=subscription`** (or Subscriptions API + Payment Element) | — | — |\n| Marketplace / platform paying others | **Connect** + one of the three charge types | high | — |\n\nStripe's own current guidance: **prefer the Checkout Sessions API over Payment Intents for most integrations**; use raw PaymentIntents only when you need what Checkout can't do. Never use the legacy Charges API, Sources, Tokens, or the old Card Element for new work. Enable **dynamic payment methods** (don't hardcode `payment_method_types=[card]`; configure methods in the Dashboard / `automatic_payment_methods`).\n\nFlow walkthroughs with code shapes: `references/payment-flows.md`.\n\n## Non-negotiables (review checklist)\n\n1. **Fulfill from webhooks, not from the success page.** Customers close tabs; bank debits settle days later. Handle `checkout.session.completed` **and** `checkout.session.async_payment_succeeded` (or `payment_intent.succeeded`). Optionally *also* run fulfillment on the landing page for speed — through the **same idempotent function**.\n2. **Verify webhook signatures against the raw request body.** Any JSON parse/re-serialize by your framework breaks verification. Use the SDK's `constructEvent`/`construct_event`; never tolerance `0`. Exempt the route from CSRF, not from verification.\n3. **Make fulfillment idempotent and concurrency-safe.** Events are delivered at least once, possibly concurrently, in any order. Dedupe on `event.id` and guard fulfillment on the business object (e.g. a unique constraint on `checkout_session_id`). Never use `event.created` for ordering.\n4. **Return 2xx fast; process async.** Enqueue, then ack. Slow handlers time out and get retried (live: up to 3 days with backoff). For `invoice.created`, a non-2xx delays invoice finalization up to 72 hours.\n5. **Idempotency-Key on every mutating POST** you might retry (SDKs do this when `maxNetworkRetries` > 0). Derive it from your own operation (cart ID, order ID) to also stop double-submits. Keys live 24h (v1).\n6. **Secret keys only on the server, from a secrets vault/env.** Use **restricted keys** (`rk_live_…`) with least privilege in production. Publishable key (`pk_…`) is the only key in browser/mobile code. Pre-commit scan for `sk_live_` / `rk_live_`.\n7. **Amounts are integers in the smallest currency unit** (`2000` = 20.00 USD; zero-decimal currencies like JPY are whole units). Never floats.\n8. **Load Stripe.js from `js.stripe.com`** (don't bundle/self-host it — PCI). Card data never touches your server; that is what keeps you in the lightest PCI scope.\n9. **Pin and match API versions.** Typed SDKs (Java, Go, .NET, and Node ≥12/Python ≥6/Ruby ≥9/PHP ≥11) pin the version of their release. Create webhook endpoints with the **same** API version, or event payload shapes won't match your types.\n10. **Store Stripe IDs + your IDs in `metadata`** (`order_id`, `user_id`) so webhooks and 500-reconciliation can be joined back to your data. Never put secrets/PII like card data in metadata or `description`.\n\n## Status machine you must handle\n\n| PaymentIntent status | Meaning | Your move |\n|---|---|---|\n| `requires_payment_method` | New, **or a failed attempt returned here** (decline) | Collect/retry a payment method |\n| `requires_confirmation` | PM attached, not confirmed (most integrations skip) | Confirm |\n| `requires_action` | 3DS/redirect/next_action needed | Client handles `next_action` (Stripe.js does it in confirm) |\n| `processing` | Async method (ACH, SEPA, BECS…) in flight — up to days | Wait for webhook; don't fulfill yet |\n| `requires_capture` | Authorized, `capture_method=manual` | Capture before the auth expires (cards ≈7 days CIT; Visa MIT ~5 days) or cancel |\n| `succeeded` | Money collected | Fulfill (idempotently) |\n| `canceled` | Terminal; held funds released | Nothing more on this intent |\n\nCancel is possible before `processing`/`succeeded` (and during `processing` for some bank debits). **Uncaptured → cancel; captured → refund.**\n\n## Top gotchas\n\n- **Declines don't fail the PaymentIntent** — it drops back to `requires_payment_method`. Don't treat a decline as terminal; don't create a new PI per retry (you lose attempt history).\n- **`checkout.session.completed` ≠ paid.** Check `payment_status` (`paid` / `unpaid` / `no_payment_required`). Delayed methods complete the session while `unpaid`.\n- **Webhook payloads are snapshots at event time and never expanded.** Re-retrieve the object (with `expand`) when you need current or nested data (e.g. `line_items`).\n- **Off-session charges can still demand authentication.** Catch `authentication_required`, email the customer, bring them back on-session with the declined PI's client secret.\n- **Subscriptions start `incomplete`** when the first payment needs action or fails; after 23 hours they become `incomplete_expired` and you must create a new subscription.\n- **`active` doesn't mean every invoice is paid**, and delayed-method subscriptions can be `active` while the PI is still `processing`.\n- **API version drift renames fields.** E.g. from `2025-03-31.basil` an invoice's subscription lives at `parent.subscription_details.subscription`, not `invoice.subscription`.\n- **Search is eventually consistent** (usually < 1 min). Never search right after a write; use list/retrieve.\n- **A `500` is indeterminate.** The idempotent result is cached, so a retry with the same key returns the same 500; don't blindly retry with a new key — reconcile via webhooks + metadata.\n- **Sandbox ≠ production for load tests** (25 rps vs 100 rps, mocked networks). Mock Stripe for load tests.\n\n## References\n\n- `references/api-conventions.md` — auth & key types, versioning, errors & retries, idempotency, pagination, expand, search, metadata, rate limits, v1 vs v2.\n- `references/payment-flows.md` — hosted Checkout, Elements + Checkout Sessions, PaymentIntents + Payment Element, SetupIntents & off-session, manual capture.\n- `references/webhooks-and-fulfillment.md` — endpoint setup, signature verification (library + manual), delivery semantics, the fulfill function, event catalog.\n- `references/subscriptions.md` — lifecycle, statuses, invoice finalization, events, provisioning, portal.\n- `references/refunds-disputes-declines.md` — cancel vs refund, refund states, disputes lifecycle and evidence, decline/advice codes.\n- `references/connect.md` — charge types, fees, on_behalf_of, refunds/disputes per type, onboarding.\n- `references/testing.md` — test cards and `pm_card_*` tokens, 3DS, disputes, bank debits, Stripe CLI.\n</skill>\n\nUser request:\nWhere should I mark the order paid — on my success page after redirect, or somewhere else?",
+          "label": "evals/stripe-payments/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "ec83b2623da87b55a5c0c02fe78ec3d01efd05206a98a711f9145d1dc83cbe2b",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Somewhere else: mark the order paid from a **webhook**, not the success page. Customers close tabs before the redirect, and delayed methods (ACH, SEPA) settle days later.\n\n- **Events to handle:** `checkout.session.completed` and `checkout.session.async_payment_succeeded`. For raw PaymentIntents, use `payment_intent.succeeded`.\n- **Check `payment_status` first.** `checkout.session.completed` doesn't mean paid. Fulfill only when `payment_status == \"paid\"`. If it's `unpaid`, wait for `async_payment_succeeded`.\n- **Verify the signature on the raw body.** Use the SDK's `constructEvent`/`construct_event`. If your framework parses the JSON first, verification fails.\n- **Make fulfillment idempotent.** Events arrive at least once, possibly concurrently and out of order. Put a unique constraint on `checkout_session_id` (or dedupe on `event.id`) so two deliveries can't both fulfill.\n- **Ack fast.** Enqueue the work and return 2xx. Slow handlers get retried, for up to 3 days in live mode.\n- **Join back to your order.** Set `metadata.order_id` or `client_reference_id` when you create the session.\n\nThe success page can also run fulfillment so the customer sees it immediately. If you do that, call the same idempotent function the webhook calls. Otherwise the page only displays status and never writes \"paid\".\n\nIf you share your stack, I can sketch the handler."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "fulfill",
+          "vars": {
+            "skill": "file:///private/tmp/b5/skills/stripe-payments/SKILL.md",
+            "request": "file:///private/tmp/b5/evals/stripe-payments/cases/fulfill.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/webhook/i.test(output)) throw new Error('says fulfil from webhooks');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/close.{0,20}tab|settle|days|unreliable|not.{0,20}success page|don'?t.{0,25}success/i.test(output)) throw new Error('explains why the success page is unreliable');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b5/skills/stripe-payments/SKILL.md",
+          "request": "file:///private/tmp/b5/evals/stripe-payments/cases/fulfill.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/raw (request )?body|raw body|unparsed|before.{0,20}pars/i.test(output)) throw new Error('identifies the raw-body requirement');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "f0394199-d523-451d-be0a-ad3017b73fe6",
+        "latencyMs": 12509,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: stripe-payments\ndescription: \"Building, reviewing, and debugging Stripe payment integrations, distilled from the live docs.stripe.com API reference and guides (fetched 2026-09, API version 2026-08-26.dahlia). Covers the mental model (Checkout Session → PaymentIntent → Charge; SetupIntent → PaymentMethod; Customer; Invoice → Subscription), choosing an integration (Stripe-hosted Checkout vs Elements with the Checkout Sessions API vs raw PaymentIntents + Payment Element — Stripe now recommends Checkout Sessions by default), the PaymentIntent/SetupIntent status machine (requires_payment_method → requires_action → processing → requires_capture → succeeded/canceled), webhook-driven fulfillment (signature verification on the raw body, 5-minute tolerance, duplicate/out-of-order delivery, 3-day live retries, checkout.session.completed + async_payment_succeeded, idempotent fulfill function), saving cards and off-session charges (setup_future_usage, off_session=true, authentication_required recovery), manual capture and authorization windows, subscriptions (incomplete 23-hour window, past_due/unpaid/paused, invoice.paid provisioning, invoice.created blocking finalization up to 72h), refunds/cancel vs refund, disputes and declines, Connect charge types (direct, destination, separate charges and transfers, application_fee_amount, on_behalf_of, reverse_transfer), and API conventions (secret/restricted/publishable keys, form-encoded v1 vs JSON v2, Stripe-Version pinning, error types, Idempotency-Key 24h, cursor pagination, expand depth 4, Search API eventual consistency, metadata 50/40/500 limits, rate limits 100/25 rps). Use when integrating Stripe payments or billing, writing a Stripe webhook handler, choosing between Checkout and PaymentIntents, handling 3DS/SCA or declines, implementing refunds/subscriptions/Connect payouts, debugging a Stripe API error or signature failure, or reviewing Stripe code for correctness and security.\"\nlicense: MIT\n---\n\n# Stripe Payments\n\nHow to build a Stripe payments integration that is **correct under retries, redirects, async payment methods, and malicious input** — the four things that break naive integrations. Distilled from the live [API reference](https://docs.stripe.com/api) and guides (fetched 2026-09; current API version `2026-08-26.dahlia`). Cross-links: [[secure-coding]] (keys, webhook trust boundary), [[cryptography]] (HMAC-SHA256 signature verification), [[cqrs-event-sourcing]] (webhooks as an event stream: at-least-once, unordered), [[nodejs]] / [[python]] / [[nextjs]] for the server side.\n\n> **Freshness.** Stripe ships monthly API releases and renames client APIs. Treat exact function names and version strings here as a dated snapshot; when writing code against a real account, confirm against the SDK version actually installed (`Stripe-Version` is pinned per SDK release) and the live docs. Stripe also publishes its own agent skills and an MCP server (`stripe agent setup`) — complementary to this skill, which focuses on the *why* and the failure modes.\n\n## The mental model\n\n**Objects, not charges.** Modern Stripe never \"creates a charge\" directly. You create an *intent* and Stripe drives it through a state machine, creating the underlying `Charge` objects as attempts happen.\n\n```\nCheckout Session ──(mode=payment)──▶ PaymentIntent ──attempts──▶ Charge(s) ──▶ Refund(s) / Dispute\n                 ──(mode=setup)────▶ SetupIntent  ──────────────▶ PaymentMethod (attached to Customer)\n                 ──(mode=subscription)▶ Subscription ──each period──▶ Invoice ──▶ PaymentIntent\n```\n\n- **PaymentIntent** = \"collect this amount from someone.\" Owns status, retries, 3DS, capture.\n- **SetupIntent** = \"save this payment method for later, no money now.\" Same status machine minus capture.\n- **Checkout Session** = a higher-level wrapper that creates the intent/subscription for you and adds line items, tax, discounts, shipping, currency localization. Some features (Adaptive Pricing) exist *only* here.\n- **Customer** (or, in preview, a customer-configured v2 `Account`) = the thing saved payment methods and subscriptions hang off. Store `cus_…` against your user record.\n- **Event** = an immutable record of a state change, pushed to your webhook. *Events, not redirects, are the source of truth.*\n\n**The client never decides money.** Amounts, prices, and what's being bought are computed server-side. The browser only ever receives a `client_secret` (scoped to one intent/session) and the **publishable** key.\n\n## Choose the integration (decide this first)\n\n| You want | Use | Complexity | Client confirm |\n|---|---|---|---|\n| Fastest path, Stripe-hosted page, redirect | **Checkout Session**, `ui_mode` default (hosted page), redirect to `session.url` | 2/5 | none — Stripe hosts it |\n| Your own page/branding, Stripe handles tax/discounts/shipping | **Checkout Session** with `ui_mode: \"elements\"` + Payment Element | 3/5 | `checkout.confirm()` / `actions.confirm()` |\n| Full control, you compute everything, or user explicitly asks | **PaymentIntent** + Payment Element | higher | `stripe.confirmPayment()` |\n| Save a card now, charge later | **SetupIntent** (or Checkout `mode=setup`) | — | `stripe.confirmSetup()` |\n| Recurring billing | **Checkout `mode=subscription`** (or Subscriptions API + Payment Element) | — | — |\n| Marketplace / platform paying others | **Connect** + one of the three charge types | high | — |\n\nStripe's own current guidance: **prefer the Checkout Sessions API over Payment Intents for most integrations**; use raw PaymentIntents only when you need what Checkout can't do. Never use the legacy Charges API, Sources, Tokens, or the old Card Element for new work. Enable **dynamic payment methods** (don't hardcode `payment_method_types=[card]`; configure methods in the Dashboard / `automatic_payment_methods`).\n\nFlow walkthroughs with code shapes: `references/payment-flows.md`.\n\n## Non-negotiables (review checklist)\n\n1. **Fulfill from webhooks, not from the success page.** Customers close tabs; bank debits settle days later. Handle `checkout.session.completed` **and** `checkout.session.async_payment_succeeded` (or `payment_intent.succeeded`). Optionally *also* run fulfillment on the landing page for speed — through the **same idempotent function**.\n2. **Verify webhook signatures against the raw request body.** Any JSON parse/re-serialize by your framework breaks verification. Use the SDK's `constructEvent`/`construct_event`; never tolerance `0`. Exempt the route from CSRF, not from verification.\n3. **Make fulfillment idempotent and concurrency-safe.** Events are delivered at least once, possibly concurrently, in any order. Dedupe on `event.id` and guard fulfillment on the business object (e.g. a unique constraint on `checkout_session_id`). Never use `event.created` for ordering.\n4. **Return 2xx fast; process async.** Enqueue, then ack. Slow handlers time out and get retried (live: up to 3 days with backoff). For `invoice.created`, a non-2xx delays invoice finalization up to 72 hours.\n5. **Idempotency-Key on every mutating POST** you might retry (SDKs do this when `maxNetworkRetries` > 0). Derive it from your own operation (cart ID, order ID) to also stop double-submits. Keys live 24h (v1).\n6. **Secret keys only on the server, from a secrets vault/env.** Use **restricted keys** (`rk_live_…`) with least privilege in production. Publishable key (`pk_…`) is the only key in browser/mobile code. Pre-commit scan for `sk_live_` / `rk_live_`.\n7. **Amounts are integers in the smallest currency unit** (`2000` = 20.00 USD; zero-decimal currencies like JPY are whole units). Never floats.\n8. **Load Stripe.js from `js.stripe.com`** (don't bundle/self-host it — PCI). Card data never touches your server; that is what keeps you in the lightest PCI scope.\n9. **Pin and match API versions.** Typed SDKs (Java, Go, .NET, and Node ≥12/Python ≥6/Ruby ≥9/PHP ≥11) pin the version of their release. Create webhook endpoints with the **same** API version, or event payload shapes won't match your types.\n10. **Store Stripe IDs + your IDs in `metadata`** (`order_id`, `user_id`) so webhooks and 500-reconciliation can be joined back to your data. Never put secrets/PII like card data in metadata or `description`.\n\n## Status machine you must handle\n\n| PaymentIntent status | Meaning | Your move |\n|---|---|---|\n| `requires_payment_method` | New, **or a failed attempt returned here** (decline) | Collect/retry a payment method |\n| `requires_confirmation` | PM attached, not confirmed (most integrations skip) | Confirm |\n| `requires_action` | 3DS/redirect/next_action needed | Client handles `next_action` (Stripe.js does it in confirm) |\n| `processing` | Async method (ACH, SEPA, BECS…) in flight — up to days | Wait for webhook; don't fulfill yet |\n| `requires_capture` | Authorized, `capture_method=manual` | Capture before the auth expires (cards ≈7 days CIT; Visa MIT ~5 days) or cancel |\n| `succeeded` | Money collected | Fulfill (idempotently) |\n| `canceled` | Terminal; held funds released | Nothing more on this intent |\n\nCancel is possible before `processing`/`succeeded` (and during `processing` for some bank debits). **Uncaptured → cancel; captured → refund.**\n\n## Top gotchas\n\n- **Declines don't fail the PaymentIntent** — it drops back to `requires_payment_method`. Don't treat a decline as terminal; don't create a new PI per retry (you lose attempt history).\n- **`checkout.session.completed` ≠ paid.** Check `payment_status` (`paid` / `unpaid` / `no_payment_required`). Delayed methods complete the session while `unpaid`.\n- **Webhook payloads are snapshots at event time and never expanded.** Re-retrieve the object (with `expand`) when you need current or nested data (e.g. `line_items`).\n- **Off-session charges can still demand authentication.** Catch `authentication_required`, email the customer, bring them back on-session with the declined PI's client secret.\n- **Subscriptions start `incomplete`** when the first payment needs action or fails; after 23 hours they become `incomplete_expired` and you must create a new subscription.\n- **`active` doesn't mean every invoice is paid**, and delayed-method subscriptions can be `active` while the PI is still `processing`.\n- **API version drift renames fields.** E.g. from `2025-03-31.basil` an invoice's subscription lives at `parent.subscription_details.subscription`, not `invoice.subscription`.\n- **Search is eventually consistent** (usually < 1 min). Never search right after a write; use list/retrieve.\n- **A `500` is indeterminate.** The idempotent result is cached, so a retry with the same key returns the same 500; don't blindly retry with a new key — reconcile via webhooks + metadata.\n- **Sandbox ≠ production for load tests** (25 rps vs 100 rps, mocked networks). Mock Stripe for load tests.\n\n## References\n\n- `references/api-conventions.md` — auth & key types, versioning, errors & retries, idempotency, pagination, expand, search, metadata, rate limits, v1 vs v2.\n- `references/payment-flows.md` — hosted Checkout, Elements + Checkout Sessions, PaymentIntents + Payment Element, SetupIntents & off-session, manual capture.\n- `references/webhooks-and-fulfillment.md` — endpoint setup, signature verification (library + manual), delivery semantics, the fulfill function, event catalog.\n- `references/subscriptions.md` — lifecycle, statuses, invoice finalization, events, provisioning, portal.\n- `references/refunds-disputes-declines.md` — cancel vs refund, refund states, disputes lifecycle and evidence, decline/advice codes.\n- `references/connect.md` — charge types, fees, on_behalf_of, refunds/disputes per type, onboarding.\n- `references/testing.md` — test cards and `pm_card_*` tokens, 3DS, disputes, bank debits, Stripe CLI.\n</skill>\n\nUser request:\nMy webhook signature check fails intermittently. My framework parses JSON then I re-serialize it for verification.",
+          "label": "evals/stripe-payments/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "ec83b2623da87b55a5c0c02fe78ec3d01efd05206a98a711f9145d1dc83cbe2b",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Re-serializing is the bug. The signature is an HMAC-SHA256 over the exact bytes Stripe sent. Your re-serialized JSON only matches when it happens to reproduce those bytes. Whitespace, key order, unicode escaping, and number formatting can all differ, and that's why it passes for some events and fails for others.\n\nVerify against the raw body, before any JSON parsing:\n\n```js\n// Express: raw body on the webhook route only, mounted before express.json()\napp.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {\n  let event;\n  try {\n    event = stripe.webhooks.constructEvent(\n      req.body,                              // Buffer, not a parsed object\n      req.headers['stripe-signature'],\n      process.env.STRIPE_WEBHOOK_SECRET      // whsec_…\n    );\n  } catch (e) {\n    return res.sendStatus(400);\n  }\n  // enqueue event, then ack fast\n  res.sendStatus(200);\n});\n```\n\n```python\n# Flask\nevent = stripe.Webhook.construct_event(\n    request.get_data(), request.headers[\"Stripe-Signature\"], endpoint_secret)\n```\n\nIn Next.js, use `await req.text()` in the route handler. In Django, use `request.body`. Don't touch `request.POST` or `request.data`.\n\nIf it still fails after that, check these:\n- **Wrong secret:** each endpoint has its own `whsec_…`, and test and live differ. The CLI's `stripe listen` prints its own secret too.\n- **Body-modifying middleware:** a global JSON parser, a gzip or proxy layer, or a body-logging middleware can consume or alter the stream before your route sees it.\n- **Tolerance:** the default 5-minute window rejects events when the server clock is skewed or when delayed retries arrive late. Fix the clock; never set the tolerance to 0.\n\nOnce verification works, make the handler idempotent: dedupe on `event.id`, and don't rely on delivery order."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "signature",
+          "vars": {
+            "skill": "file:///private/tmp/b5/skills/stripe-payments/SKILL.md",
+            "request": "file:///private/tmp/b5/evals/stripe-payments/cases/signature.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/raw (request )?body|raw body|unparsed|before.{0,20}pars/i.test(output)) throw new Error('identifies the raw-body requirement');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b5/skills/stripe-payments/SKILL.md",
+          "request": "file:///private/tmp/b5/evals/stripe-payments/cases/signature.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/idempot|dedup|event\\.id|at least once/i.test(output)) throw new Error('prescribes idempotent fulfilment / dedupe on event id');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "f3bbb0f0-0537-4f2c-8b31-5240579d5469",
+        "latencyMs": 11833,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: stripe-payments\ndescription: \"Building, reviewing, and debugging Stripe payment integrations, distilled from the live docs.stripe.com API reference and guides (fetched 2026-09, API version 2026-08-26.dahlia). Covers the mental model (Checkout Session → PaymentIntent → Charge; SetupIntent → PaymentMethod; Customer; Invoice → Subscription), choosing an integration (Stripe-hosted Checkout vs Elements with the Checkout Sessions API vs raw PaymentIntents + Payment Element — Stripe now recommends Checkout Sessions by default), the PaymentIntent/SetupIntent status machine (requires_payment_method → requires_action → processing → requires_capture → succeeded/canceled), webhook-driven fulfillment (signature verification on the raw body, 5-minute tolerance, duplicate/out-of-order delivery, 3-day live retries, checkout.session.completed + async_payment_succeeded, idempotent fulfill function), saving cards and off-session charges (setup_future_usage, off_session=true, authentication_required recovery), manual capture and authorization windows, subscriptions (incomplete 23-hour window, past_due/unpaid/paused, invoice.paid provisioning, invoice.created blocking finalization up to 72h), refunds/cancel vs refund, disputes and declines, Connect charge types (direct, destination, separate charges and transfers, application_fee_amount, on_behalf_of, reverse_transfer), and API conventions (secret/restricted/publishable keys, form-encoded v1 vs JSON v2, Stripe-Version pinning, error types, Idempotency-Key 24h, cursor pagination, expand depth 4, Search API eventual consistency, metadata 50/40/500 limits, rate limits 100/25 rps). Use when integrating Stripe payments or billing, writing a Stripe webhook handler, choosing between Checkout and PaymentIntents, handling 3DS/SCA or declines, implementing refunds/subscriptions/Connect payouts, debugging a Stripe API error or signature failure, or reviewing Stripe code for correctness and security.\"\nlicense: MIT\n---\n\n# Stripe Payments\n\nHow to build a Stripe payments integration that is **correct under retries, redirects, async payment methods, and malicious input** — the four things that break naive integrations. Distilled from the live [API reference](https://docs.stripe.com/api) and guides (fetched 2026-09; current API version `2026-08-26.dahlia`). Cross-links: [[secure-coding]] (keys, webhook trust boundary), [[cryptography]] (HMAC-SHA256 signature verification), [[cqrs-event-sourcing]] (webhooks as an event stream: at-least-once, unordered), [[nodejs]] / [[python]] / [[nextjs]] for the server side.\n\n> **Freshness.** Stripe ships monthly API releases and renames client APIs. Treat exact function names and version strings here as a dated snapshot; when writing code against a real account, confirm against the SDK version actually installed (`Stripe-Version` is pinned per SDK release) and the live docs. Stripe also publishes its own agent skills and an MCP server (`stripe agent setup`) — complementary to this skill, which focuses on the *why* and the failure modes.\n\n## The mental model\n\n**Objects, not charges.** Modern Stripe never \"creates a charge\" directly. You create an *intent* and Stripe drives it through a state machine, creating the underlying `Charge` objects as attempts happen.\n\n```\nCheckout Session ──(mode=payment)──▶ PaymentIntent ──attempts──▶ Charge(s) ──▶ Refund(s) / Dispute\n                 ──(mode=setup)────▶ SetupIntent  ──────────────▶ PaymentMethod (attached to Customer)\n                 ──(mode=subscription)▶ Subscription ──each period──▶ Invoice ──▶ PaymentIntent\n```\n\n- **PaymentIntent** = \"collect this amount from someone.\" Owns status, retries, 3DS, capture.\n- **SetupIntent** = \"save this payment method for later, no money now.\" Same status machine minus capture.\n- **Checkout Session** = a higher-level wrapper that creates the intent/subscription for you and adds line items, tax, discounts, shipping, currency localization. Some features (Adaptive Pricing) exist *only* here.\n- **Customer** (or, in preview, a customer-configured v2 `Account`) = the thing saved payment methods and subscriptions hang off. Store `cus_…` against your user record.\n- **Event** = an immutable record of a state change, pushed to your webhook. *Events, not redirects, are the source of truth.*\n\n**The client never decides money.** Amounts, prices, and what's being bought are computed server-side. The browser only ever receives a `client_secret` (scoped to one intent/session) and the **publishable** key.\n\n## Choose the integration (decide this first)\n\n| You want | Use | Complexity | Client confirm |\n|---|---|---|---|\n| Fastest path, Stripe-hosted page, redirect | **Checkout Session**, `ui_mode` default (hosted page), redirect to `session.url` | 2/5 | none — Stripe hosts it |\n| Your own page/branding, Stripe handles tax/discounts/shipping | **Checkout Session** with `ui_mode: \"elements\"` + Payment Element | 3/5 | `checkout.confirm()` / `actions.confirm()` |\n| Full control, you compute everything, or user explicitly asks | **PaymentIntent** + Payment Element | higher | `stripe.confirmPayment()` |\n| Save a card now, charge later | **SetupIntent** (or Checkout `mode=setup`) | — | `stripe.confirmSetup()` |\n| Recurring billing | **Checkout `mode=subscription`** (or Subscriptions API + Payment Element) | — | — |\n| Marketplace / platform paying others | **Connect** + one of the three charge types | high | — |\n\nStripe's own current guidance: **prefer the Checkout Sessions API over Payment Intents for most integrations**; use raw PaymentIntents only when you need what Checkout can't do. Never use the legacy Charges API, Sources, Tokens, or the old Card Element for new work. Enable **dynamic payment methods** (don't hardcode `payment_method_types=[card]`; configure methods in the Dashboard / `automatic_payment_methods`).\n\nFlow walkthroughs with code shapes: `references/payment-flows.md`.\n\n## Non-negotiables (review checklist)\n\n1. **Fulfill from webhooks, not from the success page.** Customers close tabs; bank debits settle days later. Handle `checkout.session.completed` **and** `checkout.session.async_payment_succeeded` (or `payment_intent.succeeded`). Optionally *also* run fulfillment on the landing page for speed — through the **same idempotent function**.\n2. **Verify webhook signatures against the raw request body.** Any JSON parse/re-serialize by your framework breaks verification. Use the SDK's `constructEvent`/`construct_event`; never tolerance `0`. Exempt the route from CSRF, not from verification.\n3. **Make fulfillment idempotent and concurrency-safe.** Events are delivered at least once, possibly concurrently, in any order. Dedupe on `event.id` and guard fulfillment on the business object (e.g. a unique constraint on `checkout_session_id`). Never use `event.created` for ordering.\n4. **Return 2xx fast; process async.** Enqueue, then ack. Slow handlers time out and get retried (live: up to 3 days with backoff). For `invoice.created`, a non-2xx delays invoice finalization up to 72 hours.\n5. **Idempotency-Key on every mutating POST** you might retry (SDKs do this when `maxNetworkRetries` > 0). Derive it from your own operation (cart ID, order ID) to also stop double-submits. Keys live 24h (v1).\n6. **Secret keys only on the server, from a secrets vault/env.** Use **restricted keys** (`rk_live_…`) with least privilege in production. Publishable key (`pk_…`) is the only key in browser/mobile code. Pre-commit scan for `sk_live_` / `rk_live_`.\n7. **Amounts are integers in the smallest currency unit** (`2000` = 20.00 USD; zero-decimal currencies like JPY are whole units). Never floats.\n8. **Load Stripe.js from `js.stripe.com`** (don't bundle/self-host it — PCI). Card data never touches your server; that is what keeps you in the lightest PCI scope.\n9. **Pin and match API versions.** Typed SDKs (Java, Go, .NET, and Node ≥12/Python ≥6/Ruby ≥9/PHP ≥11) pin the version of their release. Create webhook endpoints with the **same** API version, or event payload shapes won't match your types.\n10. **Store Stripe IDs + your IDs in `metadata`** (`order_id`, `user_id`) so webhooks and 500-reconciliation can be joined back to your data. Never put secrets/PII like card data in metadata or `description`.\n\n## Status machine you must handle\n\n| PaymentIntent status | Meaning | Your move |\n|---|---|---|\n| `requires_payment_method` | New, **or a failed attempt returned here** (decline) | Collect/retry a payment method |\n| `requires_confirmation` | PM attached, not confirmed (most integrations skip) | Confirm |\n| `requires_action` | 3DS/redirect/next_action needed | Client handles `next_action` (Stripe.js does it in confirm) |\n| `processing` | Async method (ACH, SEPA, BECS…) in flight — up to days | Wait for webhook; don't fulfill yet |\n| `requires_capture` | Authorized, `capture_method=manual` | Capture before the auth expires (cards ≈7 days CIT; Visa MIT ~5 days) or cancel |\n| `succeeded` | Money collected | Fulfill (idempotently) |\n| `canceled` | Terminal; held funds released | Nothing more on this intent |\n\nCancel is possible before `processing`/`succeeded` (and during `processing` for some bank debits). **Uncaptured → cancel; captured → refund.**\n\n## Top gotchas\n\n- **Declines don't fail the PaymentIntent** — it drops back to `requires_payment_method`. Don't treat a decline as terminal; don't create a new PI per retry (you lose attempt history).\n- **`checkout.session.completed` ≠ paid.** Check `payment_status` (`paid` / `unpaid` / `no_payment_required`). Delayed methods complete the session while `unpaid`.\n- **Webhook payloads are snapshots at event time and never expanded.** Re-retrieve the object (with `expand`) when you need current or nested data (e.g. `line_items`).\n- **Off-session charges can still demand authentication.** Catch `authentication_required`, email the customer, bring them back on-session with the declined PI's client secret.\n- **Subscriptions start `incomplete`** when the first payment needs action or fails; after 23 hours they become `incomplete_expired` and you must create a new subscription.\n- **`active` doesn't mean every invoice is paid**, and delayed-method subscriptions can be `active` while the PI is still `processing`.\n- **API version drift renames fields.** E.g. from `2025-03-31.basil` an invoice's subscription lives at `parent.subscription_details.subscription`, not `invoice.subscription`.\n- **Search is eventually consistent** (usually < 1 min). Never search right after a write; use list/retrieve.\n- **A `500` is indeterminate.** The idempotent result is cached, so a retry with the same key returns the same 500; don't blindly retry with a new key — reconcile via webhooks + metadata.\n- **Sandbox ≠ production for load tests** (25 rps vs 100 rps, mocked networks). Mock Stripe for load tests.\n\n## References\n\n- `references/api-conventions.md` — auth & key types, versioning, errors & retries, idempotency, pagination, expand, search, metadata, rate limits, v1 vs v2.\n- `references/payment-flows.md` — hosted Checkout, Elements + Checkout Sessions, PaymentIntents + Payment Element, SetupIntents & off-session, manual capture.\n- `references/webhooks-and-fulfillment.md` — endpoint setup, signature verification (library + manual), delivery semantics, the fulfill function, event catalog.\n- `references/subscriptions.md` — lifecycle, statuses, invoice finalization, events, provisioning, portal.\n- `references/refunds-disputes-declines.md` — cancel vs refund, refund states, disputes lifecycle and evidence, decline/advice codes.\n- `references/connect.md` — charge types, fees, on_behalf_of, refunds/disputes per type, onboarding.\n- `references/testing.md` — test cards and `pm_card_*` tokens, 3DS, disputes, bank debits, Stripe CLI.\n</skill>\n\nUser request:\nStripe delivered the same event twice and we shipped twice. How do I stop that?",
+          "label": "evals/stripe-payments/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "ec83b2623da87b55a5c0c02fe78ec3d01efd05206a98a711f9145d1dc83cbe2b",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Make fulfillment idempotent, keyed on the business object and not just the event. Stripe delivers at least once, sometimes concurrently, so a check-then-ship pattern will race.\n\n1. **Add a unique constraint** on the thing you ship for, such as `checkout_session_id` or `order_id`. Claim it atomically before shipping:\n\n```sql\n-- in the same transaction as marking the order fulfilled\nINSERT INTO fulfillments (checkout_session_id, fulfilled_at)\nVALUES ($1, now())\nON CONFLICT (checkout_session_id) DO NOTHING;\n-- 0 rows inserted → already fulfilled, return 2xx and do nothing\n```\n\n2. **Also dedupe on `event.id`** with a unique `processed_events` table. This is the cheap first filter. The constraint in step 1 is the real guard, because `checkout.session.completed` and `checkout.session.async_payment_succeeded` are different events for the same order.\n3. **Route every path through one `fulfill(session_id)` function.** That includes the success-page handler if it also fulfills.\n4. **Ack fast.** Verify the signature on the raw body, enqueue, and return 2xx. A slow handler times out and Stripe retries it, which is a common cause of the duplicate.\n5. **Check `payment_status == \"paid\"`** before shipping. Delayed methods complete the session while it is still `unpaid`.\n6. **Don't order by `event.created`.** Events can arrive out of order.\n\nIf you paste your handler, I can point to the exact race."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "idempotent",
+          "vars": {
+            "skill": "file:///private/tmp/b5/skills/stripe-payments/SKILL.md",
+            "request": "file:///private/tmp/b5/evals/stripe-payments/cases/idempotent.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/idempot|dedup|event\\.id|at least once/i.test(output)) throw new Error('prescribes idempotent fulfilment / dedupe on event id');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b5/skills/stripe-payments/SKILL.md",
+          "request": "file:///private/tmp/b5/evals/stripe-payments/cases/idempotent.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 3,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 12530,
+      "evaluationDurationMs": 12530
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "stripe-payments — EDD",
+    "prompts": [
+      "file:///private/tmp/b5/evals/stripe-payments/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "fulfill",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/stripe-payments/cases/fulfill.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/webhook/i.test(output)) throw new Error('says fulfil from webhooks');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/close.{0,20}tab|settle|days|unreliable|not.{0,20}success page|don'?t.{0,25}success/i.test(output)) throw new Error('explains why the success page is unreliable');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "signature",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/stripe-payments/cases/signature.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/raw (request )?body|raw body|unparsed|before.{0,20}pars/i.test(output)) throw new Error('identifies the raw-body requirement');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "idempotent",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/stripe-payments/cases/idempotent.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/idempot|dedup|event\\.id|at least once/i.test(output)) throw new Error('prescribes idempotent fulfilment / dedupe on event id');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/stripe-payments/results/skill_1.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b5/skills/stripe-payments/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b5/evals/stripe-payments"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:25:44.554Z",
+    "evaluationCreatedAt": "2026-10-29T19:25:31.971Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}
