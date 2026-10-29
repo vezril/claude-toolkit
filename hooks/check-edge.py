@@ -162,7 +162,8 @@ def check_brief(path: Path, common, brief) -> tuple:
 TERMINAL_PROSE = {"summary.md": check_brief}
 
 
-def check_artifact(path: Path, schemas: dict, common, validator, trigger_rules, proposal_rules) -> tuple:
+def check_artifact(path: Path, schemas: dict, common, validator, trigger_rules, proposal_rules,
+                   repo: Path = None) -> tuple:
     """Return (ok, problems, checks_run) for one artifact."""
     problems, ran = [], []
     schema = common.schema_for(path.name, schemas)
@@ -210,7 +211,14 @@ def check_artifact(path: Path, schemas: dict, common, validator, trigger_rules, 
         # interesting failure is the two disagreeing. Schema conformance cannot see that.
         if path.name == "proposal.json":
             ran.append("change-dir")
-            found, info = proposal_rules.problems(path, common.repo_root(path.parent))
+            # The *delivery repo*, not the artifact path's git root. With `artifacts.root`
+            # pointing into the vault, `repo_root(path.parent)` climbs to the vault — itself a
+            # git repo — and looks for openspec/changes/<id> there, where no change directory
+            # will ever be. The result was "no change directory at openspec/changes/<id>"
+            # against a change that exists in the delivery repo, blocking the flow at propose
+            # on a checker bug rather than a bad artifact. `policy_disagreements` below already
+            # takes `repo` for exactly this reason; this call site was missed.
+            found, info = proposal_rules.problems(path, repo or common.repo_root(path.parent))
             problems += found
             if info.get("openspec_validate"):
                 ran.append("openspec-validate")
@@ -400,7 +408,7 @@ def main() -> int:
             ok, problems, ran, metrics = TERMINAL_PROSE[filename](path, common, brief)
         else:
             ok, problems, ran = check_artifact(path, schemas, common, validator, trigger_rules,
-                                               proposal_rules)
+                                               proposal_rules, repo)
         if not ran:
             continue
         step = None
