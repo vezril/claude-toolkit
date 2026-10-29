@@ -159,20 +159,25 @@ Following `dockerhub-setup` (50% → 100%, fully deterministic):
   eval would mostly re-measure what is already proven.
 - The **Akka family** is largely scored already.
 
-### 4f. The table itself is out of sync with the tree
+### 4f. The table is now in sync, and checked
 
-`skills/` holds **258** directories; the EDD table has **247** rows. The table is the inventory,
-so a skill missing from it is a skill nobody will ever notice is untested.
+**Fixed.** `skills/` and the EDD table both hold **282** entries, verified by
+`python3 scripts/check-edd-table.py`, which exits non-zero on a directory with no row, a row
+with no directory, or a duplicate.
 
-- [ ] Add the 12 missing rows: `delivery-flow`, `workflow-certification`, `pr-description`,
-      `new-constellation-service`, `grounded-answers`, `secretary-followups`,
-      `constellation-logo-drop`, `constellation-logo-key`, `constellation-logo-prompt`,
-      `indian-super-chief`, `toyota-matrix-2009`, `yamaha-virago-xv1100`
-      (note `pr-description` *has* a suite and an eval history — it just has no row)
-- [ ] Remove or explain `webui-quickfix-demo` — it has a table row and no skill directory
-- [ ] Consider replacing the hand-maintained table with a generated one. A 258-row table kept in
-      sync by hand will drift again; `docs/skill-and-agent-evaluation.md` already proposes a
-      repo-wide linter that could emit it.
+What the drift was hiding: 12 directories had no row — including `pr-description`, which already
+had a working suite and a full iteration log (recorded now as 93% → 100%, haiku tier) — and one
+row, `webui-quickfix-demo`, had no directory. **The backlog figure was wrong in both directions**,
+and quoting it from memory rather than counting made it worse across several batches.
+
+- [x] Add the 12 missing rows; drop the phantom one
+- [x] Add `scripts/check-edd-table.py` and reference it from the table preamble
+- [ ] Run the check in CI, so this cannot drift again unnoticed
+- [ ] Consider generating the table outright; 282 hand-maintained rows will drift again
+
+**Current honest figure: 113 scored, 169 blank.** The blank count went *up* after the fix,
+because the table had been undercounting.
+
 
 ### 4g. Eval infrastructure
 
