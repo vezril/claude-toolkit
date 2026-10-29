@@ -90,6 +90,82 @@ def _registered_bases() -> list:
         return []
 
 
+# `<ITEM>/<file>` immediately after a root, or after an item directory's own name.
+ROOTED_TAIL_RE = re.compile(r"([A-Za-z0-9][A-Za-z0-9._-]*)/([A-Za-z0-9][A-Za-z0-9._-]+)")
+
+
+def _is_within(path: Path, root: Path) -> bool:
+    """True when `path` sits under `root`. Resolved, so /tmp and /private/tmp agree."""
+    try:
+        path, root = path.resolve(), root.resolve()
+    except OSError:
+        return False
+    return path == root or root in path.parents
+
+
+def artifact_roots() -> list:
+    """Every configured `artifacts.root` in reach, read from config rather than guessed.
+
+    `known_repos()` is already the registry of repos that opted in, and `artifact_root()`
+    already follows each one's `artifacts.root`. Nothing here infers a path.
+    """
+    try:
+        common = _helpers()[0]
+    except Exception:
+        return []
+    roots = []
+    for repo in common.known_repos():
+        try:
+            root = common.artifact_root(repo)
+        except (OSError, ValueError):
+            continue
+        if root.is_dir() and root not in roots:
+            roots.append(root)
+    return roots
+
+
+def rooted_paths(command: str, roots: list) -> list:
+    """Artifact paths a Bash command names under a configured artifacts root.
+
+    `BASH_PATH_RE` cannot find these, and widening it is the wrong repair. It requires a
+    literal `delivery/` segment, which a configured root need not contain, and its character
+    class excludes the space in `~/Amazon RAG/...` — a regex over command text has now lost to
+    `cd`, to shell variables, to computed paths and to a space, which is four for four. The
+    roots are known exactly, so this matches against them instead of trying to describe them.
+
+    Two spellings, because the root is sometimes in the text and sometimes not:
+
+    - **spelled out.** `write-sentinel.py "/Users/…/_runs/AN-3702/triage.json"` contains the
+      root verbatim. Matching the known literal is immune to the quoting and spaces that
+      defeat a character class.
+    - **held in a variable.** `"$R/AN-3702/triage.json"` has the root nowhere in the payload,
+      but the `<ITEM>/<file>` tail is still there and the item directories are on disk to
+      match it against. Only directories that exist are considered, so this cannot invent an
+      item, and `main` discards any candidate that is not a file on disk.
+    """
+    out = []
+    for root in roots:
+        spelled = str(root)
+        start = 0
+        while True:
+            at = command.find(spelled, start)
+            if at < 0:
+                break
+            start = at + len(spelled)
+            m = ROOTED_TAIL_RE.match(command[start:].lstrip("/"))
+            if m:
+                out.append(root / m.group(1) / m.group(2))
+        try:
+            item_dirs = sorted(p for p in root.glob("*") if p.is_dir())
+        except OSError:
+            continue
+        for item_dir in item_dirs:
+            for m in re.finditer(rf"{re.escape(item_dir.name)}/([A-Za-z0-9][A-Za-z0-9._-]+)",
+                                 command):
+                out.append(item_dir / m.group(1))
+    return out
+
+
 def written_paths(payload: dict) -> list:
     """Every path this tool call may have written, as absolute paths.
 
@@ -113,6 +189,7 @@ def written_paths(payload: dict) -> list:
     elif tool == "Bash":
         command = ti.get("command", "")
         bases += _cd_targets(command)
+        out += rooted_paths(command, artifact_roots())
         for token in BASH_PATH_RE.findall(command):
             out.append(Path(token))
             # The leading character class swallows whatever precedes `delivery/` — in
@@ -277,21 +354,38 @@ def policy_disagreements(path: Path, common, trigger_rules, repo: Path = None) -
         cfg)
 
 
-def last_traced_sha(repo: Path, item: str, filename: str, common):
-    """The sha this artifact had when an edge last ran over it, or None."""
-    found = None
+def last_edge(repo: Path, item: str, filename: str, common):
+    """(sha, failed) for the newest edge record over this artifact, or (None, False).
+
+    `failed` is why this returns a pair. The sha gate below asks "have the bytes changed since
+    an edge last ran", which is the right question for a *passing* record and the wrong one for
+    a failing one: an edge can fail for a reason that lives outside the artifact's own bytes,
+    and then no amount of waiting changes the sha. The case that found this is the normal
+    node contract — `SKILL.md` has a node write its artifact and *then* its sentinel, so the
+    hook fires on the artifact's write while the sentinel does not yet exist, records "no
+    readable sentinel", and the sentinel lands a moment later. The artifact was correct, the
+    sentinel was correct, and the run was blocked forever on a verdict that was true only for
+    the instant it was taken.
+    """
+    sha, failed = None, False
     try:
         lines = common.trace_path(repo, item).read_text().splitlines()
     except OSError:
-        return None
+        return None, False
     for line in lines:                      # the newest matching record wins
         try:
             rec = json.loads(line)
         except (json.JSONDecodeError, ValueError):
             continue
         if rec.get("artifact") == filename and rec.get("sha256"):
-            found = rec["sha256"]
-    return found
+            sha = rec["sha256"]
+            failed = bool((rec.get("edge") or {}).get("exit"))
+    return sha, failed
+
+
+def last_traced_sha(repo: Path, item: str, filename: str, common):
+    """The sha this artifact had when an edge last ran over it, or None."""
+    return last_edge(repo, item, filename, common)[0]
 
 
 def changed_artifacts(payload: dict, common, schemas: dict, governed: set = frozenset()) -> list:
@@ -350,7 +444,14 @@ def changed_artifacts(payload: dict, common, schemas: dict, governed: set = froz
                 current = common.sha256(path)
             except OSError:
                 continue
-            if current != last_traced_sha(repo, item, filename, common):
+            # Changed bytes, or unchanged bytes whose last verdict was a failure. The second
+            # clause is scoped deliberately narrowly: a *passing* record still suppresses
+            # re-checking, which is what keeps the trace from tripling on every command. Only
+            # a failure is retried, because only a failure can be stale — the artifact may
+            # have been failed for something beside itself (its sentinel, most often) that has
+            # since been put right, and nothing else in the pipeline would ever notice.
+            sha, failed = last_edge(repo, item, filename, common)
+            if current != sha or failed:
                 out.append(path)
     return out
 
@@ -396,7 +497,14 @@ def main() -> int:
     gate = [Path(payload.get("cwd") or ".")] + [p.parent for p in paths]
     if payload.get("tool_name") == "Bash":
         gate += _cd_targets((payload.get("tool_input") or {}).get("command", ""))
-    if not any(common.is_delivery_repo(c) for c in gate if str(c)):
+    # A configured `artifacts.root` sits outside its repo on purpose, so an artifact under one
+    # has no `.delivery-flow.yaml` above it and `is_delivery_repo` says no all the way up. The
+    # repo that opted in is the one that named the root, so a path under a known root is in
+    # reach by that repo's choice. Still gated on the registry: a root nobody registered
+    # contributes nothing, which is what keeps an unconfigured repo inert.
+    roots = artifact_roots()
+    under_root = any(any(_is_within(p, root) for root in roots) for p in paths)
+    if not under_root and not any(common.is_delivery_repo(c) for c in gate if str(c)):
         return 0
 
     # Union with what actually changed on disk, so a write the command text hid still gets
