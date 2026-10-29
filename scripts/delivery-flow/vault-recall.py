@@ -545,10 +545,33 @@ def main(argv=None) -> int:
     if args.stdout:
         print(json.dumps(doc, indent=2, sort_keys=True))
         return 0
-    (item_dir / f"project-context{suffix}.json").write_text(
-        json.dumps(doc, indent=2, sort_keys=True) + "\n")
+    path = item_dir / f"project-context{suffix}.json"
+    path.write_text(json.dumps(doc, indent=2, sort_keys=True) + "\n")
     (item_dir / f"project-context{suffix}.md").write_text(render_md(doc))
-    print(f"wrote project-context{suffix}.json "
+
+    # `project-context.json` is a contract artifact that `breakdown` and `propose` consume, so
+    # it needs its sentinel like any other — the edge check rejects an artifact without one,
+    # and recall was leaving the flow stuck one step after itself. The brief deliberately
+    # writes none because it is terminal prose nothing consumes; this is not that.
+    #
+    # Implementation mode writes `project-context-<story>.json`, and the schema registry keys
+    # on exact filenames, so a suffixed artifact has no schema. The edge skips it for the same
+    # reason, so a sentinel would be checked by nobody — it is written only where a schema
+    # exists, and the gap (per-story recall output is unvalidated) is recorded in
+    # add-vault-delivery-memory rather than papered over with a sentinel that proves nothing.
+    import subprocess
+    if not suffix:
+        out = subprocess.run([sys.executable, "-I",
+                              str(Path(__file__).resolve().parent / "write-sentinel.py"),
+                              str(path), "--step", "project-memory"], capture_output=True)
+        if out.returncode != 0:
+            print((out.stderr or b"").decode().strip() or "could not write the sentinel",
+                  file=sys.stderr)
+            return 2
+
+    print(f"wrote project-context{suffix}.json"
+          + (" and its sentinel" if not suffix else " (no schema for a suffixed name, so no sentinel)")
+          + " "
           f"({'matched' if doc['matched'] else 'nothing matched'}; "
           f"scanned {sum(doc['coverage']['scanned'].values())} notes)")
     return 0
