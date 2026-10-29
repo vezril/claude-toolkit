@@ -120,9 +120,18 @@ def derive(item: dict, triage: dict, breakdown: dict, cfg: dict) -> dict:
     counts do not exist yet, and an undetermined derivation must not be read as "no".
     """
     caps = ceilings(cfg)
-    text = " ".join(x for x in (item_text(item), (triage or {}).get("summary") or "",
-                                (triage or {}).get("rationale") or "",
-                                breakdown_text(breakdown)) if x)
+    # **The item and the breakdown only — never triage's own prose.** The spec says the
+    # derivation runs over "the item and breakdown text, the domains and the counts", and
+    # including triage's `summary`/`rationale` broke the whole point of deriving: the guard was
+    # reading the guarded node's reasoning as evidence about the item.
+    #
+    # It also inverted. On AN-3630 the architecture trigger fired on the phrase "new service"
+    # found inside triage's rationale — in the sentence "a single library change with **no new
+    # service**, topology or incompatible change described". The node correctly explained why
+    # this is not an architecture change, and that explanation became the evidence that it is.
+    # A derivation that punishes a well-argued negative is worse than no derivation, because
+    # it trains nodes to say less.
+    text = " ".join(x for x in (item_text(item), breakdown_text(breakdown)) if x)
     shape = breakdown_shape(breakdown) if breakdown else None
     out = {}
 
