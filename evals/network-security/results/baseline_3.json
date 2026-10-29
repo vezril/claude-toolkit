@@ -1,0 +1,438 @@
+{
+  "evalId": "eval-far-2026-10-29T17:08:20",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T17:08:20.999Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "label": "evals/network-security/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "id": "30defb8c3c0dbd48b7ec88702cbaf327808daf7e68cf78de19dd2b2e61fbded3",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 5,
+          "assertFailCount": 0,
+          "totalLatencyMs": 40620,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 5
+          },
+          "namedScoresCount": {
+            "accuracy": 5
+          },
+          "namedScoreWeights": {
+            "accuracy": 5
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 3
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/segment|VLAN|microsegment|isolat/i.test(output)) throw new Error('prescribes segmentation -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/management|out-of-band|IoT|guest/i.test(output)) throw new Error('calls out isolating management/IoT specifically -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/default.deny|deny by default|least privilege|zero.trust/i.test(output)) throw new Error('prescribes default-deny / zero trust -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "984b4403-2fa2-4588-b2b5-ab444c79f00b",
+        "latencyMs": 18583,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nWe have one flat /16 VLAN with everything on it — servers, laptops, printers, the IoT thermostats and the switch management interfaces. Firewall allows internal traffic freely. What's the priority fix?",
+          "label": "evals/network-security/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "30defb8c3c0dbd48b7ec88702cbaf327808daf7e68cf78de19dd2b2e61fbded3",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "**Priority fix: pull the switch management interfaces onto their own management VLAN first, then isolate IoT and printers.** Put the firewall between all segments with default-deny rules.\n\n1. **Management VLAN.** Whoever owns a switch owns the network, and right now any compromised laptop can reach them. Allow access only from an admin jump host or a small admin subnet, over SSH or HTTPS. Turn off Telnet, HTTP, and SNMPv1/v2c.\n2. **IoT and printers VLAN.** These devices are rarely patched and can't run an agent. Give them internet egress only, and deny traffic to other VLANs. Allow a narrow exception where needed, such as users printing to the print server.\n3. **Servers VLAN.** Users reach only the specific ports they need, such as 443. Server-to-user connections are denied by default.\n4. **Users VLAN**, with client-to-client traffic blocked if the switches support it.\n\nThe firewall has to be the inter-VLAN router, or you need ACLs on the L3 switch. Otherwise the VLANs exist but nothing is enforced. Start with \"permit and log\" between segments, review the flows for a week or two, then switch to default-deny. That avoids surprise outages.\n\n**Sources**\n- A flat network lets an attacker move laterally, so segment and apply least-privilege between zones. This follows NIST SP 800-207 (Zero Trust Architecture) and CIS Controls v8, Control 12 (Network Infrastructure Management). I'm recalling both from memory, not from a page I opened. (confidence: HIGH on the principle, MEDIUM on exact control numbering)\n- Ordering management first, then IoT, then servers. This is my engineering judgment based on blast radius, not a cited standard. (confidence: MEDIUM)\n- \"Permit and log, then tighten\" rollout. This is common practice and I have no specific source. (confidence: MEDIUM)\n\nOverall confidence: HIGH on the direction, MEDIUM on the exact ordering. I can't see your environment, so the right order depends on things like whether any IoT devices are business-critical."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "flat",
+          "vars": {
+            "request": "file:///private/tmp/b3/evals/network-security/cases/flat.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/segment|VLAN|microsegment|isolat/i.test(output)) throw new Error('prescribes segmentation -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/management|out-of-band|IoT|guest/i.test(output)) throw new Error('calls out isolating management/IoT specifically -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/default.deny|deny by default|least privilege|zero.trust/i.test(output)) throw new Error('prescribes default-deny / zero trust -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/network-security/cases/flat.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/upstream|cloud|scrub|provider|ISP/i.test(output)) throw new Error('says volumetric must be mitigated upstream -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/runbook|plan|rehears|incident response/i.test(output)) throw new Error('asks for a runbook -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "4bf33be5-267c-408b-bbde-1e4bb8f64de6",
+        "latencyMs": 22037,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nWe got hit by a 200 Gbps UDP flood and our firewall fell over. What should we have done?",
+          "label": "evals/network-security/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "30defb8c3c0dbd48b7ec88702cbaf327808daf7e68cf78de19dd2b2e61fbded3",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "**A stateful firewall can't absorb a 200 Gbps flood, and nothing at your own edge can.** The mitigation had to happen upstream, before the traffic reached your link. That is the main thing you should have had in place.\n\n**What to have done**\n1. **Put scrubbing upstream.** Use a cloud DDoS service (Shield Advanced, Cloudflare, Akamai, or similar) or your ISP's scrubbing, with your prefixes or DNS already onboarded. Standing up a provider mid-attack is slow and often fails.\n2. **Keep the firewall out of the volumetric path.** A UDP flood fills your uplink before the firewall sees it, and the firewall's connection table and CPU die on per-packet state. Drop UDP you never serve with stateless ACLs on the edge router, or put the firewall behind the scrubbing layer.\n3. **Have upstream filtering ready.** Agree in advance with your ISP on RTBH (remote-triggered blackhole) and BGP Flowspec. Blackholing the targeted /32 sacrifices that one IP, but it saves the rest of the link.\n4. **Expose less.** Allow inbound UDP only on the ports you actually serve. Spread public services across anycast or multiple IPs so a single target doesn't take everything down.\n5. **Have a runbook and detection.** Alert on NetFlow/sFlow anomalies (pps and bps spikes by protocol). The runbook should say who calls the ISP or provider, and the contacts and escalation path should be written down and tested.\n\n**For the postmortem**\n- Find out whether the link saturated or the firewall ran out of pps or session capacity. The fix differs: saturation needs upstream scrubbing, and pps exhaustion needs stateless edge drops.\n- Check whether it was reflection and amplification (DNS, NTP, memcached, CLDAP). If so, the source ports will show it, and you can filter on them.\n\n**Sources**\n- Volumetric attacks need upstream or cloud mitigation, and the mitigation toolkit (anycast, scrubbing, RTBH/Flowspec, runbook) — the toolkit's `network-security` skill, itself distilled from the *DDoS Handbook*. I didn't open the underlying book. (confidence: MEDIUM)\n- RTBH is RFC 5635 and Flowspec is RFC 8955, from memory. (confidence: MEDIUM)\n- UDP amplification and reflection: US-CERT alert TA14-017A, \"UDP-Based Amplification Attacks\", from memory. (confidence: MEDIUM)\n- Your firewall's actual failure mode — memory only. It is a general inference, not a diagnosis of your incident. (confidence: LOW until you check the link and firewall counters)\n\nOverall confidence: MEDIUM. The upstream-mitigation principle is standard practice, but I haven't seen your topology or telemetry."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "ddos",
+          "vars": {
+            "request": "file:///private/tmp/b3/evals/network-security/cases/ddos.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/upstream|cloud|scrub|provider|ISP/i.test(output)) throw new Error('says volumetric must be mitigated upstream -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/runbook|plan|rehears|incident response/i.test(output)) throw new Error('asks for a runbook -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/network-security/cases/ddos.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 22056,
+      "evaluationDurationMs": 22056
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "network-security — EDD — NAIVE BASELINE",
+    "prompts": [
+      "file:///private/tmp/b3/evals/network-security/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "flat",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/network-security/cases/flat.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/segment|VLAN|microsegment|isolat/i.test(output)) throw new Error('prescribes segmentation -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/management|out-of-band|IoT|guest/i.test(output)) throw new Error('calls out isolating management/IoT specifically -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/default.deny|deny by default|least privilege|zero.trust/i.test(output)) throw new Error('prescribes default-deny / zero trust -- not found');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "ddos",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/network-security/cases/ddos.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/upstream|cloud|scrub|provider|ISP/i.test(output)) throw new Error('says volumetric must be mitigated upstream -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/runbook|plan|rehears|incident response/i.test(output)) throw new Error('asks for a runbook -- not found');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/network-security/results/baseline_3.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/private/tmp/b3/evals/network-security"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T17:08:43.098Z",
+    "evaluationCreatedAt": "2026-10-29T17:08:20.999Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

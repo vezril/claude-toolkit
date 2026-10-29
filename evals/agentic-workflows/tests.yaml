@@ -1,0 +1,49 @@
+# agentic-workflows: shared matrix, used verbatim by both arms. Deterministic asserts only.
+
+
+- description: "start-simple"
+  vars: { request: file://cases/start-simple.txt }
+  assert:
+    - type: javascript
+      metric: restraint
+      value: |
+        if (!/simpl|single (call|prompt)|one (call|prompt)|may not need|do you need|escalat|start with/i.test(output)) throw new Error('pushes back toward the simplest thing that works -- not found');
+        return true;
+
+- description: "patterns"
+  vars: { request: file://cases/patterns.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/prompt chain|chaining/i.test(output)) throw new Error('names prompt chaining -- not found');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/routing/i.test(output)) throw new Error('names routing -- not found');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/parallel/i.test(output)) throw new Error('names parallelisation -- not found');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/orchestrator|evaluator|optimizer|maker-checker/i.test(output)) throw new Error('names orchestrator-workers or evaluator-optimizer -- not found');
+        return true;
+
+- description: "verification"
+  vars: { request: file://cases/verification.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/tool|execut|run|real|ground/i.test(output)) throw new Error('requires grounding verification in real tool execution -- not found');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/human|loop|consequential|bound/i.test(output)) throw new Error('raises human-in-the-loop or bounding -- not found');
+        return true;
