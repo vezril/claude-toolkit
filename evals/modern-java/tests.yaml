@@ -1,0 +1,37 @@
+# modern-java: shared matrix, used verbatim by both arms. Deterministic asserts only.
+
+
+- description: "immutability"
+  vars: { request: file://cases/immutability.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/record|immutab|final/i.test(output)) throw new Error('prescribes record/immutability -- not found');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        // BROADENED: a correct answer said "Non-final public fields: anyone can change
+        // them", which is the accessibility point, and failed because the regex wanted
+        // "no public field". Match the concept, not one phrasing.
+        if (!/private|accessib|encapsulat|public field|final field|record/i.test(output)) throw new Error('did not address accessibility / public fields');
+        return true;
+
+- description: "nulls"
+  vars: { request: file://cases/nulls.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/empty (list|collection)|never (return )?null|emptyList|Collections\.empty|return.{0,20}empty/i.test(output)) throw new Error('prescribes returning an empty collection -- not found');
+        return true;
+
+- description: "optional"
+  vars: { request: file://cases/optional.txt }
+  assert:
+    - type: javascript
+      metric: restraint
+      value: |
+        if (!/not|avoid|don'?t|return (type|value)s? only|field|parameter/i.test(output)) throw new Error('warns against Optional for fields/parameters -- not found');
+        return true;

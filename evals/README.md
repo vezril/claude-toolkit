@@ -22,7 +22,70 @@ Every config points `defaultTest.vars.skill` at `file://../../skills/<skill>/SKI
 the shared `prompt.txt`, which injects the skill and the test's `{{request}}`.
 
 Suites currently in the repo: **akka**, **calvin-voice**, **cross-examine**, **detect-ai**,
-**humanize**, **outreach**, **phq-9**, **pr-description**.
+**diagnosing-bugs**, **finch**, **grilling**, **handoff**, **humanize**, **intentional**
+(intentional-daily, intentional-weekly, aversion-breaker), **outreach**, **phq-9**, **pr-description**,
+**wizard**, **writing-for-agents**. `intentional` uses its own provider (`provider.js`): each case runs in a
+fresh copy of a synthetic Obsidian vault and the asserts grade the file diff as well as the reply.
+`handoff` runs the agent in a temp copy of a fixture constellation with read-only tools (`run.sh`).
+
+The four suites for skills imported from mattpocock/skills (diagnosing-bugs, grilling, wizard,
+writing-for-agents) run through their own `run.sh`, which gives the agent a temp copy of a fixture
+and scans its tool calls for paths outside it. `diagnosing-bugs` lets the agent edit (Bash
+sandboxed, Edit/Write limited to the copy) and grades the code it leaves; `wizard` runs each
+generated script in a pseudo-terminal (`drive.py`) against stub `gh`/`open`.
+
+`finch` is the one suite that ships a **paired naive-baseline arm**
+(`promptfooconfig.local.baseline.yaml`): same model, same asserts, same `tests.yaml`, no
+`SKILL.md` in context. Run both and the difference is the skill's measured value rather than
+the model's pre-existing knowledge. Copy that pattern for any new knowledge skill — a suite
+that only ever runs the with-skill arm can't tell "the skill works" from "the model already
+knew." It's worth running at **N=3 with majority scoring**, as CI does: on `finch` a single
+sample credited the model with three facts that three samples showed it doesn't reliably know
+(`evals/finch/iteration-log.md`).
+
+That suite also carries `.local.*` config variants on an `exec:` provider over the `claude`
+CLI, for machines where `anthropic:claude-agent-sdk` can't authenticate — on a Bedrock-backed
+install it spawns the claude-code binary, inherits no AWS credentials, and errors every case.
+Only the plain `promptfooconfig.yaml` name is auto-discovered by CI, so `.local.*` variants
+and baseline arms stay out of the gate by construction.
+
+## Running a suite where the agent-SDK provider can't authenticate
+
+The canonical `promptfooconfig.yaml` in each suite is the **CI arm** and the single source of
+truth for tests and asserts. On a Bedrock-backed install the `anthropic:claude-agent-sdk`
+provider cannot authenticate at all — it spawns the claude-code binary, which inherits no AWS
+credentials, and every case errors with `Could not load AWS credentials`.
+
+For those machines each suite can carry two **derived** configs on an `exec:` provider:
+
+```
+evals/_provider/claude.sh             generation
+evals/_provider/claude-grader.sh      grading (llm-rubric needs bare JSON back)
+evals/_provider/make-local-configs.py derives both .local.* configs from the canonical one
+```
+
+```bash
+python3 evals/_provider/make-local-configs.py evals/<suite>
+npx promptfoo@latest eval -c evals/<suite>/promptfooconfig.local.yaml --no-cache
+npx promptfoo@latest eval -c evals/<suite>/promptfooconfig.local.baseline.yaml --no-cache
+```
+
+**Derive, don't hand-copy.** The arms have to share tests and asserts byte for byte or the
+naive-vs-skill delta measures nothing, and copying across suites is exactly how that drifts.
+Only the bare name `promptfooconfig.yaml` is auto-discovered, so `.local.*` variants and
+baseline arms stay out of CI's gate by construction.
+
+Three things these scripts encode, each learned the hard way:
+
+- **The prompt goes in on stdin, never as an argument.** A rendered prompt starting with `-`
+  (cross-examine's begins with the `---` of an agent file's frontmatter) is parsed as a CLI
+  option. Suites whose template puts prose before the injected file escape it, so the bug
+  looks suite-specific when it's structural.
+- **Only `$1` is ever forwarded.** promptfoo passes the test context as `$3`, and that context
+  contains the asserts — forwarding it leaks expected answers into the prompt and turns the
+  whole suite green while measuring nothing.
+- **A 0% score and a 0% error rate look identical in the summary line.** Check for empty
+  outputs and `Command failed` separately from assert failures before believing a zero.
 
 ## Run one
 

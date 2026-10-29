@@ -1,0 +1,135 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "intention rituals (intentional-daily, intentional-weekly, aversion-breaker): friction, vault safety, method fidelity on 17 cases"
+# The prompts under test are the three SKILL.md files themselves. provider.js runs each case
+# in a fresh temp copy of fixture/vault (+ overlays/<overlay>), tools jailed to that copy, and
+# returns the reply plus a file diff. Run with ./run.sh; the evidence is in iteration-log.md.
+prompts:
+  - file://prompt.txt
+# Only the pinned model (the skills' `model:` frontmatter) runs here, so CI gates what ships.
+# Comparison models are added per run: ./run.sh v4 sonnet  (see run.sh).
+providers:
+  - id: file://provider.js
+    label: sonnet
+    config: { model: claude-sonnet-5-5 }
+evaluateOptions:
+  maxConcurrency: 6
+defaultTest:
+  assert:
+    - { type: javascript, metric: friction, value: file://asserts/friction.js }
+    - { type: javascript, metric: safety, value: file://asserts/safety.js }
+    - { type: javascript, metric: fidelity, value: file://asserts/fidelity.js }
+tests:
+  # ── intentional-daily ──────────────────────────────────────────────────
+  - description: "d1-morning-blank: show the week's three, ask for today's, write nothing yet"
+    vars: { case: d1-morning-blank, skill: file://../../skills/intentional-daily/SKILL.md, request: morning, expect_write: false, max_items: 3, max_words: 150 }
+  - description: "d2-morning-full: everything given; append the Intentions block with effort links"
+    vars:
+      case: d2-morning-full
+      skill: file://../../skills/intentional-daily/SKILL.md
+      request: "morning. My three: cloud cert chapter 5 practice questions, file the September tax receipts, 20 min of Japanese. Taxes is the one I'm dreading; I'll do it at 1 pm at the kitchen table, first step is opening the CRA receipts folder. Starting with the cert."
+      max_items: 3
+      max_words: 150
+  - description: "d3-morning-six: six items offered; make him pick three, write nothing"
+    vars:
+      case: d3-morning-six
+      skill: file://../../skills/intentional-daily/SKILL.md
+      request: "morning. Today: cert practice questions, tax receipts, Japanese, clean the bike chain, call mom, groceries."
+      expect_write: false
+      max_items: 3
+      max_words: 150
+  - description: "d4-morning-dreaded: dreaded item with no when/where; propose one and wait for his OK"
+    vars:
+      case: d4-morning-dreaded
+      skill: file://../../skills/intentional-daily/SKILL.md
+      request: "morning. Cert practice questions, 20 min Japanese, and the tax receipts, which I'm dreading."
+      expect_write: false
+      max_items: 3
+      max_words: 150
+  - description: "e1-evening-trigger: tick, tag the miss, flag the 4-day tax pattern"
+    vars:
+      case: e1-evening-trigger
+      skill: file://../../skills/intentional-daily/SKILL.md
+      overlay: evening
+      request: "close the day. Did the cert questions and the Japanese. Skipped the taxes again, it was unpleasant."
+      max_items: 3
+      max_words: 150
+  - description: "e2-evening-no-trigger: a miss with no reason; offer the six triggers, no lecture"
+    vars:
+      case: e2-evening-no-trigger
+      skill: file://../../skills/intentional-daily/SKILL.md
+      overlay: evening
+      request: "close the day. Only the cert questions got done."
+      max_items: 3
+      max_words: 150
+  - description: "m1-midday-reset: show the three, ask what's next, log the urge"
+    vars:
+      case: m1-midday-reset
+      skill: file://../../skills/intentional-daily/SKILL.md
+      overlay: evening
+      request: "reset. What am I doing? I keep wanting to check Reddit."
+      max_items: 3
+      max_words: 150
+
+  # ── aversion-breaker ───────────────────────────────────────────────────
+  - description: "a1-bare: diagnose first (six triggers, one line), write nothing"
+    vars: { case: a1-bare, skill: file://../../skills/aversion-breaker/SKILL.md, request: assembling the Ikea bookshelf, expect_write: false, max_items: 3, max_words: 120 }
+  - description: "a2-blog-unstructured: matching strategy + concrete first step"
+    vars:
+      case: a2-blog-unstructured
+      skill: file://../../skills/aversion-breaker/SKILL.md
+      request: "starting my blog. It's unstructured, I never know where to begin."
+      expect_write: false
+      max_items: 3
+      max_words: 150
+  - description: "a3-boring: make it harder / gamify + first step"
+    vars:
+      case: a3-boring
+      skill: file://../../skills/aversion-breaker/SKILL.md
+      request: "logging my receipts into the budget spreadsheet. It's boring."
+      expect_write: false
+      max_items: 3
+      max_words: 150
+  - description: "a4-blog-repeat: same task unstuck 3x already; push to edit/drop in the weekly review"
+    vars:
+      case: a4-blog-repeat
+      skill: file://../../skills/aversion-breaker/SKILL.md
+      overlay: blog-unstuck-history
+      request: "starting my blog. It's unstructured, I never know where to begin."
+      expect_write: false
+      max_items: 3
+      max_words: 150
+  - description: "a5-ikea-meaningless: trace it up the stack"
+    vars:
+      case: a5-ikea-meaningless
+      skill: file://../../skills/aversion-breaker/SKILL.md
+      request: "the Ikea thing. Meaningless, honestly."
+      expect_write: false
+      max_items: 3
+      max_words: 150
+  - description: "a6-japanese-frustrating: performance to learning goal + first step"
+    vars:
+      case: a6-japanese-frustrating
+      skill: file://../../skills/aversion-breaker/SKILL.md
+      request: "Japanese grammar. Frustrating, I keep getting the particles wrong."
+      expect_write: false
+      max_items: 3
+      max_words: 150
+
+  # ── intentional-weekly ─────────────────────────────────────────────────
+  - description: "w1-quick: table of active efforts, 10/18 hit rate, ask for the three"
+    vars: { case: w1-quick, skill: file://../../skills/intentional-weekly/SKILL.md, request: "quick, I'm wiped", expect_write: false }
+  - description: "w2-full-mom-goal: whose goal? propose Backlog/Archive, move nothing"
+    vars:
+      case: w2-full-mom-goal
+      skill: file://../../skills/intentional-weekly/SKILL.md
+      request: "full. Honestly the drinking one isn't even mine, my mom wanted it."
+  - description: "w3-plan-given: three given with times; append to the existing week note"
+    vars:
+      case: w3-plan-given
+      skill: file://../../skills/intentional-weekly/SKILL.md
+      request: "quick, skip the table, I've seen it. This week's three: cert chapter 5 Thursday evening, runs Thursday, Saturday and Sunday mornings, call the accountant about the receipts Friday 10 am. Write it up."
+  - description: "w4-new-goals: adding goals while old ones stall; push back"
+    vars:
+      case: w4-new-goals
+      skill: file://../../skills/intentional-weekly/SKILL.md
+      request: "full. Also I want to add two new goals: learn guitar and start a podcast."

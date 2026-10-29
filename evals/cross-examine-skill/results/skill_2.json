@@ -1,0 +1,515 @@
+{
+  "evalId": "eval-xKw-2026-10-29T18:44:31",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T18:44:31.388Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/cross-examine-skill/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "9bfe21b5e8f5f4ae6912712c3db2c7d6f852ffe9b790d01ddedc39adbd2c8042",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 1,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 1,
+          "totalLatencyMs": 22275,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 1,
+            "restraint": 1
+          },
+          "namedScoresCount": {
+            "accuracy": 2,
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2,
+            "restraint": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/rerun|re-run|redo|produce.{0,30}again|invalid|do not patch|don'?t patch/i.test(output)) throw new Error('says REFUTED means rerun the producing step, not patch');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "118f2eea-bc3b-4222-9f44-fd54115a64fb",
+        "latencyMs": 7472,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: cross-examine\ndescription: \"Spin up an independent adversarial validator to try to REFUTE a finding, analysis, or proposed fix before a human accepts it — the challenge protocol for uncertain conclusions at decision gates. Use when the user is unsure about an analysis or root cause, wants a second opinion with teeth, says 'challenge this', 'red-team this', 'are we sure?', or before approving a gate on shaky evidence. Invokes the adversarial-validator agent in a fresh context with full code/log access and the artifact under challenge (never the reasoning that produced it), and turns the verdict into a challenge artifact the gate decision can use.\"\nuser-invocable: true\nargument-hint: \"[artifact or claim to challenge, e.g. 'the analysis for AICAA-123']\"\n---\n\n# cross-examine — the challenge protocol\n\nWhen a conclusion matters and you are not sure of it, don't re-read it harder. Hand it to an opponent. This skill is the protocol around the `adversarial-validator` agent: what to send, what to withhold, and what the verdict means.\n\n## Why a separate agent, every time\n\nThe refutation must run in a fresh context. A challenger who has watched the analysis being built inherits its anchoring and will find what the analyst found. Independence rules:\n\n- **Send the artifact under challenge and raw-material pointers** (repo paths, log excerpts or store access, the ticket). The challenger re-derives from evidence.\n- **Withhold the reasoning chain.** Not the chat history, not \"we think X because Y\", not prior drafts. The artifact must stand on what it states and cites.\n- **Prefer the strongest model available.** The agent inherits your session model; if you are running a small model, override upward when spawning (this work is judgment-heavy). The mandate matters more than the model, but give it both.\n\n## Run it\n\n1. Identify the exact artifact under challenge (a file, or a stated claim quoted verbatim).\n2. Spawn the `adversarial-validator` agent with: the artifact content, pointers to the raw material it needs (code paths, log data, tickets), and nothing else about how the conclusion was reached.\n3. Wait for the verdict. Do not run your own parallel defense; the point is to see whether the artifact survives on its own.\n\n## The challenge artifact\n\nPersist the result next to the thing it challenged (in a pipeline: `defects/<KEY>/challenge-<artifact>.md`; standalone: alongside the file). Content: the agent's verdict block verbatim, plus a one-line header naming what was challenged and when.\n\n## Acting on the verdict\n\n- **REFUTED** — the challenged artifact is invalid. Rerun the step that produced it with the refutation's findings as input. Do not patch the artifact by hand; the producing step owns it.\n- **WEAKENED** — the core stands but holes are real. Address each finding explicitly (in the artifact or the gate decision) before proceeding. A weakness acknowledged at the gate is fine; one discovered after shipping is not.\n- **SURVIVED** — proceed with earned confidence. Read the attack log anyway: the attacks that were tried and failed are exactly what to cite when a stakeholder asks \"are we sure?\"\n\nA verdict is input to the human gate, not a replacement for it. The human still decides; the challenge changes what they know when they do.\n\n## When to reach for a panel instead\n\nOne adversary is the default and usually enough. If the stakes justify it (an irreversible change, a contested root cause), escalate to a panel: three validators with distinct lenses (evidence-chain, alternative-hypothesis, reproduction) and treat two successful refutations as decisive. That is a Workflow-scale job; build it only when a single challenger has actually proven insufficient.\n</skill>\n\nUser request:\nThe adversarial validator came back REFUTED on my root-cause analysis. Do I just patch the holes it found?",
+          "label": "evals/cross-examine-skill/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "9bfe21b5e8f5f4ae6912712c3db2c7d6f852ffe9b790d01ddedc39adbd2c8042",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No. Don't patch the artifact by hand. A REFUTED verdict means the analysis is invalid, and the step that produced it owns the fix.\n\n1. Rerun the root-cause step with the validator's findings as input.\n2. Save the verdict block verbatim as a challenge artifact next to the analysis, with a one-line header saying what was challenged and when. In a pipeline that's `defects/<KEY>/challenge-<artifact>.md`.\n3. Take the reworked analysis to the human gate. If you're still unsure after the rerun, cross-examine it again with a fresh validator.\n\nIf you paste the verdict, I can write the challenge file for you."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "verdict",
+          "vars": {
+            "skill": "file:///private/tmp/b4/skills/cross-examine/SKILL.md",
+            "request": "file:///private/tmp/b4/evals/cross-examine-skill/cases/verdict.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/rerun|re-run|redo|produce.{0,30}again|invalid|do not patch|don'?t patch/i.test(output)) throw new Error('says REFUTED means rerun the producing step, not patch');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b4/skills/cross-examine/SKILL.md",
+          "request": "file:///private/tmp/b4/evals/cross-examine-skill/cases/verdict.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "if (!/human|gate|still|not a replacement|does not replace|input to/i.test(output)) throw new Error('says the verdict is input to the gate, not a replacement');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "9fe7bae8-8994-4529-924e-689ede13c3a3",
+        "latencyMs": 7575,
+        "namedScores": {
+          "restraint": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: cross-examine\ndescription: \"Spin up an independent adversarial validator to try to REFUTE a finding, analysis, or proposed fix before a human accepts it — the challenge protocol for uncertain conclusions at decision gates. Use when the user is unsure about an analysis or root cause, wants a second opinion with teeth, says 'challenge this', 'red-team this', 'are we sure?', or before approving a gate on shaky evidence. Invokes the adversarial-validator agent in a fresh context with full code/log access and the artifact under challenge (never the reasoning that produced it), and turns the verdict into a challenge artifact the gate decision can use.\"\nuser-invocable: true\nargument-hint: \"[artifact or claim to challenge, e.g. 'the analysis for AICAA-123']\"\n---\n\n# cross-examine — the challenge protocol\n\nWhen a conclusion matters and you are not sure of it, don't re-read it harder. Hand it to an opponent. This skill is the protocol around the `adversarial-validator` agent: what to send, what to withhold, and what the verdict means.\n\n## Why a separate agent, every time\n\nThe refutation must run in a fresh context. A challenger who has watched the analysis being built inherits its anchoring and will find what the analyst found. Independence rules:\n\n- **Send the artifact under challenge and raw-material pointers** (repo paths, log excerpts or store access, the ticket). The challenger re-derives from evidence.\n- **Withhold the reasoning chain.** Not the chat history, not \"we think X because Y\", not prior drafts. The artifact must stand on what it states and cites.\n- **Prefer the strongest model available.** The agent inherits your session model; if you are running a small model, override upward when spawning (this work is judgment-heavy). The mandate matters more than the model, but give it both.\n\n## Run it\n\n1. Identify the exact artifact under challenge (a file, or a stated claim quoted verbatim).\n2. Spawn the `adversarial-validator` agent with: the artifact content, pointers to the raw material it needs (code paths, log data, tickets), and nothing else about how the conclusion was reached.\n3. Wait for the verdict. Do not run your own parallel defense; the point is to see whether the artifact survives on its own.\n\n## The challenge artifact\n\nPersist the result next to the thing it challenged (in a pipeline: `defects/<KEY>/challenge-<artifact>.md`; standalone: alongside the file). Content: the agent's verdict block verbatim, plus a one-line header naming what was challenged and when.\n\n## Acting on the verdict\n\n- **REFUTED** — the challenged artifact is invalid. Rerun the step that produced it with the refutation's findings as input. Do not patch the artifact by hand; the producing step owns it.\n- **WEAKENED** — the core stands but holes are real. Address each finding explicitly (in the artifact or the gate decision) before proceeding. A weakness acknowledged at the gate is fine; one discovered after shipping is not.\n- **SURVIVED** — proceed with earned confidence. Read the attack log anyway: the attacks that were tried and failed are exactly what to cite when a stakeholder asks \"are we sure?\"\n\nA verdict is input to the human gate, not a replacement for it. The human still decides; the challenge changes what they know when they do.\n\n## When to reach for a panel instead\n\nOne adversary is the default and usually enough. If the stakes justify it (an irreversible change, a contested root cause), escalate to a panel: three validators with distinct lenses (evidence-chain, alternative-hypothesis, reproduction) and treat two successful refutations as decisive. That is a Workflow-scale job; build it only when a single challenger has actually proven insufficient.\n</skill>\n\nUser request:\nIt came back SURVIVED. Can I skip the human gate now?",
+          "label": "evals/cross-examine-skill/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "9bfe21b5e8f5f4ae6912712c3db2c7d6f852ffe9b790d01ddedc39adbd2c8042",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No. Per the cross-examine protocol, a SURVIVED verdict is input to the human gate, not a replacement for it. The human still decides. The challenge changes what they know when they do.\n\nWhat SURVIVED does give you:\n- **Earned confidence** to bring to the gate.\n- **An attack log** of what was tried and failed. Cite it when someone asks \"are we sure?\"\n\nBefore the gate, check two things:\n- **Persist the challenge artifact** (`defects/<KEY>/challenge-<artifact>.md`, or next to the file). It should hold the verdict block verbatim, plus a one-line header saying what was challenged and when.\n- **Read the attack log**, not just the verdict. If the attacks were shallow, SURVIVED means little.\n\nIf the change is irreversible or the root cause is contested, escalate to a three-validator panel instead of skipping the gate."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "survived",
+          "vars": {
+            "skill": "file:///private/tmp/b4/skills/cross-examine/SKILL.md",
+            "request": "file:///private/tmp/b4/evals/cross-examine-skill/cases/survived.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "if (!/human|gate|still|not a replacement|does not replace|input to/i.test(output)) throw new Error('says the verdict is input to the gate, not a replacement');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b4/skills/cross-examine/SKILL.md",
+          "request": "file:///private/tmp/b4/evals/cross-examine-skill/cases/survived.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "Custom function threw error: requires a fresh/separate context\nStack Trace: Error: requires a fresh/separate context\n    at eval (eval at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2672:27), <anonymous>:3:128)\n    at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2673:34)\n    at runAssertionInternal (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5778:24)\n    at runAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5792:31)\n    at runAndRecordAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5893:24)\n    at file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5916:20\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:151:38\n    at replenish (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:447:21)\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:452:13\n    at Object.eachOfLimit (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:478:36)\nif (!/fresh context|separate|new context|same context|rationalis|rationaliz|own context|second|different/i.test(output)) throw new Error('requires a fresh/separate context');\nreturn true;",
+        "gradingResult": {
+          "pass": false,
+          "score": 0,
+          "reason": "Custom function threw error: requires a fresh/separate context\nStack Trace: Error: requires a fresh/separate context\n    at eval (eval at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2672:27), <anonymous>:3:128)\n    at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2673:34)\n    at runAssertionInternal (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5778:24)\n    at runAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5792:31)\n    at runAndRecordAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5893:24)\n    at file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5916:20\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:151:38\n    at replenish (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:447:21)\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:452:13\n    at Object.eachOfLimit (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:478:36)\nif (!/fresh context|separate|new context|same context|rationalis|rationaliz|own context|second|different/i.test(output)) throw new Error('requires a fresh/separate context');\nreturn true;",
+          "namedScores": {
+            "accuracy": 0
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Custom function threw error: requires a fresh/separate context\nStack Trace: Error: requires a fresh/separate context\n    at eval (eval at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2672:27), <anonymous>:3:128)\n    at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2673:34)\n    at runAssertionInternal (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5778:24)\n    at runAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5792:31)\n    at runAndRecordAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5893:24)\n    at file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5916:20\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:151:38\n    at replenish (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:447:21)\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:452:13\n    at Object.eachOfLimit (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:478:36)\nif (!/fresh context|separate|new context|same context|rationalis|rationaliz|own context|second|different/i.test(output)) throw new Error('requires a fresh/separate context');\nreturn true;",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/fresh context|separate|new context|same context|rationalis|rationaliz|own context|second|different/i.test(output)) throw new Error('requires a fresh/separate context');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "88128a2c-c726-4dc8-a99e-96cbc215d27d",
+        "latencyMs": 7228,
+        "namedScores": {
+          "accuracy": 0
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: cross-examine\ndescription: \"Spin up an independent adversarial validator to try to REFUTE a finding, analysis, or proposed fix before a human accepts it — the challenge protocol for uncertain conclusions at decision gates. Use when the user is unsure about an analysis or root cause, wants a second opinion with teeth, says 'challenge this', 'red-team this', 'are we sure?', or before approving a gate on shaky evidence. Invokes the adversarial-validator agent in a fresh context with full code/log access and the artifact under challenge (never the reasoning that produced it), and turns the verdict into a challenge artifact the gate decision can use.\"\nuser-invocable: true\nargument-hint: \"[artifact or claim to challenge, e.g. 'the analysis for AICAA-123']\"\n---\n\n# cross-examine — the challenge protocol\n\nWhen a conclusion matters and you are not sure of it, don't re-read it harder. Hand it to an opponent. This skill is the protocol around the `adversarial-validator` agent: what to send, what to withhold, and what the verdict means.\n\n## Why a separate agent, every time\n\nThe refutation must run in a fresh context. A challenger who has watched the analysis being built inherits its anchoring and will find what the analyst found. Independence rules:\n\n- **Send the artifact under challenge and raw-material pointers** (repo paths, log excerpts or store access, the ticket). The challenger re-derives from evidence.\n- **Withhold the reasoning chain.** Not the chat history, not \"we think X because Y\", not prior drafts. The artifact must stand on what it states and cites.\n- **Prefer the strongest model available.** The agent inherits your session model; if you are running a small model, override upward when spawning (this work is judgment-heavy). The mandate matters more than the model, but give it both.\n\n## Run it\n\n1. Identify the exact artifact under challenge (a file, or a stated claim quoted verbatim).\n2. Spawn the `adversarial-validator` agent with: the artifact content, pointers to the raw material it needs (code paths, log data, tickets), and nothing else about how the conclusion was reached.\n3. Wait for the verdict. Do not run your own parallel defense; the point is to see whether the artifact survives on its own.\n\n## The challenge artifact\n\nPersist the result next to the thing it challenged (in a pipeline: `defects/<KEY>/challenge-<artifact>.md`; standalone: alongside the file). Content: the agent's verdict block verbatim, plus a one-line header naming what was challenged and when.\n\n## Acting on the verdict\n\n- **REFUTED** — the challenged artifact is invalid. Rerun the step that produced it with the refutation's findings as input. Do not patch the artifact by hand; the producing step owns it.\n- **WEAKENED** — the core stands but holes are real. Address each finding explicitly (in the artifact or the gate decision) before proceeding. A weakness acknowledged at the gate is fine; one discovered after shipping is not.\n- **SURVIVED** — proceed with earned confidence. Read the attack log anyway: the attacks that were tried and failed are exactly what to cite when a stakeholder asks \"are we sure?\"\n\nA verdict is input to the human gate, not a replacement for it. The human still decides; the challenge changes what they know when they do.\n\n## When to reach for a panel instead\n\nOne adversary is the default and usually enough. If the stakes justify it (an irreversible change, a contested root cause), escalate to a panel: three validators with distinct lenses (evidence-chain, alternative-hypothesis, reproduction) and treat two successful refutations as decisive. That is a Workflow-scale job; build it only when a single challenger has actually proven insufficient.\n</skill>\n\nUser request:\nCan I just ask the same agent that wrote the analysis to review it? It has all the context already.",
+          "label": "evals/cross-examine-skill/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "9bfe21b5e8f5f4ae6912712c3db2c7d6f852ffe9b790d01ddedc39adbd2c8042",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No. The agent that wrote the analysis has anchored on its own reasoning, so it will tend to find what it already found. That's why `/cross-examine` spawns a fresh `adversarial-validator`. It gets the artifact and pointers to the raw material (code paths, logs, ticket), but not the reasoning chain. It has to re-derive the conclusion from evidence, so the artifact has to hold up on what it states and cites.\n\nTo run it, tell me which artifact or claim to challenge, for example a file path or \"the analysis for AICAA-123\". I'll send only that artifact and the evidence pointers. The verdict is saved next to the artifact as a challenge file."
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "fresh-context",
+          "vars": {
+            "skill": "file:///private/tmp/b4/skills/cross-examine/SKILL.md",
+            "request": "file:///private/tmp/b4/evals/cross-examine-skill/cases/fresh-context.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/fresh context|separate|new context|same context|rationalis|rationaliz|own context|second|different/i.test(output)) throw new Error('requires a fresh/separate context');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b4/skills/cross-examine/SKILL.md",
+          "request": "file:///private/tmp/b4/evals/cross-examine-skill/cases/fresh-context.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 1,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 7594,
+      "evaluationDurationMs": 7594
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "cross-examine skill — EDD",
+    "prompts": [
+      "file:///private/tmp/b4/evals/cross-examine-skill/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "verdict",
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/cross-examine-skill/cases/verdict.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/rerun|re-run|redo|produce.{0,30}again|invalid|do not patch|don'?t patch/i.test(output)) throw new Error('says REFUTED means rerun the producing step, not patch');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "survived",
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/cross-examine-skill/cases/survived.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "if (!/human|gate|still|not a replacement|does not replace|input to/i.test(output)) throw new Error('says the verdict is input to the gate, not a replacement');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "fresh-context",
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/cross-examine-skill/cases/fresh-context.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/fresh context|separate|new context|same context|rationalis|rationaliz|own context|second|different/i.test(output)) throw new Error('requires a fresh/separate context');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/cross-examine-skill/results/skill_2.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b4/skills/cross-examine/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b4/evals/cross-examine-skill"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T18:44:39.024Z",
+    "evaluationCreatedAt": "2026-10-29T18:44:31.388Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

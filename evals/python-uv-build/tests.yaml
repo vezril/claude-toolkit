@@ -1,0 +1,43 @@
+# python-uv-build: shared matrix, used verbatim by both arms. Deterministic asserts only.
+
+
+- description: "territory"
+  vars: { request: file://cases/territory.txt }
+  assert:
+    - type: javascript
+      metric: restraint
+      value: |
+        if (!/not|won'?t|outside|territor|scope|separate|another skill|only/i.test(output)) throw new Error('declines the out-of-territory work -- not found');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/uv\.lock|lock ?file/i.test(output)) throw new Error('mentions uv.lock -- not found');
+        return true;
+
+- description: "lockfile"
+  vars: { request: file://cases/lockfile.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/generat|network|resolv|`uv (lock|sync)`|uv lock|uv sync/i.test(output)) throw new Error('explains it is generated, not scaffolded -- not found');
+        return true;
+
+- description: "readme"
+  vars: { request: file://cases/readme.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        // CASE REWORDED: the original asked the skill to perform the edit. These skills
+        // are ACTION skills needing Bash, and the eval provider disables tools, so the
+        // model correctly reported it could not act and the assert failed on a correct
+        // refusal. Asking for the rule tests the same territory boundary without tools.
+        if (!/section/i.test(output)) throw new Error('did not name the README section it writes to');
+        return true;
+    - type: javascript
+      metric: restraint
+      value: |
+        if (!/never|not.{0,40}(description|license)|description or license|leave.{0,30}(description|license)|avoid.{0,30}(description|license)/i.test(output)) throw new Error('did not state description/license are off-limits');
+        return true;

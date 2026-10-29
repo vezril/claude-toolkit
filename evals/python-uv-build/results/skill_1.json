@@ -1,0 +1,560 @@
+{
+  "evalId": "eval-sh4-2026-10-29T16:59:16",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T16:59:16.196Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/python-uv-build/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "0e317970ba4698e7978c65e45822a7dc7cbbbf9f8788fe8375ca21a0ca2b77fd",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 3,
+          "testPassCount": 3,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 5,
+          "assertFailCount": 0,
+          "totalLatencyMs": 16198,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 3,
+            "restraint": 2
+          },
+          "namedScoresCount": {
+            "accuracy": 3,
+            "restraint": 2
+          },
+          "namedScoreWeights": {
+            "accuracy": 3,
+            "restraint": 2
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "restraint": 1,
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1,
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "if (!/not|won'?t|outside|territor|scope|separate|another skill|only/i.test(output)) throw new Error('declines the out-of-territory work -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/uv\\.lock|lock ?file/i.test(output)) throw new Error('mentions uv.lock -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "f5c3a781-cf17-4673-8f8a-fd79bc98a7c1",
+        "latencyMs": 6245,
+        "namedScores": {
+          "restraint": 1,
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: python-uv-build\ndescription: \"Scaffold the uv build definition for a Python 3.12 project into the current working tree: pyproject.toml (hatchling src-layout build, empty runtime deps, dev group with ruff/mypy/pytest, ruff+mypy+pytest tool config), .python-version, .gitignore, and a multi-stage uv Dockerfile running python -m <pkg>. Writes no uv.lock (the verify gate's uv sync generates it), no sources, tests, docs, or CI — those belong to python-package, python-tests, repo-starter-docs, and github-actions-python-ci. First scaffold step of the new-python-project workflow.\"\nargument-hint: \"<project-name> [package-name]   (e.g. athena-service → package athena)\"\nlicense: MIT\n---\n\n# Python uv build scaffold\n\nGenerate the build definition — deterministically, via the bundled script. Run from the\nproject's working tree.\n\nBundled script: `scaffold.sh` in this skill's folder (invoke by absolute path).\n\n## Run\n\n```\nbash <skill-dir>/scaffold.sh <project-name> [package-name]\n```\n\n- `project-name` — lowercase `[a-z0-9-]`. The package derives scala-consistently: name\n  minus `-service`/`-svc`, hyphens → underscores (`athena-service` → `athena`,\n  `data-tools` → `data_tools`); override with the second argument.\n- Refuses to run if `pyproject.toml` exists; writes only its own territory.\n- **`uv.lock` is deliberately not scaffolded** — it's generated (network-dependent) by the\n  workflow's verify gate (`uv sync`) and ships with the scaffold PR so CI can\n  `uv sync --locked`.\n- The Dockerfile has **no HEALTHCHECK** by design: the entry point is a CLI, not a server;\n  when a project grows an HTTP surface, add the probe with it.\n\n## README enrichment (after repo-starter-docs)\n\nIf `README.md` exists (repo-starter-docs wrote it), **replace the Getting-started TODO\nsection** — never the description or license sections — with:\n\n- Layout: `src/<pkg>/` (sources), `tests/` (pytest suite).\n- Develop: `uv sync` (env + lockfile), `uv run pytest`, `uv run python -m <pkg>`,\n  `uv run ruff check .` / `uv run ruff format .`, `uv run mypy src`.\n- Docker: `docker build -t <user>/<service> .`, `docker run <user>/<service>` — noting the\n  Dockerfile ships regardless of Docker Hub wiring (publish is CI's job, gated on secrets).\n- CI/CD: ci.yml on PRs (lint/format/types/tests); dev.yml publishes `:dev` images from\n  `development`; release.yml publishes `:X.Y.Z` + `:latest` from a `vX.Y.Z` tag; image\n  publishing skips gracefully while the `DOCKERHUB_*` secrets are absent.\n\n## Report\n\nFiles written, the derived package name, and what was appended to the README.\n\n## Guardrails\n\n- Territory: never write sources, tests, README/LICENSE creation, CI files, or `uv.lock`.\n- Never overwrite an existing `pyproject.toml` (the script enforces this).\n- Version pins (Python, ruff/mypy/pytest floors) live in the script — one place.\n- pyproject.toml declares `readme = \"README.md\"`, so `uv sync` fails until a README exists —\n  in the workflow, repo-starter-docs writes it before the gate runs; standalone, create the\n  README (or run repo-starter-docs) before syncing.\n</skill>\n\nUser request:\nBefore running anything: if I ask you to also write the source files, the tests, the README and the CI workflow as part of this scaffold, what's your answer? And what's the one generated file you deliberately don't create?",
+          "label": "evals/python-uv-build/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "0e317970ba4698e7978c65e45822a7dc7cbbbf9f8788fe8375ca21a0ca2b77fd",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No. I'd decline that part of the request. This skill only writes the build definition: `pyproject.toml`, `.python-version`, `.gitignore`, and the `Dockerfile`. The other pieces belong to other skills:\n\n- **Sources:** `python-package`\n- **Tests:** `python-tests`\n- **README:** `repo-starter-docs`\n- **CI workflow:** `github-actions-python-ci`\n\nThe one file I deliberately don't create is `uv.lock`. The workflow's verify gate generates it when `uv sync` runs, because that step needs network access. It then ships with the scaffold PR so CI can run `uv sync --locked`.\n\nI haven't run anything yet. Give me the project name, and optionally a package name, and I'll run the scaffold."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "territory",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/python-uv-build/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/python-uv-build/cases/territory.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "if (!/not|won'?t|outside|territor|scope|separate|another skill|only/i.test(output)) throw new Error('declines the out-of-territory work -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/uv\\.lock|lock ?file/i.test(output)) throw new Error('mentions uv.lock -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/python-uv-build/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/python-uv-build/cases/territory.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/generat|network|resolv|`uv (lock|sync)`|uv lock|uv sync/i.test(output)) throw new Error('explains it is generated, not scaffolded -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "9b3a0841-f40e-4746-b44f-22cedbf108a1",
+        "latencyMs": 5165,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: python-uv-build\ndescription: \"Scaffold the uv build definition for a Python 3.12 project into the current working tree: pyproject.toml (hatchling src-layout build, empty runtime deps, dev group with ruff/mypy/pytest, ruff+mypy+pytest tool config), .python-version, .gitignore, and a multi-stage uv Dockerfile running python -m <pkg>. Writes no uv.lock (the verify gate's uv sync generates it), no sources, tests, docs, or CI — those belong to python-package, python-tests, repo-starter-docs, and github-actions-python-ci. First scaffold step of the new-python-project workflow.\"\nargument-hint: \"<project-name> [package-name]   (e.g. athena-service → package athena)\"\nlicense: MIT\n---\n\n# Python uv build scaffold\n\nGenerate the build definition — deterministically, via the bundled script. Run from the\nproject's working tree.\n\nBundled script: `scaffold.sh` in this skill's folder (invoke by absolute path).\n\n## Run\n\n```\nbash <skill-dir>/scaffold.sh <project-name> [package-name]\n```\n\n- `project-name` — lowercase `[a-z0-9-]`. The package derives scala-consistently: name\n  minus `-service`/`-svc`, hyphens → underscores (`athena-service` → `athena`,\n  `data-tools` → `data_tools`); override with the second argument.\n- Refuses to run if `pyproject.toml` exists; writes only its own territory.\n- **`uv.lock` is deliberately not scaffolded** — it's generated (network-dependent) by the\n  workflow's verify gate (`uv sync`) and ships with the scaffold PR so CI can\n  `uv sync --locked`.\n- The Dockerfile has **no HEALTHCHECK** by design: the entry point is a CLI, not a server;\n  when a project grows an HTTP surface, add the probe with it.\n\n## README enrichment (after repo-starter-docs)\n\nIf `README.md` exists (repo-starter-docs wrote it), **replace the Getting-started TODO\nsection** — never the description or license sections — with:\n\n- Layout: `src/<pkg>/` (sources), `tests/` (pytest suite).\n- Develop: `uv sync` (env + lockfile), `uv run pytest`, `uv run python -m <pkg>`,\n  `uv run ruff check .` / `uv run ruff format .`, `uv run mypy src`.\n- Docker: `docker build -t <user>/<service> .`, `docker run <user>/<service>` — noting the\n  Dockerfile ships regardless of Docker Hub wiring (publish is CI's job, gated on secrets).\n- CI/CD: ci.yml on PRs (lint/format/types/tests); dev.yml publishes `:dev` images from\n  `development`; release.yml publishes `:X.Y.Z` + `:latest` from a `vX.Y.Z` tag; image\n  publishing skips gracefully while the `DOCKERHUB_*` secrets are absent.\n\n## Report\n\nFiles written, the derived package name, and what was appended to the README.\n\n## Guardrails\n\n- Territory: never write sources, tests, README/LICENSE creation, CI files, or `uv.lock`.\n- Never overwrite an existing `pyproject.toml` (the script enforces this).\n- Version pins (Python, ruff/mypy/pytest floors) live in the script — one place.\n- pyproject.toml declares `readme = \"README.md\"`, so `uv sync` fails until a README exists —\n  in the workflow, repo-starter-docs writes it before the gate runs; standalone, create the\n  README (or run repo-starter-docs) before syncing.\n</skill>\n\nUser request:\nWhy isn't uv.lock in the scaffold? Should I add it?",
+          "label": "evals/python-uv-build/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "0e317970ba4698e7978c65e45822a7dc7cbbbf9f8788fe8375ca21a0ca2b77fd",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "`uv.lock` is left out because it's generated, not templated. `uv sync` resolves dependencies against the network, so the scaffold script can't write it deterministically. The workflow's verify gate runs `uv sync`, which creates it.\n\nYou shouldn't add it by hand. You should commit it, though. Once `uv sync` has produced it, include it in the scaffold PR so CI can run `uv sync --locked`.\n\nStandalone, `uv sync` fails until a `README.md` exists, because `pyproject.toml` declares `readme = \"README.md\"`. Create the README (or run repo-starter-docs) first, then run `uv sync`."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "lockfile",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/python-uv-build/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/python-uv-build/cases/lockfile.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/generat|network|resolv|`uv (lock|sync)`|uv lock|uv sync/i.test(output)) throw new Error('explains it is generated, not scaffolded -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/python-uv-build/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/python-uv-build/cases/lockfile.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1,
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1,
+            "restraint": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "// CASE REWORDED: the original asked the skill to perform the edit. These skills\n// are ACTION skills needing Bash, and the eval provider disables tools, so the\n// model correctly reported it could not act and the assert failed on a correct\n// refusal. Asking for the rule tests the same territory boundary without tools.\nif (!/section/i.test(output)) throw new Error('did not name the README section it writes to');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "if (!/never|not.{0,40}(description|license)|description or license|leave.{0,30}(description|license)|avoid.{0,30}(description|license)/i.test(output)) throw new Error('did not state description/license are off-limits');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "ee2b8c8c-e60b-48fc-8d5d-4fdd8894f03d",
+        "latencyMs": 4788,
+        "namedScores": {
+          "accuracy": 1,
+          "restraint": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: python-uv-build\ndescription: \"Scaffold the uv build definition for a Python 3.12 project into the current working tree: pyproject.toml (hatchling src-layout build, empty runtime deps, dev group with ruff/mypy/pytest, ruff+mypy+pytest tool config), .python-version, .gitignore, and a multi-stage uv Dockerfile running python -m <pkg>. Writes no uv.lock (the verify gate's uv sync generates it), no sources, tests, docs, or CI — those belong to python-package, python-tests, repo-starter-docs, and github-actions-python-ci. First scaffold step of the new-python-project workflow.\"\nargument-hint: \"<project-name> [package-name]   (e.g. athena-service → package athena)\"\nlicense: MIT\n---\n\n# Python uv build scaffold\n\nGenerate the build definition — deterministically, via the bundled script. Run from the\nproject's working tree.\n\nBundled script: `scaffold.sh` in this skill's folder (invoke by absolute path).\n\n## Run\n\n```\nbash <skill-dir>/scaffold.sh <project-name> [package-name]\n```\n\n- `project-name` — lowercase `[a-z0-9-]`. The package derives scala-consistently: name\n  minus `-service`/`-svc`, hyphens → underscores (`athena-service` → `athena`,\n  `data-tools` → `data_tools`); override with the second argument.\n- Refuses to run if `pyproject.toml` exists; writes only its own territory.\n- **`uv.lock` is deliberately not scaffolded** — it's generated (network-dependent) by the\n  workflow's verify gate (`uv sync`) and ships with the scaffold PR so CI can\n  `uv sync --locked`.\n- The Dockerfile has **no HEALTHCHECK** by design: the entry point is a CLI, not a server;\n  when a project grows an HTTP surface, add the probe with it.\n\n## README enrichment (after repo-starter-docs)\n\nIf `README.md` exists (repo-starter-docs wrote it), **replace the Getting-started TODO\nsection** — never the description or license sections — with:\n\n- Layout: `src/<pkg>/` (sources), `tests/` (pytest suite).\n- Develop: `uv sync` (env + lockfile), `uv run pytest`, `uv run python -m <pkg>`,\n  `uv run ruff check .` / `uv run ruff format .`, `uv run mypy src`.\n- Docker: `docker build -t <user>/<service> .`, `docker run <user>/<service>` — noting the\n  Dockerfile ships regardless of Docker Hub wiring (publish is CI's job, gated on secrets).\n- CI/CD: ci.yml on PRs (lint/format/types/tests); dev.yml publishes `:dev` images from\n  `development`; release.yml publishes `:X.Y.Z` + `:latest` from a `vX.Y.Z` tag; image\n  publishing skips gracefully while the `DOCKERHUB_*` secrets are absent.\n\n## Report\n\nFiles written, the derived package name, and what was appended to the README.\n\n## Guardrails\n\n- Territory: never write sources, tests, README/LICENSE creation, CI files, or `uv.lock`.\n- Never overwrite an existing `pyproject.toml` (the script enforces this).\n- Version pins (Python, ruff/mypy/pytest floors) live in the script — one place.\n- pyproject.toml declares `readme = \"README.md\"`, so `uv sync` fails until a README exists —\n  in the workflow, repo-starter-docs writes it before the gate runs; standalone, create the\n  README (or run repo-starter-docs) before syncing.\n</skill>\n\nUser request:\nBefore you run anything: when this skill enriches the README, which section does it write to, and which sections must it leave alone? Just tell me the rule.",
+          "label": "evals/python-uv-build/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "0e317970ba4698e7978c65e45822a7dc7cbbbf9f8788fe8375ca21a0ca2b77fd",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "It writes only to the **Getting-started TODO section**, replacing it with Layout, Develop, Docker, and CI/CD content. It must leave the **description** and **license** sections alone.\n\nIt does this only if `README.md` already exists, because repo-starter-docs creates it. The skill never creates the README itself."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "readme",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/python-uv-build/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/python-uv-build/cases/readme.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "// CASE REWORDED: the original asked the skill to perform the edit. These skills\n// are ACTION skills needing Bash, and the eval provider disables tools, so the\n// model correctly reported it could not act and the assert failed on a correct\n// refusal. Asking for the rule tests the same territory boundary without tools.\nif (!/section/i.test(output)) throw new Error('did not name the README section it writes to');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "if (!/never|not.{0,40}(description|license)|description or license|leave.{0,30}(description|license)|avoid.{0,30}(description|license)/i.test(output)) throw new Error('did not state description/license are off-limits');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/python-uv-build/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/python-uv-build/cases/readme.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 3,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 6264,
+      "evaluationDurationMs": 6264
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "python-uv-build — EDD",
+    "prompts": [
+      "file:///private/tmp/b3/evals/python-uv-build/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "territory",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/python-uv-build/cases/territory.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "if (!/not|won'?t|outside|territor|scope|separate|another skill|only/i.test(output)) throw new Error('declines the out-of-territory work -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/uv\\.lock|lock ?file/i.test(output)) throw new Error('mentions uv.lock -- not found');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "lockfile",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/python-uv-build/cases/lockfile.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/generat|network|resolv|`uv (lock|sync)`|uv lock|uv sync/i.test(output)) throw new Error('explains it is generated, not scaffolded -- not found');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "readme",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/python-uv-build/cases/readme.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "// CASE REWORDED: the original asked the skill to perform the edit. These skills\n// are ACTION skills needing Bash, and the eval provider disables tools, so the\n// model correctly reported it could not act and the assert failed on a correct\n// refusal. Asking for the rule tests the same territory boundary without tools.\nif (!/section/i.test(output)) throw new Error('did not name the README section it writes to');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "if (!/never|not.{0,40}(description|license)|description or license|leave.{0,30}(description|license)|avoid.{0,30}(description|license)/i.test(output)) throw new Error('did not state description/license are off-limits');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/python-uv-build/results/skill_1.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b3/skills/python-uv-build/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b3/evals/python-uv-build"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T16:59:22.502Z",
+    "evaluationCreatedAt": "2026-10-29T16:59:16.196Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

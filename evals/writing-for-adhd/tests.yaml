@@ -1,0 +1,100 @@
+# Shared matrix — used verbatim by both arms so the naive-vs-skill delta means something.
+# `form.js` runs on every case from the config; the per-case asserts below add the
+# behaviour that is specific to each scenario.
+
+- description: "status - front-loaded, short, one next action"
+  vars:
+    request: file://cases/status.txt
+    maxWords: 120
+  assert:
+    - type: javascript
+      metric: front-load
+      value: |
+        // The first sentence must carry information, not scene-setting.
+        const first = output.replace(/^#+ .*$/gm,'').trim().split(/(?<=[.!?])\s/)[0] || '';
+        if (/^(so|well|okay|ok|right)\b/i.test(first)) throw new Error('first sentence is filler: ' + first.slice(0,60));
+        if (first.length > 220) throw new Error('first sentence is ' + first.length + ' chars - not a front-loaded answer');
+        return true;
+    - type: javascript
+      metric: next-action
+      value: |
+        if (!/\bnext\b|\bnow\b|\bstart\b|waiting on|blocked on|needs?\b|\btodo\b/i.test(output))
+          throw new Error('no concrete next action or blocker named');
+        return true;
+
+- description: "many findings - give the one that matters, point at the file"
+  vars:
+    request: file://cases/many-findings.txt
+    maxWords: 170
+  assert:
+    # Nine findings is a memory test. The skill says: name the one that matters, file the rest.
+    - type: javascript
+      metric: triage
+      value: |
+        const named = ['detect-ai','personal-finance','design-patterns','cross-examine','dockerhub-setup','gad-7','cryptography','game-design','skill-evals']
+          .filter(n => new RegExp(n,'i').test(output)).length;
+        if (named > 5) throw new Error('enumerated ' + named + ' of 9 findings - should surface the one that matters and file the rest');
+        return true;
+    # ASSERT FIXED after run 1: the original demanded the reply "point at an artifact"
+    # while the case never said one existed, so passing meant inventing a filename. The
+    # case now states that the logs exist, which makes the rule testable instead of
+    # requiring a fabrication.
+    - type: javascript
+      metric: externalise
+      value: |
+        if (!/iteration-log|\.md\b|the logs?\b/i.test(output))
+          throw new Error('did not point at the iteration logs that the case says exist');
+        return true;
+
+- description: "bad news - open with what works, caveat in a clause"
+  vars:
+    request: file://cases/bad-news.txt
+    maxWords: 130
+  assert:
+    - type: javascript
+      metric: tone
+      value: |
+        const first = output.replace(/^#+ .*$/gm,'').trim().split(/(?<=[.!?])\s/)[0] || '';
+        // Must not lead on the failure; the build/tests/publish all succeeded.
+        if (/^\W*(no\b|unfortunately|bad news|it failed|the deploy failed|sorry)/i.test(first))
+          throw new Error('leads with the failure instead of what works: ' + first.slice(0,70));
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        // Must still be honest about the smoke-test failure - brevity is not omission.
+        if (!/smoke|staging|endpoint/i.test(output)) throw new Error('omitted the smoke-test failure');
+        if (!/fail|broke|red|not (yet )?(working|diagnosed)|undiagnosed/i.test(output)) throw new Error('did not state that something failed');
+        return true;
+
+- description: "whats next - exactly one action, not a menu"
+  vars:
+    request: file://cases/whats-next.txt
+    maxWords: 110
+  assert:
+    - type: javascript
+      metric: next-action
+      value: |
+        const b = (output.match(/^\s*([-*+]|\d+[.)])\s+\S/gm) || []).length;
+        if (b > 3) throw new Error(b + ' options offered - "what next" wants one action, not a ranked plan');
+        return true;
+
+- description: "expert question - no remedial background (expertise reversal)"
+  vars:
+    request: file://cases/expert-q.txt
+    maxWords: 170
+  assert:
+    - type: javascript
+      metric: altitude
+      value: |
+        // The user said they know AES and AEAD. Re-explaining it is extraneous load.
+        if (/AES (is|stands for)|Advanced Encryption Standard|authenticated encryption (is|means|refers to)|a nonce is (a|an)|GCM stands for/i.test(output))
+          throw new Error('explained basics the expert said they already know');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        // Still has to answer: reuse exposes the auth key / enables forgery, and needs rekeying.
+        if (!/auth(entication)? key|forge|forgery|GHASH|universal hash/i.test(output))
+          throw new Error('did not give the real consequence (auth key exposure / forgery)');
+        return true;
