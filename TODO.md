@@ -96,7 +96,37 @@ Task counts as of this writing.
 
 ---
 
-## 4. EDD backlog
+## 4. EDD backlog — paused, and why
+
+**123 of 282 scored; 159 blank.** Verify with `python3 scripts/check-edd-table.py`.
+
+**Recommendation: stop running batches of the current shape.** Pooled across batches 4, 5 and 6
+that is **30 skills for 2 gains**, at roughly 60 model runs per batch. Batch 6 scored 0 for 10,
+including the Akka SDK family picked specifically because its scored siblings sit at 50–83%
+baseline — my suites put the same family at 100%, which points at the suite rather than the
+skill.
+
+Three things to change before resuming (detail in `evals/_batch6/iteration-log.md`):
+
+- [ ] **Calibrate asserts against an observed wrong answer**, not against the skill's own
+      Always-apply list. Writing down the claim and checking the model restates it is close to
+      unfalsifiable. `gitbucket` is the proof: I had measured the model getting those facts
+      wrong on a live instance, then wrote cases it passed 3/3.
+- [ ] **8–10 cases per skill, or leave the row blank.** At 1–3 cases a single flip is 33–100%
+      and a tie carries almost no information.
+- [ ] **Find a way to test recall under load and consistency across a long session** — the
+      actual value of a reference skill, which a single-turn suite cannot see.
+
+**159 blank is a reasonable resting state.** For most of those the honest annotation is
+"untested, and a cheap test would not distinguish it from the baseline" rather than a number.
+
+### What has actually gained, pooled across six batches
+
+Narrow and worth remembering: unusual rails the model has no reason to hold (DSM
+refuse-to-diagnose, 15 of 18 chapters), territory splits in paired scaffolds (`python-package`
++50%), calibration behaviour (`detect-ai` 25% → 100%), credential handling (`dockerhub-setup`
+50% → 100%), and one recent-API case (`akka-sdk-agents` 50% → 100%).
+
 
 **60 of 247 table rows scored, 187 blank — and the table is itself missing 12 skills (§4f).** The backlog is not a to-do list — a pass only pays where
 the naive baseline plausibly fails. Recorded tiers reflect that, and the lessons from the first

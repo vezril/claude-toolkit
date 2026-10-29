@@ -1,0 +1,391 @@
+{
+  "evalId": "eval-d9X-2026-10-29T20:05:58",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T20:05:58.563Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/akka-distributed-cluster/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "64360db04e1f46042c0107e6974d8aee84d1583c577178b3dbbb12ef913abcaf",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 0,
+          "totalLatencyMs": 16791,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 2
+          },
+          "namedScoresCount": {
+            "accuracy": 2
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/never|not|separate|autonomous|per.region|don'?t stretch/i.test(output)) throw new Error('says keep each region a separate autonomous cluster');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "b53f0b82-b4c0-4bbd-8986-c3e9084ea5a2",
+        "latencyMs": 8297,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-distributed-cluster\ndescription: Akka Distributed Cluster (Scala+Java) — connect Akka services across geographically distributed locations (cloud regions, providers) for active-active, lower latency, and higher availability. NOT one stretched cluster — each region is a separate autonomous Akka Cluster linked by reliable asynchronous event replication over gRPC, built on Projections over gRPC (brokerless service-to-service eventing) and Replicated Event Sourcing over gRPC (active-active entities). Covers the architecture and why not a single stretched cluster, the two building blocks, dynamic filters, the exactly-once/eventual-consistency model, and when to use it. Use when designing multi-region/active-active Akka systems, brokerless cross-service or cross-region eventing, hot standby, or geo-distributed microservices. Builds on akka-persistence (Replicated Event Sourcing) and akka-projections (gRPC).\n---\n\n# Akka Distributed Cluster\n\nFeatures (shipped within Akka Projection) for building stateful systems across **geographically distributed locations** — multiple cloud regions or providers — for higher availability and lower latency, plus **brokerless** asynchronous service-to-service communication. Builds on [[akka-persistence]] (Replicated Event Sourcing) and [[akka-projections]] (Projection gRPC).\n\nCross-links: [[akka]] (meta), [[akka-persistence]], [[akka-projections]], [[akka-edge]] (the edge counterpart), [[akka-grpc]]. Group `com.lightbend.akka`, BSL 1.1.\n\n## The key architectural decision: many clusters, not one\n\nIt is **not** one Akka Cluster stretched across regions. Each location is a **separate, fully autonomous Akka Cluster** (typically its own Kubernetes cluster), linked by **reliable event replication over gRPC**. A single stretched cluster across regions is impractical: cross-region peer-to-peer security, address translation between separate k8s clusters, reliable cross-cluster bootstrap, and failure detection over mixed-latency links all break down. The gRPC replication transport instead gives **TLS/mTLS**, ingress/load-balancer-friendly networking, **exactly-once or at-least-once** processing, and **brokerless** async communication (no Kafka).\n\n## The two building blocks\n\n1. **Projections over gRPC** — brokerless **service-to-service eventing** (one-way producer→consumer). The producer side streams from its **event journal**; the consumer side uses [[akka-projections]] with offset tracking (offsets drive dedup → **exactly-once**). Multiple consumers can attach, each at its own pace, each from its last offset. Producer and consumer are usually different microservices / Bounded Contexts ([[domain-driven-design]]); each keeps its **own database** — no direct cross-service DB access. Replaces a message broker without the broker.\n2. **Replicated Event Sourcing over gRPC** — **active-active entities** updatable in more than one location (hot standby, serve-from-nearest, multi-location writes). Replicas run in separate clusters connected by gRPC event replication, belong to the **same logical service / Bounded Context**, and each has its **own DB** (products may differ). See [[akka-persistence]] Replicated Event Sourcing for the conflict-resolution model (CRDTs / LWW).\n\n## How replication works\n\nThe **event journal is the source of truth** and the publication source. Events stream directly from journal to consumers with **full backpressure** based on demand; sequence numbers + consumer offsets give at-least-once + automatic dedup → exactly-once. Entities are assigned to **slices** for partitioning; different consumers take different slice ranges, **scalable at runtime**. Once a consumer catches up it receives **live events immediately** (very low latency), with the journal as the reliable fallback. **Dynamic filters** (by event tag or entity id, on producer and/or consumer side, **changeable at runtime**) select which entities replicate where; newly-included entities have their preceding events **automatically replayed**.\n\n## Always-apply defaults\n\n1. **Keep each region a separate autonomous cluster**; never try to stretch one Akka Cluster across regions. Connect them via Projection gRPC / Replicated Event Sourcing gRPC.\n2. **Choose the building block by need:** one-way cross-service/region eventing → Projections over gRPC; multi-location writes / hot standby → Replicated Event Sourcing over gRPC.\n3. **Each service/replica owns its database**; integrate only through replicated events, never direct cross-DB access.\n4. **Expect eventual consistency** (async replication); for active-active, design state to merge concurrent updates ([[akka-persistence]] RES — CRDT/LWW).\n5. **Use dynamic filters** to replicate only what each region needs (cost/regulatory), tuning at runtime.\n\n## When to use it (vs alternatives)\n\nUse it for a **small number of services across a few cloud regions** needing active-active/HA or brokerless eventing. For **many, more constrained, more distributed** locations (single-node edge sites, intermittent connectivity), use [[akka-edge]] — the two share the same primitives and are designed to be combined (cloud-region mesh + edge fan-out). If you just need one resilient cluster in one region, plain [[akka-cluster]] suffices.\n\n## Anti-patterns (flag in review)\n\n- Trying to run one Akka Cluster spanning regions; sharing a database across services/replicas; assuming synchronous/strong consistency across regions.\n- Reaching for it when a single-region [[akka-cluster]] would do; replicating everything everywhere instead of using filters.\n\n## Related\n\n- [[akka-persistence]] (Replicated Event Sourcing, the active-active engine) · [[akka-projections]] (Projection gRPC) · [[akka-edge]] (edge counterpart) · [[akka-grpc]] (transport) · [[akka]] (meta) · [[domain-driven-design]] (bounded contexts).\n- Source: https://doc.akka.io/libraries/akka-distributed-cluster/current/\n</skill>\n\nUser request:\nCan I run one Akka Cluster stretched across three AWS regions for a multi-region service?",
+          "label": "evals/akka-distributed-cluster/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "64360db04e1f46042c0107e6974d8aee84d1583c577178b3dbbb12ef913abcaf",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No. Run one separate, autonomous Akka Cluster per region and link them with event replication over gRPC.\n\nA single stretched cluster breaks down across regions for four reasons:\n- Peer-to-peer security is hard to maintain.\n- Address translation between separate Kubernetes clusters is hard.\n- Cross-cluster bootstrap is unreliable.\n- Failure detection is unreliable over mixed-latency links.\n\nFor three AWS regions:\n- **Multi-region writes or hot standby:** use Replicated Event Sourcing over gRPC. Each region is a replica of the same service and has its own database. Design state to merge concurrent updates (CRDT or last-writer-wins).\n- **One-way eventing between services or regions:** use Projections over gRPC. It is brokerless, with no Kafka, and gives exactly-once processing through offset tracking.\n- **Limiting what replicates where:** use dynamic filters, which you can change at runtime. They filter by tag or entity id, and newly included entities have their earlier events replayed.\n\nReplication is asynchronous, so expect eventual consistency across regions, not strong consistency. If you only need one resilient cluster in a single region, plain Akka Cluster is enough."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "stretch",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-distributed-cluster/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-distributed-cluster/cases/stretch.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/never|not|separate|autonomous|per.region|don'?t stretch/i.test(output)) throw new Error('says keep each region a separate autonomous cluster');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-distributed-cluster/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-distributed-cluster/cases/stretch.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/(its|their) own (database|DB)\\b|own(s)? (its|their) (own )?(database|DB)\\b|separate (database|DB)|per.region (database|DB)|never.{0,30}cross.DB|replicated events|not share/i.test(output)) throw new Error('says each replica owns its database and integrates via replicated events');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "249f6220-126a-4606-a352-37fb5340dfb4",
+        "latencyMs": 8494,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-distributed-cluster\ndescription: Akka Distributed Cluster (Scala+Java) — connect Akka services across geographically distributed locations (cloud regions, providers) for active-active, lower latency, and higher availability. NOT one stretched cluster — each region is a separate autonomous Akka Cluster linked by reliable asynchronous event replication over gRPC, built on Projections over gRPC (brokerless service-to-service eventing) and Replicated Event Sourcing over gRPC (active-active entities). Covers the architecture and why not a single stretched cluster, the two building blocks, dynamic filters, the exactly-once/eventual-consistency model, and when to use it. Use when designing multi-region/active-active Akka systems, brokerless cross-service or cross-region eventing, hot standby, or geo-distributed microservices. Builds on akka-persistence (Replicated Event Sourcing) and akka-projections (gRPC).\n---\n\n# Akka Distributed Cluster\n\nFeatures (shipped within Akka Projection) for building stateful systems across **geographically distributed locations** — multiple cloud regions or providers — for higher availability and lower latency, plus **brokerless** asynchronous service-to-service communication. Builds on [[akka-persistence]] (Replicated Event Sourcing) and [[akka-projections]] (Projection gRPC).\n\nCross-links: [[akka]] (meta), [[akka-persistence]], [[akka-projections]], [[akka-edge]] (the edge counterpart), [[akka-grpc]]. Group `com.lightbend.akka`, BSL 1.1.\n\n## The key architectural decision: many clusters, not one\n\nIt is **not** one Akka Cluster stretched across regions. Each location is a **separate, fully autonomous Akka Cluster** (typically its own Kubernetes cluster), linked by **reliable event replication over gRPC**. A single stretched cluster across regions is impractical: cross-region peer-to-peer security, address translation between separate k8s clusters, reliable cross-cluster bootstrap, and failure detection over mixed-latency links all break down. The gRPC replication transport instead gives **TLS/mTLS**, ingress/load-balancer-friendly networking, **exactly-once or at-least-once** processing, and **brokerless** async communication (no Kafka).\n\n## The two building blocks\n\n1. **Projections over gRPC** — brokerless **service-to-service eventing** (one-way producer→consumer). The producer side streams from its **event journal**; the consumer side uses [[akka-projections]] with offset tracking (offsets drive dedup → **exactly-once**). Multiple consumers can attach, each at its own pace, each from its last offset. Producer and consumer are usually different microservices / Bounded Contexts ([[domain-driven-design]]); each keeps its **own database** — no direct cross-service DB access. Replaces a message broker without the broker.\n2. **Replicated Event Sourcing over gRPC** — **active-active entities** updatable in more than one location (hot standby, serve-from-nearest, multi-location writes). Replicas run in separate clusters connected by gRPC event replication, belong to the **same logical service / Bounded Context**, and each has its **own DB** (products may differ). See [[akka-persistence]] Replicated Event Sourcing for the conflict-resolution model (CRDTs / LWW).\n\n## How replication works\n\nThe **event journal is the source of truth** and the publication source. Events stream directly from journal to consumers with **full backpressure** based on demand; sequence numbers + consumer offsets give at-least-once + automatic dedup → exactly-once. Entities are assigned to **slices** for partitioning; different consumers take different slice ranges, **scalable at runtime**. Once a consumer catches up it receives **live events immediately** (very low latency), with the journal as the reliable fallback. **Dynamic filters** (by event tag or entity id, on producer and/or consumer side, **changeable at runtime**) select which entities replicate where; newly-included entities have their preceding events **automatically replayed**.\n\n## Always-apply defaults\n\n1. **Keep each region a separate autonomous cluster**; never try to stretch one Akka Cluster across regions. Connect them via Projection gRPC / Replicated Event Sourcing gRPC.\n2. **Choose the building block by need:** one-way cross-service/region eventing → Projections over gRPC; multi-location writes / hot standby → Replicated Event Sourcing over gRPC.\n3. **Each service/replica owns its database**; integrate only through replicated events, never direct cross-DB access.\n4. **Expect eventual consistency** (async replication); for active-active, design state to merge concurrent updates ([[akka-persistence]] RES — CRDT/LWW).\n5. **Use dynamic filters** to replicate only what each region needs (cost/regulatory), tuning at runtime.\n\n## When to use it (vs alternatives)\n\nUse it for a **small number of services across a few cloud regions** needing active-active/HA or brokerless eventing. For **many, more constrained, more distributed** locations (single-node edge sites, intermittent connectivity), use [[akka-edge]] — the two share the same primitives and are designed to be combined (cloud-region mesh + edge fan-out). If you just need one resilient cluster in one region, plain [[akka-cluster]] suffices.\n\n## Anti-patterns (flag in review)\n\n- Trying to run one Akka Cluster spanning regions; sharing a database across services/replicas; assuming synchronous/strong consistency across regions.\n- Reaching for it when a single-region [[akka-cluster]] would do; replicating everything everywhere instead of using filters.\n\n## Related\n\n- [[akka-persistence]] (Replicated Event Sourcing, the active-active engine) · [[akka-projections]] (Projection gRPC) · [[akka-edge]] (edge counterpart) · [[akka-grpc]] (transport) · [[akka]] (meta) · [[domain-driven-design]] (bounded contexts).\n- Source: https://doc.akka.io/libraries/akka-distributed-cluster/current/\n</skill>\n\nUser request:\nShould the regions share one database so the data is consistent?",
+          "label": "evals/akka-distributed-cluster/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "64360db04e1f46042c0107e6974d8aee84d1583c577178b3dbbb12ef913abcaf",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No. Sharing one database across regions defeats the architecture. Each region is a separate, autonomous Akka Cluster with its own database, and consistency comes from replicating events over gRPC.\n\n- **Why not shared:** a shared DB reintroduces the cross-region coupling this design avoids. Every write pays cross-region latency, a region can't run on its own if the DB is unreachable, and you lose the availability and latency gains.\n- **What you get instead:** eventual consistency. Events stream from each region's journal with sequence numbers and offsets, which gives exactly-once processing. You don't get synchronous, strong consistency across regions.\n- **Active-active writes:** use Replicated Event Sourcing over gRPC. Concurrent updates merge through CRDTs or last-writer-wins, so design your state to merge.\n- **One-way flows between services:** use Projections over gRPC. Each service keeps its own DB and never reads another's directly.\n\nIf you need strong cross-region consistency, this isn't the right tool. Accept eventual consistency, or keep a single-region write path."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "db",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-distributed-cluster/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-distributed-cluster/cases/db.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/(its|their) own (database|DB)\\b|own(s)? (its|their) (own )?(database|DB)\\b|separate (database|DB)|per.region (database|DB)|never.{0,30}cross.DB|replicated events|not share/i.test(output)) throw new Error('says each replica owns its database and integrates via replicated events');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-distributed-cluster/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-distributed-cluster/cases/db.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 8514,
+      "evaluationDurationMs": 8514
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-distributed-cluster — EDD",
+    "prompts": [
+      "file:///private/tmp/b6/evals/akka-distributed-cluster/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "stretch",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-distributed-cluster/cases/stretch.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/never|not|separate|autonomous|per.region|don'?t stretch/i.test(output)) throw new Error('says keep each region a separate autonomous cluster');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "db",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-distributed-cluster/cases/db.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/(its|their) own (database|DB)\\b|own(s)? (its|their) (own )?(database|DB)\\b|separate (database|DB)|per.region (database|DB)|never.{0,30}cross.DB|replicated events|not share/i.test(output)) throw new Error('says each replica owns its database and integrates via replicated events');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-distributed-cluster/results/skill_3.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b6/skills/akka-distributed-cluster/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b6/evals/akka-distributed-cluster"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T20:06:07.123Z",
+    "evaluationCreatedAt": "2026-10-29T20:05:58.563Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

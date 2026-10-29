@@ -270,25 +270,25 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `akka` | 96% | 100% | sonnet | Routing base-strong; naive omits the serializer from the k8s cluster checklist; no patch |
 | `akka-actors` | 96% | 100% | sonnet | Typed largely base-strong; naive replyTo discipline gap; no patch |
 | `akka-cluster` | 100% | 100% | sonnet | ✅ Shipped — skill-induced regression by omission (Cluster Bootstrap's home module); patched to 100% |
-| `akka-diagnostics` |  |  |  |  |
+| `akka-diagnostics` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
 | `akka-discovery` |  |  |  |  |
-| `akka-distributed-cluster` |  |  |  |  |
-| `akka-edge` |  |  |  |  |
+| `akka-distributed-cluster` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
+| `akka-edge` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
 | `akka-grpc` | 96% | 100% | sonnet | Naive strong; client-lifecycle wobble; no patch |
 | `akka-http` | 96% | 100% | sonnet | ✅ Shipped — omission regression on long-poll client level; patched to 100% |
-| `akka-insights` |  |  |  |  |
+| `akka-insights` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
 | `akka-management` |  |  |  |  |
 | `akka-persistence` | 96% | 100% | sonnet | Judgment base-strong; naive misses withEnforcedReplies+StatusReply convention; no patch |
 | `akka-persistence-plugins` | 83% | 100% | sonnet | Naive misses R2DBC-default + backtracking-duplicates; no patch |
 | `akka-projections` | 83% | 100% | sonnet | Naive misses the 10x tag rule + withSaveOffset; no patch |
 | `akka-sdk` | 96% | 100% | sonnet | Kalix-lineage catalog known; naive wobbles on the no-@Acl default-deny; no patch |
 | `akka-sdk-agents` | 50% | 100% | sonnet | **The one gain in the batch.** Baseline FPF on *an Agent cannot be a tool for another agent — orchestrate with Workflows*; skill PPP. Consistent with the Akka SDK family holding the lowest baselines in the table, the one domain where the model reliably hallucinates API. Log: `evals/_batch5/iteration-log.md` |
-| `akka-sdk-consumers` |  |  |  |  |
-| `akka-sdk-endpoints` |  |  |  |  |
+| `akka-sdk-consumers` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
+| `akka-sdk-endpoints` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
 | `akka-sdk-event-sourced-entities` | 79% | 100% | sonnet | Biggest round-4 floor: naive hallucinates SDK API (deletion/consistency); no patch |
-| `akka-sdk-key-value-entities` |  |  |  |  |
-| `akka-sdk-timed-actions` |  |  |  |  |
-| `akka-sdk-views` |  |  |  |  |
+| `akka-sdk-key-value-entities` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
+| `akka-sdk-timed-actions` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
+| `akka-sdk-views` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
 | `akka-sdk-workflows` | 83% | 100% | sonnet | Naive hallucinates lifecycle API, misses session memory + compensation shape; no patch |
 | `akka-serialization` | 88% | 100% | sonnet | Naive misses rolling-migration order + the (bytes,id,manifest) triple; no patch |
 | `akka-streams` | 100% | 100% | sonnet | Operator catalog fully base-strong incl. jitter + fusion; neutral-safe, no patch |
@@ -520,7 +520,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `stripe-payments` | 100% | 100% | sonnet | No delta — baseline already fulfils from webhooks, verifies against the raw body, and dedupes on event id. Log: `evals/_batch5/iteration-log.md` |
 | `swgoh-expert` |  |  |  |  |
 | `swift-concurrency-expert` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already pushes back on `@unchecked Sendable` and offers the smallest isolation fix. Log: `evals/_batch4/iteration-log.md` |
-| `swiftui-liquid-glass` |  |  |  |  |
+| `swiftui-liquid-glass` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
 | `swiftui-performance-audit` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already demands code before diagnosing and requires profiling before optimising. Log: `evals/_batch4/iteration-log.md` |
 | `swiftui-ui-patterns` |  |  |  |  |
 | `swiftui-view-refactor` |  |  |  |  |

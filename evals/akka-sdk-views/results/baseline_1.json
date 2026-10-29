@@ -1,0 +1,378 @@
+{
+  "evalId": "eval-Q3x-2026-10-29T19:50:09",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:50:09.603Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "label": "evals/akka-sdk-views/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "id": "7f84db9b973146ab28681d66d148503c7345a2ae295e3106bc006cb24cd472ad",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 0,
+          "totalLatencyMs": 27404,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 2
+          },
+          "namedScoresCount": {
+            "accuracy": 2
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/eventually consistent|eventual|not.{0,25}synchron|Awaitility|poll|retry/i.test(output)) throw new Error('says views are eventually consistent; poll rather than read-your-write');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "dd6bb14d-a97d-49f5-8195-43ca48b7938e",
+        "latencyMs": 13655,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nI update the entity then immediately query the view in my test and get stale data. Bug?",
+          "label": "evals/akka-sdk-views/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "7f84db9b973146ab28681d66d148503c7345a2ae295e3106bc006cb24cd472ad",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Not a bug. Akka views are eventually consistent, so a query right after an entity update can return the old data. The view updates asynchronously from the entity's events or state changes.\n\nWrap the view query in Awaitility:\n\n```java\nAwaitility.await()\n  .ignoreExceptions()\n  .atMost(10, TimeUnit.SECONDS)\n  .untilAsserted(() -> {\n    var result = componentClient.forView()\n        .method(CustomersByEmail::getByEmail)\n        .invoke(\"a@b.com\");\n    assertThat(result.customers()).hasSize(1);\n  });\n```\n\nIf it still never converges, check these:\n- **Wrong source:** the `@Consume.*` annotation must be on the `TableUpdater` and name the right entity class.\n- **Missing event handling (event-sourced entities):** the handler must cover the event type. An `ignore()` branch will drop it.\n- **Test setup:** if you publish test data through incoming messages, the source must be enabled with `TestKit.Settings.DEFAULT.withKeyValueEntityIncomingMessages(...)` or the event-sourced equivalent.\n\nFor read-your-write in production code, have the entity's reply carry the new state. Don't re-read it through the view."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "consistency",
+          "vars": {
+            "request": "file:///private/tmp/b6/evals/akka-sdk-views/cases/consistency.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/eventually consistent|eventual|not.{0,25}synchron|Awaitility|poll|retry/i.test(output)) throw new Error('says views are eventually consistent; poll rather than read-your-write');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-views/cases/consistency.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/TableUpdater|@Consume|@Query|row|table/i.test(output)) throw new Error('names the view component parts');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "1ed4b146-b716-446c-8cd1-f4f67f1dd2bf",
+        "latencyMs": 13749,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nWhat does an Akka SDK View consist of?",
+          "label": "evals/akka-sdk-views/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "7f84db9b973146ab28681d66d148503c7345a2ae295e3106bc006cb24cd472ad",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "An Akka SDK View is a class that extends `View`, with a stable `@Component(id)`. It holds one or more table updaters and one or more queries.\n\n- **`@Component(id = \"...\")`**: required, unique, and it must stay stable. Changing it forces a full rebuild from the source.\n- **`TableUpdater<Row>`**: an inner `static class` that declares a table. The `@Consume.*` source annotation goes on it, and the SQL uses the table name you pick. An empty body stores the source state as-is.\n- **Sources**: `@Consume.FromEventSourcedEntity`, `FromKeyValueEntity`, `FromWorkflow`, `FromTopic` and `FromServiceStream`. Views fed from a topic can't be rebuilt.\n- **Update handlers**: these return `View.Effect<Row>`. Use `effects().updateRow(row)` to upsert, `deleteRow()` to remove, or `ignore()` to skip. `rowState()` gives you the current row.\n- **`@Query` methods**: these return `QueryEffect<T>` or `QueryStreamEffect<T>`, and the body is `return queryResult();` (or `queryStreamResult();`). The SQL-like query uses `:param` placeholders.\n\n```java\n@Component(id = \"customers-by-email\")\npublic class CustomersByEmail extends View {\n  public record Customers(List<Customer> customers) {}\n\n  @Consume.FromKeyValueEntity(CustomerEntity.class)\n  public static class Updater extends TableUpdater<Customer> {}\n\n  @Query(\"SELECT * AS customers FROM customers_by_email WHERE email = :email\")\n  public QueryEffect<Customers> getByEmail(String email) { return queryResult(); }\n}\n```\n\nOptionally, you can add a `@SnapshotHandler` to bootstrap from the latest snapshot, and a `@DeleteHandler` for logical deletes.\n\nViews are eventually consistent, so use Awaitility in tests. Build one View per access pattern."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "anatomy",
+          "vars": {
+            "request": "file:///private/tmp/b6/evals/akka-sdk-views/cases/anatomy.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/TableUpdater|@Consume|@Query|row|table/i.test(output)) throw new Error('names the view component parts');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-views/cases/anatomy.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 13765,
+      "evaluationDurationMs": 13765
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-sdk-views — EDD — NAIVE BASELINE",
+    "prompts": [
+      "file:///private/tmp/b6/evals/akka-sdk-views/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "consistency",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-views/cases/consistency.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/eventually consistent|eventual|not.{0,25}synchron|Awaitility|poll|retry/i.test(output)) throw new Error('says views are eventually consistent; poll rather than read-your-write');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "anatomy",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-views/cases/anatomy.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/TableUpdater|@Consume|@Query|row|table/i.test(output)) throw new Error('names the view component parts');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-sdk-views/results/baseline_1.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/private/tmp/b6/evals/akka-sdk-views"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:50:23.409Z",
+    "evaluationCreatedAt": "2026-10-29T19:50:09.603Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

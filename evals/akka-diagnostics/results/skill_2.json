@@ -1,0 +1,391 @@
+{
+  "evalId": "eval-wdF-2026-10-29T20:03:05",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T20:03:05.052Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/akka-diagnostics/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "ed254695fee54a63626be51ea1034776fda38bde64ef8fbf4fa468c53e660283",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 0,
+          "totalLatencyMs": 15979,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 2
+          },
+          "namedScoresCount": {
+            "accuracy": 2
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/outside|own namespace|not.{0,20}akka\\.|akka\\.\\*|namespace/i.test(output)) throw new Error('says put application config outside the akka.* namespace');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "fc69ddec-ac10-4c97-9071-81bb2a27e5df",
+        "latencyMs": 7606,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-diagnostics\ndescription: Akka Diagnostics (Scala+Java) — two startup-time diagnostic tools for Akka apps. The Config Checker scans configuration for typos, misplaced settings, conflicting/sub-optimal values, and risky \"power-user\" changes; the Thread Starvation Detector watches dispatchers and warns (with aggregated stack traces) when one becomes unresponsive, usually from blocking work on the default dispatcher. Covers enabling them, what each catches (dispatcher sizing, failure-detector settings, remoting frame size, typos), how to silence intentional settings (disabled-checks, confirmed-power-user-settings, confirmed-typos), failing tests on warnings, and how to fix starvation (dedicated dispatchers). Use when diagnosing latency/timeouts/thread-starvation in an Akka app, validating Akka configuration, or hardening an Akka deployment. Complements akka-actors (dispatchers) and akka-cluster.\n---\n\n# Akka Diagnostics\n\nTwo tools that **run automatically when the ActorSystem starts** (single dependency `com.lightbend.akka:akka-diagnostics`): the **Config Checker** and the **Thread Starvation Detector**. They catch the configuration and operational mistakes the Akka team sees most often. Complements [[akka-actors]] (dispatchers/blocking) and [[akka-cluster]].\n\nCross-links: [[akka]] (meta), [[akka-actors]], [[akka-cluster]]. Pin all `akka-*` to one version.\n\n## Thread Starvation Detector\n\nA monitor thread schedules a trivial task on a dispatcher and measures how long it takes to run; if it exceeds a threshold it logs a **warning with aggregated stack traces** of the busy threads. The usual cause is **blocking work on the default dispatcher**, which starves mailbox processing and `Future` callbacks → high latency despite low CPU, timeouts, failing remoting.\n\nAuto-runs on the main dispatcher when the dependency is present. For others: `StarvationDetector.checkDispatcher(system, \"my-dispatcher\")` / `checkExecutionContext(...)`.\n```hocon\nakka.diagnostics.starvation-detector {\n  check-interval = 1s\n  initial-delay = 10s                 # skip startup noise (class loading / JIT)\n  max-delay-warning-threshold = 100ms # lower to catch smaller stalls\n  warning-interval = 10s              # min gap between warnings\n  thread-traces-limit = 5\n}\n```\n**Java 17+** needs the JVM flag `--add-opens=java.base/java.util.concurrent=ALL-UNNAMED`. **The fix** is almost always: move blocking calls off the default dispatcher onto a dedicated `thread-pool-executor` (bulkhead) dispatcher (see [[akka-actors]] dispatchers). Trust the stack traces over thread-state counts (native blocking IO shows as `RUNNABLE`); a trace is one sample = an indication.\n\n## Config Checker\n\nScans config at startup for suspicious/typo'd/conflicting/sub-optimal settings, logging WARNs via logger `akka.diagnostics.ConfigChecker` (messages start `Configuration recommendation:`). General rule it enforces: **use defaults until you have a measured problem.**\n\n```hocon\nakka.diagnostics.checker {\n  fail-on-warning = on              # throw IllegalArgumentException on ActorSystem start if any issue (great in a config test)\n  disabled-checks = []              # disable a check by its key, e.g. [\"dispatcher-throughput\"]\n  confirmed-power-user-settings = []# low-level settings you knowingly changed\n  confirmed-typos = []              # config paths under akka.* that are intentional (e.g. your app's settings)\n}\n```\nRun standalone: main class `akka.diagnostics.ConfigChecker` (exits -1 with issues, 0 when clean).\n\n**What it catches** (check keys): `[typo]` (props under `akka.*` with no `reference.conf` match — put app settings *outside* the `akka` tree, or add to `confirmed-typos`); `[power-user-settings]` (changing low-level constants like gossip/failure-detector internals — confirm via `confirmed-power-user-settings`); dispatcher sizing (`[default-dispatcher-size]`, `[dispatcher-throughput]`, `[dispatcher-count]`, `[fork-join-pool-size]` — don't size up the default dispatcher for blocking; use a dedicated one); failure detectors (`[cluster-failure-detector]`, `[remote-watch-failure-detector]` — too-short `acceptable-heartbeat-pause` causes false unreachable/**quarantine**); remoting (`[maximum-frame-size]` large messages delay heartbeats; `[remote-artery-disabled]` classic remoting is deprecated); `[cluster-dispatcher]` (needing `akka.cluster.use-dispatcher` usually means you're running blocking/CPU-heavy work on the default dispatcher).\n\n## Always-apply defaults\n\n1. **Keep both tools enabled** (they're on by default with the dependency); add the Java 17+ `--add-opens` flag for the starvation detector.\n2. **Add a test that boots with production-like config and `akka.diagnostics.checker.fail-on-warning = on`** so config regressions fail CI.\n3. **Treat a starvation warning as a blocking-on-the-wrong-dispatcher bug** — move blocking work to a dedicated bulkhead dispatcher ([[akka-actors]]); don't just raise the threshold.\n4. **Put application config outside the `akka.*` namespace** to avoid false `[typo]` warnings; only silence checks you've deliberately decided on (`disabled-checks`/`confirmed-*`).\n5. **Don't shorten failure-detector `acceptable-heartbeat-pause` to silence warnings** — false positives quarantine remote nodes (fatal) or wrongly mark cluster members unreachable.\n\n## Anti-patterns (flag in review)\n\n- Silencing a starvation warning by raising the threshold instead of fixing the blocking call; sizing up the default dispatcher for blocking work.\n- Disabling the config checker wholesale; adding app settings under `akka.*` then suppressing the typo check; changing power-user/failure-detector settings without a measured reason.\n\n## Related\n\n- [[akka-actors]] (dispatchers / \"blocking needs careful management\") · [[akka-cluster]] (failure detectors, remoting) · [[akka]] (meta).\n- Source: https://doc.akka.io/libraries/akka-diagnostics/current/\n</skill>\n\nUser request:\nThe config checker keeps flagging my own settings as typos. How do I stop that?",
+          "label": "evals/akka-diagnostics/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "ed254695fee54a63626be51ea1034776fda38bde64ef8fbf4fa468c53e660283",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Move your settings out of the `akka.*` tree (e.g. `my-app { ... }`) — that's the clean fix. The checker flags any path under `akka.*` that has no match in Akka's `reference.conf`.\n\nIf they must stay under `akka.*`, whitelist them explicitly:\n\n```hocon\nakka.diagnostics.checker {\n  confirmed-typos = [\"akka.my-app.some-setting\"]\n}\n```\n\nDon't disable the typo check or the checker wholesale, since that also hides real typos in Akka's own settings."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "config-namespace",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-diagnostics/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-diagnostics/cases/config-namespace.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/outside|own namespace|not.{0,20}akka\\.|akka\\.\\*|namespace/i.test(output)) throw new Error('says put application config outside the akka.* namespace');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-diagnostics/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-diagnostics/cases/config-namespace.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/starvation|blocking|dispatcher|thread pool|blocked/i.test(output)) throw new Error('explains the thread starvation detector');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "7b08eed7-e3b4-4bef-9521-aedb99fbce40",
+        "latencyMs": 8373,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-diagnostics\ndescription: Akka Diagnostics (Scala+Java) — two startup-time diagnostic tools for Akka apps. The Config Checker scans configuration for typos, misplaced settings, conflicting/sub-optimal values, and risky \"power-user\" changes; the Thread Starvation Detector watches dispatchers and warns (with aggregated stack traces) when one becomes unresponsive, usually from blocking work on the default dispatcher. Covers enabling them, what each catches (dispatcher sizing, failure-detector settings, remoting frame size, typos), how to silence intentional settings (disabled-checks, confirmed-power-user-settings, confirmed-typos), failing tests on warnings, and how to fix starvation (dedicated dispatchers). Use when diagnosing latency/timeouts/thread-starvation in an Akka app, validating Akka configuration, or hardening an Akka deployment. Complements akka-actors (dispatchers) and akka-cluster.\n---\n\n# Akka Diagnostics\n\nTwo tools that **run automatically when the ActorSystem starts** (single dependency `com.lightbend.akka:akka-diagnostics`): the **Config Checker** and the **Thread Starvation Detector**. They catch the configuration and operational mistakes the Akka team sees most often. Complements [[akka-actors]] (dispatchers/blocking) and [[akka-cluster]].\n\nCross-links: [[akka]] (meta), [[akka-actors]], [[akka-cluster]]. Pin all `akka-*` to one version.\n\n## Thread Starvation Detector\n\nA monitor thread schedules a trivial task on a dispatcher and measures how long it takes to run; if it exceeds a threshold it logs a **warning with aggregated stack traces** of the busy threads. The usual cause is **blocking work on the default dispatcher**, which starves mailbox processing and `Future` callbacks → high latency despite low CPU, timeouts, failing remoting.\n\nAuto-runs on the main dispatcher when the dependency is present. For others: `StarvationDetector.checkDispatcher(system, \"my-dispatcher\")` / `checkExecutionContext(...)`.\n```hocon\nakka.diagnostics.starvation-detector {\n  check-interval = 1s\n  initial-delay = 10s                 # skip startup noise (class loading / JIT)\n  max-delay-warning-threshold = 100ms # lower to catch smaller stalls\n  warning-interval = 10s              # min gap between warnings\n  thread-traces-limit = 5\n}\n```\n**Java 17+** needs the JVM flag `--add-opens=java.base/java.util.concurrent=ALL-UNNAMED`. **The fix** is almost always: move blocking calls off the default dispatcher onto a dedicated `thread-pool-executor` (bulkhead) dispatcher (see [[akka-actors]] dispatchers). Trust the stack traces over thread-state counts (native blocking IO shows as `RUNNABLE`); a trace is one sample = an indication.\n\n## Config Checker\n\nScans config at startup for suspicious/typo'd/conflicting/sub-optimal settings, logging WARNs via logger `akka.diagnostics.ConfigChecker` (messages start `Configuration recommendation:`). General rule it enforces: **use defaults until you have a measured problem.**\n\n```hocon\nakka.diagnostics.checker {\n  fail-on-warning = on              # throw IllegalArgumentException on ActorSystem start if any issue (great in a config test)\n  disabled-checks = []              # disable a check by its key, e.g. [\"dispatcher-throughput\"]\n  confirmed-power-user-settings = []# low-level settings you knowingly changed\n  confirmed-typos = []              # config paths under akka.* that are intentional (e.g. your app's settings)\n}\n```\nRun standalone: main class `akka.diagnostics.ConfigChecker` (exits -1 with issues, 0 when clean).\n\n**What it catches** (check keys): `[typo]` (props under `akka.*` with no `reference.conf` match — put app settings *outside* the `akka` tree, or add to `confirmed-typos`); `[power-user-settings]` (changing low-level constants like gossip/failure-detector internals — confirm via `confirmed-power-user-settings`); dispatcher sizing (`[default-dispatcher-size]`, `[dispatcher-throughput]`, `[dispatcher-count]`, `[fork-join-pool-size]` — don't size up the default dispatcher for blocking; use a dedicated one); failure detectors (`[cluster-failure-detector]`, `[remote-watch-failure-detector]` — too-short `acceptable-heartbeat-pause` causes false unreachable/**quarantine**); remoting (`[maximum-frame-size]` large messages delay heartbeats; `[remote-artery-disabled]` classic remoting is deprecated); `[cluster-dispatcher]` (needing `akka.cluster.use-dispatcher` usually means you're running blocking/CPU-heavy work on the default dispatcher).\n\n## Always-apply defaults\n\n1. **Keep both tools enabled** (they're on by default with the dependency); add the Java 17+ `--add-opens` flag for the starvation detector.\n2. **Add a test that boots with production-like config and `akka.diagnostics.checker.fail-on-warning = on`** so config regressions fail CI.\n3. **Treat a starvation warning as a blocking-on-the-wrong-dispatcher bug** — move blocking work to a dedicated bulkhead dispatcher ([[akka-actors]]); don't just raise the threshold.\n4. **Put application config outside the `akka.*` namespace** to avoid false `[typo]` warnings; only silence checks you've deliberately decided on (`disabled-checks`/`confirmed-*`).\n5. **Don't shorten failure-detector `acceptable-heartbeat-pause` to silence warnings** — false positives quarantine remote nodes (fatal) or wrongly mark cluster members unreachable.\n\n## Anti-patterns (flag in review)\n\n- Silencing a starvation warning by raising the threshold instead of fixing the blocking call; sizing up the default dispatcher for blocking work.\n- Disabling the config checker wholesale; adding app settings under `akka.*` then suppressing the typo check; changing power-user/failure-detector settings without a measured reason.\n\n## Related\n\n- [[akka-actors]] (dispatchers / \"blocking needs careful management\") · [[akka-cluster]] (failure detectors, remoting) · [[akka]] (meta).\n- Source: https://doc.akka.io/libraries/akka-diagnostics/current/\n</skill>\n\nUser request:\nThe logs say something about thread starvation. What is that telling me?",
+          "label": "evals/akka-diagnostics/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "ed254695fee54a63626be51ea1034776fda38bde64ef8fbf4fa468c53e660283",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Thread starvation means a dispatcher (usually the default one) couldn't run a trivial probe task within the threshold, so its threads are all busy or blocked. The Akka Diagnostics Starvation Detector logs the warning when that happens. The usual cause is blocking work, such as JDBC, blocking HTTP, `Await`, or `Thread.sleep`, running on the default dispatcher. That starves mailbox processing and `Future` callbacks. You then see high latency with low CPU, timeouts, and possibly failing remoting or cluster heartbeats.\n\n**What to do:**\n1. Read the aggregated stack traces in the warning. They show where the busy threads are. Native blocking IO can show as `RUNNABLE`, so trust the traces over the thread states. A trace is only one sample.\n2. Move that blocking call to a dedicated `thread-pool-executor` dispatcher (a bulkhead) and run it there.\n3. Don't raise `max-delay-warning-threshold`, and don't enlarge the default dispatcher. Both hide the problem without fixing it.\n\nIf the warning keeps firing after that, paste it here and I'll help read the traces. On Java 17+, check that the JVM has `--add-opens=java.base/java.util.concurrent=ALL-UNNAMED`. Without it the detector can't inspect the dispatcher."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "starvation",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-diagnostics/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-diagnostics/cases/starvation.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/starvation|blocking|dispatcher|thread pool|blocked/i.test(output)) throw new Error('explains the thread starvation detector');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-diagnostics/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-diagnostics/cases/starvation.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 8392,
+      "evaluationDurationMs": 8392
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-diagnostics — EDD",
+    "prompts": [
+      "file:///private/tmp/b6/evals/akka-diagnostics/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "config-namespace",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-diagnostics/cases/config-namespace.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/outside|own namespace|not.{0,20}akka\\.|akka\\.\\*|namespace/i.test(output)) throw new Error('says put application config outside the akka.* namespace');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "starvation",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-diagnostics/cases/starvation.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/starvation|blocking|dispatcher|thread pool|blocked/i.test(output)) throw new Error('explains the thread starvation detector');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-diagnostics/results/skill_2.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b6/skills/akka-diagnostics/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b6/evals/akka-diagnostics"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T20:03:13.484Z",
+    "evaluationCreatedAt": "2026-10-29T20:03:05.052Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

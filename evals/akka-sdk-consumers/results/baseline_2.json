@@ -1,0 +1,378 @@
+{
+  "evalId": "eval-B8k-2026-10-29T19:52:47",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:52:47.644Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "label": "evals/akka-sdk-consumers/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "id": "d03521c654409d4475c887a69078a2496ec5cd2ac7f26ff99487272af8c1f470",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 0,
+          "totalLatencyMs": 20841,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 2
+          },
+          "namedScoresCount": {
+            "accuracy": 2
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/ignore\\(\\)|ignore|skip/i.test(output)) throw new Error('says ignore() events you do not care about');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "43c84c56-62b8-4f95-b11e-5e99ca693183",
+        "latencyMs": 10771,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nMy consumer throws on event types it doesn't handle, and the platform keeps redelivering. What should it do?",
+          "label": "evals/akka-sdk-consumers/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "d03521c654409d4475c887a69078a2496ec5cd2ac7f26ff99487272af8c1f470",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Return `effects().ignore()` for event types you don't care about. Only real processing failures should throw, because an exception triggers redelivery.\n\n```java\npublic Effect onEvent(CounterEvent event) {\n  return switch (event) {\n    case CounterEvent.ValueIncreased v -> { /* handle */ yield effects().done(); }\n    default -> effects().ignore();   // unhandled types: skip, don't throw\n  };\n}\n```\n\n- **Sealed event types:** the switch is exhaustive, so there's no `default`. List the types you skip explicitly with `ignore()`. A new event type then fails at compile time instead of at runtime.\n- **Topic consumers:** the handler is chosen by `ce-type`, so give the consumer a catch-all handler that returns `ignore()`. Otherwise the unmatched types will keep failing.\n- **Duplicates:** delivery is at-least-once, and the SDK doesn't dedup. Make the handlers you do write idempotent."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "ignore",
+          "vars": {
+            "request": "file:///private/tmp/b6/evals/akka-sdk-consumers/cases/ignore.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/ignore\\(\\)|ignore|skip/i.test(output)) throw new Error('says ignore() events you do not care about');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-consumers/cases/ignore.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/only the latest|not guarantee|no\\b|cannot|intermediate|event.sourc/i.test(output)) throw new Error('says only the latest state is guaranteed');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "de4ce837-6a33-49e6-afa6-3ce1545e20d8",
+        "latencyMs": 10070,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nI need to observe every intermediate change of a key-value entity via a consumer. Workable?",
+          "label": "evals/akka-sdk-consumers/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "d03521c654409d4475c887a69078a2496ec5cd2ac7f26ff99487272af8c1f470",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "No, not with a key-value entity. A `@Consume.FromKeyValueEntity` consumer is only guaranteed the most recent state, so intermediate changes can be skipped, especially when updates come faster than the consumer processes them.\n\nYour options:\n\n- **Switch to an event-sourced entity** (recommended). A `@Consume.FromEventSourcedEntity` consumer sees every event in order, at-least-once. This is the right model when each change matters.\n- **Keep the KV entity and emit changes yourself.** Have the entity's command handler also write each change to somewhere durable, such as a separate event-sourced entity acting as an audit log. Consume that instead. Only do this if you can't migrate the entity.\n\nWhichever you pick, delivery is at-least-once and the SDK doesn't dedup, so make the consumer idempotent."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "kv-intermediate",
+          "vars": {
+            "request": "file:///private/tmp/b6/evals/akka-sdk-consumers/cases/kv-intermediate.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/only the latest|not guarantee|no\\b|cannot|intermediate|event.sourc/i.test(output)) throw new Error('says only the latest state is guaranteed');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-consumers/cases/kv-intermediate.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 10787,
+      "evaluationDurationMs": 10787
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-sdk-consumers — EDD — NAIVE BASELINE",
+    "prompts": [
+      "file:///private/tmp/b6/evals/akka-sdk-consumers/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "ignore",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-consumers/cases/ignore.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/ignore\\(\\)|ignore|skip/i.test(output)) throw new Error('says ignore() events you do not care about');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "kv-intermediate",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-consumers/cases/kv-intermediate.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/only the latest|not guarantee|no\\b|cannot|intermediate|event.sourc/i.test(output)) throw new Error('says only the latest state is guaranteed');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-sdk-consumers/results/baseline_2.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/private/tmp/b6/evals/akka-sdk-consumers"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:52:58.479Z",
+    "evaluationCreatedAt": "2026-10-29T19:52:47.644Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

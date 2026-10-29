@@ -1,0 +1,19 @@
+# akka-diagnostics: shared matrix, used verbatim by both arms. Deterministic, fact-shaped asserts.
+
+- description: "config-namespace"
+  vars: { request: file://cases/config-namespace.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/outside|own namespace|not.{0,20}akka\.|akka\.\*|namespace/i.test(output)) throw new Error('says put application config outside the akka.* namespace');
+        return true;
+
+- description: "starvation"
+  vars: { request: file://cases/starvation.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/starvation|blocking|dispatcher|thread pool|blocked/i.test(output)) throw new Error('explains the thread starvation detector');
+        return true;
