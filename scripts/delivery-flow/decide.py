@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import (SIGN_NAMESPACE, _payload_for_signing, is_delivery_repo, load_config,  # noqa: E402
+from common import (SIGN_NAMESPACE, _payload_for_signing, artifact_root, is_delivery_repo, load_config,  # noqa: E402
                     load_json, repo_root, sha256, verify_decision)
 
 
@@ -57,7 +57,7 @@ def main(argv=None) -> int:
     if not is_delivery_repo(repo):
         print(f"{repo} is not a delivery-flow repo", file=sys.stderr)
         return 2
-    item_dir = repo / "delivery" / args.item
+    item_dir = artifact_root(repo) / args.item
     cfg = load_config(repo)
     decisions = cfg.get("decisions") or {}
     decider = args.decider or decisions.get("signer") or os.environ.get("USER", "")

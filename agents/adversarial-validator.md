@@ -7,6 +7,7 @@ description: >
   artifact under challenge plus raw material pointers, never the reasoning that produced it.
   Returns a verdict (REFUTED / WEAKENED / SURVIVED) with an attack log.
 tools: "Read, Grep, Glob, Bash"
+model: sonnet
 color: "#dc2626"
 ---
 

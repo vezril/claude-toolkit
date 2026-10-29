@@ -63,7 +63,7 @@ def tier_of(model: str) -> str:
 
 def current_step(repo: Path, common):
     """The step the orchestrator said it was running, and for which item."""
-    for path in sorted((repo / "delivery").glob("*/.current-step")) if (repo / "delivery").exists() else []:
+    for path in sorted(common.artifact_root(repo).glob("*/.current-step")) if common.artifact_root(repo).exists() else []:
         doc, err = common.load_json(path)
         if not err and doc.get("step"):
             return doc.get("item") or path.parent.name, doc["step"]
@@ -77,6 +77,18 @@ def main() -> int:
         return 0
 
     common = _common()
+    # cwd-based, deliberately, after trying the registry and reverting it.
+    #
+    # The registry made this hook fire on every Stop/SubagentStop in *any* session and record
+    # it against whichever item happened to hold a `.current-step`. Measured: a 7-step run came
+    # back as 1,411 steps and 1.75M output tokens — a whole unrelated session's usage — and the
+    # run flipped to `certified: false` because the recorded model was not the declared tier.
+    # False audit data is worse than none: an empty trail says "no evidence", a populated one
+    # says "this is what happened" and was wrong.
+    #
+    # So this hook records only when the session is working in the delivery repo, which is how
+    # the flow is meant to be driven. Orchestrating from a different repo yields no step
+    # records, and that absence is honest.
     repo = common.repo_root(Path(payload.get("cwd") or "."))
     if not common.is_delivery_repo(repo):
         return 0
@@ -105,7 +117,7 @@ def main() -> int:
         return 0
 
     # The main session's transcript grows across steps, so only count what is new.
-    state_path = repo / "delivery" / item / ".trace-state.json"
+    state_path = common.artifact_root(repo) / item / ".trace-state.json"
     state, _ = common.load_json(state_path)
     state = state or {}
     already = set(state.get(state_key) or [])
@@ -157,7 +169,13 @@ def main() -> int:
             "cache_read_tokens": usage["cache_read"],
             "api_equivalent_cost_usd": cost,
             "pricing_as_of": pricing.get("meta", {}).get("as_of"),
-            "certified": declared.get("certified"),
+            # A step with no registry entry has no certification evidence, so it is False —
+            # not None. This hook only fires for LLM steps, so "unregistered" means
+            # "uncertified", and `delivery-report.py` tests `is False` when deciding whether a
+            # run counts toward the certified-only rate. Recording None there would let a run
+            # containing an `allow_uncertified` node into the Stage 4 number, which is exactly
+            # the thing that makes the number meaningless.
+            "certified": bool(declared.get("certified")) if step_name else None,
         }
         if cost is None:
             record["pricing_missing"] = True

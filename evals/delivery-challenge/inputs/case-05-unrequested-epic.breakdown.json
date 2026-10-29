@@ -1,0 +1,179 @@
+{
+  "item": "HP-12",
+  "epics": [
+    {
+      "id": "E1",
+      "title": "Operator can scrape Hephaestus's /metrics endpoint",
+      "stories": [
+        {
+          "id": "S1",
+          "statement": "Expose GET /metrics on the existing HTTP port, rendering the app CollectorRegistry via the Prometheus simpleclient the sibling services use",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "metrics.enabled is true (the default) and the service is running",
+              "when": "a client sends GET /metrics on the existing HTTP port",
+              "then": "the response is 200 with a Prometheus text-format body rendered from the app CollectorRegistry"
+            }
+          ]
+        },
+        {
+          "id": "S2",
+          "statement": "A metrics.enabled toggle, defaulting to true, controls whether the /metrics route exists and whether a real or no-op recorder is used",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "metrics.enabled is not set in configuration",
+              "when": "the service starts",
+              "then": "metrics.enabled resolves to true and the /metrics route is registered"
+            },
+            {
+              "id": "AC2",
+              "given": "metrics.enabled is set to false",
+              "when": "a client sends GET /metrics",
+              "then": "no /metrics route exists and the request is not handled by a metrics handler"
+            },
+            {
+              "id": "AC3",
+              "given": "metrics.enabled is set to false",
+              "when": "the JobConsumer processes a job",
+              "then": "a no-op MetricsRecorder is used and no metric is recorded"
+            }
+          ]
+        },
+        {
+          "id": "S3",
+          "statement": "The exposed registry includes base JVM metrics alongside worker metrics",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "metrics.enabled is true",
+              "when": "a client sends GET /metrics",
+              "then": "the response body includes base JVM metrics (e.g. memory and GC) from the CollectorRegistry"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E2",
+      "title": "Operator can observe worker throughput and health through MetricsRecorder-backed metrics",
+      "stories": [
+        {
+          "id": "S4",
+          "statement": "The MetricsRecorder seam injected into the JobConsumer records jobs processed by lane and outcome",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "the JobConsumer processes a job in a given lane and the job completes successfully",
+              "when": "processing finishes",
+              "then": "MetricsRecorder increments a jobs-processed counter labeled with that lane and outcome=success"
+            },
+            {
+              "id": "AC2",
+              "given": "the JobConsumer processes a job in a given lane and the job fails",
+              "when": "processing finishes",
+              "then": "MetricsRecorder increments a jobs-processed counter labeled with that lane and outcome=failure"
+            }
+          ]
+        },
+        {
+          "id": "S5",
+          "statement": "The MetricsRecorder seam records job processing time in a histogram",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "the JobConsumer processes a job",
+              "when": "processing finishes",
+              "then": "MetricsRecorder records the elapsed processing time as an observation in a processing-time histogram"
+            }
+          ]
+        },
+        {
+          "id": "S6",
+          "statement": "The MetricsRecorder seam tracks the number of jobs currently in flight via a gauge",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "the JobConsumer begins processing a job",
+              "when": "processing starts",
+              "then": "MetricsRecorder increments the in-flight gauge"
+            },
+            {
+              "id": "AC2",
+              "given": "the JobConsumer has started processing a job",
+              "when": "processing finishes, whether it succeeds or fails",
+              "then": "MetricsRecorder decrements the in-flight gauge"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E3",
+      "title": "Grafana dashboards and alerting for worker throughput",
+      "stories": [
+        {
+          "id": "S7",
+          "statement": "Build a Grafana dashboard showing jobs processed by lane and outcome, processing time and in-flight work.",
+          "domains": [
+            "infra"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "the service is being scraped",
+              "when": "an operator opens the worker dashboard",
+              "then": "jobs processed by lane and outcome are plotted over the selected window"
+            },
+            {
+              "id": "AC2",
+              "given": "the worker dashboard is open",
+              "when": "processing time is inspected",
+              "then": "the histogram's quantiles are rendered per lane"
+            }
+          ]
+        },
+        {
+          "id": "S8",
+          "statement": "Add alerting rules that page when the failure rate or in-flight work crosses its threshold.",
+          "domains": [
+            "infra"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "the failure rate is above its configured threshold",
+              "when": "the alerting rules evaluate",
+              "then": "an alert fires with the lane in its labels"
+            },
+            {
+              "id": "AC2",
+              "given": "in-flight work is within its threshold",
+              "when": "the alerting rules evaluate",
+              "then": "no alert fires"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

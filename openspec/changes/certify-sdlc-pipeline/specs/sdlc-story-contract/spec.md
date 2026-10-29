@@ -74,3 +74,35 @@ enforcement.
 - **GIVEN** a change to the normative story format
 - **WHEN** it lands without a corresponding change to the schema or the linter
 - **THEN** the change is incomplete
+
+### Requirement: The story set is rendered from the challenged breakdown, not re-decomposed
+Where a work item arrives through `delivery-flow`, `story.json` SHALL be rendered
+deterministically from `breakdown.json` by a script, one story per
+`epics[].stories[]`, carrying `id`, `statement`, `domains` and `acceptance_criteria` across
+unchanged. No node SHALL re-decompose a breakdown that `challenge-breakdown` has already
+attacked. Each rendered story SHALL carry a `sources` array naming the artifacts it derives
+from, so an implementer reads the context rather than a node's summary of it. The renderer and
+the story validator SHALL share one module, so they cannot disagree about what a story is.
+`story-planner` remains the entry point for work that does not arrive through `delivery-flow`.
+
+#### Scenario: Every breakdown story becomes exactly one story
+
+- **GIVEN** a `breakdown.json` with 1 epic, 3 stories and 6 acceptance criteria
+- **WHEN** the renderer runs
+- **THEN** 3 `story.json` artifacts exist, their ids and acceptance criteria match the breakdown exactly, and none carries a criterion the breakdown did not contain
+
+#### Scenario: The renderer invents nothing
+
+- **WHEN** the rendered story set is compared against `breakdown.json`
+- **THEN** no story, criterion or domain appears that is absent from the breakdown, and the comparison is enforced by the shared module rather than by review
+
+#### Scenario: Sequencing is a stated gap, not a guess
+
+- **WHEN** stories are rendered
+- **THEN** they are presented in breakdown order, and the brief states that dependency ordering has not been determined — rather than implying an order the breakdown never expressed
+
+#### Scenario: Work without a tracker item still has a path
+
+- **GIVEN** a requirement written directly into the repository with no `breakdown.json`
+- **WHEN** the implementation phase begins
+- **THEN** `story-planner` produces the story set, and the rendered-from-breakdown path is not required

@@ -31,7 +31,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import load_json, repo_root  # noqa: E402
+from common import artifact_root, is_delivery_repo, load_json, repo_root  # noqa: E402
 
 TOKEN_FIELDS = ("input_tokens", "output_tokens", "cache_creation_tokens", "cache_read_tokens")
 
@@ -45,10 +45,39 @@ def iso_week(ts: str) -> str:
     return f"{y}-W{w:02d}"
 
 
+def trace_files(root: Path) -> list:
+    """Every run's trace under this root, wherever its artifacts live.
+
+    A root may be a delivery repo (whose `artifacts.root` says where its runs are, possibly
+    outside itself) or an artifact root given directly. Both are accepted, because a report
+    that only understood `<repo>/delivery/` stopped finding anything the moment the artifacts
+    moved to the vault — and criterion 4's number comes from here.
+    """
+    root = Path(root)
+    found = []
+    if is_delivery_repo(root):
+        found += sorted(artifact_root(root).glob("*/trace.jsonl"))
+    found += sorted(root.glob("delivery/*/trace.jsonl"))   # the default layout
+    found += sorted(root.glob("*/trace.jsonl"))            # an artifact root given directly
+    seen, out = set(), []
+    for f in found:
+        key = str(f.resolve())
+        if key not in seen:
+            seen.add(key)
+            out.append(f)
+    return out
+
+
 def collect(roots) -> dict:
     items = {}
     for root in roots:
-        for trace in sorted(Path(root).glob("delivery/*/trace.jsonl")):
+        for trace in trace_files(root):
+            # The project's convention for a contaminated run is to rename its directory
+            # `DISCARDED-*` and write down why. The report has to honour that, or a run
+            # discarded for having false numbers keeps contributing those numbers — which is
+            # exactly what it was discarded for.
+            if trace.parent.name.startswith("DISCARDED-"):
+                continue
             item_dir = trace.parent
             key = item_dir.name
             entry = items.setdefault(key, {"item": key, "repo": str(root), "records": [],
@@ -69,6 +98,9 @@ def collect(roots) -> dict:
 
 def summarize(items: dict) -> dict:
     per_step, per_model, weekly = defaultdict(lambda: defaultdict(float)), defaultdict(lambda: defaultdict(float)), defaultdict(lambda: defaultdict(int))
+    # Per profile too: the Stage 4 number belongs to the certified chain, and mixing it with
+    # runs of the whole pipeline reports neither honestly.
+    per_profile = defaultdict(lambda: defaultdict(int))
     nonconformant, missing_pricing, rows = [], set(), []
 
     for key, entry in sorted(items.items()):
@@ -102,12 +134,16 @@ def summarize(items: dict) -> dict:
         status = outcome.get("status") or ("in-flight" if entry["records"] or entry["edges"] else "empty")
         failed_edges = sum(1 for e in entry["edges"] if (e.get("edge") or {}).get("exit"))
         ts = (entry["records"] or entry["edges"] or [{}])[-1].get("ts", "")
+        profile = outcome.get("profile") or "unknown"
         if status in ("completed", "failed", "punched-out", "abandoned"):
             weekly[iso_week(ts)][status] += 1
+            per_profile[profile][status] += 1
             if certified_all:
                 weekly[iso_week(ts)][f"certified:{status}"] += 1
+                per_profile[profile][f"certified:{status}"] += 1
 
-        rows.append({"item": key, "status": status, "step": outcome.get("step") or "",
+        rows.append({"item": key, "status": status, "profile": profile,
+                     "step": outcome.get("step") or "",
                      "reason": outcome.get("reason") or "", **tokens,
                      "cost_usd": round(cost, 4), "priced": priced,
                      "certified": certified_all, "failed_edges": failed_edges,
@@ -123,9 +159,13 @@ def summarize(items: dict) -> dict:
                 "rate_excluding_punch_outs": excl, "rate_counting_punch_outs": incl}
 
     weeks = {w: {"all": rate(c), "certified_only": rate(c, "certified:")} for w, c in sorted(weekly.items())}
+    # A profile with no terminal runs has no rate. Reporting it as 0% would read as "it never
+    # works" when it means "nobody has run it", and those are opposite conclusions.
+    profiles = {p: {"all": rate(c), "certified_only": rate(c, "certified:")}
+                for p, c in sorted(per_profile.items())}
     return {"items": rows, "per_step": {k: dict(v) for k, v in per_step.items()},
             "per_model": {k: dict(v) for k, v in per_model.items()},
-            "weekly": weeks, "non_conformant": nonconformant,
+            "weekly": weeks, "per_profile": profiles, "non_conformant": nonconformant,
             "missing_pricing": sorted(missing_pricing)}
 
 
@@ -135,10 +175,10 @@ def markdown(s: dict, pricing_as_of: str) -> str:
          f"{f' (as of {pricing_as_of})' if pricing_as_of else ''}. Runs under a subscription are not "
          "billed per token, so this is a comparison figure, not spend.", "",
          "## Items", "",
-         "| Item | Outcome | Steps | In | Out | Cost (API-equiv) | Certified | Failed edges |",
-         "|------|---------|-------|----|-----|------------------|-----------|--------------|"]
+         "| Item | Profile | Outcome | Steps | In | Out | Cost (API-equiv) | Certified | Failed edges |",
+         "|------|---------|---------|-------|----|-----|------------------|-----------|--------------|"]
     for r in s["items"]:
-        L.append(f"| {r['item']} | {r['status']}{(' — ' + r['reason']) if r['reason'] else ''} | {r['steps']} | "
+        L.append(f"| {r['item']} | {r['profile']} | {r['status']}{(' — ' + r['reason']) if r['reason'] else ''} | {r['steps']} | "
                  f"{r['input_tokens']:,} | {r['output_tokens']:,} | "
                  f"{'$' + format(r['cost_usd'], '.4f') if r['priced'] else 'unpriced'} | "
                  f"{'yes' if r['certified'] else 'no'} | {r['failed_edges']} |")
@@ -152,6 +192,19 @@ def markdown(s: dict, pricing_as_of: str) -> str:
         L.append(f"| {week} | {a['completed']} | {a['failed']} | {a['punched_out']} | "
                  f"{pct(a['rate_excluding_punch_outs'])} | {pct(a['rate_counting_punch_outs'])} | "
                  f"{pct(c['rate_excluding_punch_outs'])} |")
+
+    L += ["", "## End-to-end rate by profile", "",
+          "A profile with no terminal runs has no rate: that is not 0%, it is no evidence.", "",
+          "| Profile | Completed | Failed | Punched out | Excluding punch-outs | Counting them | Certified-only (Stage 4) |",
+          "|---------|-----------|--------|-------------|----------------------|---------------|--------------------------|"]
+    pct = lambda x: "—" if x is None else f"{x:.1f}%"
+    for profile, v in s["per_profile"].items():
+        a, c = v["all"], v["certified_only"]
+        L.append(f"| {profile} | {a['completed']} | {a['failed']} | {a['punched_out']} | "
+                 f"{pct(a['rate_excluding_punch_outs'])} | {pct(a['rate_counting_punch_outs'])} | "
+                 f"{pct(c['rate_excluding_punch_outs'])} |")
+    if not s["per_profile"]:
+        L.append("| — | 0 | 0 | 0 | — | — | — |")
 
     L += ["", "## Cost by step", "", "| Step | Runs | In | Out | Cost |", "|------|------|----|-----|------|"]
     for step, v in sorted(s["per_step"].items(), key=lambda kv: -kv[1]["cost"]):

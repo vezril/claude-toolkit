@@ -32,3 +32,26 @@ The pipeline's own rule is "artifacts drive state" — stale workflow docs break
   `agents/sdlc-orchestrator.md`, and the reference templates in `templates/unattended/`.
 - `scripts/check-protected-paths.py` parses the `protected_paths:` block format of
   `templates/unattended/unattended-policy.yml` — change the format and the parser together.
+- `load_profiles` in `scripts/delivery-flow/common.py` parses
+  `templates/delivery-flow/profiles.yaml` — change the format and the parser together. The
+  profiles' steps must also stay in step with the `STEPS` table in
+  `scripts/delivery-flow/flow-status.py`; `tests/delivery-flow/test_profiles.py` asserts that
+  every profile step exists in the table and that no table step is left out of every profile.
+- The brief's template and its edge check share
+  `scripts/delivery-flow/brief.py` — `render-brief.py` and `hooks/check-edge.py` both import
+  it so the renderer and the checker cannot disagree about what an identifier is.
+- The derived punch-out triggers live only in `scripts/delivery-flow/triggers.py`, imported by
+  both `scripts/delivery-flow/check-punch-out.py` and `hooks/check-edge.py`. The ceilings are
+  config (`punch_out.*` in `.delivery-flow.yaml`), documented in
+  `skills/delivery-flow/references/config.md` — change the keys and that reference together.
+- The adapter contract lives in `scripts/delivery-flow/common.py`: `Usage`/`Remote` and
+  `dispatch` are the exit codes, `emit` is the stdout format, and `outward_refusal` is the
+  one definition of "blocked" that every adapter's `comment`, `transition` and `open-pr`
+  consults. Adapters map remote fields; they never re-decide policy. The contract and each
+  adapter's field mapping are documented in `skills/delivery-flow/references/adapters.md` —
+  change a mapping and change that reference.
+- `load_roster` in `scripts/delivery-flow/common.py` parses
+  `templates/delivery-flow/roster.yaml`, whose closed vocabulary of work kinds is repeated in
+  `skills/delivery-flow/references/roster.md` and in `tests/delivery-flow/test_roster.py`.
+  All three change together. Every agent and skill the roster names must exist on disk; the
+  test is what enforces it.

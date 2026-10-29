@@ -148,6 +148,54 @@ whether punched-out runs belong inside it is a question for the reviewer.
 mechanical — if a node consumes it, it has a schema; if only a human reads it, it can be prose.
 Every segment hand-off in the D1 table is named accordingly.
 
+### D10 — `breakdown.json` **is** the story set; `story-planner` does not re-decompose it
+
+The seam between the two workflows. `delivery-flow` ends a `triage`-profile run holding
+`breakdown.json` — epics → stories → acceptance criteria — written by a node certified on sonnet
+at 100 / 95.8 / 100 and then attacked by `challenge-breakdown`. The sdlc pipeline begins with
+`story-planner`, which decomposes requirements into stories with Dev Notes and spec references,
+and which is **uncertified**.
+
+So the obvious wiring — breakdown feeds `story-planner`, which produces the real stories — puts
+an uncertified decomposition downstream of a certified one. That costs twice. The chain's
+end-to-end number stops meaning anything the moment an uncertified node joins it (the
+certification skill's own words). And it creates a second place the plan can drift from the
+ticket: two decompositions, no rule saying which wins when they disagree, and the drift is
+invisible because both outputs look reasonable.
+
+**So `story.json` is rendered from `breakdown.json`, deterministically, by a script.** One story
+per `breakdown.epics[].stories[]`, carrying its `id`, `statement`, `domains` and
+`acceptance_criteria` across unchanged. The renderer is an edge, not a node: it adds no
+judgement, so it needs no `prompt-edd` package, and it cannot invent a story the challenged
+breakdown did not contain. The `brief.py` / `render-brief.py` pattern applies — renderer and
+validator share one module so they cannot disagree about what a story is.
+
+`story-planner` keeps its job for work that does **not** arrive through delivery-flow: a
+requirement written straight into the repo, a spike, anything with no tracker item. It is the
+entry point for that path and is certified on its own merits when its turn comes. It is simply
+not in the path that starts at a Jira ticket.
+
+What the breakdown does not carry, and what to do about it:
+
+- **Dev Notes and spec references.** `story-planner` writes these so a story can be implemented
+  in a fresh context. A breakdown story has no equivalent. Rather than reintroduce a node to
+  invent them, the rendered `story.json` carries a `sources` array pointing at the artifacts the
+  story came from — `item.json`, `breakdown.json`, `challenge-breakdown.json`, and the
+  OpenSpec change directory once `propose` has run. The implementer reads the sources instead of
+  a summary of them, which is strictly better: a summary is a node's claim about context,
+  pointers are the context.
+- **Sequencing.** `story-planner` orders stories by dependency. The breakdown does not. Ordering
+  is a judgement, so it belongs to a node or a human — not to the renderer. Until there is a
+  certified node for it, the brief presents the stories in breakdown order and the human gate
+  before implementation is where ordering gets decided. Stated as a limit rather than faked.
+
+**Consequence worth being explicit about:** this makes `delivery-flow`'s `breakdown` node
+load-bearing for the build pipeline too, so its known residual — "the DLQ item's idempotency
+clause is dropped in about 1 run in 3" — now costs a missing story rather than a thin brief.
+`challenge-breakdown` is the control for exactly that class of defect (a deliverable the item
+requires appearing in no story is one of its three REFUTED conditions), which is the argument
+for the seam sitting *after* the challenge rather than before it.
+
 ## Risks / Trade-offs
 
 - **The extraction destabilises the submitted workflow.** Highest risk here. Mitigated by

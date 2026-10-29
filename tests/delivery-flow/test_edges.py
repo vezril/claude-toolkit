@@ -6,6 +6,7 @@ Standard library only, like the code under test.
 """
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -208,6 +209,112 @@ class TestSentinelAndHook(unittest.TestCase):
                            capture_output=True, text=True)
         self.assertEqual(r.returncode, 2)
         self.assertIn("claims epics=99", r.stderr)
+
+    def test_a_bash_write_after_a_cd_is_still_checked(self):
+        """The payload's `cwd` is the session's, not the subshell's.
+
+        Found on a real run: `cd ~/repo && … > delivery/K/item.json` wrote the artifact with no
+        check and no trace record, because the relative path resolved against the session
+        directory, did not exist there, and was skipped as "mentioned but not written". The
+        guardrail was bypassable by accident — which under Stage 4 is the same as bypassable.
+        """
+        f = Fixture()
+        f.write("breakdown.json", breakdown())
+        f.sentinel("breakdown.json", counts={"epics": 99})
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                   "cwd": "/somewhere/else/entirely",
+                   "tool_input": {"command":
+                                  f"cd {f.dir} && cat x > delivery/{f.item}/breakdown.json"}}
+        r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload),
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 2, "the edge must still run when the command cd's first")
+        self.assertIn("claims epics=99", r.stderr)
+
+    def test_a_write_the_command_text_hides_is_still_checked(self):
+        """Detection is by content, not by parsing the command line.
+
+        Three real runs on 2026-10-28 wrote an artifact the edge never saw, each defeating the
+        regex a different way: a relative path after a `cd`, then a path built from a shell
+        variable. Pattern-matching a command line will always lose to variables, subshells,
+        `python -c` and computed paths — so the hook compares each artifact's bytes against the
+        sha the trace last recorded, which no write syntax can hide from.
+        """
+        f = Fixture()
+        f.write("breakdown.json", breakdown())
+        f.sentinel("breakdown.json", counts={"epics": 99})
+        # The command mentions no path at all: the artifact is reached through a variable.
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash", "cwd": str(f.dir),
+                   "tool_input": {"command": 'D=delivery; cat x > "$D/ITEM/breakdown.json"'}}
+        r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload),
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 2, "a hidden write must still be caught")
+        self.assertIn("claims epics=99", r.stderr)
+
+    def test_an_unchanged_artifact_is_not_rechecked_on_every_command(self):
+        """Content detection must not re-fire for artifacts nothing touched."""
+        f = Fixture()
+        f.write("breakdown.json", breakdown())
+        f.sentinel("breakdown.json")
+        first = f.hook("breakdown.json")
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertEqual(len(f.trace()), 1)
+        # A later, unrelated command in the same repo: the artifact is unchanged since the
+        # trace recorded it, so there is nothing new to check.
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash", "cwd": str(f.dir),
+                   "tool_input": {"command": "ls delivery/"}}
+        second = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload),
+                                capture_output=True, text=True)
+        self.assertEqual(second.returncode, 0)
+        self.assertEqual(len(f.trace()), 1, "an unchanged artifact must not be traced again")
+
+    def test_the_registry_catches_the_write_no_parsing_could(self):
+        """The shape that defeated every text-based fix.
+
+        An absolute path held in a shell variable, no `cd`, and a cwd that is not a delivery
+        repo: the value of `$R` is nowhere in the payload, so no amount of command parsing can
+        recover it. A hook is handed the session's cwd, never the directory a command wrote to.
+        The registry removes the guessing — `init-delivery-flow.py` records a repo when it opts
+        in, and the hook reads the list.
+        """
+        f = Fixture()
+        f.write("breakdown.json", breakdown())
+        f.sentinel("breakdown.json", counts={"epics": 99})
+        registry = f.dir / "repos"
+        registry.write_text(f"{f.dir}\n")
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                   "cwd": "/somewhere/that/is/not/a/delivery/repo",
+                   "tool_input": {"command": f'R={f.dir}; cat x > "$R/delivery/{f.item}/breakdown.json"'}}
+
+        env = dict(os.environ, DELIVERY_FLOW_REPOS=str(registry))
+        r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload),
+                           capture_output=True, text=True, env=env)
+        self.assertEqual(r.returncode, 2, f"the registry must make this reachable: {r.stderr}")
+        self.assertIn("claims epics=99", r.stderr)
+
+    def test_an_unregistered_repo_is_still_left_alone(self):
+        """The registry must not make the hook fire on repos nobody opted in."""
+        f = Fixture()
+        f.write("breakdown.json", breakdown())
+        f.sentinel("breakdown.json", counts={"epics": 99})
+        empty = f.dir / "empty-registry"
+        empty.write_text("")
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                   "cwd": "/somewhere/that/is/not/a/delivery/repo",
+                   "tool_input": {"command": f'R={f.dir}; cat x > "$R/delivery/{f.item}/breakdown.json"'}}
+        env = dict(os.environ, DELIVERY_FLOW_REPOS=str(empty))
+        r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload),
+                           capture_output=True, text=True, env=env)
+        self.assertEqual(r.returncode, 0)
+
+    def test_a_cd_target_does_not_widen_the_check_to_other_repos(self):
+        """Resolving against cd targets must not make an unrelated path look written."""
+        f = Fixture()
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash", "cwd": str(f.dir),
+                   "tool_input": {"command": "cd /tmp && echo hello"}}
+        r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload),
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0)
+        self.assertEqual(f.trace(), [])
 
     def test_sentinel_itself_is_validated(self):
         f = Fixture()

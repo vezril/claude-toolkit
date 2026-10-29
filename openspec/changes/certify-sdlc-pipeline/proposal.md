@@ -103,6 +103,14 @@ scratch.
   the affected `docs/figures/*.svg` (`readiness-gate`, `sdlc-pipeline`, `human-gates`),
   `agents/README.md`, `skills/sdlc-orchestration/SKILL.md`, the `skills/prime/` team bindings,
   and the three-place dev-pair territory definition if the boundary hook moves.
-- **Sequencing constraint:** none of the substrate extraction lands until the `delivery-flow`
-  submission is accepted. Refactoring the thing under review, while it is under review, trades
-  a certification for a tidier tree.
+- **Sequencing, revised 2026-10-29.** The original draft said none of this lands until the
+  `delivery-flow` submission is accepted. Calvin's call is that it does not hold: a triage
+  workflow you cannot build from is not a workflow you can use, so the implementation path is
+  needed before the submission rather than after it.
+
+  The caution it was protecting against is still real, so the split is: **the seam and the
+  implementation path land now; the substrate extraction waits.** Rendering stories from a
+  challenged breakdown is purely additive — a new script, a new schema, no change to any
+  certified node or to the hooks under review. Extracting `scripts/workflow/` and
+  re-pointing `delivery-flow` at it refactors the thing being submitted, and that is what
+  should wait.
