@@ -129,7 +129,23 @@ def adf_text(node) -> str:
 
     kind = node.get("type")
     if kind == "text":
-        return str(node.get("text") or "")
+        text = str(node.get("text") or "")
+        # A link's href lives in a mark, not in the text. Where the text already *is* the URL
+        # (the common paste) emitting it twice is noise, so only append when they differ —
+        # otherwise a reference the body clearly makes would be invisible to the follow step.
+        for mark in node.get("marks") or []:
+            if mark.get("type") == "link":
+                href = str((mark.get("attrs") or {}).get("href") or "")
+                if href and href not in text:
+                    return f"{text} <{href}>" if text.strip() else href
+        return text
+    # Smart links. `inlineCard`/`blockCard`/`embedCard` carry their URL in `attrs` and have no
+    # text child at all, so flattening content alone dropped them silently: AN-3630's body
+    # ended at "see:" with the GitHub URL gone. That is the exact content the follow step
+    # exists to resolve, so losing it defeated the feature without any error.
+    if kind in ("inlineCard", "blockCard", "embedCard"):
+        attrs = node.get("attrs") or {}
+        return str(attrs.get("url") or (attrs.get("data") or {}).get("url") or "")
     if kind == "hardBreak":
         return "\n"
     inner = adf_text(node.get("content"))
