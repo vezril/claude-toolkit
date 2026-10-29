@@ -5,7 +5,18 @@ Short, current, and overwritten each session. The full picture is in
 
 Last updated 2026-10-29.
 
-## AN-3630 — first complete run, outcome `completed`
+## Runs: both completed ones are discarded, for the same cause
+
+`trace-step` was briefly resolved from a repo registry instead of the session's
+working directory, so every Stop event in any session was attributed to whichever
+item held a `.current-step`. Both AN-3630 and AN-3704 absorbed the orchestrating
+session's usage: their artifacts and edge records are sound, their token and cost
+records are not. Each is renamed `DISCARDED-*` with the reason beside it.
+
+**So the end-to-end rate and the audit trail have no clean data yet.** A run must be
+driven from a session started inside the delivery repo to produce any.
+
+## AN-3630 — artifacts sound, trace discarded
 
 | Step | State |
 |---|---|

@@ -31,7 +31,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import load_json, repo_root  # noqa: E402
+from common import artifact_root, is_delivery_repo, load_json, repo_root  # noqa: E402
 
 TOKEN_FIELDS = ("input_tokens", "output_tokens", "cache_creation_tokens", "cache_read_tokens")
 
@@ -45,10 +45,33 @@ def iso_week(ts: str) -> str:
     return f"{y}-W{w:02d}"
 
 
+def trace_files(root: Path) -> list:
+    """Every run's trace under this root, wherever its artifacts live.
+
+    A root may be a delivery repo (whose `artifacts.root` says where its runs are, possibly
+    outside itself) or an artifact root given directly. Both are accepted, because a report
+    that only understood `<repo>/delivery/` stopped finding anything the moment the artifacts
+    moved to the vault — and criterion 4's number comes from here.
+    """
+    root = Path(root)
+    found = []
+    if is_delivery_repo(root):
+        found += sorted(artifact_root(root).glob("*/trace.jsonl"))
+    found += sorted(root.glob("delivery/*/trace.jsonl"))   # the default layout
+    found += sorted(root.glob("*/trace.jsonl"))            # an artifact root given directly
+    seen, out = set(), []
+    for f in found:
+        key = str(f.resolve())
+        if key not in seen:
+            seen.add(key)
+            out.append(f)
+    return out
+
+
 def collect(roots) -> dict:
     items = {}
     for root in roots:
-        for trace in sorted(Path(root).glob("delivery/*/trace.jsonl")):
+        for trace in trace_files(root):
             # The project's convention for a contaminated run is to rename its directory
             # `DISCARDED-*` and write down why. The report has to honour that, or a run
             # discarded for having false numbers keeps contributing those numbers — which is
