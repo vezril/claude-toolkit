@@ -88,6 +88,30 @@ Ten, every one invisible from a toolkit checkout. All fixed and committed except
     pass `--yes`. The signature is the control. Worth an `invoke-decide --yes` bypass attack so
     the report says so explicitly.
 
+## Defect 12: the breaking derivation attributes the whole branch diff to one item
+
+Found on the AN-3704 re-run, 2026-10-29. The derivation reads `git diff main...HEAD` and
+matches it against `punch_out.contract_paths`. The branch `cference/session-auto-stop` holds
+four commits implementing **AN-3630's** feature, touching `nx_neptune/session_manager.py`,
+`instance_management.py` and `clients/neptune_constants.py`. AN-3704 is a
+`proxy/docker-compose.yml` and `proxy/Makefile` bug that touches none of them — yet it raised a
+breaking-change punch-out citing those three files.
+
+So two items worked on one branch each inherit the other's changes, and the punch-out's
+evidence names files the item never asked to change. A gate whose evidence belongs to a
+different work item is worse than no gate: it reads as authoritative and is wrong.
+
+Options, none chosen yet:
+
+1. Scope the diff to the files the item's own artifacts name (the proposal's `tasks[].files`
+   where there is one, nothing before that) and derive nothing from the branch otherwise.
+2. Scope the diff to commits whose message or trailer names the item key.
+3. Declare one branch per item a precondition of the flow and check it, which is the smallest
+   change but the strongest constraint on how work actually happens.
+
+Related: the same run shows why `contract_paths: [nx_neptune, ...]` is too broad — see open
+decision 1. Both must be settled before a punch-out rate means anything.
+
 ## Stage 4 submission
 
 Not this week. Criterion 4 wants a rate over real runs with a weekly trend, and there are zero

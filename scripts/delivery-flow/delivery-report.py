@@ -49,6 +49,12 @@ def collect(roots) -> dict:
     items = {}
     for root in roots:
         for trace in sorted(Path(root).glob("delivery/*/trace.jsonl")):
+            # The project's convention for a contaminated run is to rename its directory
+            # `DISCARDED-*` and write down why. The report has to honour that, or a run
+            # discarded for having false numbers keeps contributing those numbers — which is
+            # exactly what it was discarded for.
+            if trace.parent.name.startswith("DISCARDED-"):
+                continue
             item_dir = trace.parent
             key = item_dir.name
             entry = items.setdefault(key, {"item": key, "repo": str(root), "records": [],

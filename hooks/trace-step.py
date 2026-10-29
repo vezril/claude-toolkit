@@ -77,13 +77,19 @@ def main() -> int:
         return 0
 
     common = _common()
-    # The registry, not the payload's cwd. `cwd` is the session's directory, so a run driven
-    # against another repo recorded no steps at all — the audit trail was empty while the
-    # pipeline looked fine. Found on the first complete run: three SubagentStop events, zero
-    # step records, and a report showing $0.0000.
-    repos = common.candidate_repos(payload)
-    repo = next((r for r in repos if any((r / "delivery").glob("*/.current-step"))),
-                repos[0] if repos else common.repo_root(Path(payload.get("cwd") or ".")))
+    # cwd-based, deliberately, after trying the registry and reverting it.
+    #
+    # The registry made this hook fire on every Stop/SubagentStop in *any* session and record
+    # it against whichever item happened to hold a `.current-step`. Measured: a 7-step run came
+    # back as 1,411 steps and 1.75M output tokens — a whole unrelated session's usage — and the
+    # run flipped to `certified: false` because the recorded model was not the declared tier.
+    # False audit data is worse than none: an empty trail says "no evidence", a populated one
+    # says "this is what happened" and was wrong.
+    #
+    # So this hook records only when the session is working in the delivery repo, which is how
+    # the flow is meant to be driven. Orchestrating from a different repo yields no step
+    # records, and that absence is honest.
+    repo = common.repo_root(Path(payload.get("cwd") or "."))
     if not common.is_delivery_repo(repo):
         return 0
 
