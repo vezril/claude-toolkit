@@ -331,9 +331,9 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `dockerhub-setup` | 50% | 100% | sonnet | Fully deterministic suite, no judge. **The baseline never echoes a password pasted into chat (0 leaks in 3 runs)** — what it misses is treating that paste as a rotation event, and noting that Actions secret values are never readable back. Skill arm isn't rock-solid (3/4 twice, on the unreadable-values note). Log: `evals/dockerhub-setup/iteration-log.md` |
 | `domain-driven-design` | 96% | 100% | sonnet | ✅ Shipped (PR #56) — ubiquitous-language glossary made part of the deliverable |
 | `dsm-5` |  |  |  | Not yet evaluated |
-| `dsm-anxiety` |  |  |  | Not yet evaluated |
-| `dsm-bipolar` |  |  |  | Not yet evaluated |
-| `dsm-depressive` |  |  |  | Not yet evaluated |
+| `dsm-anxiety` | 80% | 100% | sonnet | Baseline knows the chapter well; the skill adds agoraphobia-as-independent-diagnosis and the panic-attack-as-specifier framing. Skill arm *less* stable than baseline (4/3/5 vs 4/5/3). Log: `evals/_dsm/iteration-log.md` |
+| `dsm-bipolar` | 100% | 100% | sonnet | **No measurable delta** — baseline gets bipolar I needing one manic episode, the mixed-features change and the not-milder correction unprompted. Run 1 showed a *regression* that turned out to be my assert rejecting "DSM-5 also requires…"; fixed and both arms re-run. Log: `evals/_dsm/iteration-log.md` |
+| `dsm-depressive` | 80% | 100% | sonnet | **The clearest gain in the batch.** Baseline FFF on the removed bereavement exclusion and its contested status; flapped on DMDD's ODD exclusivity and PMDD's prospective-daily-ratings requirement. Skill arm 5/5 on all three runs. Log: `evals/_dsm/iteration-log.md` |
 | `dsm-disruptive-impulse-conduct` |  |  |  | Not yet evaluated |
 | `dsm-dissociative` |  |  |  | Not yet evaluated |
 | `dsm-elimination` |  |  |  | Not yet evaluated |
@@ -347,11 +347,11 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `dsm-other-mental` |  |  |  | Not yet evaluated |
 | `dsm-paraphilic` |  |  |  | Not yet evaluated |
 | `dsm-personality` |  |  |  | Not yet evaluated |
-| `dsm-schizophrenia-spectrum` |  |  |  | Not yet evaluated |
+| `dsm-schizophrenia-spectrum` | 80% | 80% | sonnet | **No measurable delta.** Baseline has the removed subtypes, the duration gradient and the bizarre-delusion change. Skill arm flapped on its own refuse-to-diagnose case (3/5/3) — possible rails-vs-content tension, noted for investigation. Log: `evals/_dsm/iteration-log.md` |
 | `dsm-sexual-dysfunctions` |  |  |  | Not yet evaluated |
 | `dsm-sleep-wake` |  |  |  | Not yet evaluated |
 | `dsm-somatic-symptom` |  |  |  | Not yet evaluated |
-| `dsm-substance-related` |  |  |  | Not yet evaluated |
+| `dsm-substance-related` | 100% | 100% | sonnet | **No measurable delta.** Baseline already has the abuse/dependence merger, caffeine having no use disorder, internet gaming being Section III only, and alcohol withdrawal being potentially fatal. Log: `evals/_dsm/iteration-log.md` |
 | `dsm-trauma-stressor` |  |  |  | Not yet evaluated |
 | `event-storming` |  |  |  |  |
 | `finch` | 44% | 100% | sonnet | Baseline 6/8/6 of 16 across the 3 runs; skill 16/16 on all 3. 8 cases fail the baseline every run: read-only home mount, Rosetta's macOS-26 floor, SOCI, cosign-keyless-unsupported, Containerfile auto-detect, DevContainers wiring, `creds_helpers`+`credsStore`, "VM = isolation" pushback. Skill was 100% from v1, so no patch — iteration went into the *suite*: added a `no-hallucination` criterion (baseline invents `finch vm ssh`, `finch soci create`), and N=3 overturned an N=1 read that had credited the model with 3 facts it doesn't reliably know. Ships a paired naive-baseline arm. Log: `evals/finch/iteration-log.md` |
