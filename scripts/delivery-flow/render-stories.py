@@ -32,6 +32,9 @@ Exit codes: 0 rendered, 1 refused (no challenge, or a REFUTED verdict), 2 a usag
 """
 
 import argparse
+import contextlib
+import importlib.util
+import io
 import json
 import sys
 from pathlib import Path
@@ -40,6 +43,36 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from common import artifact_root, is_delivery_repo, load_json, repo_root  # noqa: E402
 from stories import missing_from, sources_for, stories_from, story_filename  # noqa: E402
+
+
+def _write_sentinel(path: Path, claimed_acs: int) -> tuple:
+    """Write the sentinel beside a rendered story. Returns (ok, message).
+
+    Without this every story failed its edge with "no readable sentinel beside the artifact" —
+    the same defect as recall's (delivery-flow defect 5). It went unnoticed because the edge
+    was not reaching stories at all until the `story-*.json` schema glob landed; making the
+    gate live is what exposed it.
+
+    The acceptance-criteria count is claimed from the **breakdown**, not read back from the
+    file just written. A count derived from the output would agree with the output by
+    construction and assert nothing — the sentinel exists precisely so the edge can compare a
+    claim against reality, so the claim has to come from the source.
+    """
+    spec = importlib.util.spec_from_file_location("write_sentinel", HERE / "write-sentinel.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+        rc = mod.main([str(path), "--step", "render-stories",
+                       "--count", f"acceptance_criteria={claimed_acs}"])
+    return rc == 0, buf.getvalue().strip()
+
+
+def breakdown_ac_counts(breakdown: dict) -> dict:
+    """(epic id, story id) -> how many acceptance criteria the breakdown holds for it."""
+    return {(e.get("id"), s.get("id")): len(s.get("acceptance_criteria") or [])
+            for e in breakdown.get("epics") or []
+            for s in e.get("stories") or []}
 
 
 def main(argv=None) -> int:
@@ -99,12 +132,28 @@ def main(argv=None) -> int:
         print(json.dumps(stories, indent=2, sort_keys=True))
         return 0
 
-    written = []
+    claimed = breakdown_ac_counts(breakdown)
+    written, sentinel_errors = [], []
     for story in stories:
         path = item_dir / story_filename(story["epic"], story["story"])
         if not args.dry_run:
             path.write_text(json.dumps(story, indent=2, sort_keys=True) + "\n")
+            # Each story is its own artifact and the edge checks each one, so each needs its
+            # own sentinel. Written immediately after the file, before the next story, so a
+            # crash mid-render leaves matched pairs rather than orphan artifacts.
+            ok, msg = _write_sentinel(path, claimed.get((story["epic"], story["story"]), 0))
+            if not ok:
+                sentinel_errors.append(f"{path.name}: {msg}")
         written.append(path.name)
+
+    if sentinel_errors:
+        # Refuse rather than warn. An artifact with no sentinel fails its edge, so leaving
+        # these behind would hand the build a story set the flow must not advance past.
+        print("rendered the stories but could not write every sentinel, so the set is not "
+              "usable:", file=sys.stderr)
+        for e in sentinel_errors:
+            print(f"  {e}", file=sys.stderr)
+        return 1
 
     verb = "would write" if args.dry_run else "wrote"
     print(f"{verb} {len(written)} stories from breakdown.json "

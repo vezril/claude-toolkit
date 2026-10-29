@@ -77,7 +77,15 @@ class Repo:
                                *args], capture_output=True, text=True)
 
     def stories(self):
-        return [json.loads(p.read_text()) for p in sorted(self.item_dir.glob("story-*.json"))]
+        # Sentinels are excluded: a story's sentinel is `story-E1-S1.json.sentinel.json`,
+        # which also matches `story-*.json`. Without this the count doubles.
+        return [json.loads(p.read_text())
+                for p in sorted(self.item_dir.glob("story-*.json"))
+                if not p.name.endswith(".sentinel.json")]
+
+    def sentinels(self):
+        return [json.loads(p.read_text())
+                for p in sorted(self.item_dir.glob("story-*.json.sentinel.json"))]
 
 
 class TestMapping(unittest.TestCase):
@@ -227,6 +235,61 @@ class TestRefusals(unittest.TestCase):
         self.assertEqual(out.returncode, 0)
         self.assertEqual(r.stories(), [])
         self.assertIn("would write", out.stdout)
+
+
+class TestEverySentinelIsWritten(unittest.TestCase):
+    """Each story needs its own sentinel, or it fails its edge.
+
+    Found by running the real AN-3631 set through the now-live edge: all six stories failed
+    with "no readable sentinel beside the artifact". The renderer wrote none. It is the same
+    defect as recall's (delivery-flow defect 5), and it hid for the same reason the schema bug
+    did — the edge was not reaching stories at all, so nothing complained.
+    """
+
+    def test_one_sentinel_per_story(self):
+        r = Repo()
+        r.render()
+        self.assertEqual(len(r.sentinels()), len(r.stories()))
+
+    def test_the_sentinel_names_its_artifact_and_step(self):
+        r = Repo()
+        r.render()
+        for s in r.sentinels():
+            self.assertTrue(s["artifact"].startswith("story-"), s["artifact"])
+            self.assertEqual(s["step"], "render-stories")
+            self.assertEqual(s["status"], "complete")
+            self.assertTrue(s["sha256"])
+
+    def test_the_claimed_count_comes_from_the_breakdown(self):
+        """The sentinel must assert something, so the claim cannot be read off the output.
+
+        A count derived from the rendered file would agree with it by construction and test
+        nothing. The fixture's stories carry 2, 1 and 1 criteria, so a per-story claim and a
+        constant are distinguishable — which they would not be if every story had the same
+        number.
+        """
+        r = Repo()
+        r.render()
+        expected = {story_filename(e["id"], s["id"]): len(s["acceptance_criteria"])
+                    for e in BREAKDOWN["epics"] for s in e["stories"]}
+        self.assertEqual(sorted(set(expected.values())), [1, 2], "fixture lost its variety")
+        actual = {s["artifact"]: s["counts"]["acceptance_criteria"] for s in r.sentinels()}
+        self.assertEqual(actual, expected)
+
+    def test_a_story_and_its_sentinel_both_pass_the_edge(self):
+        """The end the whole seam exists for: the pair survives the edge check."""
+        r = Repo()
+        r.render()
+        schemas = load_schemas()
+        for story in r.stories():
+            name = story_filename(story["epic"], story["story"])
+            sent = json.loads((Path(r.item_dir) / (name + ".sentinel.json")).read_text())
+            problems = []
+            validator.validate(sent, schema_for(name + ".sentinel.json", schemas), "", problems)
+            self.assertEqual(problems, [], name)
+            self.assertEqual(sent["counts"]["acceptance_criteria"],
+                             len(story["acceptance_criteria"]),
+                             f"{name}: the claim and the file disagree")
 
 
 class TestSchemaResolution(unittest.TestCase):
