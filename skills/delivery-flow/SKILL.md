@@ -195,8 +195,9 @@ cannot rewrite it.
 
 ## The rules that make this a workflow rather than a script
 
-- **One step per invocation** unless the human says to run ahead. Say what was produced and
-  what comes next.
+- **One step per invocation** unless the human says to run ahead. Report it as
+  [Reporting to the human](#reporting-to-the-human) requires — that section is binding, not
+  advisory.
 - **Artifacts are contracts.** Never hand-write or "tidy" an artifact. If one is wrong,
   rerun the step that produces it — a hand-edited artifact hides the regression and marks
   the item `failed` with reason `manual-correction` when the trace sha no longer matches.
@@ -227,6 +228,40 @@ cannot rewrite it.
   step. If an artifact is wrong, the edge or the challenge catches it, or the success rate
   records that neither did.
 
+## Reporting to the human
+
+**Follow the `writing-for-adhd` skill for every message you send the human.** It is the
+authority on the shape; this section is only how it applies here. Do not restate its rules,
+and do not treat a long report as thoroughness — a wall of text is the failure mode, not the
+evidence.
+
+This pipeline is already built the way that skill asks for: **the artifact is the detail and
+the message is the pointer.** `summary.md`, `punch-out-<n>.md` and `flow-status.py` are all
+addressable and re-readable. A message that repeats them has created a second version that
+will go stale, and has spent the reader's attention to do it.
+
+So, per step:
+
+- **Four sentences at the outside.** First sentence says what to do or what happened — not
+  what you ran, not how it went, not the approach.
+- **Name the path, don't summarise the file.** "Decision in `delivery/AN-3630/punch-out-1.md`"
+  beats a paragraph restating its evidence. Never paste an artifact's contents into chat.
+- **One decision.** If `check-punch-out.py` raised several, present the lowest-numbered one and
+  leave the rest in their files. Two asks in one message reliably gets one answered and the
+  other silently dropped — and you will not know which.
+- **End on one concrete next action**, never a menu and never "let me know how you'd like to
+  proceed".
+- **Don't narrate the routing.** The table, the step list and the edge results are what
+  `flow-status.py` prints on demand. Saying "next: breakdown" is the report; reproducing the
+  table is noise.
+- **Open with what worked.** A message that opens on the block reads as bad news before it is
+  parsed, and the block is usually one clause.
+
+When a step fails or an edge rejects an artifact, the same limits hold — the full edge report
+is in the trace, so the message is the one-line cause plus the path. A failure is the case
+where the temptation to write ten paragraphs is strongest and the reader's capacity for them
+is lowest.
+
 ## Finishing
 
 Every item ends with `outcome.json`: `completed`, `punched-out` (a human took the decision
@@ -240,4 +275,6 @@ end-to-end rate and the per-step model, token and cost tables.
 - [references/adapters.md](references/adapters.md) — the adapter contract, and how to add Jira, GitLab or Bitbucket
 - [references/roster.md](references/roster.md) — kinds of work → specialists
 - [references/trace.md](references/trace.md) — what the trace records and how to read it
+- `writing-for-adhd` — the shape of every message this flow sends the human (see
+  [Reporting to the human](#reporting-to-the-human))
 - `references/triage.md`, `references/breakdown.md`, `references/challenge-breakdown.md` — the certified node prompts, one per chain node (edit any of them and it is uncertified until its suite is re-run)

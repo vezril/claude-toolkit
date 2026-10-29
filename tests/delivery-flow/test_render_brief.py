@@ -153,11 +153,28 @@ class TestRendering(unittest.TestCase):
         positions = [text.index(f"## {s}") for s in brief.SECTIONS]
         self.assertEqual(positions, sorted(positions))
 
+    def test_the_decision_is_the_first_section(self):
+        """It is the only section that asks the reader for anything, so it goes where a
+        scanning reader actually looks. Pinned, because the order is the whole point."""
+        r = standard(Repo())
+        text = r.render("--stdout").stdout
+        self.assertEqual(brief.DECISION, brief.SECTIONS[0])
+        headings = [l[3:] for l in text.splitlines() if l.startswith("## ")]
+        self.assertEqual(brief.DECISION, headings[0])
+        # Ahead of every other section, not merely present near the top.
+        for other in brief.SECTIONS[1:]:
+            self.assertLess(text.index(f"## {brief.DECISION}"), text.index(f"## {other}"))
+
+    def test_the_decision_section_is_not_duplicated(self):
+        """Moving it must not leave a copy behind: two versions, one of them stale."""
+        r = standard(Repo())
+        self.assertEqual(1, r.render("--stdout").stdout.count(f"## {brief.DECISION}"))
+
     def test_an_empty_section_says_so_rather_than_vanishing(self):
         r = standard(Repo())
         r.write("challenge-breakdown.json", SURVIVED)
         text = r.render("--stdout").stdout
-        self.assertIn(f"## {brief.SECTIONS[4]}", text)
+        self.assertIn(f"## {brief.ADDRESSED}", text)
         self.assertIn("no findings require an answer", text)
 
     def test_the_quick_path_keeps_the_same_shape(self):
@@ -208,7 +225,7 @@ class TestRendering(unittest.TestCase):
 class TestProposalSection(unittest.TestCase):
     def test_the_section_is_present_and_explicit_without_a_proposal(self):
         text = standard(Repo()).render("--stdout").stdout
-        self.assertIn(f"## {brief.SECTIONS[4]}", text)
+        self.assertIn(f"## {brief.WILL_CHANGE}", text)
         self.assertIn("no change has been proposed", text)
 
     def test_the_proposal_is_summarised(self):
@@ -301,7 +318,7 @@ class TestCoverageEdge(unittest.TestCase):
         r = standard(Repo())
         r.render()
         p = r.item_dir / "summary.md"
-        p.write_text(p.read_text().replace(f"## {brief.SECTIONS[5]}", "## Something else"))
+        p.write_text(p.read_text().replace(f"## {brief.ADDRESSED}", "## Something else"))
         out = r.edge()
         self.assertEqual(out.returncode, 2)
         self.assertIn("is missing", out.stderr)

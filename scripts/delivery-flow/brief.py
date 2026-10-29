@@ -8,8 +8,14 @@ by code rather than written by a node for two reasons — everything it needs is
 structured, so a node would add a certification package for no new information; and it is the
 artifact a human decision rests on, where a model's instinct to reassure is a liability.
 
-Six sections, same order, every run. Empty sections say so rather than vanishing, because a
+Seven sections, same order, every run. Empty sections say so rather than vanishing, because a
 missing heading reads as "nothing to see" exactly when something was dropped.
+
+**The decision comes first.** It used to sit last, after six sections of context, which is the
+wrong end for the one thing the reader has to act on: a reader scanning rather than reading
+sweeps the top and the left edge and never reaches the bottom of a long page — and does not
+notice what was skipped. Nothing is duplicated to achieve it; the section moved, because a
+summary repeated at the top is a second copy that goes stale.
 """
 
 import json
@@ -18,8 +24,21 @@ import subprocess
 import sys
 from pathlib import Path
 
-SECTIONS = ["What this asks for", "How it was classified", "The work",
-            "The challenge", "What will change", "What must be addressed", "Your decision"]
+# Named rather than indexed because `render` and the tests both reach for them, and a
+# positional `SECTIONS[4]` silently means a different section the moment the order changes.
+# It already had: a test asserting an empty "what must be addressed" section reached for
+# SECTIONS[4] and got "what will change", and passed anyway because both are always present.
+DECISION = "Your decision"
+ASKS = "What this asks for"
+CLASSIFIED = "How it was classified"
+WORK = "The work"
+CHALLENGE = "The challenge"
+WILL_CHANGE = "What will change"
+ADDRESSED = "What must be addressed"
+
+# This list is the rendered order. `coverage_problems` checks only that every section is
+# present; the order is asserted by the test suite, which reads it from here.
+SECTIONS = [DECISION, ASKS, CLASSIFIED, WORK, CHALLENGE, WILL_CHANGE, ADDRESSED]
 
 # What counts as an identifier for the no-invention check. Deliberately narrow: a file-like
 # token or a breakdown id. A wider rule would flag ordinary words and make the edge noise.
@@ -89,12 +108,25 @@ def render(item, triage, breakdown, challenge, punch_outs=(), proposal=None) -> 
     L.append(f"# {(item or {}).get('key') or t.get('item') or 'item'} — {(item or {}).get('title') or 'untitled'}")
     L.append("")
 
-    L.append(f"## {SECTIONS[0]}")
+    # First, because it is the only section that asks the reader for anything.
+    L.append(f"## {DECISION}")
+    L.append("")
+    if not punch_outs:
+        L.append("Nothing open. The flow stopped because it reached the end of its profile.")
+    else:
+        # The punch-out file holds the decision, the evidence and the options. Pointing at it
+        # beats re-parsing its prose here: one fewer format with two readers.
+        for p in punch_outs:
+            L.append(f"- **{p.get('trigger') or 'punch-out'}** ({p.get('state') or 'open'})"
+                     f" — read `{p.get('punch_out')}` and decide with `decide.py`")
+    L.append("")
+
+    L.append(f"## {ASKS}")
     L.append("")
     L.append(_norm(t.get("summary")) or "No summary: the triage step recorded none.")
     L.append("")
 
-    L.append(f"## {SECTIONS[1]}")
+    L.append(f"## {CLASSIFIED}")
     L.append("")
     L.append(f"- Type: {t.get('type') or 'unknown'}")
     L.append(f"- Path: {t.get('path') or 'unknown'}")
@@ -105,7 +137,7 @@ def render(item, triage, breakdown, challenge, punch_outs=(), proposal=None) -> 
     L.append(f"- Flags raised: {', '.join(flags) if flags else 'none'}")
     L.append("")
 
-    L.append(f"## {SECTIONS[2]}")
+    L.append(f"## {WORK}")
     L.append("")
     if quick and not breakdown:
         L.append("Nothing to show: this is the quick path, which writes no breakdown.")
@@ -126,7 +158,7 @@ def render(item, triage, breakdown, challenge, punch_outs=(), proposal=None) -> 
         L.pop()  # the trailing blank from the last epic; one blank line follows below
     L.append("")
 
-    L.append(f"## {SECTIONS[3]}")
+    L.append(f"## {CHALLENGE}")
     L.append("")
     if quick and not challenge:
         L.append("Nothing to show: the quick path does not challenge a breakdown.")
@@ -138,7 +170,7 @@ def render(item, triage, breakdown, challenge, punch_outs=(), proposal=None) -> 
         L.append(f"Verdict: **{challenge.get('verdict')}** — {landed} of {total} attacks landed.")
     L.append("")
 
-    L.append(f"## {SECTIONS[4]}")
+    L.append(f"## {WILL_CHANGE}")
     L.append("")
     if not proposal:
         L.append("Nothing yet: no change has been proposed for this item.")
@@ -159,7 +191,7 @@ def render(item, triage, breakdown, challenge, punch_outs=(), proposal=None) -> 
         L.append(f"Flags on the proposal: {', '.join(pflags) if pflags else 'none'}")
     L.append("")
 
-    L.append(f"## {SECTIONS[5]}")
+    L.append(f"## {ADDRESSED}")
     L.append("")
     needed = required_findings(challenge)
     if not needed:
@@ -167,18 +199,6 @@ def render(item, triage, breakdown, challenge, punch_outs=(), proposal=None) -> 
     else:
         for f in needed:
             L.append(f"- {_norm(f)}")
-    L.append("")
-
-    L.append(f"## {SECTIONS[6]}")
-    L.append("")
-    if not punch_outs:
-        L.append("Nothing open. The flow stopped because it reached the end of its profile.")
-    else:
-        # The punch-out file holds the decision, the evidence and the options. Pointing at it
-        # beats re-parsing its prose here: one fewer format with two readers.
-        for p in punch_outs:
-            L.append(f"- **{p.get('trigger') or 'punch-out'}** ({p.get('state') or 'open'})"
-                     f" — read `{p.get('punch_out')}` and decide with `decide.py`")
     L.append("")
 
     return "\n".join(L)

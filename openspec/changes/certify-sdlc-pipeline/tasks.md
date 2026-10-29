@@ -1,8 +1,16 @@
-## 0. Gate — do not start before this clears
+## 0. Sequencing notes — not a gate
 
-- [ ] 0.1 **The `delivery-flow` Stage 4 submission is accepted.** Nothing in section 1 onward
-      lands before this. Refactoring the artifact under review while it is under review risks
-      the certification to tidy the tree (design D2)
+**Dropped, 2026-10-29: "nothing lands before the Stage 4 submission is accepted" was my
+invention, not a requirement from the deck or a reviewer.** It blocked Calvin from doing his
+day job — feeding delivery-flow output into the orchestrator — for a risk that does not need a
+freeze to manage. What design D2 actually warrants is narrower: **do not restructure the files
+already submitted** (sections 1 and 2, the substrate extraction and hook generalisation) while
+a submission is open. Additive work that leaves the submitted tree where it is may proceed,
+and section 3 is exactly that.
+
+- [ ] 0.1 While a submission is open, keep sections 1–2 (substrate extraction, hook
+      generalisation) out of the submitted tree's layout. Additive work proceeds (design D2,
+      narrowed)
 - [ ] 0.2 Ask the reviewer Open Question 1: is a pipeline of certified 2–3 node segments joined
       by deterministic edges certifiable *segment by segment*? This is the assumption the whole
       change rests on and it is mine, not the deck's. A "no" stops the change at section 4
@@ -44,26 +52,46 @@
 - [x] S.2 `stories.py` shared between the renderer and the story validator, as `brief.py` does for the brief, so neither can disagree about what a story is
 - [x] S.3 `invented()` and `missing_from()` in the shared module; no story, criterion or domain may appear that the breakdown does not contain — the renderer invents nothing, and that is enforced rather than reviewed
 - [x] S.4 `ordering.determined: false` on every story, with the basis spelled out. State the sequencing gap in the brief: stories are in breakdown order and dependency ordering is undetermined. Ordering is a judgement, so it belongs to a node or a human, not the renderer
-- [ ] S.5 Keep `story-planner` as the entry point for work with no `breakdown.json`, and say so in `skills/sdlc-orchestration/SKILL.md` — the rendered path is for tracker items only
+- [x] S.5 Keep `story-planner` as the entry point for work with no `breakdown.json`, and say so in `skills/sdlc-orchestration/SKILL.md` — the rendered path is for tracker items only. Added "Where stories come from (two entry points)" to `SKILL.md` (the rule keys off whether a `breakdown.json` exists, not preference) plus a `[[delivery-flow]]` line under Related, and "When you are the right entry point" to `agents/story-planner.md` so the agent refuses a breakdown handed to it for re-decomposition instead of relying on the orchestrator to route correctly
 - [x] S.6 18 tests in `tests/delivery-flow/test_stories.py`: exact story/criterion counts from a fixture breakdown, the invented-identifier refusal, and the no-breakdown path still reaching `story-planner`
 
 
-- [ ] 3.1 `schemas/story.schema.json`: the normative structure, derived from
-      `skills/spec-driven-development/references/story-schema.md`
+- [x] 3.1 `schemas/story.schema.json`: the normative structure. **Also fixed the bug that made
+      it unreachable:** its `artifact` was the fixed name `story.json` while rendered files are
+      `story-E1-S1.json`, so `schema_for` returned None for every one — the schema existed and
+      nothing could find it, leaving the whole handoff unvalidated by both
+      `validate-artifact.py` and the edge hook (which skipped them in `changed_artifacts`
+      before its checker saw them). `artifact` is now the glob `story-*.json` and `schema_for`
+      resolves globs generally, replacing the `*.sentinel.json` special case rather than adding
+      a second one
 - [ ] 3.2 `scripts/workflow/story.py`: the shared template + coverage checks, imported by both
       the renderer and the edge, so they cannot disagree about what a story is (the `brief.py`
       pattern)
 - [ ] 3.3 Rewrite `scripts/lint-story.py` as schema validation plus the semantic checks a schema
       cannot express: Given/When/Then grammar, task↔AC closure, resolvable references, FR/CAP
-      traceability. Keep the name and CLI
-- [ ] 3.4 `render-story.py`: generate `story.md` from `story.json` for human readers; never parsed
+      traceability. Keep the name and CLI. **Scope corrected: this is for the markdown path
+      only.** Rendered stories are not linted by it and must not be — `story-schema.md` now
+      says so in a Scope section. The two formats have two laws and one of them is a JSON
+      schema already enforced at the edge
+- [ ] 3.4 `render-story.py`: generate `story.md` from `story.json` for human readers; never
+      parsed. **Deferred and demoted to a convenience.** It was implicitly the plan for making
+      the handoff work, and it is not needed for that: the dev pair consumes `story.json`
+      directly (3.7), so nothing blocks on a markdown rendering. Worth building only when a
+      human wants to read a story outside an editor — and it must stay unparsed, because a
+      markdown story that `lint-story.py` could accept would have to carry invented tasks and
+      `FR`/`CAP` IDs
 - [ ] 3.5 One-shot migration script for existing markdown stories, with a report of what it
       could not convert
 - [ ] 3.6 Update `story-schema.md` and `lint-story.py` together — they are a normative pair per
       `CLAUDE.md`
-- [ ] 3.7 Update `test-writer` and `implementer` prompts to consume `story.json`; re-check the
-      three-place dev-pair territory definition (`agents/test-writer.md`,
-      `agents/implementer.md`, `hooks/enforce-dev-pair-boundary.py`) still agrees
+- [x] 3.7 Update `test-writer` and `implementer` prompts to consume `story.json`. Each gained a
+      "When the story is a `story.json`" section: `acceptance_criteria[]` is the spec,
+      `sources[]` is context to **open** rather than a summary to trust, there are no tasks and
+      no dependency order, and a missing criterion is a gap in the plan to raise rather than
+      infer. Territory definition untouched, so the three-place agreement
+      (`agents/test-writer.md`, `agents/implementer.md`, `hooks/enforce-dev-pair-boundary.py`)
+      still holds — the boundary is by file path and a `story.json` is read, never written, by
+      either agent
 - [ ] 3.8 Resolve Open Question 5: whether dev-pair territory is still path-based once stories
       are data
 

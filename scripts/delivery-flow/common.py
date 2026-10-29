@@ -4,6 +4,7 @@ Everything here answers one of four questions: where is the repo, is this a
 delivery-flow repo at all, which artifact is this path, and what does its schema say.
 """
 
+import fnmatch
 import hashlib
 import json
 import os
@@ -84,7 +85,12 @@ def item_dir(repo: Path, item: str, cfg: dict = None) -> Path:
 
 
 def load_schemas(schema_dir: Path = None) -> dict:
-    """Map artifact file name -> schema. The sentinel schema is keyed by its suffix."""
+    """Map artifact file name -> schema.
+
+    Most artifacts are one fixed file name. Two kinds are not, and declare a glob as their
+    `artifact` instead: `*.sentinel.json` (one per artifact) and `story-*.json` (one per story
+    in the breakdown). `schema_for` resolves both.
+    """
     schema_dir = schema_dir or SCHEMA_DIR
     out = {}
     for p in sorted(schema_dir.glob("*.schema.json")):
@@ -95,9 +101,20 @@ def load_schemas(schema_dir: Path = None) -> dict:
 
 
 def schema_for(filename: str, schemas: dict):
-    if filename.endswith(SENTINEL_SUFFIX):
-        return schemas.get("*.sentinel.json")
-    return schemas.get(filename)
+    """The schema for an artifact file name, by exact name then by glob.
+
+    The glob fallback is what makes a *set* of artifacts checkable. Rendered stories are named
+    `story-<epic>-<story>.json`, one per breakdown story, so an exact-name lookup returned None
+    for every one of them — the schema existed and could never be found, which meant nothing
+    validated the handoff into implementation. Globs are matched longest-first so a specific
+    pattern always beats a broad one.
+    """
+    if filename in schemas:
+        return schemas[filename]
+    for key in sorted((k for k in schemas if "*" in k), key=len, reverse=True):
+        if fnmatch.fnmatch(filename, key):
+            return schemas[key]
+    return None
 
 
 def count_expr(doc, expr: str) -> int:

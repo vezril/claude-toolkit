@@ -23,8 +23,8 @@ SCRIPTS = ROOT / "scripts" / "delivery-flow"
 RENDER = SCRIPTS / "render-stories.py"
 sys.path.insert(0, str(SCRIPTS))
 
-from common import load_schemas  # noqa: E402
-from stories import invented, missing_from, stories_from  # noqa: E402
+from common import load_schemas, schema_for  # noqa: E402
+from stories import invented, missing_from, stories_from, story_filename  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location("validate_artifact", SCRIPTS / "validate-artifact.py")
 validator = importlib.util.module_from_spec(_spec)
@@ -100,12 +100,28 @@ class TestMapping(unittest.TestCase):
     def test_a_story_satisfies_the_implementers_contract(self):
         r = Repo()
         r.render()
-        schema = load_schemas()["story.json"]
+        schemas = load_schemas()
         for story in r.stories():
+            # Resolved from the real file name, not the schema key: a rendered story is
+            # `story-E1-S1.json`, and an exact-name lookup used to return None for every one
+            # of them — the schema existed and nothing could find it.
+            name = story_filename(story["epic"], story["story"])
+            schema = schema_for(name, schemas)
+            self.assertIsNotNone(schema, f"no schema resolved for {name}")
             problems = []
             validator.validate(story, schema, "", problems)
             problems += validator.consumer_problems(story, schema, "implementer")
             self.assertEqual(problems, [], story.get("story"))
+
+    def test_the_test_writers_contract_is_satisfied_too(self):
+        """Both halves of the dev pair are declared consumers, so both are checked."""
+        r = Repo()
+        r.render()
+        schemas = load_schemas()
+        for story in r.stories():
+            schema = schema_for(story_filename(story["epic"], story["story"]), schemas)
+            self.assertEqual(validator.consumer_problems(story, schema, "test-writer"), [],
+                             story.get("story"))
 
     def test_sources_point_at_the_artifacts_rather_than_summarising_them(self):
         r = Repo()
@@ -211,6 +227,38 @@ class TestRefusals(unittest.TestCase):
         self.assertEqual(out.returncode, 0)
         self.assertEqual(r.stories(), [])
         self.assertIn("would write", out.stdout)
+
+
+class TestSchemaResolution(unittest.TestCase):
+    """`schema_for` must resolve a *set* of artifacts, not just fixed file names.
+
+    Lives here because rendered stories are why the glob fallback exists: they are named
+    `story-<epic>-<story>.json`, one per breakdown story, so no exact key could ever match and
+    every rendered story went unvalidated — by `validate-artifact.py` and by the edge hook,
+    which skipped them before they reached its checker.
+    """
+
+    def setUp(self):
+        self.schemas = load_schemas()
+
+    def test_a_rendered_story_resolves_to_the_story_schema(self):
+        for name in ("story-E1-S1.json", "story-E12-S345.json"):
+            schema = schema_for(name, self.schemas)
+            self.assertIsNotNone(schema, name)
+            self.assertEqual(schema["artifact"], "story-*.json")
+
+    def test_the_sentinel_glob_still_resolves(self):
+        schema = schema_for("breakdown.json.sentinel.json", self.schemas)
+        self.assertIsNotNone(schema)
+        self.assertEqual(schema["artifact"], "*.sentinel.json")
+
+    def test_an_exact_name_beats_a_glob(self):
+        self.assertEqual(schema_for("breakdown.json", self.schemas)["artifact"], "breakdown.json")
+
+    def test_an_ungoverned_name_resolves_to_nothing(self):
+        """The hook relies on None to stay inert: a stray file must not be governed."""
+        for name in ("notes.json", "story.json", "story-.json.bak", "summary.md"):
+            self.assertIsNone(schema_for(name, self.schemas), name)
 
 
 if __name__ == "__main__":

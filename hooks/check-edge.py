@@ -309,7 +309,10 @@ def changed_artifacts(payload: dict, common, schemas: dict) -> list:
             # scanning it separately would triple the trace and blur "one record per step".
             if filename.endswith(common.SENTINEL_SUFFIX):
                 continue
-            if filename not in schemas and filename not in TERMINAL_PROSE:
+            # `schema_for`, not `filename in schemas`: the glob-keyed artifacts (rendered
+            # stories) never match an exact key, so an exact lookup skipped them here even
+            # though `check_artifact` below would have governed them.
+            if common.schema_for(filename, schemas) is None and filename not in TERMINAL_PROSE:
                 continue
             try:
                 current = common.sha256(path)
