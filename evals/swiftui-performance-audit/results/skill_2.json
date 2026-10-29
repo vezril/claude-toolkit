@@ -1,0 +1,514 @@
+{
+  "evalId": "eval-TdY-2026-10-29T18:24:53",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T18:24:53.367Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/swiftui-performance-audit/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "f9fbbd2af0d72915f83646b7d6391c7324386eab7c0c6c52bda015a40368f6f0",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 3,
+          "testPassCount": 3,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 3,
+          "assertFailCount": 0,
+          "totalLatencyMs": 31076,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 2,
+            "restraint": 1
+          },
+          "namedScoresCount": {
+            "accuracy": 2,
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2,
+            "restraint": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/code|see|share|show me|minimal|which view|what does/i.test(output)) throw new Error('asks for the code or a minimal repro first');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "b632ec5d-69b3-4e3f-a0b0-041acf9fea42",
+        "latencyMs": 11920,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: swiftui-performance-audit\ndescription: Audit and improve SwiftUI runtime performance. Use for requests to diagnose slow rendering, janky scrolling, high CPU/memory usage, excessive view updates, or layout thrash in SwiftUI apps.\n---\n\n# SwiftUI Performance Audit\n\n## Overview\n\nAudit SwiftUI view performance from instrumentation and baselining to root-cause analysis and concrete remediation steps.\n\n## Workflow Decision Tree\n\n1. **If user provides code**: Start with Code-First Review\n2. **If user only describes symptoms**: Ask for minimal code/context, then Code-First Review\n3. **If code review is inconclusive**: Guide user to profile with Instruments\n\n## 1. Code-First Review\n\n### Collect\n- Target view/feature code\n- Data flow: state, environment, observable models\n- Symptoms and reproduction steps\n\n### Focus On\n- View invalidation storms from broad state changes\n- Unstable identity in lists (`id` churn, `UUID()` per render)\n- Heavy work in `body` (formatting, sorting, image decoding)\n- Layout thrash (deep stacks, `GeometryReader`, preference chains)\n- Large images without downsampling\n- Over-animated hierarchies (implicit animations on large trees)\n\n### Provide\n- Likely root causes with code references\n- Suggested fixes and refactors\n- Minimal repro or instrumentation suggestion if needed\n\n## 2. Guide User to Profile\n\nIf code review is inconclusive, explain how to collect data:\n\n1. Use SwiftUI template in Instruments (Release build)\n2. Reproduce the exact interaction (scroll, navigation, animation)\n3. Capture SwiftUI timeline and Time Profiler\n4. Export or screenshot relevant lanes and call tree\n\nAsk for:\n- Trace export or screenshots\n- Device/OS/build configuration\n\n## 3. Common Code Smells (and Fixes)\n\n### Expensive formatters in `body`\n\n**Bad:**\n```swift\nvar body: some View {\n    let formatter = NumberFormatter()  // Slow allocation every render\n    Text(formatter.string(from: value))\n}\n```\n\n**Good:**\n```swift\nfinal class Formatters {\n    static let number = NumberFormatter()\n}\n\nvar body: some View {\n    Text(Formatters.number.string(from: value))\n}\n```\n\n### Computed properties with heavy work\n\n**Bad:**\n```swift\nvar filtered: [Item] {\n    items.filter { $0.isEnabled }  // Runs every body eval\n}\n```\n\n**Good:**\n```swift\n@State private var filtered: [Item] = []\n\n.onChange(of: items) {\n    filtered = items.filter { $0.isEnabled }\n}\n```\n\n### Sorting/filtering in ForEach\n\n**Bad:**\n```swift\nForEach(items.sorted(by: sortRule)) { item in\n    Row(item)\n}\n```\n\n**Good:**\n```swift\nlet sortedItems = items.sorted(by: sortRule)  // Compute once\nForEach(sortedItems) { item in\n    Row(item)\n}\n```\n\n### Unstable identity\n\n**Bad:**\n```swift\nForEach(items, id: \\.self) { item in  // \\.self may not be stable\n    Row(item)\n}\n```\n\n**Good:**\n```swift\nForEach(items, id: \\.stableID) { item in\n    Row(item)\n}\n```\n\n### Image decoding on main thread\n\n**Bad:**\n```swift\nImage(uiImage: UIImage(data: data)!)\n```\n\n**Good:**\n```swift\n// Decode/downsample off main thread, cache the result\n@State private var image: UIImage?\n\n.task {\n    image = await ImageLoader.load(data: data, targetSize: size)\n}\n```\n\n### Broad dependencies in observable models\n\n**Bad:**\n```swift\n@Observable class Model {\n    var items: [Item] = []\n}\n\nvar body: some View {\n    Row(isFavorite: model.items.contains(item))  // Entire array dependency\n}\n```\n\n**Good:**\n```swift\n// Granular view models or per-item state to reduce update fan-out\n```\n\n## 4. Remediation Strategies\n\n| Issue | Fix |\n|-------|-----|\n| Broad state changes | Narrow scope with `@State`/`@Observable` closer to leaves |\n| Unstable identities | Use stable, unique IDs for `ForEach` |\n| Heavy work in body | Precompute, cache, move to `@State` |\n| Expensive subtrees | Use `equatable()` or value wrappers |\n| Large images | Downsample before rendering |\n| Layout complexity | Reduce nesting, use fixed sizing where possible |\n\n## 5. Verify\n\nAsk user to re-run same capture and compare with baseline:\n- CPU usage\n- Frame drops\n- Memory peak\n\n## Output Format\n\nProvide:\n1. Metrics table (before/after if available)\n2. Top issues (ordered by impact)\n3. Proposed fixes with estimated effort\n\n## Profiling Commands\n\n```bash\n# Build for profiling\nxcodebuild -scheme MyApp -configuration Release -destination 'platform=iOS Simulator,name=iPhone 15 Pro' build\n\n# Open in Instruments\nopen -a Instruments\n```\n\n## Instruments Checklist\n\n- [ ] Use Release build (not Debug)\n- [ ] Select SwiftUI template\n- [ ] Reproduce exact problematic interaction\n- [ ] Look at SwiftUI timeline for body evaluations\n- [ ] Check Time Profiler for hot spots\n- [ ] Note frame rate drops in Animation timeline\n\n## Related\n\n- [[native-app-profiling]] — CPU/Time-Profiler profiling via xctrace.\n- [[swift-concurrency-expert]] — move work off the main actor.\n- [[swiftui-ui-patterns]] — patterns that minimize view updates.\n- [[ios-debugger-agent]] — run and observe the app while profiling.\n</skill>\n\nUser request:\nMy SwiftUI list is janky when scrolling. Fix it.",
+          "label": "evals/swiftui-performance-audit/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "f9fbbd2af0d72915f83646b7d6391c7324386eab7c0c6c52bda015a40368f6f0",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "I can't fix it yet because I don't have any of your code. Send me these and I'll do the code-first review:\n\n1. The list view, including its row view.\n2. The model or view model behind it (`@Observable`, `ObservableObject`, or `@State`).\n3. Whether it's `List`, `LazyVStack` or `VStack`, and what `id:` you pass to `ForEach`.\n4. Roughly how many items, whether rows have images, and which device and OS you see it on.\n\nIf it's easier, point me at the file path.\n\nUntil then, these are the usual causes:\n- `id: \\.self` or `UUID()` created on each render, which gives rows unstable identity.\n- `.sorted` or `.filter` inside `ForEach` or `body`.\n- Full-size images decoded on the main thread.\n- A formatter allocated in `body`.\n- A single `@Observable` array that makes every row re-render when one item changes.\n\nIf the code looks fine, profile a Release build with the SwiftUI and Time Profiler instruments and send me the trace or screenshots."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "no-code",
+          "vars": {
+            "skill": "file:///private/tmp/b4/skills/swiftui-performance-audit/SKILL.md",
+            "request": "file:///private/tmp/b4/evals/swiftui-performance-audit/cases/no-code.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/code|see|share|show me|minimal|which view|what does/i.test(output)) throw new Error('asks for the code or a minimal repro first');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b4/skills/swiftui-performance-audit/SKILL.md",
+          "request": "file:///private/tmp/b4/evals/swiftui-performance-audit/cases/no-code.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/body|re-?creat|every|expensive|hoist|static|outside|stored/i.test(output)) throw new Error('identifies the formatter being rebuilt in body');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "6530820c-80ab-4d7c-a69f-bf9effb2687d",
+        "latencyMs": 7873,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: swiftui-performance-audit\ndescription: Audit and improve SwiftUI runtime performance. Use for requests to diagnose slow rendering, janky scrolling, high CPU/memory usage, excessive view updates, or layout thrash in SwiftUI apps.\n---\n\n# SwiftUI Performance Audit\n\n## Overview\n\nAudit SwiftUI view performance from instrumentation and baselining to root-cause analysis and concrete remediation steps.\n\n## Workflow Decision Tree\n\n1. **If user provides code**: Start with Code-First Review\n2. **If user only describes symptoms**: Ask for minimal code/context, then Code-First Review\n3. **If code review is inconclusive**: Guide user to profile with Instruments\n\n## 1. Code-First Review\n\n### Collect\n- Target view/feature code\n- Data flow: state, environment, observable models\n- Symptoms and reproduction steps\n\n### Focus On\n- View invalidation storms from broad state changes\n- Unstable identity in lists (`id` churn, `UUID()` per render)\n- Heavy work in `body` (formatting, sorting, image decoding)\n- Layout thrash (deep stacks, `GeometryReader`, preference chains)\n- Large images without downsampling\n- Over-animated hierarchies (implicit animations on large trees)\n\n### Provide\n- Likely root causes with code references\n- Suggested fixes and refactors\n- Minimal repro or instrumentation suggestion if needed\n\n## 2. Guide User to Profile\n\nIf code review is inconclusive, explain how to collect data:\n\n1. Use SwiftUI template in Instruments (Release build)\n2. Reproduce the exact interaction (scroll, navigation, animation)\n3. Capture SwiftUI timeline and Time Profiler\n4. Export or screenshot relevant lanes and call tree\n\nAsk for:\n- Trace export or screenshots\n- Device/OS/build configuration\n\n## 3. Common Code Smells (and Fixes)\n\n### Expensive formatters in `body`\n\n**Bad:**\n```swift\nvar body: some View {\n    let formatter = NumberFormatter()  // Slow allocation every render\n    Text(formatter.string(from: value))\n}\n```\n\n**Good:**\n```swift\nfinal class Formatters {\n    static let number = NumberFormatter()\n}\n\nvar body: some View {\n    Text(Formatters.number.string(from: value))\n}\n```\n\n### Computed properties with heavy work\n\n**Bad:**\n```swift\nvar filtered: [Item] {\n    items.filter { $0.isEnabled }  // Runs every body eval\n}\n```\n\n**Good:**\n```swift\n@State private var filtered: [Item] = []\n\n.onChange(of: items) {\n    filtered = items.filter { $0.isEnabled }\n}\n```\n\n### Sorting/filtering in ForEach\n\n**Bad:**\n```swift\nForEach(items.sorted(by: sortRule)) { item in\n    Row(item)\n}\n```\n\n**Good:**\n```swift\nlet sortedItems = items.sorted(by: sortRule)  // Compute once\nForEach(sortedItems) { item in\n    Row(item)\n}\n```\n\n### Unstable identity\n\n**Bad:**\n```swift\nForEach(items, id: \\.self) { item in  // \\.self may not be stable\n    Row(item)\n}\n```\n\n**Good:**\n```swift\nForEach(items, id: \\.stableID) { item in\n    Row(item)\n}\n```\n\n### Image decoding on main thread\n\n**Bad:**\n```swift\nImage(uiImage: UIImage(data: data)!)\n```\n\n**Good:**\n```swift\n// Decode/downsample off main thread, cache the result\n@State private var image: UIImage?\n\n.task {\n    image = await ImageLoader.load(data: data, targetSize: size)\n}\n```\n\n### Broad dependencies in observable models\n\n**Bad:**\n```swift\n@Observable class Model {\n    var items: [Item] = []\n}\n\nvar body: some View {\n    Row(isFavorite: model.items.contains(item))  // Entire array dependency\n}\n```\n\n**Good:**\n```swift\n// Granular view models or per-item state to reduce update fan-out\n```\n\n## 4. Remediation Strategies\n\n| Issue | Fix |\n|-------|-----|\n| Broad state changes | Narrow scope with `@State`/`@Observable` closer to leaves |\n| Unstable identities | Use stable, unique IDs for `ForEach` |\n| Heavy work in body | Precompute, cache, move to `@State` |\n| Expensive subtrees | Use `equatable()` or value wrappers |\n| Large images | Downsample before rendering |\n| Layout complexity | Reduce nesting, use fixed sizing where possible |\n\n## 5. Verify\n\nAsk user to re-run same capture and compare with baseline:\n- CPU usage\n- Frame drops\n- Memory peak\n\n## Output Format\n\nProvide:\n1. Metrics table (before/after if available)\n2. Top issues (ordered by impact)\n3. Proposed fixes with estimated effort\n\n## Profiling Commands\n\n```bash\n# Build for profiling\nxcodebuild -scheme MyApp -configuration Release -destination 'platform=iOS Simulator,name=iPhone 15 Pro' build\n\n# Open in Instruments\nopen -a Instruments\n```\n\n## Instruments Checklist\n\n- [ ] Use Release build (not Debug)\n- [ ] Select SwiftUI template\n- [ ] Reproduce exact problematic interaction\n- [ ] Look at SwiftUI timeline for body evaluations\n- [ ] Check Time Profiler for hot spots\n- [ ] Note frame rate drops in Animation timeline\n\n## Related\n\n- [[native-app-profiling]] — CPU/Time-Profiler profiling via xctrace.\n- [[swift-concurrency-expert]] — move work off the main actor.\n- [[swiftui-ui-patterns]] — patterns that minimize view updates.\n- [[ios-debugger-agent]] — run and observe the app while profiling.\n</skill>\n\nUser request:\nI have DateFormatter() created inside my row's body and the list scrolls badly. What's wrong?",
+          "label": "evals/swiftui-performance-audit/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "f9fbbd2af0d72915f83646b7d6391c7324386eab7c0c6c52bda015a40368f6f0",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Creating a `DateFormatter` in `body` is the likely cause. It's one of the most expensive Foundation objects to allocate, and `body` re-runs for every visible row on each update and while scrolling. Each row pays that cost on every evaluation, which drops frames.\n\n**Fix:** create it once and share it.\n\n```swift\nenum Formatters {\n    static let date: DateFormatter = {\n        let f = DateFormatter()\n        f.dateStyle = .medium\n        f.timeStyle = .none\n        return f\n    }()\n}\n\nvar body: some View {\n    Text(Formatters.date.string(from: item.date))\n}\n```\n\nOr skip the formatter: `Text(item.date, format: .dateTime.year().month().day())`, or `Text(item.date, style: .date)`. SwiftUI caches these.\n\n**If it's still janky after this**, check these next:\n- `ForEach(..., id: \\.self)` or `UUID()` generated per render. Unstable identity forces rows to be rebuilt.\n- Sorting or filtering inside `ForEach(...)`. Compute it once outside.\n- Full-size images decoded on the main thread.\n- A broad `@Observable` or `@State` dependency that invalidates every row on each change.\n\nIf you share the row and list code, I can point to the specific lines. If the code doesn't explain it, profile a Release build with the SwiftUI and Time Profiler instruments."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "formatter",
+          "vars": {
+            "skill": "file:///private/tmp/b4/skills/swiftui-performance-audit/SKILL.md",
+            "request": "file:///private/tmp/b4/evals/swiftui-performance-audit/cases/formatter.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/body|re-?creat|every|expensive|hoist|static|outside|stored/i.test(output)) throw new Error('identifies the formatter being rebuilt in body');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b4/skills/swiftui-performance-audit/SKILL.md",
+          "request": "file:///private/tmp/b4/evals/swiftui-performance-audit/cases/formatter.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "if (!/measur|profil|Instruments|first|before|identify|evidence/i.test(output)) throw new Error('requires measuring before optimising');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "f7fb405b-3509-41a3-ac05-2a6622577bd5",
+        "latencyMs": 11283,
+        "namedScores": {
+          "restraint": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: swiftui-performance-audit\ndescription: Audit and improve SwiftUI runtime performance. Use for requests to diagnose slow rendering, janky scrolling, high CPU/memory usage, excessive view updates, or layout thrash in SwiftUI apps.\n---\n\n# SwiftUI Performance Audit\n\n## Overview\n\nAudit SwiftUI view performance from instrumentation and baselining to root-cause analysis and concrete remediation steps.\n\n## Workflow Decision Tree\n\n1. **If user provides code**: Start with Code-First Review\n2. **If user only describes symptoms**: Ask for minimal code/context, then Code-First Review\n3. **If code review is inconclusive**: Guide user to profile with Instruments\n\n## 1. Code-First Review\n\n### Collect\n- Target view/feature code\n- Data flow: state, environment, observable models\n- Symptoms and reproduction steps\n\n### Focus On\n- View invalidation storms from broad state changes\n- Unstable identity in lists (`id` churn, `UUID()` per render)\n- Heavy work in `body` (formatting, sorting, image decoding)\n- Layout thrash (deep stacks, `GeometryReader`, preference chains)\n- Large images without downsampling\n- Over-animated hierarchies (implicit animations on large trees)\n\n### Provide\n- Likely root causes with code references\n- Suggested fixes and refactors\n- Minimal repro or instrumentation suggestion if needed\n\n## 2. Guide User to Profile\n\nIf code review is inconclusive, explain how to collect data:\n\n1. Use SwiftUI template in Instruments (Release build)\n2. Reproduce the exact interaction (scroll, navigation, animation)\n3. Capture SwiftUI timeline and Time Profiler\n4. Export or screenshot relevant lanes and call tree\n\nAsk for:\n- Trace export or screenshots\n- Device/OS/build configuration\n\n## 3. Common Code Smells (and Fixes)\n\n### Expensive formatters in `body`\n\n**Bad:**\n```swift\nvar body: some View {\n    let formatter = NumberFormatter()  // Slow allocation every render\n    Text(formatter.string(from: value))\n}\n```\n\n**Good:**\n```swift\nfinal class Formatters {\n    static let number = NumberFormatter()\n}\n\nvar body: some View {\n    Text(Formatters.number.string(from: value))\n}\n```\n\n### Computed properties with heavy work\n\n**Bad:**\n```swift\nvar filtered: [Item] {\n    items.filter { $0.isEnabled }  // Runs every body eval\n}\n```\n\n**Good:**\n```swift\n@State private var filtered: [Item] = []\n\n.onChange(of: items) {\n    filtered = items.filter { $0.isEnabled }\n}\n```\n\n### Sorting/filtering in ForEach\n\n**Bad:**\n```swift\nForEach(items.sorted(by: sortRule)) { item in\n    Row(item)\n}\n```\n\n**Good:**\n```swift\nlet sortedItems = items.sorted(by: sortRule)  // Compute once\nForEach(sortedItems) { item in\n    Row(item)\n}\n```\n\n### Unstable identity\n\n**Bad:**\n```swift\nForEach(items, id: \\.self) { item in  // \\.self may not be stable\n    Row(item)\n}\n```\n\n**Good:**\n```swift\nForEach(items, id: \\.stableID) { item in\n    Row(item)\n}\n```\n\n### Image decoding on main thread\n\n**Bad:**\n```swift\nImage(uiImage: UIImage(data: data)!)\n```\n\n**Good:**\n```swift\n// Decode/downsample off main thread, cache the result\n@State private var image: UIImage?\n\n.task {\n    image = await ImageLoader.load(data: data, targetSize: size)\n}\n```\n\n### Broad dependencies in observable models\n\n**Bad:**\n```swift\n@Observable class Model {\n    var items: [Item] = []\n}\n\nvar body: some View {\n    Row(isFavorite: model.items.contains(item))  // Entire array dependency\n}\n```\n\n**Good:**\n```swift\n// Granular view models or per-item state to reduce update fan-out\n```\n\n## 4. Remediation Strategies\n\n| Issue | Fix |\n|-------|-----|\n| Broad state changes | Narrow scope with `@State`/`@Observable` closer to leaves |\n| Unstable identities | Use stable, unique IDs for `ForEach` |\n| Heavy work in body | Precompute, cache, move to `@State` |\n| Expensive subtrees | Use `equatable()` or value wrappers |\n| Large images | Downsample before rendering |\n| Layout complexity | Reduce nesting, use fixed sizing where possible |\n\n## 5. Verify\n\nAsk user to re-run same capture and compare with baseline:\n- CPU usage\n- Frame drops\n- Memory peak\n\n## Output Format\n\nProvide:\n1. Metrics table (before/after if available)\n2. Top issues (ordered by impact)\n3. Proposed fixes with estimated effort\n\n## Profiling Commands\n\n```bash\n# Build for profiling\nxcodebuild -scheme MyApp -configuration Release -destination 'platform=iOS Simulator,name=iPhone 15 Pro' build\n\n# Open in Instruments\nopen -a Instruments\n```\n\n## Instruments Checklist\n\n- [ ] Use Release build (not Debug)\n- [ ] Select SwiftUI template\n- [ ] Reproduce exact problematic interaction\n- [ ] Look at SwiftUI timeline for body evaluations\n- [ ] Check Time Profiler for hot spots\n- [ ] Note frame rate drops in Animation timeline\n\n## Related\n\n- [[native-app-profiling]] — CPU/Time-Profiler profiling via xctrace.\n- [[swift-concurrency-expert]] — move work off the main actor.\n- [[swiftui-ui-patterns]] — patterns that minimize view updates.\n- [[ios-debugger-agent]] — run and observe the app while profiling.\n</skill>\n\nUser request:\nShould I just wrap everything in EquatableView and add .id() everywhere to speed it up?",
+          "label": "evals/swiftui-performance-audit/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "f9fbbd2af0d72915f83646b7d6391c7324386eab7c0c6c52bda015a40368f6f0",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No. Blanket `.id()` makes things slower, and blanket `EquatableView` rarely helps.\n\n- **`.id()`**: it sets a view's identity. When the value changes, SwiftUI destroys the view and its `@State` and rebuilds the subtree. Putting it everywhere adds teardown and re-creation costs and can reset scroll position, focus, and animations. Use it only when you want a reset on purpose. In `ForEach`, the fix is a stable, unique `id` (not `\\.self` or `UUID()` per render).\n- **`EquatableView` / `.equatable()`**: it can skip `body` for an expensive subtree whose inputs are cheap to compare. It adds a comparison cost on every update, so wrapping everything buys little. It also doesn't fix the usual causes, which are broad state invalidation, heavy work in `body`, undownsampled images, and layout thrash.\n\nDo this instead:\n1. Profile a Release build with the Instruments SwiftUI template and Time Profiler. Find which views re-evaluate `body` too often or take too long.\n2. Narrow the state: move `@State` and `@Observable` dependencies closer to the leaves.\n3. Apply `.equatable()` only to the specific hot subtrees the profile points to.\n\nSend me the slow view's code, the data flow, and what you see (janky scroll, high CPU, and so on), and I'll point to the specific causes."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "measure",
+          "vars": {
+            "skill": "file:///private/tmp/b4/skills/swiftui-performance-audit/SKILL.md",
+            "request": "file:///private/tmp/b4/evals/swiftui-performance-audit/cases/measure.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "if (!/measur|profil|Instruments|first|before|identify|evidence/i.test(output)) throw new Error('requires measuring before optimising');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b4/skills/swiftui-performance-audit/SKILL.md",
+          "request": "file:///private/tmp/b4/evals/swiftui-performance-audit/cases/measure.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 3,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 11936,
+      "evaluationDurationMs": 11936
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "swiftui-performance-audit — EDD",
+    "prompts": [
+      "file:///private/tmp/b4/evals/swiftui-performance-audit/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "no-code",
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/swiftui-performance-audit/cases/no-code.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/code|see|share|show me|minimal|which view|what does/i.test(output)) throw new Error('asks for the code or a minimal repro first');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "formatter",
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/swiftui-performance-audit/cases/formatter.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/body|re-?creat|every|expensive|hoist|static|outside|stored/i.test(output)) throw new Error('identifies the formatter being rebuilt in body');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "measure",
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/swiftui-performance-audit/cases/measure.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "if (!/measur|profil|Instruments|first|before|identify|evidence/i.test(output)) throw new Error('requires measuring before optimising');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/swiftui-performance-audit/results/skill_2.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b4/skills/swiftui-performance-audit/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b4/evals/swiftui-performance-audit"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T18:25:05.347Z",
+    "evaluationCreatedAt": "2026-10-29T18:24:53.367Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}
