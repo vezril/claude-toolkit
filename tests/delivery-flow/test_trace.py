@@ -188,6 +188,69 @@ class TestReport(unittest.TestCase):
         self.assertEqual(week["all"]["completed"], 1)
         self.assertEqual(week["certified_only"]["completed"], 0)
 
+    def test_an_artifact_root_inside_another_git_repo_is_read(self):
+        """The shape the real data has, and the report could not read it.
+
+        `artifacts.root` points at `~/Amazon RAG/Atlas/RAG/_runs`; the vault is itself a git
+        repo. `main` mapped every argument through `repo_root`, which climbed to
+        `~/Amazon RAG`, looked for `delivery/*/trace.jsonl` there, found none, and printed
+        "no delivery items found" over three runs sitting inside the path it was given.
+        `trace_files` already handled an artifact root given directly — it never received one.
+        """
+        vault = Path(tempfile.mkdtemp()) / "Vault With Spaces"
+        (vault / ".git").mkdir(parents=True)          # the vault is a git repo, not a delivery one
+        runs = vault / "Atlas" / "RAG" / "_runs"
+        item = runs / "AN-1"
+        item.mkdir(parents=True)
+        (item / "trace.jsonl").write_text(json.dumps({
+            "ts": "2026-10-20T10:00:00+00:00", "item": "AN-1", "step": "triage",
+            "model": "claude-sonnet-5", "input_tokens": 10, "output_tokens": 10,
+            "api_equivalent_cost_usd": 0.0001, "certified": True}) + "\n")
+        (item / "outcome.json").write_text(json.dumps({"item": "AN-1", "status": "completed"}))
+
+        r = subprocess.run([sys.executable, str(REPORT), str(runs), "--json"],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(["AN-1"], [i["item"] for i in json.loads(r.stdout)["items"]])
+
+    def test_a_subdirectory_of_a_delivery_repo_still_climbs(self):
+        """The convenience the unconditional climb was there for must survive the fix."""
+        base = Path(tempfile.mkdtemp())
+        (base / ".git").mkdir()
+        (base / ".delivery-flow.yaml").write_text("tracker:\n  kind: local-markdown\n")
+        d = base / "delivery" / "I-1"
+        d.mkdir(parents=True)
+        (d / "trace.jsonl").write_text(json.dumps({
+            "ts": "2026-10-20T10:00:00+00:00", "item": "I-1", "step": "triage",
+            "model": "claude-sonnet-5", "input_tokens": 1, "output_tokens": 1,
+            "api_equivalent_cost_usd": 0.0, "certified": True}) + "\n")
+        (d / "outcome.json").write_text(json.dumps({"item": "I-1", "status": "completed"}))
+        sub = base / "scripts" / "nested"
+        sub.mkdir(parents=True)
+        r = subprocess.run([sys.executable, str(REPORT), str(sub), "--json"],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(["I-1"], [i["item"] for i in json.loads(r.stdout)["items"]])
+
+    def test_unchecked_edges_count_written_artifacts_not_declared_steps(self):
+        """A run that never reached the unschema'd steps must report zero unchecked, not
+        eight. Counting the routing table instead of the trace would make every run look
+        equally unchecked regardless of how far it got."""
+        r = Repo(); r.current_step("triage")
+        (r.item_dir / "trace.jsonl").write_text("\n".join([
+            json.dumps({"ts": "2026-10-20T10:00:00+00:00", "item": r.item,
+                        "artifact": "triage.json", "hook": "check-edge",
+                        "edge": {"name": "parse+schema", "exit": 0, "summary": "ok"}}),
+            json.dumps({"ts": "2026-10-20T10:01:00+00:00", "item": r.item,
+                        "artifact": "verify.json", "hook": "check-edge",
+                        "edge": {"name": "no-schema", "exit": 0,
+                                 "summary": "no schema declares this artifact, so no edge ran"}}),
+        ]) + "\n")
+        r.outcome("completed")
+        row = r.report()["items"][0]
+        self.assertEqual(1, row["unchecked_edges"])
+        self.assertEqual(0, row["failed_edges"], "an unchecked edge is not a failed one")
+
     def test_markdown_labels_cost_as_api_equivalent(self):
         r = Repo(); r.current_step("triage")
         r.subagent_stop(transcript(r.dir / "sub.jsonl"))

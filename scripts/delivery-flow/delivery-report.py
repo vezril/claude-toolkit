@@ -133,6 +133,11 @@ def summarize(items: dict) -> dict:
         outcome = entry["outcome"] or {}
         status = outcome.get("status") or ("in-flight" if entry["records"] or entry["edges"] else "empty")
         failed_edges = sum(1 for e in entry["edges"] if (e.get("edge") or {}).get("exit"))
+        # Artifacts that reached an edge with no schema to check them against. Counted
+        # separately from failures because they are neither a pass nor a failure: nothing ran.
+        # Rolling them into either number is how an unchecked artifact came to look checked.
+        unchecked_edges = sum(1 for e in entry["edges"]
+                              if (e.get("edge") or {}).get("name") == "no-schema")
         ts = (entry["records"] or entry["edges"] or [{}])[-1].get("ts", "")
         profile = outcome.get("profile") or "unknown"
         if status in ("completed", "failed", "punched-out", "abandoned"):
@@ -147,6 +152,7 @@ def summarize(items: dict) -> dict:
                      "reason": outcome.get("reason") or "", **tokens,
                      "cost_usd": round(cost, 4), "priced": priced,
                      "certified": certified_all, "failed_edges": failed_edges,
+                     "unchecked_edges": unchecked_edges,
                      "steps": len(entry["records"])})
 
     def rate(counts, prefix=""):
@@ -175,13 +181,13 @@ def markdown(s: dict, pricing_as_of: str) -> str:
          f"{f' (as of {pricing_as_of})' if pricing_as_of else ''}. Runs under a subscription are not "
          "billed per token, so this is a comparison figure, not spend.", "",
          "## Items", "",
-         "| Item | Profile | Outcome | Steps | In | Out | Cost (API-equiv) | Certified | Failed edges |",
-         "|------|---------|---------|-------|----|-----|------------------|-----------|--------------|"]
+         "| Item | Profile | Outcome | Steps | In | Out | Cost (API-equiv) | Certified | Failed edges | Unchecked |",
+         "|------|---------|---------|-------|----|-----|------------------|-----------|--------------|-----------|"]
     for r in s["items"]:
         L.append(f"| {r['item']} | {r['profile']} | {r['status']}{(' — ' + r['reason']) if r['reason'] else ''} | {r['steps']} | "
                  f"{r['input_tokens']:,} | {r['output_tokens']:,} | "
                  f"{'$' + format(r['cost_usd'], '.4f') if r['priced'] else 'unpriced'} | "
-                 f"{'yes' if r['certified'] else 'no'} | {r['failed_edges']} |")
+                 f"{'yes' if r['certified'] else 'no'} | {r['failed_edges']} | {r['unchecked_edges']} |")
 
     L += ["", "## Weekly end-to-end rate", "",
           "| Week | Completed | Failed | Punched out | Excluding punch-outs | Counting them | Certified-only (Stage 4) |",
@@ -233,7 +239,17 @@ def main(argv=None) -> int:
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
 
-    roots = [repo_root(Path(r)) for r in (args.roots or ["."])]
+    # Climb to the repo root only when the path given is not already where the runs are.
+    # Climbing unconditionally is what made this unable to read the real data: the artifact
+    # root is `~/Amazon RAG/Atlas/RAG/_runs`, the vault is itself a git repo, so `repo_root`
+    # resolved it to `~/Amazon RAG`, looked for `delivery/*/trace.jsonl` there, found none,
+    # and reported "no delivery items found" over three runs sitting in the path it was
+    # handed. `trace_files` already understood an artifact root given directly; it never saw
+    # one, because this line rewrote the argument before it got there.
+    roots = []
+    for r in (args.roots or ["."]):
+        given = Path(r)
+        roots.append(given if trace_files(given) else repo_root(given))
     items = collect(roots)
     if not items:
         print("no delivery items found under: " + ", ".join(str(r) for r in roots), file=sys.stderr)
