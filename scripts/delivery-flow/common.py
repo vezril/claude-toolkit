@@ -14,6 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "workflow"))
 import pricing as _pricing  # noqa: E402
+import trace as _trace  # noqa: E402
 
 CONFIG_NAME = ".delivery-flow.yaml"
 SENTINEL_SUFFIX = ".sentinel.json"
@@ -555,7 +556,10 @@ def trace_path(repo: Path, item: str, cfg: dict = None) -> Path:
 
 
 def append_trace(repo: Path, item: str, record: dict) -> None:
-    p = trace_path(repo, item)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("a") as f:
-        f.write(json.dumps(record, sort_keys=True) + "\n")
+    """Append to this item's trace. Format and damage policy: `scripts/workflow/trace.py`."""
+    _trace.append(trace_path(repo, item), record)
+
+
+def read_trace(repo: Path, item: str) -> list:
+    """This item's trace records, oldest first. Unreadable reads as empty."""
+    return _trace.read(trace_path(repo, item))

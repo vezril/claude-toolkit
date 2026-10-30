@@ -261,17 +261,20 @@ def policy_disagreements(path: Path, common, trigger_rules, repo: Path = None) -
 
 
 def last_traced_sha(repo: Path, item: str, filename: str, common):
-    """The sha this artifact had when an edge last ran over it, or None."""
+    """The sha this artifact had when an edge last ran over it, or None.
+
+    Reads through `common.read_trace`, so what counts as a damaged trace is decided in one
+    place (`scripts/workflow/trace.py`). This function used to parse the file itself and
+    disagreed with `check-punch-out.read_trace` about it — two readers, two answers, over the
+    artifact the certification examines.
+
+    The newest matching record wins, and a record without a `sha256` is not a match: an
+    artifact can be traced by a step that recorded no digest, and treating that as "no
+    previous sha" would re-check the file rather than skip it. Re-checking is the safe
+    direction.
+    """
     found = None
-    try:
-        lines = common.trace_path(repo, item).read_text().splitlines()
-    except OSError:
-        return None
-    for line in lines:                      # the newest matching record wins
-        try:
-            rec = json.loads(line)
-        except (json.JSONDecodeError, ValueError):
-            continue
+    for rec in common.read_trace(repo, item):
         if rec.get("artifact") == filename and rec.get("sha256"):
             found = rec["sha256"]
     return found
