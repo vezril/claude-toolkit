@@ -1,0 +1,44 @@
+diff --git a/db/migrations/0042_drop_recipe_legacy_notes.sql b/db/migrations/0042_drop_recipe_legacy_notes.sql
+new file mode 100644
+index 0000000..7c1d2e4
+--- /dev/null
++++ b/db/migrations/0042_drop_recipe_legacy_notes.sql
+@@ -0,0 +1,9 @@
++-- Notes now live in recipe_notes (one row per note, with author and timestamp).
++-- Copy the old free-text column across, then drop it.
++INSERT INTO recipe_notes (recipe_id, body, author_id, created_at)
++SELECT id, legacy_notes, owner_id, updated_at
++FROM recipes
++WHERE legacy_notes IS NOT NULL AND legacy_notes <> '';
++
++ALTER TABLE recipes DROP COLUMN legacy_notes;
++
+diff --git a/server/src/main/scala/pantry/recipes/RecipeRepository.scala b/server/src/main/scala/pantry/recipes/RecipeRepository.scala
+index 3a91c0b..b84d2f1 100644
+--- a/server/src/main/scala/pantry/recipes/RecipeRepository.scala
++++ b/server/src/main/scala/pantry/recipes/RecipeRepository.scala
+@@ -14,9 +14,8 @@ final class RecipeRepository(xa: Transactor[IO]):
+   def find(id: RecipeId): IO[Option[Recipe]] =
+-    sql"select id, title, owner_id, legacy_notes from recipes where id = $id"
+-      .query[(RecipeId, String, UserId, Option[String])]
+-      .map((i, t, o, n) => Recipe(i, t, o, n))
++    sql"select id, title, owner_id from recipes where id = $id"
++      .query[(RecipeId, String, UserId)]
++      .map((i, t, o) => Recipe(i, t, o))
+       .option
+       .transact(xa)
+diff --git a/server/src/test/scala/pantry/recipes/RecipeNotesMigrationSpec.scala b/server/src/test/scala/pantry/recipes/RecipeNotesMigrationSpec.scala
+new file mode 100644
+index 0000000..e5f0a11
+--- /dev/null
++++ b/server/src/test/scala/pantry/recipes/RecipeNotesMigrationSpec.scala
+@@ -0,0 +1,12 @@
++class RecipeNotesMigrationSpec extends AnyFunSpec with PostgresFixture {
++  describe("migration 0042") {
++    it("copies every non-empty legacy note into recipe_notes") {
++      seedRecipe(id = 1, legacyNotes = Some("double the garlic"))
++      migrateTo(42)
++      notesFor(1).map(_.body) shouldBe List("double the garlic")
++    }
++  }
++}

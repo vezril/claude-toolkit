@@ -1,6 +1,6 @@
 // Criterion 1 — contract (strict). The output IS the PR description:
-// no preamble, no wrapping code fence, exactly the three sections the skill
-// defines, in order, a one-sentence What, and a bulleted Changes list.
+// no preamble, no wrapping code fence, the three sections the skill defines (v6
+// adds a fourth, Merge danger), in order, a one-sentence What, and a bulleted Changes list.
 // No leniency here on purpose: this criterion owns every formatting penalty.
 
 const { result } = require('./lib');
@@ -15,9 +15,10 @@ module.exports = (output) => {
   if (/^```/m.test(text)) problems.push('contains a code fence');
 
   const headings = (text.match(/^##\s+.+$/gm) || []).map((h) => h.replace(/^##\s+/, '').trim());
+  // v6 adds an optional fourth section, Merge danger; the risk criterion grades its content.
   const want = ['What', 'Why', 'Changes'];
-  if (headings.join('|') !== want.join('|')) {
-    problems.push('H2 sections are [' + headings.join(', ') + '], expected exactly [What, Why, Changes] in order');
+  if (headings.join('|') !== want.join('|') && headings.join('|') !== [...want, 'Merge danger'].join('|')) {
+    problems.push('H2 sections are [' + headings.join(', ') + '], expected [What, Why, Changes] (optionally then Merge danger) in order');
   }
 
   const section = (name) => {
