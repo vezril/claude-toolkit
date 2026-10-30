@@ -33,6 +33,24 @@ TRIAGE = {"item": "AN-1", "type": "feature", "path": "standard", "domains": ["ba
           "architecture_change": False, "breaking_change": False}
 
 
+# Valid enough for `openspec validate --strict`, which runs as an extra layer wherever the
+# CLI is installed: an ADDED requirement needs requirement text and at least one scenario.
+# A fixture that fails it would make the proposal edge look broken for the wrong reason.
+VALID_DELTA_SPEC = """## ADDED Requirements
+
+### Requirement: Callers can request a date range
+
+The endpoint SHALL accept a start and end date and SHALL return only the records that fall
+within them.
+
+#### Scenario: A caller requests a range
+
+- **GIVEN** a ledger holding records across several dates
+- **WHEN** a caller requests a date range
+- **THEN** only the records inside that range are returned
+"""
+
+
 def breakdown(stories=2):
     return {"item": "AN-1", "epics": [{"id": "E1", "title": "T", "stories": [
         {"id": f"S{i}", "statement": f"story {i}", "domains": ["backend"],
@@ -243,6 +261,90 @@ class TestTheSentinelLandsAfterTheArtifact(unittest.TestCase):
                            capture_output=True, text=True)
         after = len([x for x in r.trace() if x.get("artifact") == "breakdown.json"])
         self.assertEqual(before, after, "a passing edge was re-recorded")
+
+
+class TestProposalResolvesAgainstTheCodeRepo(unittest.TestCase):
+    """The change directory lives in the code repo, never beside the artifact.
+
+    `check_artifact` inferred the repo with `repo_root(path.parent)`. Under an external
+    `artifacts.root` the artifact's parent is the vault, so the change-directory check looked
+    for `openspec/changes/<id>` in the vault, did not find it, and reported "no change
+    directory" — blaming the node for a directory it had correctly created in the repo. The
+    hook's `identify()` already knows the right repo; it now hands it in.
+    """
+
+    PROPOSAL = {
+        "item": "AN-1", "change_id": "add-range", "change_path": "openspec/changes/add-range",
+        "specs_touched": ["openspec/changes/add-range/specs/range/spec.md"],
+        "tasks": [{"id": "T1", "description": "Add the range endpoint",
+                   "files": ["src/Range.scala"]}],
+        "dependencies_added": [], "scope": False, "architecture": False, "breaking": False,
+    }
+
+    def change_dir(self, r):
+        """The OpenSpec change directory, in the code repo where the node puts it."""
+        d = r.repo / "openspec" / "changes" / "add-range"
+        (d / "specs" / "range").mkdir(parents=True)
+        for name in ("proposal.md", "design.md"):
+            (d / name).write_text(f"# {name}\n")
+        (d / "specs" / "range" / "spec.md").write_text(VALID_DELTA_SPEC)
+        (d / "tasks.md").write_text("## 1. Work\n\n- [ ] T1 Add the range endpoint\n")
+        return d
+
+    def test_the_change_directory_is_found_in_the_code_repo(self):
+        r = ExternalRoot()
+        self.change_dir(r)
+        r.write("proposal.json", self.PROPOSAL)
+        self.assertEqual(r.sentinel("proposal.json", "propose").returncode, 0)
+        out = r.edge("proposal.json")
+        self.assertEqual(0, out.returncode, out.stderr)
+        self.assertNotIn("no change directory", out.stderr)
+        records = [x for x in r.trace() if x.get("artifact") == "proposal.json"]
+        self.assertTrue(records)
+        self.assertEqual(0, records[-1]["edge"]["exit"])
+        self.assertIn("change-dir", records[-1]["edge"]["name"])
+
+    def test_a_genuinely_missing_change_directory_still_fails(self):
+        """Handing the repo in must not make the check toothless."""
+        r = ExternalRoot()
+        r.write("proposal.json", self.PROPOSAL)
+        r.sentinel("proposal.json", "propose")
+        out = r.edge("proposal.json")
+        self.assertEqual(2, out.returncode)
+        self.assertIn("no change directory", out.stderr)
+
+    def test_the_failure_names_the_absolute_path_it_looked_in(self):
+        """So a wrong repo is visible instead of reading as a missing directory."""
+        r = ExternalRoot()
+        r.write("proposal.json", self.PROPOSAL)
+        r.sentinel("proposal.json", "propose")
+        out = r.edge("proposal.json")
+        self.assertIn(str(r.repo / "openspec" / "changes" / "add-range"), out.stderr)
+
+    def test_the_vault_is_not_where_it_looks(self):
+        """The precise regression, and the one that needs the vault to be a git repo.
+
+        The real vault is itself a git repo — that is how the run trail is versioned — so
+        `repo_root` walking up from an artifact inside it *succeeds*, and returns the vault.
+        Without the `.git` below this test passes either way, because the walk falls off the
+        top and the decoy is never reached: it would assert the right thing and prove nothing.
+        """
+        r = ExternalRoot()
+        vault = r.runs.parent.parent.parent          # the vault's own root: `~/Amazon RAG`
+        (vault / ".git").mkdir(exist_ok=True)
+        # Planted where the broken inference looks — `repo_root(artifact.parent)` resolves to
+        # the vault root, so that is the only place a decoy could ever have satisfied it.
+        decoy = vault / "openspec" / "changes" / "add-range"
+        (decoy / "specs" / "range").mkdir(parents=True)
+        for name in ("proposal.md", "design.md"):
+            (decoy / name).write_text(f"# {name}\n")
+        (decoy / "specs" / "range" / "spec.md").write_text(VALID_DELTA_SPEC)
+        (decoy / "tasks.md").write_text("## 1. Work\n\n- [ ] T1 Add the range endpoint\n")
+        r.write("proposal.json", self.PROPOSAL)
+        r.sentinel("proposal.json", "propose")
+        out = r.edge("proposal.json")
+        self.assertEqual(2, out.returncode, "a decoy in the vault satisfied the check")
+        self.assertIn("no change directory", out.stderr)
 
 
 class TestBashPathsResolveAgainstTheRoot(unittest.TestCase):
