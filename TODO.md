@@ -96,7 +96,37 @@ Task counts as of this writing.
 
 ---
 
-## 4. EDD backlog
+## 4. EDD backlog — paused, and why
+
+**123 of 282 scored; 159 blank.** Verify with `python3 scripts/check-edd-table.py`.
+
+**Recommendation: stop running batches of the current shape.** Pooled across batches 4, 5 and 6
+that is **30 skills for 2 gains**, at roughly 60 model runs per batch. Batch 6 scored 0 for 10,
+including the Akka SDK family picked specifically because its scored siblings sit at 50–83%
+baseline — my suites put the same family at 100%, which points at the suite rather than the
+skill.
+
+Three things to change before resuming (detail in `evals/_batch6/iteration-log.md`):
+
+- [ ] **Calibrate asserts against an observed wrong answer**, not against the skill's own
+      Always-apply list. Writing down the claim and checking the model restates it is close to
+      unfalsifiable. `gitbucket` is the proof: I had measured the model getting those facts
+      wrong on a live instance, then wrote cases it passed 3/3.
+- [ ] **8–10 cases per skill, or leave the row blank.** At 1–3 cases a single flip is 33–100%
+      and a tie carries almost no information.
+- [ ] **Find a way to test recall under load and consistency across a long session** — the
+      actual value of a reference skill, which a single-turn suite cannot see.
+
+**159 blank is a reasonable resting state.** For most of those the honest annotation is
+"untested, and a cheap test would not distinguish it from the baseline" rather than a number.
+
+### What has actually gained, pooled across six batches
+
+Narrow and worth remembering: unusual rails the model has no reason to hold (DSM
+refuse-to-diagnose, 15 of 18 chapters), territory splits in paired scaffolds (`python-package`
++50%), calibration behaviour (`detect-ai` 25% → 100%), credential handling (`dockerhub-setup`
+50% → 100%), and one recent-API case (`akka-sdk-agents` 50% → 100%).
+
 
 **60 of 247 table rows scored, 187 blank — and the table is itself missing 12 skills (§4f).** The backlog is not a to-do list — a pass only pays where
 the naive baseline plausibly fails. Recorded tiers reflect that, and the lessons from the first
@@ -159,20 +189,25 @@ Following `dockerhub-setup` (50% → 100%, fully deterministic):
   eval would mostly re-measure what is already proven.
 - The **Akka family** is largely scored already.
 
-### 4f. The table itself is out of sync with the tree
+### 4f. The table is now in sync, and checked
 
-`skills/` holds **258** directories; the EDD table has **247** rows. The table is the inventory,
-so a skill missing from it is a skill nobody will ever notice is untested.
+**Fixed.** `skills/` and the EDD table both hold **282** entries, verified by
+`python3 scripts/check-edd-table.py`, which exits non-zero on a directory with no row, a row
+with no directory, or a duplicate.
 
-- [ ] Add the 12 missing rows: `delivery-flow`, `workflow-certification`, `pr-description`,
-      `new-constellation-service`, `grounded-answers`, `secretary-followups`,
-      `constellation-logo-drop`, `constellation-logo-key`, `constellation-logo-prompt`,
-      `indian-super-chief`, `toyota-matrix-2009`, `yamaha-virago-xv1100`
-      (note `pr-description` *has* a suite and an eval history — it just has no row)
-- [ ] Remove or explain `webui-quickfix-demo` — it has a table row and no skill directory
-- [ ] Consider replacing the hand-maintained table with a generated one. A 258-row table kept in
-      sync by hand will drift again; `docs/skill-and-agent-evaluation.md` already proposes a
-      repo-wide linter that could emit it.
+What the drift was hiding: 12 directories had no row — including `pr-description`, which already
+had a working suite and a full iteration log (recorded now as 93% → 100%, haiku tier) — and one
+row, `webui-quickfix-demo`, had no directory. **The backlog figure was wrong in both directions**,
+and quoting it from memory rather than counting made it worse across several batches.
+
+- [x] Add the 12 missing rows; drop the phantom one
+- [x] Add `scripts/check-edd-table.py` and reference it from the table preamble
+- [ ] Run the check in CI, so this cannot drift again unnoticed
+- [ ] Consider generating the table outright; 282 hand-maintained rows will drift again
+
+**Current honest figure: 113 scored, 169 blank.** The blank count went *up* after the fix,
+because the table had been undercounting.
+
 
 ### 4g. Eval infrastructure
 

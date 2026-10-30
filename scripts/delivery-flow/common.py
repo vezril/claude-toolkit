@@ -64,6 +64,78 @@ def artifact_root(repo: Path, cfg: dict = None) -> Path:
     return _layout.artifact_root(repo, ARTIFACT_DIR, cfg)
 
 
+# The vault subdirectory runs live in. Underscore-prefixed so Obsidian keeps a few hundred
+# JSON files out of search and the graph view, the same convention `_templates` uses.
+VAULT_RUNS_DIR = "_runs"
+
+
+def vault_artifact_root(cfg: dict):
+    """Where a bound vault's runs belong, derived rather than hand-written. None if unbound."""
+    v = (cfg or {}).get("vault") or {}
+    path = v.get("path")
+    if not path:
+        return None
+    root = Path(str(path)).expanduser()
+    graph_root = v.get("graph_root")
+    if graph_root:
+        root = root / str(graph_root)
+    return root / VAULT_RUNS_DIR
+
+
+def _within(path: Path, parent: Path) -> bool:
+    try:
+        path, parent = path.resolve(), parent.resolve()
+    except OSError:
+        return False
+    return path == parent or parent in path.parents
+
+
+def artifact_root_problems(repo: Path, cfg: dict = None) -> list:
+    """Why this repo's run artifacts are in the wrong place, as a list of problems.
+
+    A run's artifacts are the ticket body, the triage rationale, the breakdown and the brief —
+    someone else's ticket text, most of the time. Inside the code repo that is one `git add`
+    away from a branch, and on a public repo one push away from being published. `nx-neptune`
+    is the case in point: a public AWS checkout whose tracker is a client's Jira.
+
+    So the rule is that artifacts live in the vault, which is its own private git repo and
+    provides the versioning and the cross-machine sync by itself. Two problems are reported:
+
+    - the resolved root is inside the code repo's working tree;
+    - a vault is bound and the root is not under it.
+
+    Excluded from the git test on purpose: the vault *is* a git repo, and that is the point.
+    What must not happen is the artifacts sitting in the repository being worked on.
+
+    `artifacts.in_repo_ack` is the explicit opt-in — a non-empty string saying why in-repo is
+    acceptable here. It exists for the default in-repo layout, for test fixtures, and for a
+    private repo whose tracker is its own, and it has to be written down rather than implied,
+    because this is the one place where "it was fine on my machine" publishes a client's data.
+    """
+    if cfg is None:
+        try:
+            cfg = load_config(repo)
+        except OSError:
+            cfg = {}
+    artifacts = (cfg or {}).get("artifacts") or {}
+    ack = str(artifacts.get("in_repo_ack") or "").strip()
+    root = artifact_root(repo, cfg)
+    vault_root = vault_artifact_root(cfg)
+    out = []
+
+    if _within(root, Path(repo)) and not ack:
+        fix = (f"set artifacts.root to {vault_root}" if vault_root
+               else "bind a vault (vault.path + vault.graph_root) and set artifacts.root under it")
+        out.append(f"artifacts.root resolves to {root}, inside the repository — a run's ticket "
+                   f"text must not live where a commit can take it. Either {fix}, or record "
+                   f"artifacts.in_repo_ack with the reason in-repo is acceptable here")
+    if vault_root and not _within(root, vault_root.parent) and not ack:
+        out.append(f"a vault is bound but artifacts.root is {root}, outside it — the vault's "
+                   f"own git is what versions the trail and syncs it across machines; "
+                   f"{vault_root} is where runs belong")
+    return out
+
+
 def item_dir(repo: Path, item: str, cfg: dict = None) -> Path:
     return artifact_root(repo, cfg) / item
 

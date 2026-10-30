@@ -1,0 +1,391 @@
+{
+  "evalId": "eval-Eey-2026-10-29T19:49:36",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:49:36.835Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/akka-sdk-endpoints/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "07aad547a5311ba734e842371d1d828eb91418bacfd39a11a1b03ff3c22d10c2",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 0,
+          "totalLatencyMs": 27204,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 2
+          },
+          "namedScoresCount": {
+            "accuracy": 2
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/thin|delegat|ComponentClient|out of the endpoint|domain logic/i.test(output)) throw new Error('says endpoints are thin and delegate via ComponentClient');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "8ff146e3-99ca-4e33-98ca-476eba33455d",
+        "latencyMs": 12756,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-sdk-endpoints\ndescription: \"Akka SDK Endpoints (Java) — the only externally reachable components, in three flavors: HTTP endpoints (@HttpEndpoint, @Get/@Post/@Put/@Patch/@Delete, path/query params, JSON request/response records, HttpResponses, SSE, WebSocket), gRPC endpoints (proto-defined services, @GrpcEndpoint, streaming), and MCP endpoints (@McpEndpoint exposing tools/resources/prompts to LLM clients). Covers calling components via the injected ComponentClient, calling other services via HttpClientProvider, access control (@Acl, @JWT, TLS), error handling, streaming/SSE, and testing. Use when exposing an Akka SDK service over HTTP/REST, gRPC, or MCP, building an API/edge layer, or securing endpoints. Part of the Akka SDK (Java); see akka-sdk for the model.\"\n---\n\n# Akka SDK — Endpoints\n\nEndpoints are the **only components that expose externally reachable APIs**. Three flavors: **HTTP** (client/frontend-facing REST), **gRPC** (typed cross-service/backend), and **MCP** (tools/resources/prompts for LLM clients). They live in the `api/` layer, call components via the injected `ComponentClient`, and enforce access control. Part of the [[akka-sdk]] (Java).\n\nCross-links: [[akka-sdk]] (meta), [[akka-sdk-agents]] (expose/stream agents), [[akka-http]] / [[akka-grpc]] (the Core libraries underneath).\n\n## HTTP endpoints\n\n```java\n@HttpEndpoint(\"/carts\")\n@Acl(allow = @Acl.Matcher(principal = Acl.Principal.INTERNET))   // no @Acl => NO client allowed\npublic class ShoppingCartEndpoint {\n  private final ComponentClient componentClient;\n  public ShoppingCartEndpoint(ComponentClient cc) { this.componentClient = cc; }\n\n  @Get(\"/{cartId}\")                                              // GET /carts/{cartId}\n  public ShoppingCart get(String cartId) {\n    return componentClient.forEventSourcedEntity(cartId).method(ShoppingCartEntity::getCart).invoke();\n  }\n  @Put(\"/{cartId}/item\")                                         // body param comes LAST\n  public HttpResponse addItem(String cartId, ShoppingCart.LineItem item) {\n    componentClient.forEventSourcedEntity(cartId).method(ShoppingCartEntity::addItem).invoke(item);\n    return HttpResponses.ok();\n  }\n}\n```\n\n- Annotate a public class `@HttpEndpoint(\"/prefix\")`; methods `@Get/@Post/@Put/@Patch/@Delete(\"/sub/{id}\")`. Path-param method args match by order/name (String + numeric/boolean types). JSON body (a record) must be the **last** parameter. Return a record (→ JSON), `String` (→ text), `CompletionStage<T>` (async), or `HttpResponse` (full control via `HttpResponses.ok()/created()/badRequest()/notFound()/serverSentEvents(...)`).\n- Headers/query params via `extends AbstractHttpEndpoint` → `requestContext()`. Errors: throw `HttpException.badRequest(...)` etc. (`IllegalArgumentException` → 400; other → 500 with a correlation id in prod).\n- **SSE**: return `HttpResponses.serverSentEvents(source)` over any Akka Streams `Source`. **WebSocket**: `@WebSocket(\"/ws/{x}\")` returning `Flow<String,String,NotUsed>`. Both rebalance across instances — design for reconnection (client offsets / `lastSeenSseEventId`).\n- Call other Akka/external services via injected `HttpClientProvider` (`httpClientFor(\"service-name\")` or a full URL).\n\n## gRPC & MCP endpoints\n\nDetail in **`references/grpc-and-mcp.md`**. **gRPC**: define services in `.proto` under `src/main/proto`; implement the generated interface in a class annotated `@GrpcEndpoint`; errors via `GrpcServiceException(Status.X)`; streaming RPCs return/accept Akka Streams `Source`. **MCP**: `@McpEndpoint(serverName=, serverVersion=)` exposes `@McpTool` (callable functions, `@Description` params), `@McpResource` (data the LLM fetches, static `uri` or `uriTemplate`), and `@McpPrompt` (templated prompts) over Streamable HTTP at `/mcp`. **Recommendation:** gRPC for service-to-service, HTTP for clients/frontends, MCP to expose tools to AI clients.\n\n## Always-apply defaults\n\n1. **Secure every endpoint with `@Acl`** — **absence of `@Acl` denies all clients**. Use `@Acl.Matcher(principal = Acl.Principal.INTERNET)` for public, `(service = \"*\")` for other Akka services, plus `@JWT`/TLS as needed. ACLs can be class- or method-level.\n2. **Endpoints are thin** — validate, map to/from API records, and delegate to components via `ComponentClient`; keep domain logic out of the `api/` layer and never expose internal entity/event types.\n3. **Don't block** in a handler; return `CompletionStage` or stream. Body param last; consume/discard raw request entities.\n4. **Design streaming for reconnection** — instances rebalance; clients resume with offsets/`lastSeenSseEventId`, never rely on a long-lived in-JVM object.\n5. **Use the right flavor:** HTTP (frontends), gRPC (backend/service-to-service), MCP (LLM tool exposure).\n\n## Anti-patterns (flag in review)\n\n- Endpoint with no `@Acl` (locked out) or an over-broad one exposing internal services to the internet.\n- Business/domain logic in the endpoint instead of a component; exposing internal types over the wire.\n- Blocking calls in handlers; relying on a stream to keep server state alive; reusing gRPC proto tag numbers on schema changes.\n\n## Testing\n\n`TestKitSupport`: HTTP via the testkit HTTP client / `SseRouteTester`; gRPC via `getGrpcEndpointClient(Client.class)` (overload takes a `Principal` to simulate callers). MCP has no dedicated testkit — call the methods directly or POST JSON-RPC payloads.\n\n## Related\n\n- [[akka-sdk]] · [[akka-sdk-agents]] (stream/expose agents; MCP tool exposure) · [[akka-sdk-views]] (expose query results)\n- [[akka-http]] / [[akka-grpc]] — the Core HTTP/2 + streams libraries the SDK endpoints are built on.\n- Source: https://doc.akka.io/sdk/http-endpoints.html, grpc-endpoints.html, mcp-endpoints.html\n</skill>\n\nUser request:\nMy Akka SDK HTTP endpoint is doing the order-total calculation and the discount rules inline. Is that fine?",
+          "label": "evals/akka-sdk-endpoints/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "07aad547a5311ba734e842371d1d828eb91418bacfd39a11a1b03ff3c22d10c2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Not ideal. Endpoints should stay thin: validate, map to and from API records, and delegate through `ComponentClient`. Domain logic like order totals and discount rules belongs in a component, so the endpoint shouldn't own it.\n\n- **Put the rules in the domain.** If the total depends on an order's state, calculate it in the entity (for example, an Event Sourced Entity's command handler or a pure domain class it calls). Then the result is consistent and gets persisted as events.\n- **Keep the math in a plain class.** Pure domain classes like `PricingRules` or `DiscountPolicy` are easy to unit test without the testkit. The entity or workflow calls them.\n- **Return an API record from the endpoint.** Map the entity's response to an API record so internal entity and event types never go over the wire.\n\nInline logic in an endpoint can't be reused by gRPC or MCP endpoints, a View, a Consumer, or a Workflow. Different callers can then compute different totals.\n\nInline is acceptable only for presentation-level formatting, such as rounding for display or shaping the response.\n\nI haven't looked at your code. If you paste the endpoint, I can suggest where each piece should go."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "thin",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-sdk-endpoints/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-sdk-endpoints/cases/thin.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/thin|delegat|ComponentClient|out of the endpoint|domain logic/i.test(output)) throw new Error('says endpoints are thin and delegate via ComponentClient');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-sdk-endpoints/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-sdk-endpoints/cases/thin.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/offset|lastSeenSseEventId|resume|reconnect|rebalanc/i.test(output)) throw new Error('designs for reconnection with offsets rather than a long-lived connection');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "6c92d1af-503f-4bd8-98cd-58ad169fae37",
+        "latencyMs": 14448,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-sdk-endpoints\ndescription: \"Akka SDK Endpoints (Java) — the only externally reachable components, in three flavors: HTTP endpoints (@HttpEndpoint, @Get/@Post/@Put/@Patch/@Delete, path/query params, JSON request/response records, HttpResponses, SSE, WebSocket), gRPC endpoints (proto-defined services, @GrpcEndpoint, streaming), and MCP endpoints (@McpEndpoint exposing tools/resources/prompts to LLM clients). Covers calling components via the injected ComponentClient, calling other services via HttpClientProvider, access control (@Acl, @JWT, TLS), error handling, streaming/SSE, and testing. Use when exposing an Akka SDK service over HTTP/REST, gRPC, or MCP, building an API/edge layer, or securing endpoints. Part of the Akka SDK (Java); see akka-sdk for the model.\"\n---\n\n# Akka SDK — Endpoints\n\nEndpoints are the **only components that expose externally reachable APIs**. Three flavors: **HTTP** (client/frontend-facing REST), **gRPC** (typed cross-service/backend), and **MCP** (tools/resources/prompts for LLM clients). They live in the `api/` layer, call components via the injected `ComponentClient`, and enforce access control. Part of the [[akka-sdk]] (Java).\n\nCross-links: [[akka-sdk]] (meta), [[akka-sdk-agents]] (expose/stream agents), [[akka-http]] / [[akka-grpc]] (the Core libraries underneath).\n\n## HTTP endpoints\n\n```java\n@HttpEndpoint(\"/carts\")\n@Acl(allow = @Acl.Matcher(principal = Acl.Principal.INTERNET))   // no @Acl => NO client allowed\npublic class ShoppingCartEndpoint {\n  private final ComponentClient componentClient;\n  public ShoppingCartEndpoint(ComponentClient cc) { this.componentClient = cc; }\n\n  @Get(\"/{cartId}\")                                              // GET /carts/{cartId}\n  public ShoppingCart get(String cartId) {\n    return componentClient.forEventSourcedEntity(cartId).method(ShoppingCartEntity::getCart).invoke();\n  }\n  @Put(\"/{cartId}/item\")                                         // body param comes LAST\n  public HttpResponse addItem(String cartId, ShoppingCart.LineItem item) {\n    componentClient.forEventSourcedEntity(cartId).method(ShoppingCartEntity::addItem).invoke(item);\n    return HttpResponses.ok();\n  }\n}\n```\n\n- Annotate a public class `@HttpEndpoint(\"/prefix\")`; methods `@Get/@Post/@Put/@Patch/@Delete(\"/sub/{id}\")`. Path-param method args match by order/name (String + numeric/boolean types). JSON body (a record) must be the **last** parameter. Return a record (→ JSON), `String` (→ text), `CompletionStage<T>` (async), or `HttpResponse` (full control via `HttpResponses.ok()/created()/badRequest()/notFound()/serverSentEvents(...)`).\n- Headers/query params via `extends AbstractHttpEndpoint` → `requestContext()`. Errors: throw `HttpException.badRequest(...)` etc. (`IllegalArgumentException` → 400; other → 500 with a correlation id in prod).\n- **SSE**: return `HttpResponses.serverSentEvents(source)` over any Akka Streams `Source`. **WebSocket**: `@WebSocket(\"/ws/{x}\")` returning `Flow<String,String,NotUsed>`. Both rebalance across instances — design for reconnection (client offsets / `lastSeenSseEventId`).\n- Call other Akka/external services via injected `HttpClientProvider` (`httpClientFor(\"service-name\")` or a full URL).\n\n## gRPC & MCP endpoints\n\nDetail in **`references/grpc-and-mcp.md`**. **gRPC**: define services in `.proto` under `src/main/proto`; implement the generated interface in a class annotated `@GrpcEndpoint`; errors via `GrpcServiceException(Status.X)`; streaming RPCs return/accept Akka Streams `Source`. **MCP**: `@McpEndpoint(serverName=, serverVersion=)` exposes `@McpTool` (callable functions, `@Description` params), `@McpResource` (data the LLM fetches, static `uri` or `uriTemplate`), and `@McpPrompt` (templated prompts) over Streamable HTTP at `/mcp`. **Recommendation:** gRPC for service-to-service, HTTP for clients/frontends, MCP to expose tools to AI clients.\n\n## Always-apply defaults\n\n1. **Secure every endpoint with `@Acl`** — **absence of `@Acl` denies all clients**. Use `@Acl.Matcher(principal = Acl.Principal.INTERNET)` for public, `(service = \"*\")` for other Akka services, plus `@JWT`/TLS as needed. ACLs can be class- or method-level.\n2. **Endpoints are thin** — validate, map to/from API records, and delegate to components via `ComponentClient`; keep domain logic out of the `api/` layer and never expose internal entity/event types.\n3. **Don't block** in a handler; return `CompletionStage` or stream. Body param last; consume/discard raw request entities.\n4. **Design streaming for reconnection** — instances rebalance; clients resume with offsets/`lastSeenSseEventId`, never rely on a long-lived in-JVM object.\n5. **Use the right flavor:** HTTP (frontends), gRPC (backend/service-to-service), MCP (LLM tool exposure).\n\n## Anti-patterns (flag in review)\n\n- Endpoint with no `@Acl` (locked out) or an over-broad one exposing internal services to the internet.\n- Business/domain logic in the endpoint instead of a component; exposing internal types over the wire.\n- Blocking calls in handlers; relying on a stream to keep server state alive; reusing gRPC proto tag numbers on schema changes.\n\n## Testing\n\n`TestKitSupport`: HTTP via the testkit HTTP client / `SseRouteTester`; gRPC via `getGrpcEndpointClient(Client.class)` (overload takes a `Principal` to simulate callers). MCP has no dedicated testkit — call the methods directly or POST JSON-RPC payloads.\n\n## Related\n\n- [[akka-sdk]] · [[akka-sdk-agents]] (stream/expose agents; MCP tool exposure) · [[akka-sdk-views]] (expose query results)\n- [[akka-http]] / [[akka-grpc]] — the Core HTTP/2 + streams libraries the SDK endpoints are built on.\n- Source: https://doc.akka.io/sdk/http-endpoints.html, grpc-endpoints.html, mcp-endpoints.html\n</skill>\n\nUser request:\nI have an SSE endpoint. Clients drop connection when we redeploy. How should I design it?",
+          "label": "evals/akka-sdk-endpoints/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "07aad547a5311ba734e842371d1d828eb91418bacfd39a11a1b03ff3c22d10c2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Redeploys will always drop SSE connections, so design for it. Make the stream resumable and the client reconnect.\n\n1. **Give every event a stable, monotonic ID.** Use an offset from something durable, such as an entity's event sequence number or a View/journal offset. Don't use an in-memory counter.\n2. **Build the `Source` from durable state, starting at the client's position.** On reconnect, the browser's `EventSource` sends `Last-Event-ID`. Read that (`lastSeenSseEventId` in the Akka SDK) and replay from the offset after it. Don't keep per-connection state in the JVM, because the instance holding it is the one being replaced.\n3. **Reconnect on the client with backoff and jitter.** `EventSource` reconnects on its own. With fetch-based SSE, resend the last ID yourself. Jitter keeps all clients from hitting the new instances at the same moment.\n4. **Make events idempotent or deduplicated by ID.** Replay can overlap, so the client should ignore IDs it has already seen.\n5. **Send periodic heartbeat comments** (every ~15–30s). They keep proxies and load balancers from idling the connection out, and they help the client notice a dead connection sooner.\n6. **Set a short `retry:` hint** in the stream, e.g. 2–3s, so reconnects are fast.\n\n```java\n@Get(\"/orders/{id}/events\")\npublic HttpResponse stream(String id) {\n  var fromSeq = requestContext().lastSeenSseEventId()   // Optional: resume point\n      .map(Long::parseLong).orElse(0L);\n  Source<OrderEvent, ?> src = /* durable source starting after fromSeq, e.g. a View streamUpdates query */;\n  return HttpResponses.serverSentEvents(src);           // map each element to an SSE with id = its seq\n}\n```\n\nI haven't verified the exact accessor name, so check it against your SDK version. Make sure each emitted SSE carries its `id`; without it, resume doesn't work.\n\nYou can't keep a connection alive across a redeploy, so don't try. A rolling deploy with a readiness drain, so clients reconnect to healthy instances, just reduces how many reconnect at once."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "streaming",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-sdk-endpoints/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-sdk-endpoints/cases/streaming.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/offset|lastSeenSseEventId|resume|reconnect|rebalanc/i.test(output)) throw new Error('designs for reconnection with offsets rather than a long-lived connection');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-sdk-endpoints/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-sdk-endpoints/cases/streaming.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 14469,
+      "evaluationDurationMs": 14469
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-sdk-endpoints — EDD",
+    "prompts": [
+      "file:///private/tmp/b6/evals/akka-sdk-endpoints/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "thin",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-endpoints/cases/thin.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/thin|delegat|ComponentClient|out of the endpoint|domain logic/i.test(output)) throw new Error('says endpoints are thin and delegate via ComponentClient');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "streaming",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-endpoints/cases/streaming.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/offset|lastSeenSseEventId|resume|reconnect|rebalanc/i.test(output)) throw new Error('designs for reconnection with offsets rather than a long-lived connection');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-sdk-endpoints/results/skill_2.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b6/skills/akka-sdk-endpoints/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b6/evals/akka-sdk-endpoints"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:49:51.354Z",
+    "evaluationCreatedAt": "2026-10-29T19:49:36.835Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

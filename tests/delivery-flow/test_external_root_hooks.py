@@ -33,6 +33,24 @@ TRIAGE = {"item": "AN-1", "type": "feature", "path": "standard", "domains": ["ba
           "architecture_change": False, "breaking_change": False}
 
 
+# Valid enough for `openspec validate --strict`, which runs as an extra layer wherever the
+# CLI is installed: an ADDED requirement needs requirement text and at least one scenario.
+# A fixture that fails it would make the proposal edge look broken for the wrong reason.
+VALID_DELTA_SPEC = """## ADDED Requirements
+
+### Requirement: Callers can request a date range
+
+The endpoint SHALL accept a start and end date and SHALL return only the records that fall
+within them.
+
+#### Scenario: A caller requests a range
+
+- **GIVEN** a ledger holding records across several dates
+- **WHEN** a caller requests a date range
+- **THEN** only the records inside that range are returned
+"""
+
+
 def breakdown(stories=2):
     return {"item": "AN-1", "epics": [{"id": "E1", "title": "T", "stories": [
         {"id": f"S{i}", "statement": f"story {i}", "domains": ["backend"],
@@ -157,6 +175,218 @@ class TestEdgeUnderExternalRoot(unittest.TestCase):
         out = subprocess.run([sys.executable, str(EDGE)], input=json.dumps(payload),
                              capture_output=True, text=True)
         self.assertEqual(out.returncode, 0)
+
+
+class TestTheSentinelLandsAfterTheArtifact(unittest.TestCase):
+    """The node contract, reproduced exactly: Write the artifact, then Bash the sentinel.
+
+    `SKILL.md` specifies that ordering, so the hook fires on the artifact's write while the
+    sentinel does not yet exist. That first verdict is a legitimate failure *for the instant
+    it was taken* — and before this fix it was permanent. The sentinel landed a moment later
+    and nothing re-checked: `written_paths` found nothing in the Bash call (its regex needs a
+    literal `delivery/`, which a configured root need not have, and its character class
+    excludes the space in `Amazon RAG`), and `changed_artifacts` skipped the artifact because
+    its bytes had not changed since the failing record.
+
+    So a correct artifact with a correct sentinel blocked AN-3702 forever, and rerunning the
+    step reproduced the same deadlock because the rerun repeats the same ordering.
+    """
+
+    def sentinel_via_bash(self, r, name, step):
+        """The sentinel written the way a node writes it: a separate Bash call."""
+        command = (f'python3 "{SCRIPTS / "write-sentinel.py"}" '
+                   f'"{r.item_dir / name}" --step {step}')
+        subprocess.run(command, shell=True, capture_output=True, text=True)
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                   "cwd": str(r.repo), "tool_input": {"command": command}}
+        return subprocess.run([sys.executable, str(EDGE)], input=json.dumps(payload),
+                              capture_output=True, text=True)
+
+    def test_the_failure_is_cleared_when_the_sentinel_arrives(self):
+        r = ExternalRoot()
+        r.write("triage.json", TRIAGE)
+
+        first = r.edge("triage.json")
+        self.assertEqual(2, first.returncode, "a missing sentinel must fail at the time")
+        self.assertIn("sentinel", first.stderr)
+        records = [x for x in r.trace() if x.get("artifact") == "triage.json"]
+        self.assertEqual(1, len(records))
+        self.assertEqual(1, records[-1]["edge"]["exit"])
+
+        out = self.sentinel_via_bash(r, "triage.json", "triage")
+        self.assertEqual(0, out.returncode, out.stderr)
+        records = [x for x in r.trace() if x.get("artifact") == "triage.json"]
+        self.assertEqual(2, len(records), f"the edge did not run again: {r.trace()}")
+        self.assertEqual(0, records[-1]["edge"]["exit"],
+                         f"the stale failure was never cleared: {records[-1]['edge']}")
+
+    def test_flow_status_is_no_longer_blocked(self):
+        """The symptom the run actually presented with."""
+        r = ExternalRoot()
+        r.write("item.json", {"key": r.item, "title": "t", "body": "acceptance: b",
+                              "status": "Open", "url": "https://example.invalid/1",
+                              "source": "jira", "labels": [], "links": []})
+        r.sentinel("item.json", "intake")
+        r.edge("item.json")
+        r.write("triage.json", TRIAGE)
+        r.edge("triage.json")
+        self.sentinel_via_bash(r, "triage.json", "triage")
+        out = subprocess.run([sys.executable, str(SCRIPTS / "flow-status.py"),
+                              r.item, "--repo", str(r.repo)], capture_output=True, text=True)
+        self.assertNotIn("BLOCKED", out.stdout, out.stdout)
+
+    def test_a_still_broken_artifact_stays_failed(self):
+        """Re-evaluation must not amount to forgiveness. The retry re-runs the check; an
+        artifact that is genuinely wrong fails it again."""
+        r = ExternalRoot()
+        r.write("triage.json", {**TRIAGE, "type": "enhancement"})
+        self.assertEqual(2, r.edge("triage.json").returncode)
+        out = self.sentinel_via_bash(r, "triage.json", "triage")
+        self.assertEqual(2, out.returncode, "a schema violation must survive the retry")
+        records = [x for x in r.trace() if x.get("artifact") == "triage.json"]
+        self.assertEqual(1, records[-1]["edge"]["exit"])
+
+    def test_a_passing_record_still_suppresses_rechecking(self):
+        """The sha gate's real job. Only a failure is retried, or the trace triples."""
+        r = ExternalRoot()
+        r.write("breakdown.json", breakdown())
+        r.sentinel("breakdown.json", "breakdown")
+        self.assertEqual(0, r.edge("breakdown.json").returncode)
+        before = len([x for x in r.trace() if x.get("artifact") == "breakdown.json"])
+        self.assertEqual(1, before)
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                   "cwd": str(r.repo), "tool_input": {"command": "ls -la"}}
+        for _ in range(3):
+            subprocess.run([sys.executable, str(EDGE)], input=json.dumps(payload),
+                           capture_output=True, text=True)
+        after = len([x for x in r.trace() if x.get("artifact") == "breakdown.json"])
+        self.assertEqual(before, after, "a passing edge was re-recorded")
+
+
+class TestProposalResolvesAgainstTheCodeRepo(unittest.TestCase):
+    """The change directory lives in the code repo, never beside the artifact.
+
+    `check_artifact` inferred the repo with `repo_root(path.parent)`. Under an external
+    `artifacts.root` the artifact's parent is the vault, so the change-directory check looked
+    for `openspec/changes/<id>` in the vault, did not find it, and reported "no change
+    directory" — blaming the node for a directory it had correctly created in the repo. The
+    hook's `identify()` already knows the right repo; it now hands it in.
+    """
+
+    PROPOSAL = {
+        "item": "AN-1", "change_id": "add-range", "change_path": "openspec/changes/add-range",
+        "specs_touched": ["openspec/changes/add-range/specs/range/spec.md"],
+        "tasks": [{"id": "T1", "description": "Add the range endpoint",
+                   "files": ["src/Range.scala"]}],
+        "dependencies_added": [], "scope": False, "architecture": False, "breaking": False,
+    }
+
+    def change_dir(self, r):
+        """The OpenSpec change directory, in the code repo where the node puts it."""
+        d = r.repo / "openspec" / "changes" / "add-range"
+        (d / "specs" / "range").mkdir(parents=True)
+        for name in ("proposal.md", "design.md"):
+            (d / name).write_text(f"# {name}\n")
+        (d / "specs" / "range" / "spec.md").write_text(VALID_DELTA_SPEC)
+        (d / "tasks.md").write_text("## 1. Work\n\n- [ ] T1 Add the range endpoint\n")
+        return d
+
+    def test_the_change_directory_is_found_in_the_code_repo(self):
+        r = ExternalRoot()
+        self.change_dir(r)
+        r.write("proposal.json", self.PROPOSAL)
+        self.assertEqual(r.sentinel("proposal.json", "propose").returncode, 0)
+        out = r.edge("proposal.json")
+        self.assertEqual(0, out.returncode, out.stderr)
+        self.assertNotIn("no change directory", out.stderr)
+        records = [x for x in r.trace() if x.get("artifact") == "proposal.json"]
+        self.assertTrue(records)
+        self.assertEqual(0, records[-1]["edge"]["exit"])
+        self.assertIn("change-dir", records[-1]["edge"]["name"])
+
+    def test_a_genuinely_missing_change_directory_still_fails(self):
+        """Handing the repo in must not make the check toothless."""
+        r = ExternalRoot()
+        r.write("proposal.json", self.PROPOSAL)
+        r.sentinel("proposal.json", "propose")
+        out = r.edge("proposal.json")
+        self.assertEqual(2, out.returncode)
+        self.assertIn("no change directory", out.stderr)
+
+    def test_the_failure_names_the_absolute_path_it_looked_in(self):
+        """So a wrong repo is visible instead of reading as a missing directory."""
+        r = ExternalRoot()
+        r.write("proposal.json", self.PROPOSAL)
+        r.sentinel("proposal.json", "propose")
+        out = r.edge("proposal.json")
+        self.assertIn(str(r.repo / "openspec" / "changes" / "add-range"), out.stderr)
+
+    def test_the_vault_is_not_where_it_looks(self):
+        """The precise regression, and the one that needs the vault to be a git repo.
+
+        The real vault is itself a git repo — that is how the run trail is versioned — so
+        `repo_root` walking up from an artifact inside it *succeeds*, and returns the vault.
+        Without the `.git` below this test passes either way, because the walk falls off the
+        top and the decoy is never reached: it would assert the right thing and prove nothing.
+        """
+        r = ExternalRoot()
+        vault = r.runs.parent.parent.parent          # the vault's own root: `~/Amazon RAG`
+        (vault / ".git").mkdir(exist_ok=True)
+        # Planted where the broken inference looks — `repo_root(artifact.parent)` resolves to
+        # the vault root, so that is the only place a decoy could ever have satisfied it.
+        decoy = vault / "openspec" / "changes" / "add-range"
+        (decoy / "specs" / "range").mkdir(parents=True)
+        for name in ("proposal.md", "design.md"):
+            (decoy / name).write_text(f"# {name}\n")
+        (decoy / "specs" / "range" / "spec.md").write_text(VALID_DELTA_SPEC)
+        (decoy / "tasks.md").write_text("## 1. Work\n\n- [ ] T1 Add the range endpoint\n")
+        r.write("proposal.json", self.PROPOSAL)
+        r.sentinel("proposal.json", "propose")
+        out = r.edge("proposal.json")
+        self.assertEqual(2, out.returncode, "a decoy in the vault satisfied the check")
+        self.assertIn("no change directory", out.stderr)
+
+
+class TestBashPathsResolveAgainstTheRoot(unittest.TestCase):
+    """Seam 1: find the artifact from the real roots, not from the command's spelling."""
+
+    def test_the_root_spelled_out_in_the_command_is_found(self):
+        r = ExternalRoot()
+        r.write("triage.json", TRIAGE)
+        command = f'python3 write-sentinel.py "{r.item_dir / "triage.json"}" --step triage'
+        found = [str(p) for p in _edge_module().rooted_paths(command, [r.runs])]
+        self.assertIn(str(r.item_dir / "triage.json"), found)
+
+    def test_a_root_held_in_a_variable_is_found_by_its_tail(self):
+        r = ExternalRoot()
+        r.write("triage.json", TRIAGE)
+        command = f'R="{r.runs}"; python3 write-sentinel.py "$R/{r.item}/triage.json"'
+        found = [str(p) for p in _edge_module().rooted_paths(command, [r.runs])]
+        self.assertIn(str(r.item_dir / "triage.json"), found)
+
+    def test_a_space_in_the_root_is_not_what_breaks_it(self):
+        r = ExternalRoot()
+        self.assertIn(" ", str(r.runs), "the fixture must keep its space")
+        r.write("triage.json", TRIAGE)
+        command = f'cat x > "{r.item_dir / "triage.json"}"'
+        found = [str(p) for p in _edge_module().rooted_paths(command, [r.runs])]
+        self.assertIn(str(r.item_dir / "triage.json"), found)
+
+    def test_an_unmentioned_item_is_not_invented(self):
+        r = ExternalRoot()
+        found = _edge_module().rooted_paths("echo hello", [r.runs])
+        self.assertEqual([], found)
+
+    def test_no_registered_roots_means_no_paths(self):
+        self.assertEqual([], _edge_module().rooted_paths("cat x > /a/AN-1/triage.json", []))
+
+
+def _edge_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("check_edge_mod", EDGE)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 class TestEnforceUnderExternalRoot(unittest.TestCase):

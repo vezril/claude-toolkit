@@ -217,18 +217,56 @@ class TestTheUngovernedArtifactsAreKnown(unittest.TestCase):
         self.assertFalse(fixed, f"these now have a checker and must be removed from "
                                 f"EXPECTED_UNGOVERNED: {sorted(fixed)}")
 
-    def test_an_ungoverned_artifact_is_silently_skipped(self):
-        """Characterising the current behaviour, so a future fix has something to change.
+    def test_an_ungoverned_artifact_records_that_no_edge_ran(self):
+        """The gap is now declared rather than silent — the fix this test was written to want.
 
-        If a recorded skip is implemented, this test fails and should be rewritten to assert
-        the record instead. That is the intended outcome, not a regression.
+        It used to assert the *silence*, as a characterisation of the bug, with a docstring
+        saying to rewrite it once a recorded skip landed. That has landed, so this is the
+        rewrite.
+
+        Read by `name`, never by `exit`. The record carries `exit: 0` because nothing failed —
+        no edge ran at all — so keying a reader on the exit code would read an unchecked
+        artifact as a passing one. That would move the false success out of the trace's silence
+        and into the trace's content, which is strictly worse: silence is at least honestly
+        empty, whereas a success record is a false statement a reviewer would believe.
         """
         f = Fixture()
         f.write("verify.json", "{ not valid json either")
         r = f.hook("verify.json")
         self.assertEqual(r.returncode, 0, "an ungoverned artifact must not block the flow")
-        self.assertEqual([t for t in f.trace() if t.get("artifact") == "verify.json"], [],
-                         "verify.json now produces a record — good; update this test")
+
+        records = [t for t in f.trace() if t.get("artifact") == "verify.json"]
+        self.assertTrue(records, "an ungoverned artifact must still leave a record")
+        edge = records[-1].get("edge") or {}
+        self.assertEqual(edge.get("name"), "no-schema")
+        self.assertTrue(edge.get("summary"), "the record must say what happened, in words")
+        self.assertIn("no schema", edge["summary"].lower())
+
+    def test_the_recorded_skip_is_distinguishable_from_a_pass(self):
+        """A reader must be able to tell "nothing checked this" from "a check passed".
+
+        Both carry `exit: 0`, which is why the name is the discriminator. If these two ever
+        become indistinguishable, the Unchecked column in the report silently folds into the
+        passing count and the end-to-end rate overstates itself.
+        """
+        f = Fixture()
+        # A governed artifact, deliberately malformed: its edge runs and fails, which is the
+        # contrast that matters. A passing edge would do too, but a failing one also proves
+        # the name is not simply "whatever happened to be recorded".
+        f.write("triage.json", "{ not valid json")
+        f.hook("triage.json")
+        f.write("verify.json", "{ ungoverned")
+        f.hook("verify.json")
+
+        by_artifact = {}
+        for rec in f.trace():
+            by_artifact[rec.get("artifact")] = (rec.get("edge") or {}).get("name")
+
+        self.assertEqual(by_artifact.get("verify.json"), "no-schema")
+        self.assertIsNotNone(by_artifact.get("triage.json"),
+                             "a governed artifact must leave a record")
+        self.assertNotEqual(by_artifact.get("triage.json"), "no-schema",
+                            "a real edge must not report itself as unchecked")
 
 
 if __name__ == "__main__":

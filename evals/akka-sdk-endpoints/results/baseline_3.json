@@ -1,0 +1,378 @@
+{
+  "evalId": "eval-k38-2026-10-29T19:49:04",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:49:04.388Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "label": "evals/akka-sdk-endpoints/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "id": "c52c1844b22d471ae2e2c920f860bc146f32168044ecf141ab65d415db8783dc",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 0,
+          "totalLatencyMs": 27301,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 2
+          },
+          "namedScoresCount": {
+            "accuracy": 2
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/thin|delegat|ComponentClient|out of the endpoint|domain logic/i.test(output)) throw new Error('says endpoints are thin and delegate via ComponentClient');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "267540b9-66d8-4937-ac49-fc7a4c327749",
+        "latencyMs": 12241,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nMy Akka SDK HTTP endpoint is doing the order-total calculation and the discount rules inline. Is that fine?",
+          "label": "evals/akka-sdk-endpoints/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "c52c1844b22d471ae2e2c920f860bc146f32168044ecf141ab65d415db8783dc",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "No, move it out. Akka SDK endpoints should be thin: validate the request, map it to and from API records, and delegate through `ComponentClient`. Domain logic in the `api/` layer is a flagged anti-pattern.\n\nWhere it should go depends on what the rules need:\n\n- **Totals and discounts that depend on cart state:** put them in the entity, such as the event-sourced cart. The entity can compute the total from its own state and emit events like `DiscountApplied`. The total then stays consistent however the cart is reached, and it's recorded in the event log.\n- **Pure pricing rules with no state:** write a plain domain class, for example `PricingPolicy.calculate(items, customerTier)`. The entity or workflow calls it, and you can unit-test it without the endpoint or a testkit.\n- **Multi-step flows:** use a Workflow if checkout spans several steps, such as pricing, reserving stock, then payment.\n\nInline logic has real costs. A second endpoint, a gRPC or MCP surface, or a Consumer would have to duplicate it or drift from it. You also can't test it without HTTP. And you risk exposing internal types over the wire.\n\nI haven't looked at your code, so I'm going from the description. If you point me at the endpoint class, I can sketch the refactor."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "thin",
+          "vars": {
+            "request": "file:///private/tmp/b6/evals/akka-sdk-endpoints/cases/thin.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/thin|delegat|ComponentClient|out of the endpoint|domain logic/i.test(output)) throw new Error('says endpoints are thin and delegate via ComponentClient');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-endpoints/cases/thin.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/offset|lastSeenSseEventId|resume|reconnect|rebalanc/i.test(output)) throw new Error('designs for reconnection with offsets rather than a long-lived connection');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "4e6ab728-a316-4fb3-a1e9-e20dcd5c9b65",
+        "latencyMs": 15060,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nI have an SSE endpoint. Clients drop connection when we redeploy. How should I design it?",
+          "label": "evals/akka-sdk-endpoints/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "c52c1844b22d471ae2e2c920f860bc146f32168044ecf141ab65d415db8783dc",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Drops on redeploy can't be avoided, so design the SSE endpoint so a drop doesn't matter. The client reconnects and resumes from where it left off. Your stream can't hold any state that has to survive the connection.\n\n**Server (Akka SDK)**\n- Give every event a monotonic `id`, such as a sequence number or an offset from the entity or view. Don't use a timestamp.\n- On connect, read `Last-Event-ID` (or a `lastSeenSseEventId` query param) and build the `Source` from that offset. Replay from the durable source, such as an event journal or a view, and don't buffer in memory.\n- Return `HttpResponses.serverSentEvents(source)`. Add a `keepAlive` tick every 15–30s so proxies and load balancers don't idle-kill the connection.\n- Keep nothing in the JVM that the stream needs. Instances rebalance and restart, and the next connection may land on a different node.\n- Put `@Acl` on the endpoint. Without it, all clients are denied.\n\n**Client**\n- Reconnect automatically with exponential backoff and jitter, so a redeploy doesn't trigger a thundering herd. Browser `EventSource` reconnects on its own and sends `Last-Event-ID`. Custom clients must do this themselves.\n- De-duplicate by event id, because replay can overlap with events already delivered.\n- Set `retry:` in the stream to control the reconnect delay.\n\n**Redeploy**\n- Do a rolling deploy with connection draining: stop accepting new streams, then close existing ones cleanly after a short grace period. Clients then reconnect to healthy instances instead of seeing a hard reset.\n- Set the proxy or load balancer read timeout above your keepalive interval.\n\nIf you tell me whether you're on Akka SDK (this repo's skill suggests so) and what feeds the stream (entity events, a view, or an agent), I can sketch the actual endpoint code."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "streaming",
+          "vars": {
+            "request": "file:///private/tmp/b6/evals/akka-sdk-endpoints/cases/streaming.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/offset|lastSeenSseEventId|resume|reconnect|rebalanc/i.test(output)) throw new Error('designs for reconnection with offsets rather than a long-lived connection');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-endpoints/cases/streaming.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 15079,
+      "evaluationDurationMs": 15079
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-sdk-endpoints — EDD — NAIVE BASELINE",
+    "prompts": [
+      "file:///private/tmp/b6/evals/akka-sdk-endpoints/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "thin",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-endpoints/cases/thin.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/thin|delegat|ComponentClient|out of the endpoint|domain logic/i.test(output)) throw new Error('says endpoints are thin and delegate via ComponentClient');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "streaming",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-endpoints/cases/streaming.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/offset|lastSeenSseEventId|resume|reconnect|rebalanc/i.test(output)) throw new Error('designs for reconnection with offsets rather than a long-lived connection');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-sdk-endpoints/results/baseline_3.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/private/tmp/b6/evals/akka-sdk-endpoints"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:49:19.512Z",
+    "evaluationCreatedAt": "2026-10-29T19:49:04.388Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

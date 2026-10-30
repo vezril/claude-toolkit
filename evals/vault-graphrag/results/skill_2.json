@@ -1,0 +1,554 @@
+{
+  "evalId": "eval-uRt-2026-10-29T19:10:17",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:10:17.006Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/vault-graphrag/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "ef6dd263b830a86e87a88f436d2b9fbb4c26e5513fb24edb1caf16837ae60afb",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 3,
+          "testPassCount": 3,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 5,
+          "assertFailCount": 0,
+          "totalLatencyMs": 23062,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 4,
+            "restraint": 1
+          },
+          "namedScoresCount": {
+            "accuracy": 4,
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 4,
+            "restraint": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 3
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/incident/i.test(output)) throw new Error('incident');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/entit/i.test(output)) throw new Error('entity');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/lesson/i.test(output)) throw new Error('lesson');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "edcc36c7-1179-46a4-9871-744bafaa33ad",
+        "latencyMs": 7042,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: vault-graphrag\ndescription: \"Build and query a GraphRAG knowledge graph inside an Obsidian vault using nothing but notes, frontmatter properties, and typed wikilinks — no external index, no embeddings, no sync problem. Note types (incident, delivery, decision, entity, pattern, lesson) turn each handled defect and each delivered change into durable, linked, queryable knowledge, scoped by project. Covers the note schema and naming conventions, the vault-update operations (upsert an incident or delivery note + entity stubs + pattern/decision links), incident recall ('have we seen something like this before?'), and delivery recall ('what has this project already decided, built and learned?' → a compact project-context artifact). Use when setting up a knowledge graph over an Obsidian vault, writing an incident/defect/delivery into the vault, recalling prior incidents or prior project decisions, designing frontmatter schemas for graph traversal, or wiring a workflow pipeline (a defect-handling or delivery flow) to accumulate and reuse organizational memory. Client- and domain-agnostic: all instance vocabulary (which services, which teams, which project, vault location) comes from a binding config the caller supplies.\"\nargument-hint: \"[update <ticket-key> | recall <ticket-key> | delivery-recall <ticket-key> | a schema/setup question]\"\n---\n\n# vault-graphrag — an Obsidian vault as a knowledge graph\n\nAn Obsidian vault already *is* a graph: notes are nodes, wikilinks are edges,\nfrontmatter properties are typed attributes. This skill turns that latent graph\ninto a deliberate one — a schema strict enough for deterministic traversal, loose\nenough to stay pleasant to read and edit by hand. No database, no embedding index,\nno sync daemon: the notes are the graph, and `rg` + YAML parsing are the query\nengine.\n\n**Schema first, index later.** Everything here works with plain text tooling. If\nretrieval quality ever demands semantic search, an embedding index can be bolted\non without changing a single note — the schema is the contract, the query path is\nan implementation detail. Don't reach for infrastructure until traversal provably\nfails you.\n\nLoad the reference for the operation at hand:\n\n- **[references/schema.md](references/schema.md)** — the six note types, their\n  frontmatter contracts, the `project` field, naming/folder conventions, the typed-link\n  vocabulary, and worked examples. Read before writing any note.\n- **[references/recall.md](references/recall.md)** — *incident* recall: the deterministic\n  retrieval algorithm (candidate entities → link/keyword scan → scoring → the\n  `prior-incidents.md` output contract), and the v2 escalation path.\n- **[references/delivery-recall.md](references/delivery-recall.md)** — *delivery* recall:\n  project-weighted scoring, both call points, the `project-context` contract, and why it is a\n  script rather than a certified prompt.\n\n## The model in one paragraph\n\nSix note types. An **incident** is one handled defect/investigation — keyed by\nits ticket id, carrying symptom / root cause / resolution as *frontmatter fields*\nso retrieval never has to parse prose. An **entity** is a durable thing incidents\nhappen to: a service, platform, component, or team. A **pattern** is a recurring\nfailure shape (\"silent await on a downstream dependency\") that generalizes across\nincidents. A **lesson** is a measured practice improvement (a prompt technique,\nan eval-design finding) written by evidence-producing workflows like EDD runs. A **decision** is\na settled technical choice, ADR-shaped and keyed by a slug, whose `status` decides whether it is\nstill in force. A **delivery** is one shipped feature, fix or task — the counterpart of an\nincident, recording what was built rather than what broke. An optional `project` field scopes\nwork within one client, and is the heaviest term in delivery recall's scoring. Incidents and\ndeliveries link *to* entities, patterns and decisions via frontmatter wikilinks;\nObsidian's backlinks give you the reverse edges for free. The payoff compounds:\nevery handled incident makes the next \"have we seen this before?\" cheaper.\n\n## The two operations\n\n**vault-update** (write path — run after handling a defect):\n\n1. Read the pipeline's artifacts for the ticket (structured ticket context,\n   proposal/analysis, summary, PR/post receipts — whatever the calling workflow\n   produced).\n2. **Upsert** the incident note keyed by ticket id — never a duplicate; re-runs\n   update fields in place (status transitions, added links).\n3. Ensure every linked entity note exists — create missing ones as stubs from the\n   binding vocabulary (schema.md § entity).\n4. Link patterns with restraint: list existing pattern notes first, link the one\n   that fits; **mint a new pattern only when nothing fits**, following the\n   minting rules in schema.md — near-duplicate patterns are how graphs rot.\n5. Never delete or rewrite history; corrections edit fields in place.\n\nNo human gate needed — the vault is local, private, and every change is a\nreviewable diff in a text file.\n\n**vault-recall** (read path — run early in an investigation):\n\nGiven a new ticket's context, find the k most relevant prior incidents by entity\noverlap and symptom keywords, and emit a compact `prior-incidents.md` artifact —\nfrontmatter fields only, never raw note dumps. Full algorithm, scoring, and\noutput contract in recall.md. An honest empty result (\"no prior incidents share\nthese entities\") is a valid and useful artifact.\n\n## The binding: everything instance-specific\n\nThis skill is domain-agnostic. The caller supplies a binding (a YAML block or\nfile) with the instance facts; nothing below may be hardcoded in notes-writing\nlogic:\n\n```yaml\nvault:\n  path: /path/to/Vault          # the Obsidian vault root\n  graph_root: graph             # subfolder holding the graph (created if absent)\n  client: acme                  # stamped on notes; lets one vault host several engagements\n  entity_vocabulary:            # seed entities; entity notes are stubbed from these\n    - name: orders-api\n      type: service\n      aliases: [orders, order-service]\n    - name: voice-gateway\n      type: service\n      aliases: []\n    - name: TelephonyCo\n      type: external\n      aliases: []\n```\n\nA defect-handling pipeline binds this once per client; swapping clients swaps the\nbinding, not the skill. Keep client vocabularies out of any public repo — they\nare the binding's business.\n\n## Rules that keep the graph healthy\n\n- **Frontmatter is canonical, prose is commentary.** Traversal reads only\n  frontmatter; anything load-bearing (links, status, symptom) must live there.\n  Prose wikilinks are welcome for humans but carry no schema weight.\n- **Rely on backlinks; never maintain reverse-index lists by hand** (\"incidents\n  affecting this service\") — hand-kept lists drift, backlinks don't.\n- **Basenames are globally unique** (Obsidian resolves links by basename).\n  Naming rules in schema.md exist to guarantee this — follow them.\n- **Stubs are fine, wrong facts are not.** A two-line entity note is healthy;\n  an invented root cause in an incident note poisons every future recall.\n</skill>\n\nUser request:\nWhat note types does the graph have?",
+          "label": "evals/vault-graphrag/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "ef6dd263b830a86e87a88f436d2b9fbb4c26e5513fb24edb1caf16837ae60afb",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Six note types:\n\n- **incident**: one handled defect or investigation, keyed by ticket id. Symptom, root cause and resolution are frontmatter fields.\n- **entity**: a durable thing incidents happen to, such as a service, platform, component or team.\n- **pattern**: a recurring failure shape that generalizes across incidents.\n- **lesson**: a measured practice improvement, written by evidence-producing workflows like EDD runs.\n- **decision**: a settled technical choice, ADR-shaped and keyed by a slug. Its `status` says whether it is still in force.\n- **delivery**: one shipped feature, fix or task. It is the counterpart of an incident and records what was built rather than what broke.\n\nAn optional `project` field scopes notes within a client, and it's the heaviest term in delivery recall's scoring. Frontmatter contracts and naming rules are in `references/schema.md`."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "note-types",
+          "vars": {
+            "skill": "file:///private/tmp/b5/skills/vault-graphrag/SKILL.md",
+            "request": "file:///private/tmp/b5/evals/vault-graphrag/cases/note-types.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/incident/i.test(output)) throw new Error('incident');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/entit/i.test(output)) throw new Error('entity');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/lesson/i.test(output)) throw new Error('lesson');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b5/skills/vault-graphrag/SKILL.md",
+          "request": "file:///private/tmp/b5/evals/vault-graphrag/cases/note-types.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/upsert|never.{0,20}duplicat|no duplicat|same (note|key)|keyed/i.test(output)) throw new Error('says upsert keyed by ticket id, not a duplicate');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "92b883ac-e358-4e59-85b0-06922a7b016a",
+        "latencyMs": 7485,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: vault-graphrag\ndescription: \"Build and query a GraphRAG knowledge graph inside an Obsidian vault using nothing but notes, frontmatter properties, and typed wikilinks — no external index, no embeddings, no sync problem. Note types (incident, delivery, decision, entity, pattern, lesson) turn each handled defect and each delivered change into durable, linked, queryable knowledge, scoped by project. Covers the note schema and naming conventions, the vault-update operations (upsert an incident or delivery note + entity stubs + pattern/decision links), incident recall ('have we seen something like this before?'), and delivery recall ('what has this project already decided, built and learned?' → a compact project-context artifact). Use when setting up a knowledge graph over an Obsidian vault, writing an incident/defect/delivery into the vault, recalling prior incidents or prior project decisions, designing frontmatter schemas for graph traversal, or wiring a workflow pipeline (a defect-handling or delivery flow) to accumulate and reuse organizational memory. Client- and domain-agnostic: all instance vocabulary (which services, which teams, which project, vault location) comes from a binding config the caller supplies.\"\nargument-hint: \"[update <ticket-key> | recall <ticket-key> | delivery-recall <ticket-key> | a schema/setup question]\"\n---\n\n# vault-graphrag — an Obsidian vault as a knowledge graph\n\nAn Obsidian vault already *is* a graph: notes are nodes, wikilinks are edges,\nfrontmatter properties are typed attributes. This skill turns that latent graph\ninto a deliberate one — a schema strict enough for deterministic traversal, loose\nenough to stay pleasant to read and edit by hand. No database, no embedding index,\nno sync daemon: the notes are the graph, and `rg` + YAML parsing are the query\nengine.\n\n**Schema first, index later.** Everything here works with plain text tooling. If\nretrieval quality ever demands semantic search, an embedding index can be bolted\non without changing a single note — the schema is the contract, the query path is\nan implementation detail. Don't reach for infrastructure until traversal provably\nfails you.\n\nLoad the reference for the operation at hand:\n\n- **[references/schema.md](references/schema.md)** — the six note types, their\n  frontmatter contracts, the `project` field, naming/folder conventions, the typed-link\n  vocabulary, and worked examples. Read before writing any note.\n- **[references/recall.md](references/recall.md)** — *incident* recall: the deterministic\n  retrieval algorithm (candidate entities → link/keyword scan → scoring → the\n  `prior-incidents.md` output contract), and the v2 escalation path.\n- **[references/delivery-recall.md](references/delivery-recall.md)** — *delivery* recall:\n  project-weighted scoring, both call points, the `project-context` contract, and why it is a\n  script rather than a certified prompt.\n\n## The model in one paragraph\n\nSix note types. An **incident** is one handled defect/investigation — keyed by\nits ticket id, carrying symptom / root cause / resolution as *frontmatter fields*\nso retrieval never has to parse prose. An **entity** is a durable thing incidents\nhappen to: a service, platform, component, or team. A **pattern** is a recurring\nfailure shape (\"silent await on a downstream dependency\") that generalizes across\nincidents. A **lesson** is a measured practice improvement (a prompt technique,\nan eval-design finding) written by evidence-producing workflows like EDD runs. A **decision** is\na settled technical choice, ADR-shaped and keyed by a slug, whose `status` decides whether it is\nstill in force. A **delivery** is one shipped feature, fix or task — the counterpart of an\nincident, recording what was built rather than what broke. An optional `project` field scopes\nwork within one client, and is the heaviest term in delivery recall's scoring. Incidents and\ndeliveries link *to* entities, patterns and decisions via frontmatter wikilinks;\nObsidian's backlinks give you the reverse edges for free. The payoff compounds:\nevery handled incident makes the next \"have we seen this before?\" cheaper.\n\n## The two operations\n\n**vault-update** (write path — run after handling a defect):\n\n1. Read the pipeline's artifacts for the ticket (structured ticket context,\n   proposal/analysis, summary, PR/post receipts — whatever the calling workflow\n   produced).\n2. **Upsert** the incident note keyed by ticket id — never a duplicate; re-runs\n   update fields in place (status transitions, added links).\n3. Ensure every linked entity note exists — create missing ones as stubs from the\n   binding vocabulary (schema.md § entity).\n4. Link patterns with restraint: list existing pattern notes first, link the one\n   that fits; **mint a new pattern only when nothing fits**, following the\n   minting rules in schema.md — near-duplicate patterns are how graphs rot.\n5. Never delete or rewrite history; corrections edit fields in place.\n\nNo human gate needed — the vault is local, private, and every change is a\nreviewable diff in a text file.\n\n**vault-recall** (read path — run early in an investigation):\n\nGiven a new ticket's context, find the k most relevant prior incidents by entity\noverlap and symptom keywords, and emit a compact `prior-incidents.md` artifact —\nfrontmatter fields only, never raw note dumps. Full algorithm, scoring, and\noutput contract in recall.md. An honest empty result (\"no prior incidents share\nthese entities\") is a valid and useful artifact.\n\n## The binding: everything instance-specific\n\nThis skill is domain-agnostic. The caller supplies a binding (a YAML block or\nfile) with the instance facts; nothing below may be hardcoded in notes-writing\nlogic:\n\n```yaml\nvault:\n  path: /path/to/Vault          # the Obsidian vault root\n  graph_root: graph             # subfolder holding the graph (created if absent)\n  client: acme                  # stamped on notes; lets one vault host several engagements\n  entity_vocabulary:            # seed entities; entity notes are stubbed from these\n    - name: orders-api\n      type: service\n      aliases: [orders, order-service]\n    - name: voice-gateway\n      type: service\n      aliases: []\n    - name: TelephonyCo\n      type: external\n      aliases: []\n```\n\nA defect-handling pipeline binds this once per client; swapping clients swaps the\nbinding, not the skill. Keep client vocabularies out of any public repo — they\nare the binding's business.\n\n## Rules that keep the graph healthy\n\n- **Frontmatter is canonical, prose is commentary.** Traversal reads only\n  frontmatter; anything load-bearing (links, status, symptom) must live there.\n  Prose wikilinks are welcome for humans but carry no schema weight.\n- **Rely on backlinks; never maintain reverse-index lists by hand** (\"incidents\n  affecting this service\") — hand-kept lists drift, backlinks don't.\n- **Basenames are globally unique** (Obsidian resolves links by basename).\n  Naming rules in schema.md exist to guarantee this — follow them.\n- **Stubs are fine, wrong facts are not.** A two-line entity note is healthy;\n  an invented root cause in an incident note poisons every future recall.\n</skill>\n\nUser request:\nI re-ran recall on the same ticket. Should it add another incident note?",
+          "label": "evals/vault-graphrag/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "ef6dd263b830a86e87a88f436d2b9fbb4c26e5513fb24edb1caf16837ae60afb",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No. Recall is the read path: it only emits the `prior-incidents.md` artifact and never writes an incident note. Re-running it on the same ticket just regenerates that artifact.\n\nIf you meant re-running vault-update, it still wouldn't add a second note. It upserts by ticket id, so a re-run updates the existing note's fields and links in place.\n\nIf you do see a duplicate incident note for that ticket, check whether the two notes have different basenames. The upsert key is the ticket id, so a naming mismatch could cause that."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "no-dupes",
+          "vars": {
+            "skill": "file:///private/tmp/b5/skills/vault-graphrag/SKILL.md",
+            "request": "file:///private/tmp/b5/evals/vault-graphrag/cases/no-dupes.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/upsert|never.{0,20}duplicat|no duplicat|same (note|key)|keyed/i.test(output)) throw new Error('says upsert keyed by ticket id, not a duplicate');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b5/skills/vault-graphrag/SKILL.md",
+          "request": "file:///private/tmp/b5/evals/vault-graphrag/cases/no-dupes.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "if (!/backlink|never.{0,30}(reverse|by hand)|don'?t maintain|automatic/i.test(output)) throw new Error('says rely on backlinks, not hand-maintained reverse indexes');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "fd9f794e-01d5-41b0-b7c8-41bf77fb547a",
+        "latencyMs": 8535,
+        "namedScores": {
+          "restraint": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: vault-graphrag\ndescription: \"Build and query a GraphRAG knowledge graph inside an Obsidian vault using nothing but notes, frontmatter properties, and typed wikilinks — no external index, no embeddings, no sync problem. Note types (incident, delivery, decision, entity, pattern, lesson) turn each handled defect and each delivered change into durable, linked, queryable knowledge, scoped by project. Covers the note schema and naming conventions, the vault-update operations (upsert an incident or delivery note + entity stubs + pattern/decision links), incident recall ('have we seen something like this before?'), and delivery recall ('what has this project already decided, built and learned?' → a compact project-context artifact). Use when setting up a knowledge graph over an Obsidian vault, writing an incident/defect/delivery into the vault, recalling prior incidents or prior project decisions, designing frontmatter schemas for graph traversal, or wiring a workflow pipeline (a defect-handling or delivery flow) to accumulate and reuse organizational memory. Client- and domain-agnostic: all instance vocabulary (which services, which teams, which project, vault location) comes from a binding config the caller supplies.\"\nargument-hint: \"[update <ticket-key> | recall <ticket-key> | delivery-recall <ticket-key> | a schema/setup question]\"\n---\n\n# vault-graphrag — an Obsidian vault as a knowledge graph\n\nAn Obsidian vault already *is* a graph: notes are nodes, wikilinks are edges,\nfrontmatter properties are typed attributes. This skill turns that latent graph\ninto a deliberate one — a schema strict enough for deterministic traversal, loose\nenough to stay pleasant to read and edit by hand. No database, no embedding index,\nno sync daemon: the notes are the graph, and `rg` + YAML parsing are the query\nengine.\n\n**Schema first, index later.** Everything here works with plain text tooling. If\nretrieval quality ever demands semantic search, an embedding index can be bolted\non without changing a single note — the schema is the contract, the query path is\nan implementation detail. Don't reach for infrastructure until traversal provably\nfails you.\n\nLoad the reference for the operation at hand:\n\n- **[references/schema.md](references/schema.md)** — the six note types, their\n  frontmatter contracts, the `project` field, naming/folder conventions, the typed-link\n  vocabulary, and worked examples. Read before writing any note.\n- **[references/recall.md](references/recall.md)** — *incident* recall: the deterministic\n  retrieval algorithm (candidate entities → link/keyword scan → scoring → the\n  `prior-incidents.md` output contract), and the v2 escalation path.\n- **[references/delivery-recall.md](references/delivery-recall.md)** — *delivery* recall:\n  project-weighted scoring, both call points, the `project-context` contract, and why it is a\n  script rather than a certified prompt.\n\n## The model in one paragraph\n\nSix note types. An **incident** is one handled defect/investigation — keyed by\nits ticket id, carrying symptom / root cause / resolution as *frontmatter fields*\nso retrieval never has to parse prose. An **entity** is a durable thing incidents\nhappen to: a service, platform, component, or team. A **pattern** is a recurring\nfailure shape (\"silent await on a downstream dependency\") that generalizes across\nincidents. A **lesson** is a measured practice improvement (a prompt technique,\nan eval-design finding) written by evidence-producing workflows like EDD runs. A **decision** is\na settled technical choice, ADR-shaped and keyed by a slug, whose `status` decides whether it is\nstill in force. A **delivery** is one shipped feature, fix or task — the counterpart of an\nincident, recording what was built rather than what broke. An optional `project` field scopes\nwork within one client, and is the heaviest term in delivery recall's scoring. Incidents and\ndeliveries link *to* entities, patterns and decisions via frontmatter wikilinks;\nObsidian's backlinks give you the reverse edges for free. The payoff compounds:\nevery handled incident makes the next \"have we seen this before?\" cheaper.\n\n## The two operations\n\n**vault-update** (write path — run after handling a defect):\n\n1. Read the pipeline's artifacts for the ticket (structured ticket context,\n   proposal/analysis, summary, PR/post receipts — whatever the calling workflow\n   produced).\n2. **Upsert** the incident note keyed by ticket id — never a duplicate; re-runs\n   update fields in place (status transitions, added links).\n3. Ensure every linked entity note exists — create missing ones as stubs from the\n   binding vocabulary (schema.md § entity).\n4. Link patterns with restraint: list existing pattern notes first, link the one\n   that fits; **mint a new pattern only when nothing fits**, following the\n   minting rules in schema.md — near-duplicate patterns are how graphs rot.\n5. Never delete or rewrite history; corrections edit fields in place.\n\nNo human gate needed — the vault is local, private, and every change is a\nreviewable diff in a text file.\n\n**vault-recall** (read path — run early in an investigation):\n\nGiven a new ticket's context, find the k most relevant prior incidents by entity\noverlap and symptom keywords, and emit a compact `prior-incidents.md` artifact —\nfrontmatter fields only, never raw note dumps. Full algorithm, scoring, and\noutput contract in recall.md. An honest empty result (\"no prior incidents share\nthese entities\") is a valid and useful artifact.\n\n## The binding: everything instance-specific\n\nThis skill is domain-agnostic. The caller supplies a binding (a YAML block or\nfile) with the instance facts; nothing below may be hardcoded in notes-writing\nlogic:\n\n```yaml\nvault:\n  path: /path/to/Vault          # the Obsidian vault root\n  graph_root: graph             # subfolder holding the graph (created if absent)\n  client: acme                  # stamped on notes; lets one vault host several engagements\n  entity_vocabulary:            # seed entities; entity notes are stubbed from these\n    - name: orders-api\n      type: service\n      aliases: [orders, order-service]\n    - name: voice-gateway\n      type: service\n      aliases: []\n    - name: TelephonyCo\n      type: external\n      aliases: []\n```\n\nA defect-handling pipeline binds this once per client; swapping clients swaps the\nbinding, not the skill. Keep client vocabularies out of any public repo — they\nare the binding's business.\n\n## Rules that keep the graph healthy\n\n- **Frontmatter is canonical, prose is commentary.** Traversal reads only\n  frontmatter; anything load-bearing (links, status, symptom) must live there.\n  Prose wikilinks are welcome for humans but carry no schema weight.\n- **Rely on backlinks; never maintain reverse-index lists by hand** (\"incidents\n  affecting this service\") — hand-kept lists drift, backlinks don't.\n- **Basenames are globally unique** (Obsidian resolves links by basename).\n  Naming rules in schema.md exist to guarantee this — follow them.\n- **Stubs are fine, wrong facts are not.** A two-line entity note is healthy;\n  an invented root cause in an incident note poisons every future recall.\n</skill>\n\nUser request:\nShould I keep a list of related incidents in each entity's frontmatter so lookups are fast?",
+          "label": "evals/vault-graphrag/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "ef6dd263b830a86e87a88f436d2b9fbb4c26e5513fb24edb1caf16837ae60afb",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No. Backlinks already give you the reverse edges, and a hand-kept \"related incidents\" list in each entity's frontmatter will drift. It goes stale whenever an incident is re-linked, renamed, or corrected, and nothing flags the mismatch.\n\nIncident notes hold the entity links in their frontmatter, which is canonical. Recall then walks from the candidate entities to the incidents that link to them with an `rg` scan over that frontmatter. This is fast enough in plain text, and it can't disagree with the incidents themselves.\n\nIf lookups ever do get slow, build a derived index outside the notes, such as a generated file or a cache that you can rebuild. Don't put the list in the entity notes."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "backlinks",
+          "vars": {
+            "skill": "file:///private/tmp/b5/skills/vault-graphrag/SKILL.md",
+            "request": "file:///private/tmp/b5/evals/vault-graphrag/cases/backlinks.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "if (!/backlink|never.{0,30}(reverse|by hand)|don'?t maintain|automatic/i.test(output)) throw new Error('says rely on backlinks, not hand-maintained reverse indexes');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b5/skills/vault-graphrag/SKILL.md",
+          "request": "file:///private/tmp/b5/evals/vault-graphrag/cases/backlinks.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 3,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 8560,
+      "evaluationDurationMs": 8560
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "vault-graphrag — EDD",
+    "prompts": [
+      "file:///private/tmp/b5/evals/vault-graphrag/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "note-types",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/vault-graphrag/cases/note-types.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/incident/i.test(output)) throw new Error('incident');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/entit/i.test(output)) throw new Error('entity');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/lesson/i.test(output)) throw new Error('lesson');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "no-dupes",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/vault-graphrag/cases/no-dupes.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/upsert|never.{0,20}duplicat|no duplicat|same (note|key)|keyed/i.test(output)) throw new Error('says upsert keyed by ticket id, not a duplicate');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "backlinks",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/vault-graphrag/cases/backlinks.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "if (!/backlink|never.{0,30}(reverse|by hand)|don'?t maintain|automatic/i.test(output)) throw new Error('says rely on backlinks, not hand-maintained reverse indexes');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/vault-graphrag/results/skill_2.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b5/skills/vault-graphrag/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b5/evals/vault-graphrag"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:10:25.614Z",
+    "evaluationCreatedAt": "2026-10-29T19:10:17.006Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

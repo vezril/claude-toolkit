@@ -35,7 +35,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "workflow"))
-from common import (CONFIG_NAME, artifact_root, is_delivery_repo, load_config, load_json,  # noqa: E402
+from common import (CONFIG_NAME, artifact_root, artifact_root_problems,  # noqa: E402
+                    is_delivery_repo, load_config, load_json,
                     load_profiles, open_punch_outs, repo_root, select_profile)
 import descriptor as workflow_descriptor  # noqa: E402
 
@@ -343,10 +344,16 @@ def render(st: dict) -> str:
             mark, note = " ", ""
         elif (r["edge"] or {}).get("exit"):
             mark, note = "✗", f"edge failed: {r['edge']['summary'][:60]}"
+        elif (r["edge"] or {}).get("name") == "no-schema":
+            # Not a tick. The artifact is present and nothing checked it, which is a
+            # different state from "checked and fine" and has to read as one.
+            mark, note = "?", "unchecked: no schema declares this artifact"
         elif r["edge"]:
             mark, note = "✓", "edge ok"
         else:
-            mark, note = "✓", "no edge recorded"
+            # Present, and not even a record saying nothing ran. Before the no-schema record
+            # existed this was the only sign of an unchecked artifact, and it was a ✓.
+            mark, note = "?", "no edge recorded"
         lines.append(f"  [{mark}] {r['artifact']:<32} {r['step']:<24} {note}")
     for c in st.get("challenges") or []:
         if c["unreadable"]:
@@ -401,6 +408,16 @@ def main(argv=None) -> int:
         return 2
 
     cfg = load_config(repo)
+    # Preflight, before any position is computed: a run whose artifacts sit in the code repo
+    # is one `git add` from putting a client's ticket text on a branch. Refused here because
+    # this is the one thing every invocation runs first — SKILL.md's rule is "do what
+    # flow-status says", so a refusal here stops the flow rather than warning into a log.
+    misplaced = artifact_root_problems(repo, cfg)
+    if misplaced:
+        print("BLOCKED — the run artifacts are in the wrong place:", file=sys.stderr)
+        for p in misplaced:
+            print(f"  - {p}", file=sys.stderr)
+        return 2
     try:
         profiles = load_profiles()
     except (OSError, ValueError) as e:

@@ -1,0 +1,24 @@
+# akka-sdk-agents: shared matrix, used verbatim by both arms. Deterministic asserts only.
+
+- description: "chaining"
+  vars: { request: file://cases/chaining.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/cannot|can'?t|not a tool|never chain|Workflow/i.test(output)) throw new Error('says an agent cannot be a tool for another agent; use Workflows');
+        return true;
+
+- description: "orchestrate"
+  vars: { request: file://cases/orchestrate.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/Workflow/i.test(output)) throw new Error('names Workflow');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/AgentRegistry|dynamicCall|registry/i.test(output)) throw new Error('names AgentRegistry / dynamicCall');
+        return true;

@@ -43,6 +43,13 @@ artifact_dirs = workflow_descriptor.artifact_dirs
 config_names = workflow_descriptor.config_names
 any_workflow_repo = workflow_descriptor.any_opted_in
 
+# Any path under delivery/<ITEM-KEY>/, in a tool input or a shell command. Checked against
+# the raw payload first: a session that writes nothing there costs one regex and exits.
+# No text-match hint here on purpose. An early exit that depends on the command spelling
+# `delivery/` is an early exit an artifact can be written behind, which is how the first
+# version of this hook let three real writes through. `main` gates on a filesystem fact
+# instead: is anything in reach a delivery-flow repo.
+
 
 def _helpers():
     """Import the validator and shared helpers only once a delivery path is in play."""
@@ -59,17 +66,21 @@ def _helpers():
         return mod
 
     return (common, _load("validate_artifact", "validate-artifact.py"), brief, trigger_rules,
-            _load("validate_proposal", "validate-proposal.py"))
+            _load("validate_proposal", "validate-proposal.py"),
+            _load("flow_status", "flow-status.py"))
 
 
 # Paths inside a Bash command line; quotes and redirects are stripped by the split.
-#
-# Built from the descriptors rather than written out, so a second workflow's artifact
-# directory is scanned too. With one workflow the pattern is character-for-character what it
-# was. The directory names are escaped: one of them containing a regex metacharacter would
-# otherwise silently widen or break the match, and a detection regex that quietly stops
-# matching is the exact failure this hook has had three times.
 def bash_path_re():
+    """Artifact paths in a Bash command, for every workflow's artifact directory.
+
+    Built from the descriptors rather than written out. The directory names are escaped and
+    tried longest-first: an unescaped metacharacter would silently widen the match, and a
+    name that is a suffix of another must not win it. A detection regex that quietly stops
+    matching is this hook's failure mode four times over.
+
+    None when no workflow is defined, which the caller reads as "nothing to scan for".
+    """
     dirs = artifact_dirs()
     if not dirs:
         return None
@@ -119,6 +130,82 @@ def _registered_bases() -> list:
     return out
 
 
+# `<ITEM>/<file>` immediately after a root, or after an item directory's own name.
+ROOTED_TAIL_RE = re.compile(r"([A-Za-z0-9][A-Za-z0-9._-]*)/([A-Za-z0-9][A-Za-z0-9._-]+)")
+
+
+def _is_within(path: Path, root: Path) -> bool:
+    """True when `path` sits under `root`. Resolved, so /tmp and /private/tmp agree."""
+    try:
+        path, root = path.resolve(), root.resolve()
+    except OSError:
+        return False
+    return path == root or root in path.parents
+
+
+def artifact_roots() -> list:
+    """Every configured `artifacts.root` in reach, read from config rather than guessed.
+
+    `known_repos()` is already the registry of repos that opted in, and `artifact_root()`
+    already follows each one's `artifacts.root`. Nothing here infers a path.
+    """
+    try:
+        common = _helpers()[0]
+    except Exception:
+        return []
+    roots = []
+    for repo in common.known_repos():
+        try:
+            root = common.artifact_root(repo)
+        except (OSError, ValueError):
+            continue
+        if root.is_dir() and root not in roots:
+            roots.append(root)
+    return roots
+
+
+def rooted_paths(command: str, roots: list) -> list:
+    """Artifact paths a Bash command names under a configured artifacts root.
+
+    `BASH_PATH_RE` cannot find these, and widening it is the wrong repair. It requires a
+    literal `delivery/` segment, which a configured root need not contain, and its character
+    class excludes the space in `~/Amazon RAG/...` — a regex over command text has now lost to
+    `cd`, to shell variables, to computed paths and to a space, which is four for four. The
+    roots are known exactly, so this matches against them instead of trying to describe them.
+
+    Two spellings, because the root is sometimes in the text and sometimes not:
+
+    - **spelled out.** `write-sentinel.py "/Users/…/_runs/AN-3702/triage.json"` contains the
+      root verbatim. Matching the known literal is immune to the quoting and spaces that
+      defeat a character class.
+    - **held in a variable.** `"$R/AN-3702/triage.json"` has the root nowhere in the payload,
+      but the `<ITEM>/<file>` tail is still there and the item directories are on disk to
+      match it against. Only directories that exist are considered, so this cannot invent an
+      item, and `main` discards any candidate that is not a file on disk.
+    """
+    out = []
+    for root in roots:
+        spelled = str(root)
+        start = 0
+        while True:
+            at = command.find(spelled, start)
+            if at < 0:
+                break
+            start = at + len(spelled)
+            m = ROOTED_TAIL_RE.match(command[start:].lstrip("/"))
+            if m:
+                out.append(root / m.group(1) / m.group(2))
+        try:
+            item_dirs = sorted(p for p in root.glob("*") if p.is_dir())
+        except OSError:
+            continue
+        for item_dir in item_dirs:
+            for m in re.finditer(rf"{re.escape(item_dir.name)}/([A-Za-z0-9][A-Za-z0-9._-]+)",
+                                 command):
+                out.append(item_dir / m.group(1))
+    return out
+
+
 def written_paths(payload: dict) -> list:
     """Every path this tool call may have written, as absolute paths.
 
@@ -142,15 +229,16 @@ def written_paths(payload: dict) -> list:
     elif tool == "Bash":
         command = ti.get("command", "")
         bases += _cd_targets(command)
+        out += rooted_paths(command, artifact_roots())
         pattern = bash_path_re()
         for token in (pattern.findall(command) if pattern else []):
             out.append(Path(token))
-            # The leading character class swallows whatever precedes the artifact directory —
-            # in `"$R/delivery/K/f.json"` it captures `R/delivery/K/f.json`, because `$` stops
-            # it but `R` and `/` do not. Joining that to a base yields `<base>/R/delivery/...`,
-            # which never exists. So also consider the fragment from each artifact directory
-            # onward. Tried for every workflow's directory, because the token was matched by
-            # an alternation and this code cannot tell which branch won.
+            # The leading character class swallows whatever precedes `delivery/` — in
+            # `"$R/delivery/K/f.json"` it captures `R/delivery/K/f.json`, because `$` stops it
+            # but `R` and `/` do not. Joining that to a base yields `<base>/R/delivery/...`,
+            # which never exists. So also consider the fragment from `delivery/` onward.
+            # Tried for every workflow's directory: the token was matched by an
+            # alternation and this code cannot tell which branch won.
             for d in artifact_dirs():
                 cut = token.find(d + "/")
                 if cut > 0:
@@ -195,10 +283,41 @@ def check_brief(path: Path, common, brief) -> tuple:
 # once their contracts are written.
 TERMINAL_PROSE = {"summary.md": check_brief}
 
+# The edge name recorded when a routing-table artifact has no schema to check it against.
+# Readers key on this string rather than on `exit: 0`, which an unchecked artifact shares
+# with a checked one that passed.
+NO_SCHEMA = "no-schema"
+
+
+def unschemad(flow_status, common, schemas: dict) -> set:
+    """Routing-table artifacts that no schema governs.
+
+    Eight of them today: implementation, verify, challenge-implementation, pr-opened, posted
+    and vault-updated, plus the `pr.md` and `post.md` prose. Every one is in the `full`
+    profile past `propose`, so this is plausibly a profile whose edges were never built
+    rather than a regression — but the pipeline could not say which, because a missing
+    schema was a bare `continue` in `changed_artifacts`: no check, and no record that none
+    ran. `flow-status.py` printed "no edge recorded" against a **✓**, and the trace that
+    criterion 4 is computed from held nothing at all.
+
+    Recording the gap is not the same as closing it. These artifacts still get no check; what
+    changes is that the absence is now countable, the way an uncertified step is countable
+    because it records `certified: false` instead of quietly not being certified.
+    """
+    return {a for a, *_ in flow_status.STEPS
+            if a not in TERMINAL_PROSE and common.schema_for(a, schemas) is None}
+
 
 def check_artifact(path: Path, schemas: dict, common, validator, trigger_rules, proposal_rules,
                    repo: Path = None) -> tuple:
-    """Return (ok, problems, checks_run) for one artifact."""
+    """Return (ok, problems, checks_run) for one artifact.
+
+    `repo` is the **code** repository, handed in by `main` from `identify()`. It is not
+    derivable from `path`: with `artifacts.root` pointing outside the project, the artifact
+    sits in the vault and walking up from it finds the vault — or nothing — rather than the
+    repo whose `openspec/changes/` the proposal is a contract about. Left as None only for
+    callers with no repo to offer, which then falls back to the old inference.
+    """
     problems, ran = [], []
     schema = common.schema_for(path.name, schemas)
     if schema is None:
@@ -245,13 +364,9 @@ def check_artifact(path: Path, schemas: dict, common, validator, trigger_rules, 
         # interesting failure is the two disagreeing. Schema conformance cannot see that.
         if path.name == "proposal.json":
             ran.append("change-dir")
-            # The *delivery repo*, not the artifact path's git root. With `artifacts.root`
-            # pointing into the vault, `repo_root(path.parent)` climbs to the vault — itself a
-            # git repo — and looks for openspec/changes/<id> there, where no change directory
-            # will ever be. The result was "no change directory at openspec/changes/<id>"
-            # against a change that exists in the delivery repo, blocking the flow at propose
-            # on a checker bug rather than a bad artifact. `policy_disagreements` below already
-            # takes `repo` for exactly this reason; this call site was missed.
+            # The code repo, not the artifact's own directory. Under an external
+            # `artifacts.root` those are different filesystems, and inferring from the
+            # artifact pointed the change-directory check at the vault.
             found, info = proposal_rules.problems(path, repo or common.repo_root(path.parent))
             problems += found
             if info.get("openspec_validate"):
@@ -294,27 +409,41 @@ def policy_disagreements(path: Path, common, trigger_rules, repo: Path = None) -
         cfg)
 
 
-def last_traced_sha(repo: Path, item: str, filename: str, common):
-    """The sha this artifact had when an edge last ran over it, or None.
+def last_edge(repo: Path, item: str, filename: str, common):
+    """(sha, failed) for the newest edge record over this artifact, or (None, False).
 
-    Reads through `common.read_trace`, so what counts as a damaged trace is decided in one
-    place (`scripts/workflow/trace.py`). This function used to parse the file itself and
-    disagreed with `check-punch-out.read_trace` about it — two readers, two answers, over the
-    artifact the certification examines.
-
-    The newest matching record wins, and a record without a `sha256` is not a match: an
-    artifact can be traced by a step that recorded no digest, and treating that as "no
-    previous sha" would re-check the file rather than skip it. Re-checking is the safe
-    direction.
+    `failed` is why this returns a pair. The sha gate below asks "have the bytes changed since
+    an edge last ran", which is the right question for a *passing* record and the wrong one for
+    a failing one: an edge can fail for a reason that lives outside the artifact's own bytes,
+    and then no amount of waiting changes the sha. The case that found this is the normal
+    node contract — `SKILL.md` has a node write its artifact and *then* its sentinel, so the
+    hook fires on the artifact's write while the sentinel does not yet exist, records "no
+    readable sentinel", and the sentinel lands a moment later. The artifact was correct, the
+    sentinel was correct, and the run was blocked forever on a verdict that was true only for
+    the instant it was taken.
     """
-    found = None
-    for rec in common.read_trace(repo, item):
+    sha, failed = None, False
+    try:
+        lines = common.trace_path(repo, item).read_text().splitlines()
+    except OSError:
+        return None, False
+    for line in lines:                      # the newest matching record wins
+        try:
+            rec = json.loads(line)
+        except (json.JSONDecodeError, ValueError):
+            continue
         if rec.get("artifact") == filename and rec.get("sha256"):
-            found = rec["sha256"]
-    return found
+            sha = rec["sha256"]
+            failed = bool((rec.get("edge") or {}).get("exit"))
+    return sha, failed
 
 
-def changed_artifacts(payload: dict, common, schemas: dict) -> list:
+def last_traced_sha(repo: Path, item: str, filename: str, common):
+    """The sha this artifact had when an edge last ran over it, or None."""
+    return last_edge(repo, item, filename, common)[0]
+
+
+def changed_artifacts(payload: dict, common, schemas: dict, governed: set = frozenset()) -> list:
     """Artifacts that are new or whose bytes changed since an edge last saw them.
 
     Content, not command text. Detecting writes by regexing a Bash command line loses to
@@ -357,13 +486,27 @@ def changed_artifacts(payload: dict, common, schemas: dict) -> list:
             # `schema_for`, not `filename in schemas`: the glob-keyed artifacts (rendered
             # stories) never match an exact key, so an exact lookup skipped them here even
             # though `check_artifact` below would have governed them.
-            if common.schema_for(filename, schemas) is None and filename not in TERMINAL_PROSE:
+            #
+            # `governed` carries the routing-table artifacts that no schema covers. They are
+            # collected rather than skipped so the trace can record that nothing checked
+            # them; everything else with no schema (punch-outs, decisions, `.current-step`,
+            # `trace.jsonl` itself) is not an artifact this hook governs and must stay out,
+            # or the trail fills with records of its own writes.
+            if (common.schema_for(filename, schemas) is None
+                    and filename not in TERMINAL_PROSE and filename not in governed):
                 continue
             try:
                 current = common.sha256(path)
             except OSError:
                 continue
-            if current != last_traced_sha(repo, item, filename, common):
+            # Changed bytes, or unchanged bytes whose last verdict was a failure. The second
+            # clause is scoped deliberately narrowly: a *passing* record still suppresses
+            # re-checking, which is what keeps the trace from tripling on every command. Only
+            # a failure is retried, because only a failure can be stale — the artifact may
+            # have been failed for something beside itself (its sentinel, most often) that has
+            # since been put right, and nothing else in the pipeline would ever notice.
+            sha, failed = last_edge(repo, item, filename, common)
+            if current != sha or failed:
                 out.append(path)
     return out
 
@@ -394,8 +537,9 @@ def main() -> int:
     except (json.JSONDecodeError, ValueError):
         return 0  # not our business to fail a tool call over a malformed payload
 
-    common, validator, brief, trigger_rules, proposal_rules = _helpers()
+    common, validator, brief, trigger_rules, proposal_rules, flow_status = _helpers()
     schemas = common.load_schemas()
+    governed = unschemad(flow_status, common, schemas)
     paths = written_paths(payload)
 
     # Bail only when nothing in reach is a delivery-flow repo — a filesystem fact, not a text
@@ -408,9 +552,14 @@ def main() -> int:
     gate = [Path(payload.get("cwd") or ".")] + [p.parent for p in paths]
     if payload.get("tool_name") == "Bash":
         gate += _cd_targets((payload.get("tool_input") or {}).get("command", ""))
-    # Any workflow, not just delivery-flow: this is the gate that keeps the hook inert in
-    # unrelated sessions, and a second workflow's repo must get past it.
-    if not any_workflow_repo(gate):
+    # A configured `artifacts.root` sits outside its repo on purpose, so an artifact under one
+    # has no workflow config above it and no descriptor claims it all the way up. The
+    # repo that opted in is the one that named the root, so a path under a known root is in
+    # reach by that repo's choice. Still gated on the registry: a root nobody registered
+    # contributes nothing, which is what keeps an unconfigured repo inert.
+    roots = artifact_roots()
+    under_root = any(any(_is_within(p, root) for root in roots) for p in paths)
+    if not under_root and not any_workflow_repo(gate):
         return 0
 
     # Union with what actually changed on disk, so a write the command text hid still gets
@@ -424,7 +573,7 @@ def main() -> int:
             return str(path)
 
     seen = {_key(p) for p in paths}
-    for p in changed_artifacts(payload, common, schemas):
+    for p in changed_artifacts(payload, common, schemas, governed):
         if _key(p) not in seen:
             seen.add(_key(p))
             paths.append(p)
@@ -443,8 +592,13 @@ def main() -> int:
             continue  # a command that mentioned the path without writing it
 
         metrics = {}
+        no_schema = filename in governed
         if filename in TERMINAL_PROSE:
             ok, problems, ran, metrics = TERMINAL_PROSE[filename](path, common, brief)
+        elif no_schema:
+            # Nothing is checked here; the record exists so that "nothing was checked" is a
+            # fact in the trail rather than a silence in it.
+            ok, problems, ran = True, [], [NO_SCHEMA]
         else:
             ok, problems, ran = check_artifact(path, schemas, common, validator, trigger_rules,
                                                proposal_rules, repo)
@@ -457,7 +611,9 @@ def main() -> int:
                 step = json.loads(current.read_text()).get("step")
             except (json.JSONDecodeError, ValueError, OSError):
                 step = None
-        summary = "ok" if ok else "; ".join(problems)
+        # Never "ok" for an unchecked artifact: that word is the whole false-success.
+        summary = ("no schema declares this artifact, so no edge ran" if no_schema
+                   else "ok" if ok else "; ".join(problems))
         record = {
             "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "item": item,
