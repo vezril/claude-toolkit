@@ -334,7 +334,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `diagnosing-bugs` | 90% | 100% | haiku | ✅ Imported EDD-first (`evals/diagnosing-bugs/`): the agent edits four buggy projects and the code it leaves is graded. Upstream 95%; one added sentence (a regression test fails on every run, so a flaky bug's test pins its seed) → 60/60 on **haiku**, Sonnet 59/60 (its v1: 73%) |
 | `docker` | 83% | 100% | sonnet | ✅ Shipped (PR #51) — 3 linter-derived practices added (secret ENV, exec form, pinned installs) |
 | `dockerhub-setup` | 50% | 100% | sonnet | Fully deterministic suite, no judge. **The baseline never echoes a password pasted into chat (0 leaks in 3 runs)** — what it misses is treating that paste as a rotation event, and noting that Actions secret values are never readable back. Skill arm isn't rock-solid (3/4 twice, on the unreadable-values note). Log: `evals/dockerhub-setup/iteration-log.md` |
-| `domain-driven-design` | 96% | 100% | sonnet | ✅ Shipped (PR #56) — ubiquitous-language glossary made part of the deliverable |
+| `domain-driven-design` | 96% | 100% | sonnet | ✅ Shipped (PR #56) — ubiquitous-language glossary made part of the deliverable. Pocock fold: glossary *Avoid* aliases, ddd-01 0/6 → 6/6. Log: `evals/pocock-folds/iteration-log.md` |
 | `dsm-5` | 20% | 60% | sonnet | Rails + routing suite (batch 2). Lowest baseline in the batch (1/5). Log: `evals/_dsm/iteration-log-rails.md` |
 | `dsm-anxiety` | 80% | 100% | sonnet | Baseline knows the chapter well; the skill adds agoraphobia-as-independent-diagnosis and the panic-attack-as-specifier framing. Skill arm *less* stable than baseline (4/3/5 vs 4/5/3). Log: `evals/_dsm/iteration-log.md` |
 | `dsm-bipolar` | 100% | 100% | sonnet | **No measurable delta** — baseline gets bipolar I needing one manic episode, the mixed-features change and the not-milder correction unprompted. Run 1 showed a *regression* that turned out to be my assert rejecting "DSM-5 also requires…"; fixed and both arms re-run. Log: `evals/_dsm/iteration-log.md` |
@@ -514,8 +514,8 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `secretary-followups` |  |  |  | Not yet evaluated |
 | `secure-coding` | 100% | 100% | sonnet | Base-model-strong; skill precision-safe (no over-flag) |
 | `site-reliability-engineering` |  |  |  |  |
-| `software-architecture` | 92% | 100% | sonnet | Base-strong; +trade-off discipline, no patch |
-| `software-design` | 67% | 100% | sonnet | **Deep-module judgment.** Shown five single-method classes and asked "good separation of concerns?", the naive arm approves; the skill names it shallow modules / classitis. Log: `evals/_batch3/iteration-log.md` |
+| `software-architecture` | 92% | 100% | sonnet | Base-strong; +trade-off discipline, no patch. Pocock fold: three-test ADR gate + short-form ADR; no measured lift (v1 already declined a trivial ADR 6/6), kept as cost-free. Log: `evals/pocock-folds/iteration-log.md` |
+| `software-design` | 67% | 100% | sonnet | **Deep-module judgment.** Shown five single-method classes and asked "good separation of concerns?", the naive arm approves; the skill names it shallow modules / classitis. Log: `evals/_batch3/iteration-log.md`. Pocock fold: `references/seams-and-testing.md` (dependency categories, replace-don't-layer, design it twice), fold suite target 8/18 → 17/18; main's suite 8/9 after (one wording miss). Log: `evals/pocock-folds/iteration-log.md` |
 | `spec-driven-development` | 0% | 100% | sonnet | ✅ Shipped (PR #47) — 2 measured gaps patched |
 | `stripe-payments` | 100% | 100% | sonnet | No delta — baseline already fulfils from webhooks, verifies against the raw body, and dedupes on event id. Log: `evals/_batch5/iteration-log.md` |
 | `swgoh-expert` |  |  |  |  |
@@ -525,7 +525,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `swiftui-ui-patterns` |  |  |  |  |
 | `swiftui-view-refactor` |  |  |  |  |
 | `tcp-ip` |  |  |  |  |
-| `tdd` | 46% | 100% | sonnet | Big lift; skill already optimal, no patch |
+| `tdd` | 46% | 100% | sonnet | Big lift; skill already optimal, no patch. Pocock fold: mock only at boundaries, tautological-assertion and horizontal-slicing anti-patterns; tautology case 2/6 → 6/6. Log: `evals/pocock-folds/iteration-log.md` |
 | `terraform` |  |  |  |  |
 | `test-strategy` | 100% | 100% | sonnet | Base-model-strong; skill neutral, no patch |
 | `toolkit-archive` | 100% | 100% | sonnet | No delta — baseline already refuses to archive a component an active one still references. Log: `evals/_batch5/iteration-log.md` |
