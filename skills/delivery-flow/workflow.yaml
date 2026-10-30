@@ -1,0 +1,98 @@
+# The delivery-flow workflow descriptor.
+#
+# A workflow is a skill directory containing a `workflow.yaml`. This file is what makes
+# delivery-flow one *instance* of the substrate rather than the substrate itself: the generic
+# code in `scripts/workflow/` reads a descriptor and behaves accordingly, so a second workflow
+# (the SDLC pipeline) is a second descriptor, not a second copy of the machinery.
+#
+# Parsed by `scripts/workflow/descriptor.py`, stdlib only — the same hand-rolled subset
+# `common.load_profiles` uses, because every hook in this plugin must run without PyYAML
+# installed. Keep each inline list on one line; a bracket that does not close on its own line
+# is an error rather than a silently truncated list.
+#
+# Change this file and change `scripts/workflow/descriptor.py` together — they are a normative
+# pair, like `story-schema.md` and `lint-story.py`.
+
+workflow: delivery-flow
+
+# The file whose presence at a repo root opts that repo in. Every hook and script is inert
+# without it, which is what keeps the plugin from firing in unrelated sessions.
+config_name: .delivery-flow.yaml
+
+# Where artifacts live by default, relative to the repo. `artifacts.root` in the repo's own
+# config can move them outside it — typically into the vault — and the substrate must resolve
+# the root from the config rather than assuming this.
+artifact_dir: delivery
+
+# Namespace for ssh-keygen signatures over punch-out decisions. Per workflow on purpose: a
+# decision signed for one workflow must not verify for another.
+sign_namespace: delivery-flow-decision
+
+# Pointers, all relative to the plugin root.
+schemas: schemas
+registry: skills/delivery-flow/steps.yaml
+profiles: templates/delivery-flow/profiles.yaml
+pricing: templates/delivery-flow/pricing.yaml
+roster: templates/delivery-flow/roster.yaml
+
+# The routing table, in order. Moved here from `flow-status.py`, where it was Python literals
+# that no second workflow could reuse.
+#
+#   artifact       the file this step must produce for routing to advance past it
+#   step           the step name used by the trace, the registry and the profiles
+#   kind           adapter | node | script | build | sdlc — who runs it
+#   optional_when  a config question; the step is skipped when the answer is no
+#
+# A *profile* names an ordered subset of this table; a repo naming none gets `full`, which is
+# every row here.
+steps:
+  - artifact: item.json
+    step: intake
+    kind: adapter
+  - artifact: triage.json
+    step: triage
+    kind: node
+  - artifact: project-context.json
+    step: project-memory
+    kind: script
+    optional_when: vault
+  - artifact: breakdown.json
+    step: breakdown
+    kind: node
+  - artifact: challenge-breakdown.json
+    step: challenge-breakdown
+    kind: node
+  - artifact: summary.md
+    step: brief
+    kind: script
+  - artifact: proposal.json
+    step: propose
+    kind: node
+  - artifact: implementation.json
+    step: implementation
+    kind: sdlc
+  - artifact: verify.json
+    step: verify
+    kind: build
+  - artifact: challenge-implementation.json
+    step: challenge-implementation
+    kind: node
+  - artifact: pr.md
+    step: pr-description
+    kind: node
+  - artifact: pr-opened.json
+    step: open-pr
+    kind: adapter
+  - artifact: post.md
+    step: post-summary
+    kind: node
+  - artifact: posted.json
+    step: post-back
+    kind: adapter
+  - artifact: outcome.json
+    step: report
+    kind: script
+  - artifact: vault-updated.json
+    step: vault-update
+    kind: node
+    optional_when: vault

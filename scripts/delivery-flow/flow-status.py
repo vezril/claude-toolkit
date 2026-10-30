@@ -32,36 +32,28 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent / "workflow"))
 from common import (CONFIG_NAME, artifact_root, is_delivery_repo, load_config, load_json,  # noqa: E402
                     load_profiles, open_punch_outs, repo_root, select_profile)
+import descriptor as workflow_descriptor  # noqa: E402
 
 MAX_RERUNS = 3
 
-# (artifact, step, kind, optional-when) — the routing table, in order.
-# "optional_when" names a config question; the step is skipped when the answer is no.
+# The routing table, read from this workflow's descriptor rather than written here.
 #
-# This is the whole table. A *profile* (templates/delivery-flow/profiles.yaml) names an
-# ordered subset of it, and routing happens inside that subset only; a repo that names no
-# profile gets `full`, which is every step below.
-STEPS = [
-    ("item.json", "intake", "adapter", None),
-    ("triage.json", "triage", "node", None),
-    ("project-context.json", "project-memory", "script", "vault"),
-    ("breakdown.json", "breakdown", "node", None),
-    ("challenge-breakdown.json", "challenge-breakdown", "node", None),
-    ("summary.md", "brief", "script", None),
-    ("proposal.json", "propose", "node", None),
-    ("implementation.json", "implementation", "sdlc", None),
-    ("verify.json", "verify", "build", None),
-    ("challenge-implementation.json", "challenge-implementation", "node", None),
-    ("pr.md", "pr-description", "node", None),
-    ("pr-opened.json", "open-pr", "adapter", None),
-    ("post.md", "post-summary", "node", None),
-    ("posted.json", "post-back", "adapter", None),
-    ("outcome.json", "report", "script", None),
-    ("vault-updated.json", "vault-update", "node", "vault"),
-]
+# It used to be Python literals in this file, which meant the one table a second workflow
+# would need was locked inside delivery-flow's own status script. The descriptor
+# (`skills/delivery-flow/workflow.yaml`) now owns it; the tuple shape below is unchanged, so
+# every existing consumer of `STEPS` is untouched and the move is behaviour-free.
+#
+# `optional_when` still names a config question; the step is skipped when the answer is no.
+# A *profile* (`templates/delivery-flow/profiles.yaml`) names an ordered subset of this
+# table, and routing happens inside that subset only; a repo naming no profile gets `full`.
+DESCRIPTOR = workflow_descriptor.load(
+    workflow_descriptor.PLUGIN_ROOT / "skills" / "delivery-flow" / "workflow.yaml")
+STEPS = workflow_descriptor.step_table(DESCRIPTOR)
 
 BY_STEP = {step: (artifact, kind, optional_when) for artifact, step, kind, optional_when in STEPS}
 
