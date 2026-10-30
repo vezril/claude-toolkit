@@ -1,0 +1,128 @@
+{
+  "item": "57",
+  "epics": [
+    {
+      "id": "E1",
+      "title": "Operator can browse and inspect the dead-letter queue",
+      "stories": [
+        {
+          "id": "S1",
+          "statement": "As an operator, I can list dead-lettered messages for a subscription with paging so I can see what is stuck without querying the journal directly.",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "a subscription has dead-lettered messages",
+              "when": "an operator requests the dead-letter queue for that subscription",
+              "then": "the response returns a bounded page of dead-lettered messages for that subscription"
+            },
+            {
+              "id": "AC2",
+              "given": "a subscription has more dead-lettered messages than fit on one page",
+              "when": "an operator requests the next page using the paging information from the prior response",
+              "then": "the response returns the subsequent set of messages with no duplicates from the previous page"
+            },
+            {
+              "id": "AC3",
+              "given": "a subscription has no dead-lettered messages",
+              "when": "an operator requests the dead-letter queue for that subscription",
+              "then": "the response returns an empty page rather than an error"
+            }
+          ]
+        },
+        {
+          "id": "S2",
+          "statement": "As an operator, I can inspect a single dead-lettered message to see its payload and the reason it failed.",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "a dead-lettered message with a known id exists",
+              "when": "an operator requests that message's detail",
+              "then": "the response includes the message's full payload and its recorded failure reason"
+            },
+            {
+              "id": "AC2",
+              "given": "no dead-lettered message exists with the given id",
+              "when": "an operator requests that message's detail",
+              "then": "the request is rejected with a not-found response"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E2",
+      "title": "Operator can redrive dead-letters back onto the subscription",
+      "stories": [
+        {
+          "id": "S3",
+          "statement": "As an operator, I can redrive a selected set of dead-lettered messages back onto the subscription for another delivery attempt.",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "an operator has selected one or more dead-lettered message ids on a subscription",
+              "when": "the operator requests a redrive of those ids",
+              "then": "the feature works correctly"
+            },
+            {
+              "id": "AC2",
+              "given": "a selected message id does not belong to any dead-lettered message on the subscription",
+              "when": "the operator requests a redrive including that id",
+              "then": "the request is rejected without re-enqueuing any message from it"
+            }
+          ]
+        },
+        {
+          "id": "S4",
+          "statement": "As an operator, I can redrive all dead-lettered messages on a subscription back onto it for another delivery attempt.",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "a subscription has multiple dead-lettered messages",
+              "when": "the operator requests a redrive of all dead letters on that subscription",
+              "then": "every dead-lettered message on that subscription is re-enqueued for delivery"
+            },
+            {
+              "id": "AC2",
+              "given": "a subscription has no dead-lettered messages",
+              "when": "the operator requests a redrive of all dead letters on that subscription",
+              "then": "the request completes without enqueuing any message"
+            }
+          ]
+        },
+        {
+          "id": "S5",
+          "statement": "As an operator, redriving messages is idempotent and never disturbs messages currently in-flight for delivery.",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "a redrive request for a set of message ids has already been processed",
+              "when": "the identical redrive request is submitted again",
+              "then": "the messages are not re-enqueued a second time and no duplicate delivery attempt is created"
+            },
+            {
+              "id": "AC2",
+              "given": "a message on the subscription is currently in-flight for delivery",
+              "when": "a redrive is issued for that subscription",
+              "then": "the in-flight delivery continues unaffected and is not duplicated or cancelled by the redrive"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

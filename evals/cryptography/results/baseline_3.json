@@ -1,0 +1,809 @@
+{
+  "evalId": "eval-rPM-2026-10-28T20:42:18",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-28T20:42:18.850Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+        "label": "evals/cryptography/prompt-baseline.txt: You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+        "id": "5743fd4cce18aa00c10483ea15e4519340b7f90466f68bf2ae61e6ba2faea4fe",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 3.1666666666666665,
+          "testPassCount": 2,
+          "testFailCount": 2,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 7,
+          "assertFailCount": 2,
+          "totalLatencyMs": 50009,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 4,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 7,
+            "safety": 0
+          },
+          "namedScoresCount": {
+            "accuracy": 8,
+            "safety": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 8,
+            "safety": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 3
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "// Must reason about nonce/IV misuse risk, which is CE's stated reason for the change.\nif (!/nonce|\\bIV\\b/i.test(output)) throw new Error('no discussion of nonce/IV handling');\nif (!/reus|repeat|unique|catastroph|misuse|mishandl/i.test(output))\n  throw new Error('did not raise nonce reuse/uniqueness as the deciding risk');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/CBC/i.test(output)) throw new Error(\"did not mention CBC-with-random-IV, CE's current recommendation\");\nif (/\\bECB\\b/i.test(output) && !/never|not acceptable|avoid|insecure|don'?t/i.test(output))\n  throw new Error('mentioned ECB without condemning it');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/authenticat|AEAD|\\bMAC\\b|GCM|CCM/i.test(output))\n  throw new Error('did not require authentication alongside encryption');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "1d803a1a-3623-4051-9822-a449220bfc49",
+        "latencyMs": 12327,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\nI'm building a service that encrypts stored documents with AES. Which cipher mode should I use, and why that one?",
+          "label": "evals/cryptography/prompt-baseline.txt: You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+          "config": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          }
+        },
+        "promptId": "5743fd4cce18aa00c10483ea15e4519340b7f90466f68bf2ae61e6ba2faea4fe",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "**Use AES-256-GCM.** It's an AEAD mode, so it encrypts and authenticates in one step. A tampered or corrupted document fails to decrypt instead of returning garbage.\n\n**Why not the others**\n- **CBC and CTR** give confidentiality only. Without a separate MAC, an attacker can flip bits undetected. CBC has also had padding-oracle attacks.\n- **ECB** leaks patterns in the plaintext. Never use it.\n- **XTS** is meant for disk-sector encryption with no stored nonce or tag, so it doesn't suit documents in a service.\n\n**What you need to get right with GCM**\n- **Unique nonce per key.** Reusing a nonce under one key breaks both confidentiality and authentication. With random 96-bit nonces, keep each key to about 2³² encryptions or fewer. The simplest way to stay under that is a fresh data key per document.\n- **Envelope encryption.** Generate a random data key per document and encrypt the document with it. Wrap that data key with a master key in a KMS or HSM, and store the wrapped key next to the ciphertext. This also makes key rotation cheap, because you only re-wrap data keys.\n- **Bind context with AAD.** Pass the document ID, tenant and version as associated data. That stops someone from swapping valid ciphertexts between records.\n- **Large files.** Don't encrypt a multi-GB file as one GCM message. Split it into chunks, each with its own nonce and its position in the AAD, or use a vetted streaming format such as Tink's streaming AEAD.\n- **Use a library.** Use Tink, libsodium, or your platform's AEAD API. Don't compose the primitives yourself.\n\n**Alternatives if nonce management worries you**\n- **AES-GCM-SIV** tolerates accidental nonce reuse. It leaks only whether two messages are identical.\n- **XChaCha20-Poly1305** has a 192-bit nonce, so random nonces are safe. It's a good choice where AES hardware acceleration is absent."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "cipher mode - CE's nonce-misuse reasoning, not just 'use GCM'",
+          "vars": {
+            "request": "file:///private/tmp/t1/evals/cryptography/cases/mode.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "// Must reason about nonce/IV misuse risk, which is CE's stated reason for the change.\nif (!/nonce|\\bIV\\b/i.test(output)) throw new Error('no discussion of nonce/IV handling');\nif (!/reus|repeat|unique|catastroph|misuse|mishandl/i.test(output))\n  throw new Error('did not raise nonce reuse/uniqueness as the deciding risk');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/CBC/i.test(output)) throw new Error(\"did not mention CBC-with-random-IV, CE's current recommendation\");\nif (/\\bECB\\b/i.test(output) && !/never|not acceptable|avoid|insecure|don'?t/i.test(output))\n  throw new Error('mentioned ECB without condemning it');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/authenticat|AEAD|\\bMAC\\b|GCM|CCM/i.test(output))\n  throw new Error('did not require authentication alongside encryption');\nreturn true;\n"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/cryptography/cases/mode.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/length[- ]extension/i.test(output)) throw new Error('did not name the length-extension attack');\nif (!/HMAC/i.test(output)) throw new Error('did not prescribe HMAC');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "9581ba29-4e83-4b06-811b-7c92b64f2dd7",
+        "latencyMs": 9590,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\nFor message integrity I'm computing sha256(secret_key + message) and sending that alongside the message. Is that sound?",
+          "label": "evals/cryptography/prompt-baseline.txt: You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+          "config": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          }
+        },
+        "promptId": "5743fd4cce18aa00c10483ea15e4519340b7f90466f68bf2ae61e6ba2faea4fe",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No, `sha256(secret_key + message)` is not sound. SHA-256 is a Merkle–Damgård hash, so the digest reveals its internal state. An attacker who sees `message` and the tag can compute a valid tag for `message || padding || extra` without knowing the key. This is a length-extension attack, and tools like `hash_extender` automate it. Your scheme gives them a forgery for any message they can build by appending to one you've already signed.\n\nUse HMAC-SHA256 instead:\n\n```python\nimport hmac, hashlib\ntag = hmac.new(key, message, hashlib.sha256).digest()\n\n# verify with a constant-time compare\nhmac.compare_digest(tag, received_tag)\n```\n\n- **Verification:** use a constant-time comparison (`hmac.compare_digest`, `crypto.timingSafeEqual`), not `==`.\n- **Key:** use at least 32 random bytes from a CSPRNG.\n- **Replay:** HMAC doesn't stop an attacker from resending a valid message. If that matters, include a nonce, timestamp, or counter inside the authenticated message.\n- **Alternatives:** `sha256(message + key)` avoids length extension but is weaker against collisions, and HMAC is the standard fix. SHA-3, KMAC, and BLAKE2 keyed mode are also safe for `H(key || message)`."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "hash(key||msg) as a MAC - length extension",
+          "vars": {
+            "request": "file:///private/tmp/t1/evals/cryptography/cases/mac.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/length[- ]extension/i.test(output)) throw new Error('did not name the length-extension attack');\nif (!/HMAC/i.test(output)) throw new Error('did not prescribe HMAC');\nreturn true;\n"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/cryptography/cases/mac.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "Custom function threw error: did not explain why the key is twice the security level\nStack Trace: Error: did not explain why the key is twice the security level\n    at eval (eval at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2672:27), <anonymous>:5:9)\n    at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2673:34)\n    at runAssertionInternal (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5778:24)\n    at runAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5792:31)\n    at runAndRecordAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5893:24)\n    at file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5916:20\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:151:38\n    at replenish (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:447:21)\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:452:13\n    at Object.eachOfLimit (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:478:36)\n// The reasoning, not just the number: generic birthday / MITM attacks halve strength.\nif (!/birthday|meet-in-the-middle|generic attack|half|2n|twice/i.test(output))\n  throw new Error('did not explain why the key is twice the security level');\nreturn true;",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.5,
+          "reason": "Custom function threw error: did not explain why the key is twice the security level\nStack Trace: Error: did not explain why the key is twice the security level\n    at eval (eval at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2672:27), <anonymous>:5:9)\n    at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2673:34)\n    at runAssertionInternal (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5778:24)\n    at runAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5792:31)\n    at runAndRecordAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5893:24)\n    at file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5916:20\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:151:38\n    at replenish (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:447:21)\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:452:13\n    at Object.eachOfLimit (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:478:36)\n// The reasoning, not just the number: generic birthday / MITM attacks halve strength.\nif (!/birthday|meet-in-the-middle|generic attack|half|2n|twice/i.test(output))\n  throw new Error('did not explain why the key is twice the security level');\nreturn true;",
+          "namedScores": {
+            "accuracy": 0.5
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/256/.test(output)) throw new Error('did not recommend a 256-bit symmetric key for 128-bit security');\nif (!/2048|3072/.test(output)) throw new Error('did not give an RSA size of at least 2048');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Custom function threw error: did not explain why the key is twice the security level\nStack Trace: Error: did not explain why the key is twice the security level\n    at eval (eval at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2672:27), <anonymous>:5:9)\n    at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2673:34)\n    at runAssertionInternal (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5778:24)\n    at runAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5792:31)\n    at runAndRecordAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5893:24)\n    at file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5916:20\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:151:38\n    at replenish (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:447:21)\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:452:13\n    at Object.eachOfLimit (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:478:36)\n// The reasoning, not just the number: generic birthday / MITM attacks halve strength.\nif (!/birthday|meet-in-the-middle|generic attack|half|2n|twice/i.test(output))\n  throw new Error('did not explain why the key is twice the security level');\nreturn true;",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "// The reasoning, not just the number: generic birthday / MITM attacks halve strength.\nif (!/birthday|meet-in-the-middle|generic attack|half|2n|twice/i.test(output))\n  throw new Error('did not explain why the key is twice the security level');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "4382f339-0bcd-40bf-b901-a13a2fe472ce",
+        "latencyMs": 7626,
+        "namedScores": {
+          "accuracy": 0.5
+        },
+        "prompt": {
+          "raw": "You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\nWe want 128-bit security for a new system. What symmetric key size should we use, and what RSA modulus size?",
+          "label": "evals/cryptography/prompt-baseline.txt: You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+          "config": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          }
+        },
+        "promptId": "5743fd4cce18aa00c10483ea15e4519340b7f90466f68bf2ae61e6ba2faea4fe",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "**Symmetric key:** 128 bits (AES-128 gives 128-bit security). Use AES-256 if you want margin against future quantum attacks (Grover's algorithm roughly halves effective key strength).\n\n**RSA modulus:** 3072 bits. That's the NIST SP 800-57 equivalent of 128-bit security. RSA-2048 is only about 112-bit.\n\nIf the system needs to stay secure against a future quantum computer, RSA at any size won't do it, because Shor's algorithm breaks it. For a new system, consider ML-KEM and ML-DSA, ideally in a hybrid with classical X25519 or ECDSA. P-256 or Ed25519 also gives about 128-bit classical security with much smaller keys than RSA-3072."
+        },
+        "score": 0.5,
+        "success": false,
+        "testCase": {
+          "description": "key sizes - the 2n rule gives 256-bit symmetric for 128-bit security",
+          "vars": {
+            "request": "file:///private/tmp/t1/evals/cryptography/cases/keysize.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/256/.test(output)) throw new Error('did not recommend a 256-bit symmetric key for 128-bit security');\nif (!/2048|3072/.test(output)) throw new Error('did not give an RSA size of at least 2048');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "// The reasoning, not just the number: generic birthday / MITM attacks halve strength.\nif (!/birthday|meet-in-the-middle|generic attack|half|2n|twice/i.test(output))\n  throw new Error('did not explain why the key is twice the security level');\nreturn true;\n"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/cryptography/cases/keysize.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Custom function threw error: did not convey that GCM nonce reuse is catastrophic rather than merely bad\nStack Trace: Error: did not convey that GCM nonce reuse is catastrophic rather than merely bad\n    at eval (eval at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2672:27), <anonymous>:4:9)\n    at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2673:34)\n    at runAssertionInternal (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5778:24)\n    at runAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5792:31)\n    at runAndRecordAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5893:24)\n    at file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5916:20\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:151:38\n    at replenish (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:447:21)\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:452:13\n    at Object.eachOfLimit (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:478:36)\nif (!/catastroph|severe|critical|urgent|immediately|serious/i.test(output))\n  throw new Error('did not convey that GCM nonce reuse is catastrophic rather than merely bad');\nreturn true;",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.6666666666666666,
+          "reason": "Custom function threw error: did not convey that GCM nonce reuse is catastrophic rather than merely bad\nStack Trace: Error: did not convey that GCM nonce reuse is catastrophic rather than merely bad\n    at eval (eval at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2672:27), <anonymous>:4:9)\n    at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2673:34)\n    at runAssertionInternal (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5778:24)\n    at runAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5792:31)\n    at runAndRecordAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5893:24)\n    at file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5916:20\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:151:38\n    at replenish (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:447:21)\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:452:13\n    at Object.eachOfLimit (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:478:36)\nif (!/catastroph|severe|critical|urgent|immediately|serious/i.test(output))\n  throw new Error('did not convey that GCM nonce reuse is catastrophic rather than merely bad');\nreturn true;",
+          "namedScores": {
+            "safety": 0,
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "safety": 1,
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Custom function threw error: did not convey that GCM nonce reuse is catastrophic rather than merely bad\nStack Trace: Error: did not convey that GCM nonce reuse is catastrophic rather than merely bad\n    at eval (eval at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2672:27), <anonymous>:4:9)\n    at handleJavascript (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:2673:34)\n    at runAssertionInternal (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5778:24)\n    at runAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5792:31)\n    at runAndRecordAssertion (file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5893:24)\n    at file:///Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/promptfoo/dist/src/evaluator-BxCmvGtv.js:5916:20\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:151:38\n    at replenish (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:447:21)\n    at /Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:452:13\n    at Object.eachOfLimit (/Users/mferecal/.npm/_npx/81bbc6515d992ace/node_modules/async/dist/async.js:478:36)\nif (!/catastroph|severe|critical|urgent|immediately|serious/i.test(output))\n  throw new Error('did not convey that GCM nonce reuse is catastrophic rather than merely bad');\nreturn true;",
+              "assertion": {
+                "type": "javascript",
+                "metric": "safety",
+                "value": "if (!/catastroph|severe|critical|urgent|immediately|serious/i.test(output))\n  throw new Error('did not convey that GCM nonce reuse is catastrophic rather than merely bad');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "// The specific consequence: forgery capability, not just plaintext XOR.\nif (!/authentication key|auth key|forge|forgery|GHASH|universal hash/i.test(output))\n  throw new Error('did not state that nonce reuse exposes the authentication key / enables forgery');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/rotat|new key|rekey|re-key|replace the key/i.test(output))\n  throw new Error('did not require rotating the key');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "e652d52d-bd90-42ae-a235-49622ac851ad",
+        "latencyMs": 20466,
+        "namedScores": {
+          "safety": 0,
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\nWe use AES-GCM and derive the 96-bit nonce from a counter stored in the database. After a failover last week the counter rolled back and we re-sent some messages with nonces we'd already used. Is that a problem we need to act on?",
+          "label": "evals/cryptography/prompt-baseline.txt: You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+          "config": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          }
+        },
+        "promptId": "5743fd4cce18aa00c10483ea15e4519340b7f90466f68bf2ae61e6ba2faea4fe",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Yes, act on it. AES-GCM nonce reuse under one key is a break, not a weakness.\n\n**What an attacker with both ciphertexts gets, if the plaintexts differed:**\n- **Confidentiality:** the two messages share a keystream, so C1⊕C2 = P1⊕P2. Any known or guessable plaintext reveals the other, and structured data usually falls to crib-dragging.\n- **Authenticity:** two messages under the same nonce let an attacker recover the GHASH subkey H (the \"forbidden attack\"). With H, they can alter any captured message under that key and fix up its tag. So the damage is not limited to the colliding messages. Every message under that key is forgeable from then on.\n\n**Possible mitigation:** if each re-sent message was byte-identical to the original (same plaintext and AAD), the ciphertext and tag are identical too. The only leak is that a repeat occurred. Check this first, but I wouldn't rely on it unless you can verify it.\n\n**What to do:**\n1. **Scope it.** Find the key ID(s) and the rolled-back counter range. Check whether any nonce was used for two different plaintexts, and whether both ciphertexts were observable (wire, logs, stored copies).\n2. **Rotate the affected key(s).** Treat the key as having a compromised authentication subkey. Re-encrypt stored data under a new key, and re-verify or distrust anything authenticated under the old key if forgery matters to you.\n3. **Treat the colliding plaintexts as potentially exposed.** Decide whether that triggers disclosure obligations.\n4. **Fix the design so a rollback can't reissue a nonce:**\n   - Make the counter durable before use. Reserve blocks, persist the high-water mark synchronously, and on restore or failover skip ahead to a new block.\n   - Or put a unique epoch or node ID in part of the nonce, bumped on every failover or restore.\n   - Or use random 96-bit nonces and rotate the key before about 2^32 messages. This is stateless, so it can't roll back.\n   - Or switch to a misuse-resistant or large-nonce AEAD: AES-GCM-SIV, or XChaCha20-Poly1305 with random 192-bit nonces.\n\nI can look at your encryption code or write a collision check if you share where the nonce and message logs live."
+        },
+        "score": 0.6666666666666666,
+        "success": false,
+        "testCase": {
+          "description": "GCM nonce reuse after a counter rollback - catastrophic, act now",
+          "vars": {
+            "request": "file:///private/tmp/t1/evals/cryptography/cases/nonce.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "safety",
+              "value": "if (!/catastroph|severe|critical|urgent|immediately|serious/i.test(output))\n  throw new Error('did not convey that GCM nonce reuse is catastrophic rather than merely bad');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "// The specific consequence: forgery capability, not just plaintext XOR.\nif (!/authentication key|auth key|forge|forgery|GHASH|universal hash/i.test(output))\n  throw new Error('did not state that nonce reuse exposes the authentication key / enables forgery');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/rotat|new key|rekey|re-key|replace the key/i.test(output))\n  throw new Error('did not require rotating the key');\nreturn true;\n"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 3,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/cryptography/cases/nonce.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 2,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 4,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 20486,
+      "evaluationDurationMs": 20486
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "cryptography - CE-specific judgment calls a general model gets wrong -- NAIVE BASELINE (no skill in context)",
+    "prompts": [
+      "file:///private/tmp/t1/evals/cryptography/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "cipher mode - CE's nonce-misuse reasoning, not just 'use GCM'",
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/cryptography/cases/mode.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "// Must reason about nonce/IV misuse risk, which is CE's stated reason for the change.\nif (!/nonce|\\bIV\\b/i.test(output)) throw new Error('no discussion of nonce/IV handling');\nif (!/reus|repeat|unique|catastroph|misuse|mishandl/i.test(output))\n  throw new Error('did not raise nonce reuse/uniqueness as the deciding risk');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/CBC/i.test(output)) throw new Error(\"did not mention CBC-with-random-IV, CE's current recommendation\");\nif (/\\bECB\\b/i.test(output) && !/never|not acceptable|avoid|insecure|don'?t/i.test(output))\n  throw new Error('mentioned ECB without condemning it');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/authenticat|AEAD|\\bMAC\\b|GCM|CCM/i.test(output))\n  throw new Error('did not require authentication alongside encryption');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "hash(key||msg) as a MAC - length extension",
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/cryptography/cases/mac.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/length[- ]extension/i.test(output)) throw new Error('did not name the length-extension attack');\nif (!/HMAC/i.test(output)) throw new Error('did not prescribe HMAC');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "key sizes - the 2n rule gives 256-bit symmetric for 128-bit security",
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/cryptography/cases/keysize.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/256/.test(output)) throw new Error('did not recommend a 256-bit symmetric key for 128-bit security');\nif (!/2048|3072/.test(output)) throw new Error('did not give an RSA size of at least 2048');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "// The reasoning, not just the number: generic birthday / MITM attacks halve strength.\nif (!/birthday|meet-in-the-middle|generic attack|half|2n|twice/i.test(output))\n  throw new Error('did not explain why the key is twice the security level');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "GCM nonce reuse after a counter rollback - catastrophic, act now",
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/cryptography/cases/nonce.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "safety",
+            "value": "if (!/catastroph|severe|critical|urgent|immediately|serious/i.test(output))\n  throw new Error('did not convey that GCM nonce reuse is catastrophic rather than merely bad');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "// The specific consequence: forgery capability, not just plaintext XOR.\nif (!/authentication key|auth key|forge|forgery|GHASH|universal hash/i.test(output))\n  throw new Error('did not state that nonce reuse exposes the authentication key / enables forgery');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/rotat|new key|rekey|re-key|replace the key/i.test(output))\n  throw new Error('did not require rotating the key');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "/tmp/t2res/cryptography_baseline_3.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "options": {
+        "provider": {
+          "id": "exec:../_provider/claude-grader.sh",
+          "config": {
+            "model": "sonnet",
+            "apiKeyRequired": false,
+            "max_turns": 5
+          }
+        }
+      },
+      "vars": {},
+      "assert": [],
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/t1/evals/cryptography"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-28T20:42:39.385Z",
+    "evaluationCreatedAt": "2026-10-28T20:42:18.850Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

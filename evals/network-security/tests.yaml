@@ -1,0 +1,35 @@
+# network-security: shared matrix, used verbatim by both arms. Deterministic asserts only.
+
+
+- description: "flat"
+  vars: { request: file://cases/flat.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/segment|VLAN|microsegment|isolat/i.test(output)) throw new Error('prescribes segmentation -- not found');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/management|out-of-band|IoT|guest/i.test(output)) throw new Error('calls out isolating management/IoT specifically -- not found');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/default.deny|deny by default|least privilege|zero.trust/i.test(output)) throw new Error('prescribes default-deny / zero trust -- not found');
+        return true;
+
+- description: "ddos"
+  vars: { request: file://cases/ddos.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/upstream|cloud|scrub|provider|ISP/i.test(output)) throw new Error('says volumetric must be mitigated upstream -- not found');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/runbook|plan|rehears|incident response/i.test(output)) throw new Error('asks for a runbook -- not found');
+        return true;

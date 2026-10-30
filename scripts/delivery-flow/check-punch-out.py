@@ -10,11 +10,13 @@ only on triggers that can be read off disk:
 
   scope            triage set handoff: true
   architecture     triage set architecture_change: true
-  breaking         triage set breaking_change: true, or the diff touches a contract path
+  breaking         triage set breaking_change: true, or the item's own diff touches a
+                   contract path — "its own" being the commits that name the item key plus
+                   the working tree, never the whole branch (see `item_changed_files`)
   refuted-twice    the same step has been REFUTED twice
   retry-limit      an artifact's edge has failed more times than the limit
   budget           the item's API-equivalent cost has passed the configured budget
-  protected-path   the diff touches a protected path
+  protected-path   the item's own diff touches a protected path
   external-post    a post is due to a tracker marked external
 
 When one matches it writes `punch-out-<n>.md` — the trigger, its evidence, the decision
@@ -32,22 +34,82 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import is_delivery_repo, load_config, load_json, repo_root  # noqa: E402
+import triggers as trigger_rules  # noqa: E402  (the local `triggers()` owns that name)
+from common import artifact_root, is_delivery_repo, load_config, load_json, repo_root  # noqa: E402
 
 DEFAULT_RETRY_LIMIT = 3
 
 
-def git_changed_files(repo: Path) -> list:
-    """Files changed against the merge base, or [] when git can't say."""
-    for args in (["git", "diff", "--name-only", "origin/HEAD...HEAD"],
-                 ["git", "diff", "--name-only", "HEAD"]):
-        try:
-            out = subprocess.run(args, cwd=repo, capture_output=True, text=True, timeout=10)
-            if out.returncode == 0 and out.stdout.strip():
-                return [l.strip() for l in out.stdout.splitlines() if l.strip()]
-        except (OSError, subprocess.SubprocessError):
-            continue
-    return []
+def _git(repo: Path, *args) -> str:
+    """stdout, or None when git could not answer at all.
+
+    The distinction matters: an empty answer from a range git *could* resolve means "no
+    commits match", which is a result. Treating it as failure sent the old code on to a
+    broader fallback range and is half of how defect 12 happened.
+    """
+    try:
+        out = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return out.stdout if out.returncode == 0 else None
+
+
+def _lines(text: str) -> list:
+    return [l.strip() for l in (text or "").splitlines() if l.strip()]
+
+
+def commit_range(repo: Path, cfg: dict) -> str:
+    """The first range of "commits on this branch" git can resolve, or None."""
+    base = (cfg.get("forge") or {}).get("base") or "main"
+    for rev in ("origin/HEAD..HEAD", f"origin/{base}..HEAD", f"{base}..HEAD"):
+        if _git(repo, "log", "--format=%H", rev) is not None:
+            return rev
+    return None
+
+
+def item_changed_files(repo: Path, item: str, cfg: dict) -> tuple:
+    """(files, provenance, attribution) — the diff *this item* is answerable for.
+
+    Defect 12: the old version read the whole branch diff, so two items worked on one branch
+    each inherited the other's changes. On the AN-3704 re-run that produced a breaking-change
+    punch-out whose evidence named three files implementing a different ticket. A gate whose
+    evidence belongs to another work item is worse than no gate — it reads as authoritative
+    and is wrong.
+
+    So the range is narrowed by *attribution* rather than by path: the commits whose message
+    names the item key, plus the uncommitted working tree. Narrowing by path instead — to the
+    files the proposal declared — was the other candidate and is worse, because it would make
+    the plan unfalsifiable: the realized-diff check exists precisely to catch a contract path
+    the proposal never declared, and it cannot do that if the plan defines where it looks.
+
+    The residual is a commit that names no item: it is attributed to nobody and its paths go
+    unchecked. That direction is a missed gate rather than a misattributed one, which is the
+    safer failure, but it is a real gap — so `attribution` counts it and the report can say
+    how often the diff could not be attributed.
+    """
+    rng = commit_range(repo, cfg)
+    shas = _lines(_git(repo, "log", "--format=%H", "--fixed-strings", f"--grep={item}", rng)) if rng else []
+    total = len(_lines(_git(repo, "log", "--format=%H", rng))) if rng else 0
+
+    files, why = set(), []
+    for sha in shas:
+        files.update(_lines(_git(repo, "show", "--name-only", "--format=", sha)))
+    if shas:
+        why.append(f"{len(shas)} commit{'' if len(shas) == 1 else 's'} naming {item}")
+
+    # Tracked edits *and* untracked additions. `git diff HEAD` omits the latter, so a new file
+    # added under a protected path and not yet committed was invisible to this gate — the one
+    # shape where the gate is needed before anyone has had a chance to review anything.
+    # `--exclude-standard` keeps .gitignore'd build output out of it.
+    working = _lines(_git(repo, "diff", "--name-only", "HEAD")) + \
+        _lines(_git(repo, "ls-files", "--others", "--exclude-standard"))
+    if working:
+        files.update(working)
+        why.append("the uncommitted working tree")
+
+    return sorted(files), " and ".join(why), {
+        "range": rng, "commits_attributed": len(shas), "commits_in_range": total,
+        "commits_unattributed": max(0, total - len(shas)), "working_tree": bool(working)}
 
 
 def read_trace(item_dir: Path) -> list:
@@ -64,34 +126,68 @@ def read_trace(item_dir: Path) -> list:
     return out
 
 
-def triggers(repo: Path, item: str, step: str, cfg: dict) -> list:
-    item_dir = repo / "delivery" / item
+def triggers(repo: Path, item: str, step: str, cfg: dict) -> tuple:
+    """(fired triggers, how the realized diff was attributed to this item)."""
+    item_dir = artifact_root(repo) / item
     policy = cfg.get("punch_out") or {}
     found = []
 
+    # The three triage-sourced triggers. Each fires on the node's flag OR on a derivation that
+    # never reads that flag, so a node cannot skip its own gate by writing false. Where the two
+    # disagree, check-edge.py records it on the edge as `policy_disagreement` evidence and the
+    # edge still passes; the punch-out is written either way.
+    item_doc, _ = load_json(item_dir / "item.json")
     triage, _ = load_json(item_dir / "triage.json")
-    if triage:
-        if triage.get("handoff"):
-            found.append({"trigger": "scope", "evidence": "triage.json sets handoff: true"
-                          + (f" — {triage.get('handoff_reason')}" if triage.get("handoff_reason") else ""),
-                          "decision": "Is this in scope, and what should it be cut down to?",
-                          "options": ["proceed with a narrowed scope", "stop", "redirect to another item"]})
-        if triage.get("architecture_change"):
-            found.append({"trigger": "architecture", "evidence": "triage.json sets architecture_change: true",
-                          "decision": "This moves a boundary. Is that the intent?",
-                          "options": ["proceed", "stop", "redirect to a design discussion first"]})
-        if triage.get("breaking_change"):
-            found.append({"trigger": "breaking", "evidence": "triage.json sets breaking_change: true",
-                          "decision": "Callers will have to change. Proceed?",
-                          "options": ["proceed", "stop", "redirect: add a compatibility path first"]})
+    breakdown, _ = load_json(item_dir / "breakdown.json")
+    for name, v in sorted(trigger_rules.combine(item_doc, triage, breakdown, cfg).items()):
+        if not v["fired"]:
+            continue
+        flag = trigger_rules.FLAG_FOR[name]
+        if v["source"] == "claim":
+            evidence = f"triage.json sets {flag}: true"
+            if name == "scope" and (triage or {}).get("handoff_reason"):
+                evidence += f" — {triage['handoff_reason']}"
+            evidence += "; the derivation did not independently find it"
+        elif v["source"] == "derivation":
+            evidence = (f"derived from the artifacts ({v['evidence']}); "
+                        f"triage.json did not set {flag}")
+        else:
+            evidence = f"triage.json sets {flag}: true, and the artifacts agree: {v['evidence']}"
+        found.append({"trigger": name, "evidence": evidence,
+                      "decision": trigger_rules.CLAIMS[name][1], "options": trigger_rules.OPTIONS[name]})
 
-    changed = git_changed_files(repo)
+    # The proposal-sourced triggers, evaluated only when the flow is leaving the brief. Raising
+    # them earlier would ask a human to decide before the brief that explains the change exists.
+    if step == "implementation":
+        proposal, _ = load_json(item_dir / "proposal.json")
+        for name, v in sorted(trigger_rules.combine_proposal(proposal, cfg).items()):
+            if not v["fired"]:
+                continue
+            flag = trigger_rules.PROPOSAL_FLAG_FOR.get(name)
+            if v["source"] == "claim":
+                evidence = (f"proposal.json sets {flag}: true; the planned paths did not "
+                            "independently show it")
+            elif v["source"] == "derivation":
+                evidence = f"derived from the proposal's planned changes ({v['evidence']})"
+                if flag:
+                    evidence += f"; proposal.json did not set {flag}"
+            else:
+                evidence = f"proposal.json sets {flag}: true, and the planned paths agree: {v['evidence']}"
+            ask, options = trigger_rules.PROPOSAL_DECISIONS[name]
+            found.append({"trigger": name, "evidence": evidence,
+                          "decision": ask, "options": options})
+
+    changed, provenance, attribution = item_changed_files(repo, item, cfg)
     for kind, key, question in (("breaking", "contract_paths", "A shared contract changed. Proceed?"),
                                 ("protected-path", "protected_paths", "A protected path changed. Proceed?")):
         for prefix in policy.get(key) or []:
-            hits = [f for f in changed if f.startswith(prefix)]
+            hits = [f for f in changed if trigger_rules.under(f, prefix)]
             if hits:
-                found.append({"trigger": kind, "evidence": f"the diff touches {prefix}: " + ", ".join(hits[:5]),
+                # The evidence names *whose* diff it is. Defect 12's punch-out looked identical
+                # to a true one; the provenance is what lets a reader tell them apart.
+                found.append({"trigger": kind,
+                              "evidence": f"the diff attributed to {item} ({provenance}) "
+                                          f"touches {prefix}: " + ", ".join(hits[:5]),
                               "decision": question, "options": ["proceed", "stop", "redirect"]})
                 break
 
@@ -139,7 +235,7 @@ def triggers(repo: Path, item: str, step: str, cfg: dict) -> list:
         found.append({"trigger": "external-post", "evidence": "the tracker is marked external: true",
                       "decision": "This posts to someone else's tracker. Send it?",
                       "options": ["proceed", "stop", "redirect: edit the summary first"]})
-    return found
+    return found, attribution
 
 
 def write_punch_out(item_dir: Path, item: str, step: str, t: dict) -> Path:
@@ -169,13 +265,13 @@ def main(argv=None) -> int:
     if not is_delivery_repo(repo):
         print(f"{repo} is not a delivery-flow repo", file=sys.stderr)
         return 2
-    item_dir = repo / "delivery" / args.item
+    item_dir = artifact_root(repo) / args.item
     if not item_dir.exists():
         print(f"no such item: {args.item}", file=sys.stderr)
         return 2
 
     cfg = load_config(repo)
-    found = triggers(repo, args.item, args.step, cfg)
+    found, attribution = triggers(repo, args.item, args.step, cfg)
 
     # One punch-out per trigger kind: a second architecture flag on a rerun is the same decision.
     existing = {p.read_text().split("\n", 1)[0].split(": ", 1)[-1].strip()
@@ -189,12 +285,20 @@ def main(argv=None) -> int:
 
     if args.json:
         print(json.dumps({"item": args.item, "step": args.step, "triggered": found,
-                          "written": written, "already_open": sorted(existing)}, indent=2))
+                          "written": written, "already_open": sorted(existing),
+                          "diff_attribution": attribution}, indent=2))
     elif written:
         for w in written:
             print(f"punch-out written: {w}")
     else:
         print("no punch-out triggered" + (f" ({len(found)} already open)" if found else ""))
+
+    # A commit naming no item is checked by nobody. Said on stderr rather than counted as a
+    # trigger: it is a gap in coverage, not a decision a human has been asked to make.
+    if attribution["commits_unattributed"]:
+        print(f"note: {attribution['commits_unattributed']} of {attribution['commits_in_range']} "
+              f"commits in {attribution['range']} name no item key, so their paths were not "
+              f"checked against the contract or protected paths", file=sys.stderr)
     return 1 if written else 0
 
 

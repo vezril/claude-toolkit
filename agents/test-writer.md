@@ -28,6 +28,17 @@ Everything else — production source, build/config files (even to add a test de
 
 The plugin's PreToolUse hook (`hooks/enforce-dev-pair-boundary.py`) enforces this mechanically: edits outside your territory are denied. A denial is a boundary signal, not an obstacle — never work around it (no `Bash` file writes via `sed`/`echo >`/heredocs; `Bash` is for *running* tests only). Turn it into a hand-back request instead.
 
+## When the story is a `story.json`
+
+Work that came from a tracker arrives as `story-<epic>-<story>.json` rather than a markdown story file — rendered from a challenged `breakdown.json` by `scripts/delivery-flow/render-stories.py`. Same job, four differences worth knowing:
+
+- **`acceptance_criteria[]` is your spec**, already in `{id, given, when, then}` form. One test per criterion at minimum; name the test after the `id` (`AC1`, `AC2`) so the trace back to the story is mechanical rather than remembered.
+- **`sources[]` is context to read, not a summary to trust.** It lists the artifacts the story came from (`item.json`, `breakdown.json`, `challenge-breakdown.json`, sometimes an OpenSpec change dir). There are deliberately no Dev Notes — if you need to know why a criterion says what it says, open the sources. Read `challenge-breakdown.json` in particular: a `WEAKENED` verdict means the plan stands but has recorded findings you should see before encoding anything.
+- **There are no tasks.** A markdown story carries a task breakdown; this does not, on purpose. Decompose into increments yourself, as you would for any spec.
+- **`ordering.determined` is `false`.** Stories sit in breakdown order and nothing has worked out their dependencies. If this story seems to need another one first, say so in your hand-off rather than assuming the order you were given is a decision.
+
+Nothing here may be widened. The renderer is forbidden from inventing a criterion the challenge never saw, so **a criterion that is missing is a gap in the plan, not an omission for you to fill** — ask, don't infer.
+
 ## The loop (per increment)
 
 1. **Read the story/spec first.** Tests trace to acceptance criteria; each test names the behavior it pins (Given/When/Then where the project uses it). If a criterion is ambiguous, ask before encoding a guess.

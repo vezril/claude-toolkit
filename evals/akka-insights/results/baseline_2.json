@@ -1,0 +1,260 @@
+{
+  "evalId": "eval-XAJ-2026-10-29T20:00:46",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T20:00:46.242Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "label": "evals/akka-insights/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "id": "6f20d8ce3476cb7111a8a8986cc1a0e02fb1db224e4d8d07f1c5b0907450b4ac",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 1,
+          "testPassCount": 1,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 1,
+          "assertFailCount": 0,
+          "totalLatencyMs": 11316,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoresCount": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/agent|javaagent|dependenc|sbt|library|config|token/i.test(output)) throw new Error('describes how it is added rather than inventing an API');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "46e1ae2d-56bb-4755-9fbd-99d4a9ce040b",
+        "latencyMs": 11316,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nHow do I get Akka Insights telemetry into my service?",
+          "label": "evals/akka-insights/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "6f20d8ce3476cb7111a8a8986cc1a0e02fb1db224e4d8d07f1c5b0907450b4ac",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Add the Cinnamon agent (Akka Insights) to your build, with one backend, and opt in the actors you want reported. It's a licensed product, so you need an Akka subscription and the commercial resolver credentials. Keep those credentials out of version control.\n\n**sbt example** (Maven and Gradle have equivalents):\n\n```scala\n// project/plugins.sbt\naddSbtPlugin(\"com.lightbend.cinnamon\" % \"sbt-cinnamon\" % \"2.22.x\")\n\n// build.sbt\nlazy val app = (project in file(\".\")).enablePlugins(Cinnamon)\nrun / cinnamon := true\ntest / cinnamon := true\nlibraryDependencies ++= Seq(\n  Cinnamon.library.cinnamonAkka,           // required\n  Cinnamon.library.cinnamonPrometheus,     // a backend is required, or nothing is exported\n  // add the modules that match what you run:\n  Cinnamon.library.cinnamonAkkaTyped,\n  Cinnamon.library.cinnamonAkkaPersistence,\n  Cinnamon.library.cinnamonAkkaCluster,\n  Cinnamon.library.cinnamonAkkaStream)\n```\n\n**Opt in actors.** Actor telemetry is off by default. Select paths in `application.conf`:\n\n```hocon\ncinnamon.akka.actors { \"/user/*\" { report-by = class } }\n```\n\nDon't instrument every actor, because that makes the metric count explode.\n\n- **How it runs:** the sbt plugin attaches a `-javaagent` to the JVM. In a cluster, each node runs it and reports on its own.\n- **Backends:** Prometheus, OpenTelemetry, Datadog, StatsD and others. For tracing, use Jaeger or Zipkin. Grafana and Datadog dashboards are available.\n- **Try it without monitoring infrastructure:** use the developer sandbox (Elasticsearch, Kibana and Grafana, or an OpenTelemetry/Prometheus variant).\n\nFor free startup checks instead of continuous telemetry, use Akka Diagnostics. It complements Insights rather than replacing it."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "added",
+          "vars": {
+            "request": "file:///private/tmp/b6/evals/akka-insights/cases/added.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/agent|javaagent|dependenc|sbt|library|config|token/i.test(output)) throw new Error('describes how it is added rather than inventing an API');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-insights/cases/added.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 1,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 1,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 11335,
+      "evaluationDurationMs": 11335
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-insights — EDD — NAIVE BASELINE",
+    "prompts": [
+      "file:///private/tmp/b6/evals/akka-insights/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "added",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-insights/cases/added.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/agent|javaagent|dependenc|sbt|library|config|token/i.test(output)) throw new Error('describes how it is added rather than inventing an API');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-insights/results/baseline_2.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/private/tmp/b6/evals/akka-insights"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T20:00:57.604Z",
+    "evaluationCreatedAt": "2026-10-29T20:00:46.242Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

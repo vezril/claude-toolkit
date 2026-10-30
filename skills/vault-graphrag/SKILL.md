@@ -1,7 +1,7 @@
 ---
 name: vault-graphrag
-description: "Build and query a GraphRAG knowledge graph inside an Obsidian vault using nothing but notes, frontmatter properties, and typed wikilinks — no external index, no embeddings, no sync problem. Three note types (incident, entity, pattern) turn each handled defect/investigation into durable, linked, queryable knowledge. Covers the note schema and naming conventions, the vault-update operation (upsert an incident note + entity stubs + pattern links after handling a defect), and the vault-recall operation (deterministic graph retrieval: 'have we seen something like this before?' → a compact prior-incidents artifact). Use when setting up a knowledge graph over an Obsidian vault, writing an incident/defect into the vault, recalling similar prior incidents, designing frontmatter schemas for graph traversal, or wiring a workflow pipeline (e.g. a defect-handling flow) to accumulate and reuse organizational memory. Client- and domain-agnostic: all instance vocabulary (which services, which teams, vault location) comes from a binding config the caller supplies."
-argument-hint: "[update <ticket-key> | recall <ticket-key> | a schema/setup question]"
+description: "Build and query a GraphRAG knowledge graph inside an Obsidian vault using nothing but notes, frontmatter properties, and typed wikilinks — no external index, no embeddings, no sync problem. Note types (incident, delivery, decision, entity, pattern, lesson) turn each handled defect and each delivered change into durable, linked, queryable knowledge, scoped by project. Covers the note schema and naming conventions, the vault-update operations (upsert an incident or delivery note + entity stubs + pattern/decision links), incident recall ('have we seen something like this before?'), and delivery recall ('what has this project already decided, built and learned?' → a compact project-context artifact). Use when setting up a knowledge graph over an Obsidian vault, writing an incident/defect/delivery into the vault, recalling prior incidents or prior project decisions, designing frontmatter schemas for graph traversal, or wiring a workflow pipeline (a defect-handling or delivery flow) to accumulate and reuse organizational memory. Client- and domain-agnostic: all instance vocabulary (which services, which teams, which project, vault location) comes from a binding config the caller supplies."
+argument-hint: "[update <ticket-key> | recall <ticket-key> | delivery-recall <ticket-key> | a schema/setup question]"
 ---
 
 # vault-graphrag — an Obsidian vault as a knowledge graph
@@ -21,22 +21,30 @@ fails you.
 
 Load the reference for the operation at hand:
 
-- **[references/schema.md](references/schema.md)** — the three note types, their
-  frontmatter contracts, naming/folder conventions, the typed-link vocabulary,
-  and worked examples. Read before writing any note.
-- **[references/recall.md](references/recall.md)** — the deterministic retrieval
-  algorithm (candidate entities → link/keyword scan → scoring → the
+- **[references/schema.md](references/schema.md)** — the six note types, their
+  frontmatter contracts, the `project` field, naming/folder conventions, the typed-link
+  vocabulary, and worked examples. Read before writing any note.
+- **[references/recall.md](references/recall.md)** — *incident* recall: the deterministic
+  retrieval algorithm (candidate entities → link/keyword scan → scoring → the
   `prior-incidents.md` output contract), and the v2 escalation path.
+- **[references/delivery-recall.md](references/delivery-recall.md)** — *delivery* recall:
+  project-weighted scoring, both call points, the `project-context` contract, and why it is a
+  script rather than a certified prompt.
 
 ## The model in one paragraph
 
-Four note types. An **incident** is one handled defect/investigation — keyed by
+Six note types. An **incident** is one handled defect/investigation — keyed by
 its ticket id, carrying symptom / root cause / resolution as *frontmatter fields*
 so retrieval never has to parse prose. An **entity** is a durable thing incidents
 happen to: a service, platform, component, or team. A **pattern** is a recurring
 failure shape ("silent await on a downstream dependency") that generalizes across
 incidents. A **lesson** is a measured practice improvement (a prompt technique,
-an eval-design finding) written by evidence-producing workflows like EDD runs. Incidents link *to* entities and patterns via frontmatter wikilinks;
+an eval-design finding) written by evidence-producing workflows like EDD runs. A **decision** is
+a settled technical choice, ADR-shaped and keyed by a slug, whose `status` decides whether it is
+still in force. A **delivery** is one shipped feature, fix or task — the counterpart of an
+incident, recording what was built rather than what broke. An optional `project` field scopes
+work within one client, and is the heaviest term in delivery recall's scoring. Incidents and
+deliveries link *to* entities, patterns and decisions via frontmatter wikilinks;
 Obsidian's backlinks give you the reverse edges for free. The payoff compounds:
 every handled incident makes the next "have we seen this before?" cheaper.
 

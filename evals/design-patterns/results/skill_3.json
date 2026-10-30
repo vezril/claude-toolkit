@@ -1,0 +1,669 @@
+{
+  "evalId": "eval-Tl8-2026-10-28T20:53:51",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-28T20:53:51.232Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/design-patterns/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "db016a77fcbba087d87a2b2051ecfc0e9f53d2f73353bcbda69bb2561c2578c2",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2.65,
+          "testPassCount": 2,
+          "testFailCount": 1,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 5,
+          "assertFailCount": 1,
+          "totalLatencyMs": 45778,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 1,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "restraint": 1,
+            "routing": 3.3,
+            "accuracy": 1
+          },
+          "namedScoresCount": {
+            "restraint": 1,
+            "routing": 4,
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1,
+            "routing": 4,
+            "accuracy": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "routing": 1,
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "routing": 1,
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "routing",
+                "value": "if (!/sealed (trait|abstract)|algebraic data type|\\bADT\\b/i.test(output))\n  throw new Error('did not reach for a sealed trait / ADT instead of Visitor');\nif (!/pattern match|\\bmatch\\b|exhaustiv/i.test(output))\n  throw new Error('did not mention exhaustive pattern matching');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "// The precise trade-off: Visitor eases new TYPES, ADTs ease new OPERATIONS.\nif (!/expression problem|adding (new )?(types|operations)|which axis|axis (of )?change/i.test(output))\n  throw new Error('did not surface the expression-problem trade-off (types vs operations axis)');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "36cd4bfa-ef31-43fa-8f83-7aad59d5a0b7",
+        "latencyMs": 19426,
+        "namedScores": {
+          "routing": 1,
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\n<skill>\n---\nname: design-patterns\ndescription: \"The 23 Gang of Four design patterns and the OO design principles behind them, from Gamma, Helm, Johnson & Vlissides' *Design Patterns: Elements of Reusable Object-Oriented Software* (1994) — what each pattern solves, its structure and trade-offs, when (and when not) to reach for it, and how it maps onto Scala/FP idioms (many GoF patterns collapse to language features). Covers the creational patterns (Abstract Factory, Builder, Factory Method, Prototype, Singleton), structural patterns (Adapter, Bridge, Composite, Decorator, Facade, Flyweight, Proxy), and behavioral patterns (Chain of Responsibility, Command, Interpreter, Iterator, Mediator, Memento, Observer, State, Strategy, Template Method, Visitor), plus the core principles \\\"program to an interface, not an implementation\\\" and \\\"favor object composition over class inheritance.\\\" Use whenever the user is designing or refactoring object-oriented code, asks about a named pattern or which pattern fits a problem, wants to reduce coupling or improve extensibility, mentions factories/observers/decorators/visitors/strategies/adapters/singletons etc., is reviewing a design for over-engineering, or wants the Scala/FP-idiomatic alternative to a classic OO pattern — even if they don't say \\\"design pattern.\\\"\"\n---\n\n# Design Patterns (Gang of Four)\n\nThe 23 patterns from Gamma, Helm, Johnson & Vlissides (1994), as a working advisor: each pattern's intent, the problem it solves, its trade-offs, when to use it — and, because the audience codes in Scala/FP, how it maps onto language features and functional idioms. The book is OO (C++/Smalltalk), but the *design judgment* generalizes.\n\nIf the user's explicit instructions conflict with this skill, the user wins.\n\n## The point of patterns (and the warning that comes first)\n\nA design pattern is a *named, reusable solution to a recurring design problem*, plus the trade-offs of applying it. Patterns are a **vocabulary** (\"let's make that a Strategy\") and a record of designs that survived real redesign for flexibility and reuse. They are not goals in themselves.\n\n**Don't reach for a pattern first.** The single most important judgment is restraint. Patterns add indirection, and indirection is a cost paid in every read of the code. Apply a pattern only when there's a *real, present* variation or coupling problem it relieves — not speculatively. Most over-engineered codebases are patterns applied to problems that didn't exist yet. The book itself frames patterns as the designs you refactor *toward* under pressure, not the ones you start with. So: name the concrete pain first (this thing changes for two reasons; these two modules can't be swapped; adding a case touches ten files), then pick the pattern that relieves *that*.\n\n## Two principles underneath everything\n\nThe catalog is mostly applications of two ideas from Chapter 1:\n\n1. **Program to an interface, not an implementation.** Depend on the abstract type (what an object *does*), never a concrete class. Clients then don't know or care which implementation they hold, which decouples subsystems and lets implementations vary freely. (In Scala: depend on a `trait`/abstract type; in FP: depend on a function type.)\n2. **Favor object composition over class inheritance.** Inheritance is compile-time, white-box, and rigid — a subclass is bound to its parent's implementation. Composition (an object holding and delegating to another) is run-time, black-box, and flexible; it keeps each class focused and lets behavior be reconfigured by swapping parts. Designers habitually overuse inheritance; most patterns achieve reuse by composition + **delegation** (an object forwards a request to a held delegate, passing itself if the delegate needs context).\n\nA corollary the book stresses: **encapsulate what varies.** Find the aspect of your design that changes and isolate it behind a stable interface — that is, in one form or another, what every pattern does.\n\n## How to select a pattern\n\nWork from the problem, not the catalog: (1) state what *varies* and what must stay stable; (2) identify the kind of change you want cheap — object creation, object structure/composition, or object behavior/communication; that maps to the three families below; (3) read the candidate patterns' Intent and Consequences and pick the lightest one that removes the coupling; (4) consider whether a **language feature** already solves it (see the Scala/FP notes) before adding a pattern. Patterns also combine — a real design layers several.\n\n## The three families\n\nDetail lives in the category references — read the one matching the problem:\n\n- **`references/creational.md`** — *how objects get made*, decoupling clients from concrete classes: **Abstract Factory, Builder, Factory Method, Prototype, Singleton**.\n- **`references/structural.md`** — *how objects and classes are composed* into larger structures: **Adapter, Bridge, Composite, Decorator, Facade, Flyweight, Proxy**.\n- **`references/behavioral.md`** — *how objects distribute responsibility and communicate*: **Chain of Responsibility, Command, Interpreter, Iterator, Mediator, Memento, Observer, State, Strategy, Template Method, Visitor**.\n\nEach reference gives, per pattern: faithful Intent, the problem, brief structure, a Scala/FP mapping, and a when-to-use / critique.\n\n## Catalog at a glance (intent + Scala/FP note)\n\n| Pattern | Intent (GoF) | Scala/FP note |\n|---|---|---|\n| **Abstract Factory** | Interface for creating *families* of related objects without their concrete classes | Often a record of functions, or a typeclass instance |\n| **Builder** | Separate construction of a complex object from its representation | Default/named args, `copy`, or a fluent builder; immutable case classes |\n| **Factory Method** | Define an interface for creating an object, let subclasses choose the class | A function/companion `apply`; pass a constructor function |\n| **Prototype** | Create objects by cloning a prototypical instance | Immutable data + `copy`; cloning is rarely needed |\n| **Singleton** | One instance + global access point | `object` in Scala. **Often an anti-pattern** (global mutable state) |\n| **Adapter** | Convert one interface into another clients expect | Wrapper class, extension methods, or a converting function |\n| **Bridge** | Decouple an abstraction from its implementation so both vary | Compose a trait-typed field; pass behavior as a value |\n| **Composite** | Tree structures; treat individual & composite objects uniformly | Recursive ADT (`sealed trait` + cases) + fold |\n| **Decorator** | Add responsibilities to an object dynamically | Function composition; wrapper trait; middleware |\n| **Facade** | One unified interface to a subsystem | A module/object exposing a small API |\n| **Flyweight** | Share fine-grained objects to save memory | Interning/caching of immutable values; memoization |\n| **Proxy** | A surrogate controlling access to another object | Lazy `val`, wrapper, or higher-order interception |\n| **Chain of Responsibility** | Pass a request along handlers until one handles it | List of functions; `orElse` on `PartialFunction` |\n| **Command** | Encapsulate a request as an object (queue, log, undo) | A function/closure, or a value (ADT) describing the action |\n| **Interpreter** | Represent a grammar and interpret its sentences | ADT for the AST + recursive eval; parser combinators |\n| **Iterator** | Sequential access to elements without exposing structure | Built in: `Iterator`, `LazyList`, for-comprehension |\n| **Mediator** | Encapsulate how a set of objects interact (loose coupling) | A coordinator object/function; event bus |\n| **Memento** | Capture/restore an object's state without breaking encapsulation | Snapshot an immutable value; persist/restore the data |\n| **Observer** | One-to-many dependency: notify dependents on state change | FRP/streams (signals, `Observable`); callbacks |\n| **State** | Alter behavior when internal state changes | State as an ADT + transition function `S => S` |\n| **Strategy** | Encapsulate interchangeable algorithms | A higher-order function parameter — the canonical FP collapse |\n| **Template Method** | Algorithm skeleton with steps deferred to subclasses | A higher-order function taking the varying steps |\n| **Visitor** | New operations over an object structure without changing it | `sealed trait` + exhaustive pattern match (no Visitor needed) |\n\n## Modern / critical lens (the audience asked for this)\n\n- **Many GoF patterns are workarounds for what 1994 OO languages lacked.** First-class functions turn **Strategy, Command, Template Method, Factory Method**, and much of **Observer/Chain of Responsibility** into \"pass a function.\" **Iterator** is built into every modern language. **Singleton** is `object` in Scala. So before formalizing a pattern, check whether a function, an ADT + pattern match, or a standard-library type already expresses it more directly.\n- **ADTs + exhaustive pattern matching replace the Visitor double-dispatch dance.** GoF's Visitor exists because OO makes \"add an operation over a fixed type hierarchy\" hard; a `sealed trait` with `match` gives it for free and the compiler checks exhaustiveness. The trade-off (the \"expression problem\") is just inverted: Visitor/OO makes adding *types* easy and *operations* hard; ADTs make adding *operations* easy and *types* harder. Choose by which axis changes more.\n- **Singleton is widely considered an anti-pattern** — it's global mutable state in disguise, hurting testability and hiding dependencies. Prefer passing dependencies explicitly (or a stateless `object`).\n- **Immutability dissolves several patterns.** Prototype (clone) and Memento (snapshot) are trivial when values are immutable — just share or copy the data. See [[functional-programming]].\n- **Patterns still earn their keep** for genuine structural problems: Adapter (interface mismatch), Facade (taming a subsystem), Composite (recursive structures), Decorator/Proxy (layering behavior), Bridge/Abstract Factory (independent variation across two axes). The judgment is to apply them to real coupling, not as decoration.\n\n## Related\n\n- [[functional-programming]] — ADTs, immutability, and pure functions that subsume Strategy/Command/Visitor/State/Memento/Prototype; \"program to an interface\" and \"favor composition\" are FP defaults.\n- [[scala]] — concrete mechanics (`sealed trait` ADTs + exhaustive match, `object`, `copy`, higher-order functions, traits) used in the Scala/FP mappings.\n- [[tdd]] — programming to interfaces and injecting dependencies (vs. Singletons) is what makes code testable.\n- Source: *Design Patterns: Elements of Reusable Object-Oriented Software*, Gamma, Helm, Johnson & Vlissides (Addison-Wesley, 1994). Intent statements are quoted faithfully; Scala/FP mappings and critique are added for this repo's stack.\n</skill>\n\nUser request:\nI'm writing an interpreter in Scala with an AST of about 12 node types. I need to add several operations over it (eval, pretty-print, type-check). Should I implement the Visitor pattern? Show me how you'd structure it.",
+          "label": "evals/design-patterns/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          }
+        },
+        "promptId": "db016a77fcbba087d87a2b2051ecfc0e9f53d2f73353bcbda69bb2561c2578c2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "**Don't implement Visitor.** In Scala, a `sealed trait` ADT with exhaustive pattern matching does what Visitor exists for, without the `accept`/`visit` double dispatch. The compiler also flags any operation that misses a node.\n\nWith a fixed set of about 12 nodes and several operations that will keep growing, adding operations is the axis you care about. ADTs make that cheap. Visitor makes adding types cheap and operations expensive, which is the opposite of what you need.\n\n**Structure:** one file for the AST, one file per operation. The AST knows nothing about its operations.\n\n```scala\n// Ast.scala\nenum Expr:\n  case Num(value: Double)\n  case Bool(value: Boolean)\n  case Var(name: String)\n  case BinOp(op: Op, l: Expr, r: Expr)\n  case If(cond: Expr, thenE: Expr, elseE: Expr)\n  case Let(name: String, bound: Expr, body: Expr)\n  // ...remaining ~6 nodes\n\nenum Op:\n  case Add, Mul, Lt, Eq\n\nenum Type:\n  case TNum, TBool\n```\n\n```scala\n// Eval.scala\nimport Expr.*\n\nenum Value:\n  case N(d: Double)\n  case B(b: Boolean)\n\nobject Eval:\n  type Env = Map[String, Value]\n\n  def eval(e: Expr, env: Env = Map.empty): Either[String, Value] = e match\n    case Num(v)  => Right(Value.N(v))\n    case Bool(v) => Right(Value.B(v))\n    case Var(n)  => env.get(n).toRight(s\"unbound: $n\")\n    case BinOp(op, l, r) =>\n      for\n        a <- eval(l, env)\n        b <- eval(r, env)\n        v <- apply(op, a, b)\n      yield v\n    case If(c, t, f) =>\n      eval(c, env).flatMap:\n        case Value.B(true)  => eval(t, env)\n        case Value.B(false) => eval(f, env)\n        case _              => Left(\"if: non-bool condition\")\n    case Let(n, bound, body) =>\n      eval(bound, env).flatMap(v => eval(body, env + (n -> v)))\n\n  private def apply(op: Op, a: Value, b: Value): Either[String, Value] = (op, a, b) match\n    case (Op.Add, Value.N(x), Value.N(y)) => Right(Value.N(x + y))\n    case (Op.Mul, Value.N(x), Value.N(y)) => Right(Value.N(x * y))\n    case (Op.Lt,  Value.N(x), Value.N(y)) => Right(Value.B(x < y))\n    case (Op.Eq,  x, y)                   => Right(Value.B(x == y))\n    case _                                => Left(s\"bad operands for $op\")\n```\n\n```scala\n// Pretty.scala\nimport Expr.*\n\nobject Pretty:\n  def show(e: Expr): String = e match\n    case Num(v)          => v.toString\n    case Bool(v)         => v.toString\n    case Var(n)          => n\n    case BinOp(op, l, r) => s\"(${show(l)} ${sym(op)} ${show(r)})\"\n    case If(c, t, f)     => s\"if ${show(c)} then ${show(t)} else ${show(f)}\"\n    case Let(n, b, body) => s\"let $n = ${show(b)} in ${show(body)}\"\n\n  private def sym(op: Op) = op match\n    case Op.Add => \"+\"; case Op.Mul => \"*\"; case Op.Lt => \"<\"; case Op.Eq => \"==\"\n```\n\n```scala\n// TypeCheck.scala\nimport Expr.*, Type.*\n\nobject TypeCheck:\n  type Ctx = Map[String, Type]\n\n  def check(e: Expr, ctx: Ctx = Map.empty): Either[String, Type] = e match\n    case Num(_)  => Right(TNum)\n    case Bool(_) => Right(TBool)\n    case Var(n)  => ctx.get(n).toRight(s\"unbound: $n\")\n    case BinOp(op, l, r) =>\n      for\n        lt <- check(l, ctx)\n        rt <- check(r, ctx)\n        t  <- result(op, lt, rt)\n      yield t\n    case If(c, t, f) =>\n      for\n        ct <- check(c, ctx)\n        _  <- Either.cond(ct == TBool, (), \"if: condition must be Bool\")\n        tt <- check(t, ctx)\n        ft <- check(f, ctx)\n        _  <- Either.cond(tt == ft, (), s\"if: branches differ ($tt vs $ft)\")\n      yield tt\n    case Let(n, b, body) =>\n      check(b, ctx).flatMap(bt => check(body, ctx + (n -> bt)))\n\n  private def result(op: Op, l: Type, r: Type): Either[String, Type] = (op, l, r) match\n    case (Op.Add | Op.Mul, TNum, TNum) => Right(TNum)\n    case (Op.Lt, TNum, TNum)           => Right(TBool)\n    case (Op.Eq, a, b) if a == b       => Right(TBool)\n    case _                             => Left(s\"type error in $op: $l, $r\")\n```\n\n**Practical notes**\n- Keep `Expr` `sealed` (an `enum` is sealed already). Adding a 13th node then produces \"match may not be exhaustive\" warnings in every operation. Enable `-Wconf:cat=other-match-analysis:error` to make those errors.\n- If the three operations repeat the same recursion, for example to rebuild or traverse children, add one generic `map`/`fold` over `Expr` (a catamorphism). That is the FP counterpart of Visitor's traversal logic.\n- Run `TypeCheck.check` before `Eval.eval` so evaluation can skip re-validating types.\n\n**When Visitor, or tagless final, would be worth it**\n- Third parties must add new node types without touching your code. This is the expression problem flipped, and tagless final (`trait ExprAlg[R]`) handles it better than classic Visitor in Scala.\n- You must hide the AST behind a binary-stable Java API. Nothing in your description suggests either case."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "visitor over an AST - ADTs + exhaustive match, and the expression problem",
+          "vars": {
+            "skill": "file:///private/tmp/t1/skills/design-patterns/SKILL.md",
+            "request": "file:///private/tmp/t1/evals/design-patterns/cases/visitor.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "routing",
+              "value": "if (!/sealed (trait|abstract)|algebraic data type|\\bADT\\b/i.test(output))\n  throw new Error('did not reach for a sealed trait / ADT instead of Visitor');\nif (!/pattern match|\\bmatch\\b|exhaustiv/i.test(output))\n  throw new Error('did not mention exhaustive pattern matching');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "// The precise trade-off: Visitor eases new TYPES, ADTs ease new OPERATIONS.\nif (!/expression problem|adding (new )?(types|operations)|which axis|axis (of )?change/i.test(output))\n  throw new Error('did not surface the expression-problem trade-off (types vs operations axis)');\nreturn true;\n"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/t1/skills/design-patterns/SKILL.md",
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/visitor.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "restraint": 1,
+            "routing": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1,
+            "routing": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "if (!/anti-?pattern|global (mutable )?state|testab|hides? depend|hidden depend/i.test(output))\n  throw new Error('delivered a Singleton without flagging it as global mutable state / anti-pattern');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "routing",
+                "value": "if (!/pass(ing)? (the )?depend|inject|explicit depend|\\bobject\\b/i.test(output))\n  throw new Error('did not offer explicit dependency passing (or a stateless object) instead');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "64c4e6a6-fb37-4999-9a73-46b2ab22deb2",
+        "latencyMs": 9307,
+        "namedScores": {
+          "restraint": 1,
+          "routing": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\n<skill>\n---\nname: design-patterns\ndescription: \"The 23 Gang of Four design patterns and the OO design principles behind them, from Gamma, Helm, Johnson & Vlissides' *Design Patterns: Elements of Reusable Object-Oriented Software* (1994) — what each pattern solves, its structure and trade-offs, when (and when not) to reach for it, and how it maps onto Scala/FP idioms (many GoF patterns collapse to language features). Covers the creational patterns (Abstract Factory, Builder, Factory Method, Prototype, Singleton), structural patterns (Adapter, Bridge, Composite, Decorator, Facade, Flyweight, Proxy), and behavioral patterns (Chain of Responsibility, Command, Interpreter, Iterator, Mediator, Memento, Observer, State, Strategy, Template Method, Visitor), plus the core principles \\\"program to an interface, not an implementation\\\" and \\\"favor object composition over class inheritance.\\\" Use whenever the user is designing or refactoring object-oriented code, asks about a named pattern or which pattern fits a problem, wants to reduce coupling or improve extensibility, mentions factories/observers/decorators/visitors/strategies/adapters/singletons etc., is reviewing a design for over-engineering, or wants the Scala/FP-idiomatic alternative to a classic OO pattern — even if they don't say \\\"design pattern.\\\"\"\n---\n\n# Design Patterns (Gang of Four)\n\nThe 23 patterns from Gamma, Helm, Johnson & Vlissides (1994), as a working advisor: each pattern's intent, the problem it solves, its trade-offs, when to use it — and, because the audience codes in Scala/FP, how it maps onto language features and functional idioms. The book is OO (C++/Smalltalk), but the *design judgment* generalizes.\n\nIf the user's explicit instructions conflict with this skill, the user wins.\n\n## The point of patterns (and the warning that comes first)\n\nA design pattern is a *named, reusable solution to a recurring design problem*, plus the trade-offs of applying it. Patterns are a **vocabulary** (\"let's make that a Strategy\") and a record of designs that survived real redesign for flexibility and reuse. They are not goals in themselves.\n\n**Don't reach for a pattern first.** The single most important judgment is restraint. Patterns add indirection, and indirection is a cost paid in every read of the code. Apply a pattern only when there's a *real, present* variation or coupling problem it relieves — not speculatively. Most over-engineered codebases are patterns applied to problems that didn't exist yet. The book itself frames patterns as the designs you refactor *toward* under pressure, not the ones you start with. So: name the concrete pain first (this thing changes for two reasons; these two modules can't be swapped; adding a case touches ten files), then pick the pattern that relieves *that*.\n\n## Two principles underneath everything\n\nThe catalog is mostly applications of two ideas from Chapter 1:\n\n1. **Program to an interface, not an implementation.** Depend on the abstract type (what an object *does*), never a concrete class. Clients then don't know or care which implementation they hold, which decouples subsystems and lets implementations vary freely. (In Scala: depend on a `trait`/abstract type; in FP: depend on a function type.)\n2. **Favor object composition over class inheritance.** Inheritance is compile-time, white-box, and rigid — a subclass is bound to its parent's implementation. Composition (an object holding and delegating to another) is run-time, black-box, and flexible; it keeps each class focused and lets behavior be reconfigured by swapping parts. Designers habitually overuse inheritance; most patterns achieve reuse by composition + **delegation** (an object forwards a request to a held delegate, passing itself if the delegate needs context).\n\nA corollary the book stresses: **encapsulate what varies.** Find the aspect of your design that changes and isolate it behind a stable interface — that is, in one form or another, what every pattern does.\n\n## How to select a pattern\n\nWork from the problem, not the catalog: (1) state what *varies* and what must stay stable; (2) identify the kind of change you want cheap — object creation, object structure/composition, or object behavior/communication; that maps to the three families below; (3) read the candidate patterns' Intent and Consequences and pick the lightest one that removes the coupling; (4) consider whether a **language feature** already solves it (see the Scala/FP notes) before adding a pattern. Patterns also combine — a real design layers several.\n\n## The three families\n\nDetail lives in the category references — read the one matching the problem:\n\n- **`references/creational.md`** — *how objects get made*, decoupling clients from concrete classes: **Abstract Factory, Builder, Factory Method, Prototype, Singleton**.\n- **`references/structural.md`** — *how objects and classes are composed* into larger structures: **Adapter, Bridge, Composite, Decorator, Facade, Flyweight, Proxy**.\n- **`references/behavioral.md`** — *how objects distribute responsibility and communicate*: **Chain of Responsibility, Command, Interpreter, Iterator, Mediator, Memento, Observer, State, Strategy, Template Method, Visitor**.\n\nEach reference gives, per pattern: faithful Intent, the problem, brief structure, a Scala/FP mapping, and a when-to-use / critique.\n\n## Catalog at a glance (intent + Scala/FP note)\n\n| Pattern | Intent (GoF) | Scala/FP note |\n|---|---|---|\n| **Abstract Factory** | Interface for creating *families* of related objects without their concrete classes | Often a record of functions, or a typeclass instance |\n| **Builder** | Separate construction of a complex object from its representation | Default/named args, `copy`, or a fluent builder; immutable case classes |\n| **Factory Method** | Define an interface for creating an object, let subclasses choose the class | A function/companion `apply`; pass a constructor function |\n| **Prototype** | Create objects by cloning a prototypical instance | Immutable data + `copy`; cloning is rarely needed |\n| **Singleton** | One instance + global access point | `object` in Scala. **Often an anti-pattern** (global mutable state) |\n| **Adapter** | Convert one interface into another clients expect | Wrapper class, extension methods, or a converting function |\n| **Bridge** | Decouple an abstraction from its implementation so both vary | Compose a trait-typed field; pass behavior as a value |\n| **Composite** | Tree structures; treat individual & composite objects uniformly | Recursive ADT (`sealed trait` + cases) + fold |\n| **Decorator** | Add responsibilities to an object dynamically | Function composition; wrapper trait; middleware |\n| **Facade** | One unified interface to a subsystem | A module/object exposing a small API |\n| **Flyweight** | Share fine-grained objects to save memory | Interning/caching of immutable values; memoization |\n| **Proxy** | A surrogate controlling access to another object | Lazy `val`, wrapper, or higher-order interception |\n| **Chain of Responsibility** | Pass a request along handlers until one handles it | List of functions; `orElse` on `PartialFunction` |\n| **Command** | Encapsulate a request as an object (queue, log, undo) | A function/closure, or a value (ADT) describing the action |\n| **Interpreter** | Represent a grammar and interpret its sentences | ADT for the AST + recursive eval; parser combinators |\n| **Iterator** | Sequential access to elements without exposing structure | Built in: `Iterator`, `LazyList`, for-comprehension |\n| **Mediator** | Encapsulate how a set of objects interact (loose coupling) | A coordinator object/function; event bus |\n| **Memento** | Capture/restore an object's state without breaking encapsulation | Snapshot an immutable value; persist/restore the data |\n| **Observer** | One-to-many dependency: notify dependents on state change | FRP/streams (signals, `Observable`); callbacks |\n| **State** | Alter behavior when internal state changes | State as an ADT + transition function `S => S` |\n| **Strategy** | Encapsulate interchangeable algorithms | A higher-order function parameter — the canonical FP collapse |\n| **Template Method** | Algorithm skeleton with steps deferred to subclasses | A higher-order function taking the varying steps |\n| **Visitor** | New operations over an object structure without changing it | `sealed trait` + exhaustive pattern match (no Visitor needed) |\n\n## Modern / critical lens (the audience asked for this)\n\n- **Many GoF patterns are workarounds for what 1994 OO languages lacked.** First-class functions turn **Strategy, Command, Template Method, Factory Method**, and much of **Observer/Chain of Responsibility** into \"pass a function.\" **Iterator** is built into every modern language. **Singleton** is `object` in Scala. So before formalizing a pattern, check whether a function, an ADT + pattern match, or a standard-library type already expresses it more directly.\n- **ADTs + exhaustive pattern matching replace the Visitor double-dispatch dance.** GoF's Visitor exists because OO makes \"add an operation over a fixed type hierarchy\" hard; a `sealed trait` with `match` gives it for free and the compiler checks exhaustiveness. The trade-off (the \"expression problem\") is just inverted: Visitor/OO makes adding *types* easy and *operations* hard; ADTs make adding *operations* easy and *types* harder. Choose by which axis changes more.\n- **Singleton is widely considered an anti-pattern** — it's global mutable state in disguise, hurting testability and hiding dependencies. Prefer passing dependencies explicitly (or a stateless `object`).\n- **Immutability dissolves several patterns.** Prototype (clone) and Memento (snapshot) are trivial when values are immutable — just share or copy the data. See [[functional-programming]].\n- **Patterns still earn their keep** for genuine structural problems: Adapter (interface mismatch), Facade (taming a subsystem), Composite (recursive structures), Decorator/Proxy (layering behavior), Bridge/Abstract Factory (independent variation across two axes). The judgment is to apply them to real coupling, not as decoration.\n\n## Related\n\n- [[functional-programming]] — ADTs, immutability, and pure functions that subsume Strategy/Command/Visitor/State/Memento/Prototype; \"program to an interface\" and \"favor composition\" are FP defaults.\n- [[scala]] — concrete mechanics (`sealed trait` ADTs + exhaustive match, `object`, `copy`, higher-order functions, traits) used in the Scala/FP mappings.\n- [[tdd]] — programming to interfaces and injecting dependencies (vs. Singletons) is what makes code testable.\n- Source: *Design Patterns: Elements of Reusable Object-Oriented Software*, Gamma, Helm, Johnson & Vlissides (Addison-Wesley, 1994). Intent statements are quoted faithfully; Scala/FP mappings and critique are added for this repo's stack.\n</skill>\n\nUser request:\nI need one shared config object across my whole application. Give me a Singleton implementation.",
+          "label": "evals/design-patterns/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          }
+        },
+        "promptId": "db016a77fcbba087d87a2b2051ecfc0e9f53d2f73353bcbda69bb2561c2578c2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Here's the Singleton in Scala, where an `object` is one:\n\n```scala\nfinal case class AppConfig(dbUrl: String, port: Int)\n\nobject AppConfig:\n  // lazy val: initialized once, thread-safe, on first access\n  lazy val instance: AppConfig = load()\n\n  private def load(): AppConfig =\n    AppConfig(\n      dbUrl = sys.env.getOrElse(\"DB_URL\", \"jdbc:postgresql://localhost/app\"),\n      port  = sys.env.get(\"PORT\").flatMap(_.toIntOption).getOrElse(8080)\n    )\n```\n\nCallers use `AppConfig.instance.port`.\n\nFor one shared config, I'd skip the global access point. Config is immutable, so sharing it is safe. The global lookup is what hurts, because it hides dependencies and makes tests hard to override. Load it once at startup and pass it in:\n\n```scala\n@main def run(): Unit =\n  val config = AppConfig.load()   // make load() public\n  val server = Server(config)     // explicit dependency\n```\n\nYou still get one shared instance, and tests can build `AppConfig(...)` directly. In Scala 3 you can use `(using AppConfig)` to avoid threading it by hand.\n\nIf your app isn't in Scala, tell me the language and I'll adapt this."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "singleton requested by name - must push back, not deliver it",
+          "vars": {
+            "skill": "file:///private/tmp/t1/skills/design-patterns/SKILL.md",
+            "request": "file:///private/tmp/t1/evals/design-patterns/cases/singleton.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "if (!/anti-?pattern|global (mutable )?state|testab|hides? depend|hidden depend/i.test(output))\n  throw new Error('delivered a Singleton without flagging it as global mutable state / anti-pattern');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "routing",
+              "value": "if (!/pass(ing)? (the )?depend|inject|explicit depend|\\bobject\\b/i.test(output))\n  throw new Error('did not offer explicit dependency passing (or a stateless object) instead');\nreturn true;\n"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/t1/skills/design-patterns/SKILL.md",
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/singleton.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "The response leads with the full textbook trait-and-class Strategy, including a context class, AtomicReference, and a name-matching factory. It presents this as the answer ('Strategy pays off here'). The function-value alternative appears only as one hedged bullet in the design notes ('may be enough', 'if your strategies carry no state'). It shows only a one-line snippet and never says the hierarchy is unnecessary ceremony in Scala. The three example strategies are stateless or only parameterized, so closures would clearly suffice, yet the response never says so. A reader would likely come away thinking the class hierarchy is the right solution, so it fails the rubric's requirement not to leave that impression.",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.65,
+          "reason": "The response leads with the full textbook trait-and-class Strategy, including a context class, AtomicReference, and a name-matching factory. It presents this as the answer ('Strategy pays off here'). The function-value alternative appears only as one hedged bullet in the design notes ('may be enough', 'if your strategies carry no state'). It shows only a one-line snippet and never says the hierarchy is unnecessary ceremony in Scala. The three example strategies are stateless or only parameterized, so closures would clearly suffice, yet the response never says so. A reader would likely come away thinking the class hierarchy is the right solution, so it fails the rubric's requirement not to leave that impression.",
+          "namedScores": {
+            "routing": 0.65
+          },
+          "namedScoreWeights": {
+            "routing": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "routing",
+                "value": "const prose = /pass(ing)? a function|first-?class function|higher-?order|just a function|function (value|type|alias)|collapses? to a function|reduces? to a function/i.test(output);\n// A function *type* is the same claim expressed as code: `type Pricing = Order => BigDecimal`.\nconst funcType = /type\\s+\\w+\\s*=\\s*[^\\n=]*=>/.test(output) || /:\\s*\\w+\\s*=>\\s*\\w+/.test(output);\nif (!prose && !funcType)\n  throw new Error('never offered the function-based alternative to the Strategy class hierarchy');\nreturn true;\n"
+              }
+            },
+            {
+              "assertion": {
+                "type": "llm-rubric",
+                "metric": "routing",
+                "value": "The response does not stop at a textbook Strategy implementation. It makes clear that in a language with first-class functions the trait plus concrete-class hierarchy is unnecessary ceremony, and shows or recommends the simpler form where a pricing algorithm is just a function value. It is allowed to show the classic structure first, but it must not leave the reader thinking the class hierarchy is the right answer here."
+              },
+              "pass": false,
+              "score": 0.3,
+              "reason": "The response leads with the full textbook trait-and-class Strategy, including a context class, AtomicReference, and a name-matching factory. It presents this as the answer ('Strategy pays off here'). The function-value alternative appears only as one hedged bullet in the design notes ('may be enough', 'if your strategies carry no state'). It shows only a one-line snippet and never says the hierarchy is unnecessary ceremony in Scala. The three example strategies are stateless or only parameterized, so closures would clearly suffice, yet the response never says so. A reader would likely come away thinking the class hierarchy is the right solution, so it fails the rubric's requirement not to leave that impression.",
+              "tokensUsed": {
+                "total": 0,
+                "prompt": 0,
+                "completion": 0,
+                "cached": 0,
+                "numRequests": 0,
+                "completionDetails": {
+                  "reasoning": 0,
+                  "acceptedPrediction": 0,
+                  "rejectedPrediction": 0
+                }
+              },
+              "metadata": {
+                "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\nHere's Strategy in Scala 3. I don't know your pricing rules, so the three algorithms below are placeholders.\\n\\n**1. Strategy interface:** the stable contract the client depends on.\\n\\n```scala\\nfinal case class Order(unitPrice: BigDecimal, quantity: Int):\\n  def subtotal: BigDecimal = unitPrice * quantity\\n\\ntrait PricingStrategy:\\n  def price(order: Order): BigDecimal\\n```\\n\\n**2. Concrete strategies:** one per algorithm, each independently testable.\\n\\n```scala\\nobject StandardPricing extends PricingStrategy:\\n  def price(o: Order): BigDecimal = o.subtotal\\n\\nfinal class BulkDiscountPricing(threshold: Int, pct: BigDecimal) extends PricingStrategy:\\n  def price(o: Order): BigDecimal =\\n    if o.quantity >= threshold then o.subtotal * (1 - pct) else o.subtotal\\n\\nfinal class PromoPricing(flatOff: BigDecimal) extends PricingStrategy:\\n  def price(o: Order): BigDecimal = (o.subtotal - flatOff).max(0)\\n```\\n\\n**3. Context:** holds a strategy and delegates to it. It never names a concrete class.\\n\\n```scala\\nimport java.util.concurrent.atomic.AtomicReference\\n\\nfinal class PriceCalculator(initial: PricingStrategy):\\n  private val current = AtomicReference(initial)\\n\\n  def use(s: PricingStrategy): Unit = current.set(s)   // runtime swap\\n  def quote(o: Order): BigDecimal   = current.get.price(o)\\n```\\n\\n**4. Swapping at runtime:**\\n\\n```scala\\nval calc = PriceCalculator(StandardPricing)\\ncalc.quote(Order(10, 100))            // 1000\\n\\ncalc.use(BulkDiscountPricing(50, 0.15))\\ncalc.quote(Order(10, 100))            // 850.00\\n\\n// choose from config/user input, with the one place that knows concrete types:\\ndef strategyFor(name: String): PricingStrategy = name match\\n  case \\\"standard\\\" => StandardPricing\\n  case \\\"bulk\\\"     => BulkDiscountPricing(50, 0.15)\\n  case \\\"promo\\\"    => PromoPricing(20)\\n```\\n\\n**Design notes**\\n- **Keep the selection logic separate.** Only `strategyFor` (the composition root) knows the concrete types. The calculator and its callers depend only on `PricingStrategy`.\\n- **Use `AtomicReference` for the swap.** A plain `var` can race if quotes run on other threads. `AtomicReference` makes each `quote` see one whole strategy.\\n- **Prefer parameters to subclasses.** `BulkDiscountPricing(50, 0.15)` and `BulkDiscountPricing(100, 0.25)` are the same class. Don't subclass per variant.\\n- **The FP version may be enough.** If your strategies carry no state or setup, `type PricingStrategy = Order => BigDecimal` replaces the trait and classes. The strategies become `val standard: PricingStrategy = _.subtotal`, and the swap is passing a different function. Keep the trait if you need a name, multiple methods, or injected dependencies like a tax service. Otherwise use the function.\\n- **Don't add it for one algorithm.** Strategy pays off here because you have three algorithms that you swap at runtime.\\n\\nIf you give me your actual pricing rules and the language (Java, Python, etc.), I can adapt this directly.\\n</Output>\\n<Rubric>\\nThe response does not stop at a textbook Strategy implementation. It makes clear that in a language with first-class functions the trait plus concrete-class hierarchy is unnecessary ceremony, and shows or recommends the simpler form where a pricing algorithm is just a function value. It is allowed to show the classic structure first, but it must not leave the reader thinking the class hierarchy is the right answer here.\\n</Rubric>\"}]"
+              }
+            }
+          ]
+        },
+        "id": "23901dbb-751b-48d2-b78c-dae9e7b9daa5",
+        "latencyMs": 17045,
+        "namedScores": {
+          "routing": 0.65
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\n<skill>\n---\nname: design-patterns\ndescription: \"The 23 Gang of Four design patterns and the OO design principles behind them, from Gamma, Helm, Johnson & Vlissides' *Design Patterns: Elements of Reusable Object-Oriented Software* (1994) — what each pattern solves, its structure and trade-offs, when (and when not) to reach for it, and how it maps onto Scala/FP idioms (many GoF patterns collapse to language features). Covers the creational patterns (Abstract Factory, Builder, Factory Method, Prototype, Singleton), structural patterns (Adapter, Bridge, Composite, Decorator, Facade, Flyweight, Proxy), and behavioral patterns (Chain of Responsibility, Command, Interpreter, Iterator, Mediator, Memento, Observer, State, Strategy, Template Method, Visitor), plus the core principles \\\"program to an interface, not an implementation\\\" and \\\"favor object composition over class inheritance.\\\" Use whenever the user is designing or refactoring object-oriented code, asks about a named pattern or which pattern fits a problem, wants to reduce coupling or improve extensibility, mentions factories/observers/decorators/visitors/strategies/adapters/singletons etc., is reviewing a design for over-engineering, or wants the Scala/FP-idiomatic alternative to a classic OO pattern — even if they don't say \\\"design pattern.\\\"\"\n---\n\n# Design Patterns (Gang of Four)\n\nThe 23 patterns from Gamma, Helm, Johnson & Vlissides (1994), as a working advisor: each pattern's intent, the problem it solves, its trade-offs, when to use it — and, because the audience codes in Scala/FP, how it maps onto language features and functional idioms. The book is OO (C++/Smalltalk), but the *design judgment* generalizes.\n\nIf the user's explicit instructions conflict with this skill, the user wins.\n\n## The point of patterns (and the warning that comes first)\n\nA design pattern is a *named, reusable solution to a recurring design problem*, plus the trade-offs of applying it. Patterns are a **vocabulary** (\"let's make that a Strategy\") and a record of designs that survived real redesign for flexibility and reuse. They are not goals in themselves.\n\n**Don't reach for a pattern first.** The single most important judgment is restraint. Patterns add indirection, and indirection is a cost paid in every read of the code. Apply a pattern only when there's a *real, present* variation or coupling problem it relieves — not speculatively. Most over-engineered codebases are patterns applied to problems that didn't exist yet. The book itself frames patterns as the designs you refactor *toward* under pressure, not the ones you start with. So: name the concrete pain first (this thing changes for two reasons; these two modules can't be swapped; adding a case touches ten files), then pick the pattern that relieves *that*.\n\n## Two principles underneath everything\n\nThe catalog is mostly applications of two ideas from Chapter 1:\n\n1. **Program to an interface, not an implementation.** Depend on the abstract type (what an object *does*), never a concrete class. Clients then don't know or care which implementation they hold, which decouples subsystems and lets implementations vary freely. (In Scala: depend on a `trait`/abstract type; in FP: depend on a function type.)\n2. **Favor object composition over class inheritance.** Inheritance is compile-time, white-box, and rigid — a subclass is bound to its parent's implementation. Composition (an object holding and delegating to another) is run-time, black-box, and flexible; it keeps each class focused and lets behavior be reconfigured by swapping parts. Designers habitually overuse inheritance; most patterns achieve reuse by composition + **delegation** (an object forwards a request to a held delegate, passing itself if the delegate needs context).\n\nA corollary the book stresses: **encapsulate what varies.** Find the aspect of your design that changes and isolate it behind a stable interface — that is, in one form or another, what every pattern does.\n\n## How to select a pattern\n\nWork from the problem, not the catalog: (1) state what *varies* and what must stay stable; (2) identify the kind of change you want cheap — object creation, object structure/composition, or object behavior/communication; that maps to the three families below; (3) read the candidate patterns' Intent and Consequences and pick the lightest one that removes the coupling; (4) consider whether a **language feature** already solves it (see the Scala/FP notes) before adding a pattern. Patterns also combine — a real design layers several.\n\n## The three families\n\nDetail lives in the category references — read the one matching the problem:\n\n- **`references/creational.md`** — *how objects get made*, decoupling clients from concrete classes: **Abstract Factory, Builder, Factory Method, Prototype, Singleton**.\n- **`references/structural.md`** — *how objects and classes are composed* into larger structures: **Adapter, Bridge, Composite, Decorator, Facade, Flyweight, Proxy**.\n- **`references/behavioral.md`** — *how objects distribute responsibility and communicate*: **Chain of Responsibility, Command, Interpreter, Iterator, Mediator, Memento, Observer, State, Strategy, Template Method, Visitor**.\n\nEach reference gives, per pattern: faithful Intent, the problem, brief structure, a Scala/FP mapping, and a when-to-use / critique.\n\n## Catalog at a glance (intent + Scala/FP note)\n\n| Pattern | Intent (GoF) | Scala/FP note |\n|---|---|---|\n| **Abstract Factory** | Interface for creating *families* of related objects without their concrete classes | Often a record of functions, or a typeclass instance |\n| **Builder** | Separate construction of a complex object from its representation | Default/named args, `copy`, or a fluent builder; immutable case classes |\n| **Factory Method** | Define an interface for creating an object, let subclasses choose the class | A function/companion `apply`; pass a constructor function |\n| **Prototype** | Create objects by cloning a prototypical instance | Immutable data + `copy`; cloning is rarely needed |\n| **Singleton** | One instance + global access point | `object` in Scala. **Often an anti-pattern** (global mutable state) |\n| **Adapter** | Convert one interface into another clients expect | Wrapper class, extension methods, or a converting function |\n| **Bridge** | Decouple an abstraction from its implementation so both vary | Compose a trait-typed field; pass behavior as a value |\n| **Composite** | Tree structures; treat individual & composite objects uniformly | Recursive ADT (`sealed trait` + cases) + fold |\n| **Decorator** | Add responsibilities to an object dynamically | Function composition; wrapper trait; middleware |\n| **Facade** | One unified interface to a subsystem | A module/object exposing a small API |\n| **Flyweight** | Share fine-grained objects to save memory | Interning/caching of immutable values; memoization |\n| **Proxy** | A surrogate controlling access to another object | Lazy `val`, wrapper, or higher-order interception |\n| **Chain of Responsibility** | Pass a request along handlers until one handles it | List of functions; `orElse` on `PartialFunction` |\n| **Command** | Encapsulate a request as an object (queue, log, undo) | A function/closure, or a value (ADT) describing the action |\n| **Interpreter** | Represent a grammar and interpret its sentences | ADT for the AST + recursive eval; parser combinators |\n| **Iterator** | Sequential access to elements without exposing structure | Built in: `Iterator`, `LazyList`, for-comprehension |\n| **Mediator** | Encapsulate how a set of objects interact (loose coupling) | A coordinator object/function; event bus |\n| **Memento** | Capture/restore an object's state without breaking encapsulation | Snapshot an immutable value; persist/restore the data |\n| **Observer** | One-to-many dependency: notify dependents on state change | FRP/streams (signals, `Observable`); callbacks |\n| **State** | Alter behavior when internal state changes | State as an ADT + transition function `S => S` |\n| **Strategy** | Encapsulate interchangeable algorithms | A higher-order function parameter — the canonical FP collapse |\n| **Template Method** | Algorithm skeleton with steps deferred to subclasses | A higher-order function taking the varying steps |\n| **Visitor** | New operations over an object structure without changing it | `sealed trait` + exhaustive pattern match (no Visitor needed) |\n\n## Modern / critical lens (the audience asked for this)\n\n- **Many GoF patterns are workarounds for what 1994 OO languages lacked.** First-class functions turn **Strategy, Command, Template Method, Factory Method**, and much of **Observer/Chain of Responsibility** into \"pass a function.\" **Iterator** is built into every modern language. **Singleton** is `object` in Scala. So before formalizing a pattern, check whether a function, an ADT + pattern match, or a standard-library type already expresses it more directly.\n- **ADTs + exhaustive pattern matching replace the Visitor double-dispatch dance.** GoF's Visitor exists because OO makes \"add an operation over a fixed type hierarchy\" hard; a `sealed trait` with `match` gives it for free and the compiler checks exhaustiveness. The trade-off (the \"expression problem\") is just inverted: Visitor/OO makes adding *types* easy and *operations* hard; ADTs make adding *operations* easy and *types* harder. Choose by which axis changes more.\n- **Singleton is widely considered an anti-pattern** — it's global mutable state in disguise, hurting testability and hiding dependencies. Prefer passing dependencies explicitly (or a stateless `object`).\n- **Immutability dissolves several patterns.** Prototype (clone) and Memento (snapshot) are trivial when values are immutable — just share or copy the data. See [[functional-programming]].\n- **Patterns still earn their keep** for genuine structural problems: Adapter (interface mismatch), Facade (taming a subsystem), Composite (recursive structures), Decorator/Proxy (layering behavior), Bridge/Abstract Factory (independent variation across two axes). The judgment is to apply them to real coupling, not as decoration.\n\n## Related\n\n- [[functional-programming]] — ADTs, immutability, and pure functions that subsume Strategy/Command/Visitor/State/Memento/Prototype; \"program to an interface\" and \"favor composition\" are FP defaults.\n- [[scala]] — concrete mechanics (`sealed trait` ADTs + exhaustive match, `object`, `copy`, higher-order functions, traits) used in the Scala/FP mappings.\n- [[tdd]] — programming to interfaces and injecting dependencies (vs. Singletons) is what makes code testable.\n- Source: *Design Patterns: Elements of Reusable Object-Oriented Software*, Gamma, Helm, Johnson & Vlissides (Addison-Wesley, 1994). Intent statements are quoted faithfully; Scala/FP mappings and critique are added for this repo's stack.\n</skill>\n\nUser request:\nI have three different pricing algorithms and I want to swap between them at runtime. Walk me through implementing the Strategy pattern properly, with the interface and the concrete classes.",
+          "label": "evals/design-patterns/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly. The user's request below is the $ARGUMENTS input the skill describes.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          }
+        },
+        "promptId": "db016a77fcbba087d87a2b2051ecfc0e9f53d2f73353bcbda69bb2561c2578c2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Here's Strategy in Scala 3. I don't know your pricing rules, so the three algorithms below are placeholders.\n\n**1. Strategy interface:** the stable contract the client depends on.\n\n```scala\nfinal case class Order(unitPrice: BigDecimal, quantity: Int):\n  def subtotal: BigDecimal = unitPrice * quantity\n\ntrait PricingStrategy:\n  def price(order: Order): BigDecimal\n```\n\n**2. Concrete strategies:** one per algorithm, each independently testable.\n\n```scala\nobject StandardPricing extends PricingStrategy:\n  def price(o: Order): BigDecimal = o.subtotal\n\nfinal class BulkDiscountPricing(threshold: Int, pct: BigDecimal) extends PricingStrategy:\n  def price(o: Order): BigDecimal =\n    if o.quantity >= threshold then o.subtotal * (1 - pct) else o.subtotal\n\nfinal class PromoPricing(flatOff: BigDecimal) extends PricingStrategy:\n  def price(o: Order): BigDecimal = (o.subtotal - flatOff).max(0)\n```\n\n**3. Context:** holds a strategy and delegates to it. It never names a concrete class.\n\n```scala\nimport java.util.concurrent.atomic.AtomicReference\n\nfinal class PriceCalculator(initial: PricingStrategy):\n  private val current = AtomicReference(initial)\n\n  def use(s: PricingStrategy): Unit = current.set(s)   // runtime swap\n  def quote(o: Order): BigDecimal   = current.get.price(o)\n```\n\n**4. Swapping at runtime:**\n\n```scala\nval calc = PriceCalculator(StandardPricing)\ncalc.quote(Order(10, 100))            // 1000\n\ncalc.use(BulkDiscountPricing(50, 0.15))\ncalc.quote(Order(10, 100))            // 850.00\n\n// choose from config/user input, with the one place that knows concrete types:\ndef strategyFor(name: String): PricingStrategy = name match\n  case \"standard\" => StandardPricing\n  case \"bulk\"     => BulkDiscountPricing(50, 0.15)\n  case \"promo\"    => PromoPricing(20)\n```\n\n**Design notes**\n- **Keep the selection logic separate.** Only `strategyFor` (the composition root) knows the concrete types. The calculator and its callers depend only on `PricingStrategy`.\n- **Use `AtomicReference` for the swap.** A plain `var` can race if quotes run on other threads. `AtomicReference` makes each `quote` see one whole strategy.\n- **Prefer parameters to subclasses.** `BulkDiscountPricing(50, 0.15)` and `BulkDiscountPricing(100, 0.25)` are the same class. Don't subclass per variant.\n- **The FP version may be enough.** If your strategies carry no state or setup, `type PricingStrategy = Order => BigDecimal` replaces the trait and classes. The strategies become `val standard: PricingStrategy = _.subtotal`, and the swap is passing a different function. Keep the trait if you need a name, multiple methods, or injected dependencies like a tax service. Otherwise use the function.\n- **Don't add it for one algorithm.** Strategy pays off here because you have three algorithms that you swap at runtime.\n\nIf you give me your actual pricing rules and the language (Java, Python, etc.), I can adapt this directly."
+        },
+        "score": 0.65,
+        "success": false,
+        "testCase": {
+          "description": "strategy requested by name - it is just passing a function",
+          "vars": {
+            "skill": "file:///private/tmp/t1/skills/design-patterns/SKILL.md",
+            "request": "file:///private/tmp/t1/evals/design-patterns/cases/strategy.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "routing",
+              "value": "const prose = /pass(ing)? a function|first-?class function|higher-?order|just a function|function (value|type|alias)|collapses? to a function|reduces? to a function/i.test(output);\n// A function *type* is the same claim expressed as code: `type Pricing = Order => BigDecimal`.\nconst funcType = /type\\s+\\w+\\s*=\\s*[^\\n=]*=>/.test(output) || /:\\s*\\w+\\s*=>\\s*\\w+/.test(output);\nif (!prose && !funcType)\n  throw new Error('never offered the function-based alternative to the Strategy class hierarchy');\nreturn true;\n"
+            },
+            {
+              "type": "llm-rubric",
+              "metric": "routing",
+              "value": "The response does not stop at a textbook Strategy implementation. It makes clear that in a language with first-class functions the trait plus concrete-class hierarchy is unnecessary ceremony, and shows or recommends the simpler form where a pricing algorithm is just a function value. It is allowed to show the classic structure first, but it must not leave the reader thinking the class hierarchy is the right answer here."
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/t1/skills/design-patterns/SKILL.md",
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/strategy.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 1,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 29288,
+      "evaluationDurationMs": 29288
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "design-patterns - the critical lens: what modern languages already give you",
+    "prompts": [
+      "file:///private/tmp/t1/evals/design-patterns/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "visitor over an AST - ADTs + exhaustive match, and the expression problem",
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/visitor.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "routing",
+            "value": "if (!/sealed (trait|abstract)|algebraic data type|\\bADT\\b/i.test(output))\n  throw new Error('did not reach for a sealed trait / ADT instead of Visitor');\nif (!/pattern match|\\bmatch\\b|exhaustiv/i.test(output))\n  throw new Error('did not mention exhaustive pattern matching');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "// The precise trade-off: Visitor eases new TYPES, ADTs ease new OPERATIONS.\nif (!/expression problem|adding (new )?(types|operations)|which axis|axis (of )?change/i.test(output))\n  throw new Error('did not surface the expression-problem trade-off (types vs operations axis)');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "singleton requested by name - must push back, not deliver it",
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/singleton.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "if (!/anti-?pattern|global (mutable )?state|testab|hides? depend|hidden depend/i.test(output))\n  throw new Error('delivered a Singleton without flagging it as global mutable state / anti-pattern');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "routing",
+            "value": "if (!/pass(ing)? (the )?depend|inject|explicit depend|\\bobject\\b/i.test(output))\n  throw new Error('did not offer explicit dependency passing (or a stateless object) instead');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "strategy requested by name - it is just passing a function",
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/strategy.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "routing",
+            "value": "const prose = /pass(ing)? a function|first-?class function|higher-?order|just a function|function (value|type|alias)|collapses? to a function|reduces? to a function/i.test(output);\n// A function *type* is the same claim expressed as code: `type Pricing = Order => BigDecimal`.\nconst funcType = /type\\s+\\w+\\s*=\\s*[^\\n=]*=>/.test(output) || /:\\s*\\w+\\s*=>\\s*\\w+/.test(output);\nif (!prose && !funcType)\n  throw new Error('never offered the function-based alternative to the Strategy class hierarchy');\nreturn true;\n"
+          },
+          {
+            "type": "llm-rubric",
+            "metric": "routing",
+            "value": "The response does not stop at a textbook Strategy implementation. It makes clear that in a language with first-class functions the trait plus concrete-class hierarchy is unnecessary ceremony, and shows or recommends the simpler form where a pricing algorithm is just a function value. It is allowed to show the classic structure first, but it must not leave the reader thinking the class hierarchy is the right answer here."
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "/tmp/t2res/design-patterns_skill_3.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/t1/skills/design-patterns/SKILL.md"
+      },
+      "options": {
+        "provider": {
+          "id": "exec:../_provider/claude-grader.sh",
+          "config": {
+            "model": "sonnet",
+            "apiKeyRequired": false,
+            "max_turns": 5
+          }
+        }
+      },
+      "assert": [],
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/t1/evals/design-patterns"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-28T20:54:20.570Z",
+    "evaluationCreatedAt": "2026-10-28T20:53:51.232Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

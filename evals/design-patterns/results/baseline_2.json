@@ -1,0 +1,660 @@
+{
+  "evalId": "eval-HpF-2026-10-28T20:51:36",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-28T20:51:36.800Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+        "label": "evals/design-patterns/prompt-baseline.txt: You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+        "id": "12b0452a5ef6d626f0a4c5d71efbaee2878cc039591c5708295794749e10fff6",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2.65,
+          "testPassCount": 2,
+          "testFailCount": 1,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 5,
+          "assertFailCount": 1,
+          "totalLatencyMs": 47183,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 1,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "restraint": 1,
+            "routing": 3.3,
+            "accuracy": 1
+          },
+          "namedScoresCount": {
+            "restraint": 1,
+            "routing": 4,
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1,
+            "routing": 4,
+            "accuracy": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "routing": 1,
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "routing": 1,
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "routing",
+                "value": "if (!/sealed (trait|abstract)|algebraic data type|\\bADT\\b/i.test(output))\n  throw new Error('did not reach for a sealed trait / ADT instead of Visitor');\nif (!/pattern match|\\bmatch\\b|exhaustiv/i.test(output))\n  throw new Error('did not mention exhaustive pattern matching');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "// The precise trade-off: Visitor eases new TYPES, ADTs ease new OPERATIONS.\nif (!/expression problem|adding (new )?(types|operations)|which axis|axis (of )?change/i.test(output))\n  throw new Error('did not surface the expression-problem trade-off (types vs operations axis)');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "9b1c0913-1c7a-4c96-8f55-8076d34326bc",
+        "latencyMs": 18125,
+        "namedScores": {
+          "routing": 1,
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\nI'm writing an interpreter in Scala with an AST of about 12 node types. I need to add several operations over it (eval, pretty-print, type-check). Should I implement the Visitor pattern? Show me how you'd structure it.",
+          "label": "evals/design-patterns/prompt-baseline.txt: You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+          "config": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          }
+        },
+        "promptId": "12b0452a5ef6d626f0a4c5d71efbaee2878cc039591c5708295794749e10fff6",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No, don't use Visitor in Scala. A `sealed trait` ADT with pattern matching gives you the same thing with far less code, and the compiler checks exhaustiveness.\n\nVisitor exists to add operations over a fixed class hierarchy in languages without pattern matching. Scala has it, so each operation becomes one function with one `match`.\n\n```scala\n// Ast.scala — the data, no behavior\nenum Type:\n  case TInt, TBool\n\nenum Expr:\n  case Num(n: Int)\n  case Bool(b: Boolean)\n  case Var(name: String)\n  case Add(l: Expr, r: Expr)\n  case If(c: Expr, t: Expr, e: Expr)\n  case Let(name: String, v: Expr, body: Expr)\n  // ...the other ~6 nodes\n```\n\n```scala\n// Eval.scala\nenum Value:\n  case I(n: Int)\n  case B(b: Boolean)\n\nobject Eval:\n  type Env = Map[String, Value]\n\n  def eval(e: Expr, env: Env = Map.empty): Either[String, Value] = e match\n    case Expr.Num(n)  => Right(Value.I(n))\n    case Expr.Bool(b) => Right(Value.B(b))\n    case Expr.Var(x)  => env.get(x).toRight(s\"unbound: $x\")\n    case Expr.Add(l, r) =>\n      for\n        a <- eval(l, env)\n        b <- eval(r, env)\n        s <- (a, b) match\n          case (Value.I(x), Value.I(y)) => Right(Value.I(x + y))\n          case _                        => Left(\"add: expected ints\")\n      yield s\n    case Expr.If(c, t, f) =>\n      eval(c, env).flatMap:\n        case Value.B(true)  => eval(t, env)\n        case Value.B(false) => eval(f, env)\n        case _              => Left(\"if: expected bool\")\n    case Expr.Let(x, v, body) =>\n      eval(v, env).flatMap(vv => eval(body, env + (x -> vv)))\n```\n\n```scala\n// Pretty.scala\nobject Pretty:\n  def show(e: Expr): String = e match\n    case Expr.Num(n)        => n.toString\n    case Expr.Bool(b)       => b.toString\n    case Expr.Var(x)        => x\n    case Expr.Add(l, r)     => s\"(${show(l)} + ${show(r)})\"\n    case Expr.If(c, t, f)   => s\"if ${show(c)} then ${show(t)} else ${show(f)}\"\n    case Expr.Let(x, v, b)  => s\"let $x = ${show(v)} in ${show(b)}\"\n```\n\n```scala\n// TypeCheck.scala\nobject TypeCheck:\n  type Ctx = Map[String, Type]\n\n  def check(e: Expr, ctx: Ctx = Map.empty): Either[String, Type] = e match\n    case Expr.Num(_)  => Right(Type.TInt)\n    case Expr.Bool(_) => Right(Type.TBool)\n    case Expr.Var(x)  => ctx.get(x).toRight(s\"unbound: $x\")\n    case Expr.Add(l, r) =>\n      for\n        _ <- expect(l, Type.TInt, ctx)\n        _ <- expect(r, Type.TInt, ctx)\n      yield Type.TInt\n    case Expr.If(c, t, f) =>\n      for\n        _  <- expect(c, Type.TBool, ctx)\n        tt <- check(t, ctx)\n        _  <- expect(f, tt, ctx)\n      yield tt\n    case Expr.Let(x, v, b) =>\n      check(v, ctx).flatMap(tv => check(b, ctx + (x -> tv)))\n\n  private def expect(e: Expr, t: Type, ctx: Ctx): Either[String, Unit] =\n    check(e, ctx).flatMap(a => if a == t then Right(()) else Left(s\"expected $t, got $a\"))\n```\n\n**Why this works**\n- Adding an operation means adding one new file or object, and no existing code changes.\n- Adding a node type makes the compiler warn about every non-exhaustive `match`, so you can't forget a case. Treat that warning as an error (`-Wconf:msg=match may not be exhaustive:e`).\n- Recursion is plain recursion. There's no `accept`/`visit` double dispatch.\n\n**When Visitor-style would be the right call**\n- Adding node types is the frequent change, and operations are fixed. This is the expression problem inverted. Then put the operations as methods on the nodes, or use a typeclass such as `trait Eval[A]` with `given` instances per node. With ~12 stable node types and several growing operations, ADT + match is the better fit.\n- Third parties need to add node types. That's rare for an interpreter's AST.\n\n**Two refinements as it grows**\n- If several passes only change a few nodes, add a generic `transform(e)(f: PartialFunction[Expr, Expr])` helper that recurses into children, so each pass writes only the interesting cases.\n- Keep `Eval` and `TypeCheck` in separate files. Run the type check before eval, so eval can assume well-typed input."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "visitor over an AST - ADTs + exhaustive match, and the expression problem",
+          "vars": {
+            "request": "file:///private/tmp/t1/evals/design-patterns/cases/visitor.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "routing",
+              "value": "if (!/sealed (trait|abstract)|algebraic data type|\\bADT\\b/i.test(output))\n  throw new Error('did not reach for a sealed trait / ADT instead of Visitor');\nif (!/pattern match|\\bmatch\\b|exhaustiv/i.test(output))\n  throw new Error('did not mention exhaustive pattern matching');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "// The precise trade-off: Visitor eases new TYPES, ADTs ease new OPERATIONS.\nif (!/expression problem|adding (new )?(types|operations)|which axis|axis (of )?change/i.test(output))\n  throw new Error('did not surface the expression-problem trade-off (types vs operations axis)');\nreturn true;\n"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/visitor.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "restraint": 1,
+            "routing": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1,
+            "routing": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "if (!/anti-?pattern|global (mutable )?state|testab|hides? depend|hidden depend/i.test(output))\n  throw new Error('delivered a Singleton without flagging it as global mutable state / anti-pattern');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "routing",
+                "value": "if (!/pass(ing)? (the )?depend|inject|explicit depend|\\bobject\\b/i.test(output))\n  throw new Error('did not offer explicit dependency passing (or a stateless object) instead');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "0eb7807b-dc8d-4d7d-b81f-fab445631030",
+        "latencyMs": 12062,
+        "namedScores": {
+          "restraint": 1,
+          "routing": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\nI need one shared config object across my whole application. Give me a Singleton implementation.",
+          "label": "evals/design-patterns/prompt-baseline.txt: You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+          "config": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          }
+        },
+        "promptId": "12b0452a5ef6d626f0a4c5d71efbaee2878cc039591c5708295794749e10fff6",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Your language isn't specified, so here are two versions. The repo's stack is Scala and Python.\n\n**Scala**: `object` is a thread-safe singleton by language guarantee.\n\n```scala\nobject AppConfig:\n  final case class Settings(dbUrl: String, port: Int)\n\n  lazy val settings: Settings =\n    Settings(\n      dbUrl = sys.env.getOrElse(\"DB_URL\", \"jdbc:postgresql://localhost/app\"),\n      port  = sys.env.get(\"PORT\").map(_.toInt).getOrElse(8080)\n    )\n```\n\n**Python**: a module-level instance is the idiomatic singleton, because modules are imported once.\n\n```python\n# config.py\nfrom dataclasses import dataclass\nimport os\n\n@dataclass(frozen=True)\nclass Config:\n    db_url: str = os.getenv(\"DB_URL\", \"postgresql://localhost/app\")\n    port: int = int(os.getenv(\"PORT\", \"8080\"))\n\nconfig = Config()  # `from config import config` everywhere\n```\n\nIf you need lazy or class-based construction in Python, use `functools.cache` on a `get_config()` function.\n\nI made the config immutable (`lazy val` plus a case class in Scala, a frozen dataclass in Python). That removes the main Singleton hazard, which is shared mutable global state.\n\nFor tests, read the config once at startup and pass it into the components that need it, instead of having them reach for the global. That lets tests supply their own config. It's the same single shared object at runtime."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "singleton requested by name - must push back, not deliver it",
+          "vars": {
+            "request": "file:///private/tmp/t1/evals/design-patterns/cases/singleton.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "if (!/anti-?pattern|global (mutable )?state|testab|hides? depend|hidden depend/i.test(output))\n  throw new Error('delivered a Singleton without flagging it as global mutable state / anti-pattern');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "routing",
+              "value": "if (!/pass(ing)? (the )?depend|inject|explicit depend|\\bobject\\b/i.test(output))\n  throw new Error('did not offer explicit dependency passing (or a stateless object) instead');\nreturn true;\n"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/singleton.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "The response is built around the classic trait + concrete-class hierarchy: four numbered steps, the 'Things to get right' list, and class-based examples. The function form appears only in a closing 'FP version' section, and it is conditional. That section does say the trait and classes are 'ceremony' for stateless strategies and shows `type PricingStrategy = Order => Money`. But it then tells the reader to keep the trait and classes when strategies carry 'configuration' or a name to log. That undercuts the point, because closures capture configuration (the `tiered(tiers)` example it shows does exactly this). The pricing strategies it built, TieredDiscountPricing and DemandPricing, are exactly the configured cases it says need classes. The FP version is also left incomplete (`o => ...`). The reader is left thinking the class hierarchy is the default answer and functions are an optional simplification. The rubric requires the opposite: it must be clear that in Scala the hierarchy is unnecessary ceremony and a function value is the recommended form.",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.65,
+          "reason": "The response is built around the classic trait + concrete-class hierarchy: four numbered steps, the 'Things to get right' list, and class-based examples. The function form appears only in a closing 'FP version' section, and it is conditional. That section does say the trait and classes are 'ceremony' for stateless strategies and shows `type PricingStrategy = Order => Money`. But it then tells the reader to keep the trait and classes when strategies carry 'configuration' or a name to log. That undercuts the point, because closures capture configuration (the `tiered(tiers)` example it shows does exactly this). The pricing strategies it built, TieredDiscountPricing and DemandPricing, are exactly the configured cases it says need classes. The FP version is also left incomplete (`o => ...`). The reader is left thinking the class hierarchy is the default answer and functions are an optional simplification. The rubric requires the opposite: it must be clear that in Scala the hierarchy is unnecessary ceremony and a function value is the recommended form.",
+          "namedScores": {
+            "routing": 0.65
+          },
+          "namedScoreWeights": {
+            "routing": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "routing",
+                "value": "const prose = /pass(ing)? a function|first-?class function|higher-?order|just a function|function (value|type|alias)|collapses? to a function|reduces? to a function/i.test(output);\n// A function *type* is the same claim expressed as code: `type Pricing = Order => BigDecimal`.\nconst funcType = /type\\s+\\w+\\s*=\\s*[^\\n=]*=>/.test(output) || /:\\s*\\w+\\s*=>\\s*\\w+/.test(output);\nif (!prose && !funcType)\n  throw new Error('never offered the function-based alternative to the Strategy class hierarchy');\nreturn true;\n"
+              }
+            },
+            {
+              "assertion": {
+                "type": "llm-rubric",
+                "metric": "routing",
+                "value": "The response does not stop at a textbook Strategy implementation. It makes clear that in a language with first-class functions the trait plus concrete-class hierarchy is unnecessary ceremony, and shows or recommends the simpler form where a pricing algorithm is just a function value. It is allowed to show the classic structure first, but it must not leave the reader thinking the class hierarchy is the right answer here."
+              },
+              "pass": false,
+              "score": 0.3,
+              "reason": "The response is built around the classic trait + concrete-class hierarchy: four numbered steps, the 'Things to get right' list, and class-based examples. The function form appears only in a closing 'FP version' section, and it is conditional. That section does say the trait and classes are 'ceremony' for stateless strategies and shows `type PricingStrategy = Order => Money`. But it then tells the reader to keep the trait and classes when strategies carry 'configuration' or a name to log. That undercuts the point, because closures capture configuration (the `tiered(tiers)` example it shows does exactly this). The pricing strategies it built, TieredDiscountPricing and DemandPricing, are exactly the configured cases it says need classes. The FP version is also left incomplete (`o => ...`). The reader is left thinking the class hierarchy is the default answer and functions are an optional simplification. The rubric requires the opposite: it must be clear that in Scala the hierarchy is unnecessary ceremony and a function value is the recommended form.",
+              "tokensUsed": {
+                "total": 0,
+                "prompt": 0,
+                "completion": 0,
+                "cached": 0,
+                "numRequests": 0,
+                "completionDetails": {
+                  "reasoning": 0,
+                  "acceptedPrediction": 0,
+                  "rejectedPrediction": 0
+                }
+              },
+              "metadata": {
+                "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\nStrategy has three parts: a strategy interface, concrete strategies, and a context that holds one and delegates to it. I've used Scala 3 because that's this repo's stack. Tell me if you want Java, Python or something else.\\n\\n**1. The interface.** Make it as narrow as the algorithms allow.\\n\\n```scala\\ntrait PricingStrategy:\\n  def price(order: Order): Money\\n```\\n\\n**2. The concrete strategies.** Each one is self-contained and takes its own configuration through its constructor, not through the interface.\\n\\n```scala\\nfinal class StandardPricing extends PricingStrategy:\\n  def price(order: Order): Money =\\n    order.items.map(i => i.unitPrice * i.qty).sum\\n\\nfinal class TieredDiscountPricing(tiers: List[(Int, BigDecimal)]) extends PricingStrategy:\\n  def price(order: Order): Money =\\n    val base = StandardPricing().price(order)\\n    val rate = tiers.filter(_._1 <= order.itemCount).map(_._2).maxOption.getOrElse(BigDecimal(0))\\n    base * (1 - rate)\\n\\nfinal class DemandPricing(demand: DemandSource) extends PricingStrategy:\\n  def price(order: Order): Money =\\n    StandardPricing().price(order) * demand.multiplierFor(order)\\n```\\n\\n**3. The context.** It depends only on the trait, never on a concrete class.\\n\\n```scala\\nfinal class Checkout(private var strategy: PricingStrategy):\\n  def setStrategy(s: PricingStrategy): Unit = strategy = s\\n  def total(order: Order): Money = strategy.price(order)\\n```\\n\\n**4. Swapping at runtime.** Pick the strategy from config, user tier or a feature flag.\\n\\n```scala\\nval checkout = Checkout(StandardPricing())\\ncheckout.setStrategy(TieredDiscountPricing(List(10 -> 0.05, 50 -> 0.10)))\\n```\\n\\nIf the choice is keyed (a tenant, say), keep a `Map[String, PricingStrategy]` and look it up. Don't build a factory unless construction is genuinely complex.\\n\\n**Things to get right**\\n- **Pass data in through `price`'s parameters.** If one strategy needs something the others don't, such as a demand feed, inject it in its constructor. Don't widen the interface.\\n- **Keep strategies stateless or immutable.** Then you can share them across threads and swap them safely.\\n- **Make the swap thread-safe if requests are concurrent.** Use an `AtomicReference[PricingStrategy]` or pass the strategy per call. The `private var` above isn't safe.\\n- **Test each strategy alone.** The context test only needs a stub strategy.\\n\\n**The FP version.** If your strategies are stateless, the trait and classes are ceremony. Strategy collapses to a function type:\\n\\n```scala\\ntype PricingStrategy = Order => Money\\nval standard: PricingStrategy = _.items.map(i => i.unitPrice * i.qty).sum\\ndef tiered(tiers: List[(Int, BigDecimal)]): PricingStrategy = o => ...\\n```\\n\\nUse the trait and classes if strategies carry several methods, configuration or a name you want to log. Use plain functions otherwise.\\n</Output>\\n<Rubric>\\nThe response does not stop at a textbook Strategy implementation. It makes clear that in a language with first-class functions the trait plus concrete-class hierarchy is unnecessary ceremony, and shows or recommends the simpler form where a pricing algorithm is just a function value. It is allowed to show the classic structure first, but it must not leave the reader thinking the class hierarchy is the right answer here.\\n</Rubric>\"}]"
+              }
+            }
+          ]
+        },
+        "id": "9f070136-3fed-487a-ba65-87065bccb20c",
+        "latencyMs": 16996,
+        "namedScores": {
+          "routing": 0.65
+        },
+        "prompt": {
+          "raw": "You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\nI have three different pricing algorithms and I want to swap between them at runtime. Walk me through implementing the Strategy pattern properly, with the interface and the concrete classes.",
+          "label": "evals/design-patterns/prompt-baseline.txt: You are a helpful assistant. The user's request below is the input to act on. Respond to it.\n\nUser request:\n{{request}}",
+          "config": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          }
+        },
+        "promptId": "12b0452a5ef6d626f0a4c5d71efbaee2878cc039591c5708295794749e10fff6",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Strategy has three parts: a strategy interface, concrete strategies, and a context that holds one and delegates to it. I've used Scala 3 because that's this repo's stack. Tell me if you want Java, Python or something else.\n\n**1. The interface.** Make it as narrow as the algorithms allow.\n\n```scala\ntrait PricingStrategy:\n  def price(order: Order): Money\n```\n\n**2. The concrete strategies.** Each one is self-contained and takes its own configuration through its constructor, not through the interface.\n\n```scala\nfinal class StandardPricing extends PricingStrategy:\n  def price(order: Order): Money =\n    order.items.map(i => i.unitPrice * i.qty).sum\n\nfinal class TieredDiscountPricing(tiers: List[(Int, BigDecimal)]) extends PricingStrategy:\n  def price(order: Order): Money =\n    val base = StandardPricing().price(order)\n    val rate = tiers.filter(_._1 <= order.itemCount).map(_._2).maxOption.getOrElse(BigDecimal(0))\n    base * (1 - rate)\n\nfinal class DemandPricing(demand: DemandSource) extends PricingStrategy:\n  def price(order: Order): Money =\n    StandardPricing().price(order) * demand.multiplierFor(order)\n```\n\n**3. The context.** It depends only on the trait, never on a concrete class.\n\n```scala\nfinal class Checkout(private var strategy: PricingStrategy):\n  def setStrategy(s: PricingStrategy): Unit = strategy = s\n  def total(order: Order): Money = strategy.price(order)\n```\n\n**4. Swapping at runtime.** Pick the strategy from config, user tier or a feature flag.\n\n```scala\nval checkout = Checkout(StandardPricing())\ncheckout.setStrategy(TieredDiscountPricing(List(10 -> 0.05, 50 -> 0.10)))\n```\n\nIf the choice is keyed (a tenant, say), keep a `Map[String, PricingStrategy]` and look it up. Don't build a factory unless construction is genuinely complex.\n\n**Things to get right**\n- **Pass data in through `price`'s parameters.** If one strategy needs something the others don't, such as a demand feed, inject it in its constructor. Don't widen the interface.\n- **Keep strategies stateless or immutable.** Then you can share them across threads and swap them safely.\n- **Make the swap thread-safe if requests are concurrent.** Use an `AtomicReference[PricingStrategy]` or pass the strategy per call. The `private var` above isn't safe.\n- **Test each strategy alone.** The context test only needs a stub strategy.\n\n**The FP version.** If your strategies are stateless, the trait and classes are ceremony. Strategy collapses to a function type:\n\n```scala\ntype PricingStrategy = Order => Money\nval standard: PricingStrategy = _.items.map(i => i.unitPrice * i.qty).sum\ndef tiered(tiers: List[(Int, BigDecimal)]): PricingStrategy = o => ...\n```\n\nUse the trait and classes if strategies carry several methods, configuration or a name you want to log. Use plain functions otherwise."
+        },
+        "score": 0.65,
+        "success": false,
+        "testCase": {
+          "description": "strategy requested by name - it is just passing a function",
+          "vars": {
+            "request": "file:///private/tmp/t1/evals/design-patterns/cases/strategy.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "routing",
+              "value": "const prose = /pass(ing)? a function|first-?class function|higher-?order|just a function|function (value|type|alias)|collapses? to a function|reduces? to a function/i.test(output);\n// A function *type* is the same claim expressed as code: `type Pricing = Order => BigDecimal`.\nconst funcType = /type\\s+\\w+\\s*=\\s*[^\\n=]*=>/.test(output) || /:\\s*\\w+\\s*=>\\s*\\w+/.test(output);\nif (!prose && !funcType)\n  throw new Error('never offered the function-based alternative to the Strategy class hierarchy');\nreturn true;\n"
+            },
+            {
+              "type": "llm-rubric",
+              "metric": "routing",
+              "value": "The response does not stop at a textbook Strategy implementation. It makes clear that in a language with first-class functions the trait plus concrete-class hierarchy is unnecessary ceremony, and shows or recommends the simpler form where a pricing algorithm is just a function value. It is allowed to show the classic structure first, but it must not leave the reader thinking the class hierarchy is the right answer here."
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/strategy.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 1,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 32363,
+      "evaluationDurationMs": 32363
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "design-patterns - the critical lens: what modern languages already give you -- NAIVE BASELINE (no skill in context)",
+    "prompts": [
+      "file:///private/tmp/t1/evals/design-patterns/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "visitor over an AST - ADTs + exhaustive match, and the expression problem",
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/visitor.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "routing",
+            "value": "if (!/sealed (trait|abstract)|algebraic data type|\\bADT\\b/i.test(output))\n  throw new Error('did not reach for a sealed trait / ADT instead of Visitor');\nif (!/pattern match|\\bmatch\\b|exhaustiv/i.test(output))\n  throw new Error('did not mention exhaustive pattern matching');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "// The precise trade-off: Visitor eases new TYPES, ADTs ease new OPERATIONS.\nif (!/expression problem|adding (new )?(types|operations)|which axis|axis (of )?change/i.test(output))\n  throw new Error('did not surface the expression-problem trade-off (types vs operations axis)');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "singleton requested by name - must push back, not deliver it",
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/singleton.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "if (!/anti-?pattern|global (mutable )?state|testab|hides? depend|hidden depend/i.test(output))\n  throw new Error('delivered a Singleton without flagging it as global mutable state / anti-pattern');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "routing",
+            "value": "if (!/pass(ing)? (the )?depend|inject|explicit depend|\\bobject\\b/i.test(output))\n  throw new Error('did not offer explicit dependency passing (or a stateless object) instead');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "strategy requested by name - it is just passing a function",
+        "vars": {
+          "request": "file:///private/tmp/t1/evals/design-patterns/cases/strategy.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "routing",
+            "value": "const prose = /pass(ing)? a function|first-?class function|higher-?order|just a function|function (value|type|alias)|collapses? to a function|reduces? to a function/i.test(output);\n// A function *type* is the same claim expressed as code: `type Pricing = Order => BigDecimal`.\nconst funcType = /type\\s+\\w+\\s*=\\s*[^\\n=]*=>/.test(output) || /:\\s*\\w+\\s*=>\\s*\\w+/.test(output);\nif (!prose && !funcType)\n  throw new Error('never offered the function-based alternative to the Strategy class hierarchy');\nreturn true;\n"
+          },
+          {
+            "type": "llm-rubric",
+            "metric": "routing",
+            "value": "The response does not stop at a textbook Strategy implementation. It makes clear that in a language with first-class functions the trait plus concrete-class hierarchy is unnecessary ceremony, and shows or recommends the simpler form where a pricing algorithm is just a function value. It is allowed to show the classic structure first, but it must not leave the reader thinking the class hierarchy is the right answer here."
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "/tmp/t2res/design-patterns_baseline_2.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "options": {
+        "provider": {
+          "id": "exec:../_provider/claude-grader.sh",
+          "config": {
+            "model": "sonnet",
+            "apiKeyRequired": false,
+            "max_turns": 5
+          }
+        }
+      },
+      "vars": {},
+      "assert": [],
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/t1/evals/design-patterns"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-28T20:52:09.210Z",
+    "evaluationCreatedAt": "2026-10-28T20:51:36.800Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

@@ -1,0 +1,431 @@
+{
+  "evalId": "eval-Fms-2026-10-29T17:03:51",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T17:03:51.800Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/release-macos-spm-packaging/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "fe88578ebababe2e673fa1e24b53dfa4c047c9726ec39b923ec70888bf020bc6",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 4,
+          "assertFailCount": 0,
+          "totalLatencyMs": 22758,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 4
+          },
+          "namedScoresCount": {
+            "accuracy": 4
+          },
+          "namedScoreWeights": {
+            "accuracy": 4
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 3
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/\\.app|bundle/i.test(output)) throw new Error('covers the .app bundle -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/Info\\.plist/i.test(output)) throw new Error('mentions Info.plist -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/Contents\\/MacOS|Contents\\//i.test(output)) throw new Error('gives the bundle layout -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "d0a9aa55-7ac2-49da-b4f6-5a09095ce335",
+        "latencyMs": 12587,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: release-macos-spm-packaging\ndescription: Scaffold, build, and package SwiftPM-based macOS apps without Xcode project. Use when you need a from-scratch macOS app layout, SwiftPM targets/resources, custom .app bundle assembly, or signing/notarization steps outside Xcode.\n---\n\n# macOS SwiftPM App Packaging\n\n## Overview\n\nBootstrap a complete SwiftPM macOS app, then build, package, and run it without Xcode. This skill covers the full workflow from project scaffolding to release distribution.\n\n## Project Scaffolding\n\n### Basic Structure\n\n```\nMyApp/\n├── Package.swift\n├── Sources/\n│   └── MyApp/\n│       ├── MyApp.swift          # @main App entry\n│       └── ContentView.swift\n├── Resources/\n│   ├── Assets.xcassets/\n│   └── Info.plist\n├── Scripts/\n│   ├── package_app.sh\n│   ├── compile_and_run.sh\n│   └── sign-and-notarize.sh\n└── version.env\n```\n\n### Package.swift\n\n```swift\n// swift-tools-version: 5.9\nimport PackageDescription\n\nlet package = Package(\n    name: \"MyApp\",\n    platforms: [.macOS(.v14)],\n    products: [\n        .executable(name: \"MyApp\", targets: [\"MyApp\"])\n    ],\n    targets: [\n        .executableTarget(\n            name: \"MyApp\",\n            resources: [\n                .process(\"Resources\")\n            ]\n        )\n    ]\n)\n```\n\n### version.env\n\n```bash\nAPP_NAME=\"MyApp\"\nBUNDLE_ID=\"com.example.myapp\"\nVERSION=\"1.0.0\"\nBUILD_NUMBER=\"1\"\nMIN_MACOS=\"14.0\"\n# Set to 1 for menu bar apps\nMENU_BAR_APP=0\n```\n\n## Build and Run\n\n### Build with SwiftPM\n\n```bash\n# Debug build\nswift build\n\n# Release build\nswift build -c release\n\n# Run tests\nswift test\n```\n\n### Package as .app Bundle\n\nCreate `Scripts/package_app.sh`:\n\n```bash\n#!/bin/bash\nset -e\n\nsource version.env\n\nBUILD_DIR=\".build/release\"\nAPP_BUNDLE=\"$BUILD_DIR/$APP_NAME.app\"\nCONTENTS=\"$APP_BUNDLE/Contents\"\nMACOS=\"$CONTENTS/MacOS\"\nRESOURCES=\"$CONTENTS/Resources\"\n\n# Build release\nswift build -c release\n\n# Create bundle structure\nrm -rf \"$APP_BUNDLE\"\nmkdir -p \"$MACOS\" \"$RESOURCES\"\n\n# Copy binary\ncp \"$BUILD_DIR/$APP_NAME\" \"$MACOS/\"\n\n# Copy resources\ncp -r Resources/* \"$RESOURCES/\" 2>/dev/null || true\n\n# Generate Info.plist\ncat > \"$CONTENTS/Info.plist\" << EOF\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n    <key>CFBundleExecutable</key>\n    <string>$APP_NAME</string>\n    <key>CFBundleIdentifier</key>\n    <string>$BUNDLE_ID</string>\n    <key>CFBundleName</key>\n    <string>$APP_NAME</string>\n    <key>CFBundleVersion</key>\n    <string>$BUILD_NUMBER</string>\n    <key>CFBundleShortVersionString</key>\n    <string>$VERSION</string>\n    <key>LSMinimumSystemVersion</key>\n    <string>$MIN_MACOS</string>\n    <key>CFBundlePackageType</key>\n    <string>APPL</string>\n$([ \"$MENU_BAR_APP\" = \"1\" ] && echo \"    <key>LSUIElement</key>\n    <true/>\")\n</dict>\n</plist>\nEOF\n\necho \"Created $APP_BUNDLE\"\n```\n\n### Development Run Script\n\nCreate `Scripts/compile_and_run.sh`:\n\n```bash\n#!/bin/bash\nset -e\n\nsource version.env\n\n# Kill existing instance\npkill -x \"$APP_NAME\" 2>/dev/null || true\n\n# Package\n./Scripts/package_app.sh\n\n# Launch\nopen \".build/release/$APP_NAME.app\"\n```\n\n## Code Signing\n\n### Development Signing\n\n```bash\n# Sign for local development\ncodesign --force --sign - \".build/release/MyApp.app\"\n\n# Or with a specific identity\ncodesign --force --sign \"Developer ID Application: Your Name\" \".build/release/MyApp.app\"\n```\n\n### Create Stable Dev Identity\n\n```bash\n# Generate self-signed certificate for consistent dev signing\nsecurity create-keychain -p \"\" dev-signing.keychain\nsecurity default-keychain -s dev-signing.keychain\n# Follow prompts in Keychain Access to create certificate\n```\n\n## Notarization and Release\n\nCreate `Scripts/sign-and-notarize.sh`:\n\n```bash\n#!/bin/bash\nset -e\n\nsource version.env\n\nAPP_PATH=\".build/release/$APP_NAME.app\"\nZIP_PATH=\".build/release/$APP_NAME-$VERSION.zip\"\n\n# Sign with Developer ID\ncodesign --force --options runtime --sign \"Developer ID Application: Your Name\" \"$APP_PATH\"\n\n# Create zip for notarization\nditto -c -k --keepParent \"$APP_PATH\" \"$ZIP_PATH\"\n\n# Submit for notarization\nxcrun notarytool submit \"$ZIP_PATH\" \\\n    --apple-id \"your@email.com\" \\\n    --team-id \"TEAM_ID\" \\\n    --password \"@keychain:AC_PASSWORD\" \\\n    --wait\n\n# Staple the ticket\nxcrun stapler staple \"$APP_PATH\"\n\n# Re-zip with stapled ticket\nrm \"$ZIP_PATH\"\nditto -c -k --keepParent \"$APP_PATH\" \"$ZIP_PATH\"\n\necho \"Release ready: $ZIP_PATH\"\n```\n\n## Sparkle Updates (Optional)\n\n### Generate Appcast Entry\n\n```bash\n#!/bin/bash\nsource version.env\n\nZIP_PATH=\".build/release/$APP_NAME-$VERSION.zip\"\nSIZE=$(stat -f%z \"$ZIP_PATH\")\nSIGNATURE=$(./bin/sign_update \"$ZIP_PATH\")\nDATE=$(date -R)\n\ncat << EOF\n<item>\n    <title>Version $VERSION</title>\n    <pubDate>$DATE</pubDate>\n    <sparkle:version>$BUILD_NUMBER</sparkle:version>\n    <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>\n    <enclosure\n        url=\"https://example.com/releases/$APP_NAME-$VERSION.zip\"\n        length=\"$SIZE\"\n        type=\"application/octet-stream\"\n        sparkle:edSignature=\"$SIGNATURE\"\n    />\n</item>\nEOF\n```\n\n## GitHub Release\n\n```bash\n# Create tag\ngit tag -a \"v$VERSION\" -m \"Release $VERSION\"\ngit push origin \"v$VERSION\"\n\n# Create GitHub release\ngh release create \"v$VERSION\" \\\n    \".build/release/$APP_NAME-$VERSION.zip\" \\\n    --title \"v$VERSION\" \\\n    --notes \"Release notes here\"\n```\n\n## Checklist\n\n### Scaffolding\n- [ ] Package.swift with correct targets and resources\n- [ ] version.env with app metadata\n- [ ] Info.plist template or generation script\n- [ ] Basic app entry point (@main App)\n\n### Build\n- [ ] `swift build` succeeds\n- [ ] `swift test` passes\n- [ ] Resources copied correctly\n\n### Packaging\n- [ ] .app bundle structure correct\n- [ ] Info.plist generated with correct values\n- [ ] App launches from Finder\n\n### Release\n- [ ] Code signed with Developer ID\n- [ ] Notarized and stapled\n- [ ] Zip created for distribution\n- [ ] (Optional) Sparkle appcast updated\n\n## Related\n\n- [[release-app-store-changelog]] — generate the release notes for the build.\n- [[secure-coding]] — code signing/notarization alongside secrets/supply-chain hygiene.\n</skill>\n\nUser request:\nI have a SwiftPM executable. How do I ship it as a real macOS .app?",
+          "label": "evals/release-macos-spm-packaging/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "fe88578ebababe2e673fa1e24b53dfa4c047c9726ec39b923ec70888bf020bc6",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Wrap the release binary in a bundle, sign it, notarize it, then staple it.\n\n**1. Build and assemble.** Put these in `version.env` and `Scripts/package_app.sh`:\n\n```bash\nswift build -c release\nmkdir -p \"$APP/Contents/MacOS\" \"$APP/Contents/Resources\"\ncp .build/release/MyApp \"$APP/Contents/MacOS/\"\ncp -R .build/release/MyApp_MyApp.bundle \"$APP/Contents/Resources/\"   # SwiftPM resource bundle, if you use resources\n```\n\nThen write an `Info.plist` into `Contents/` with at least these keys:\n- `CFBundleExecutable`\n- `CFBundleIdentifier`\n- `CFBundleShortVersionString`\n- `CFBundleVersion`\n- `CFBundlePackageType` (`APPL`)\n- `LSMinimumSystemVersion`\n\nAdd `LSUIElement` for a menu bar app. If you have an icon, add `CFBundleIconFile`.\n\n**2. Run it locally.** Ad-hoc sign with `codesign --force --sign - MyApp.app`, then `open MyApp.app`.\n\n**3. Sign for distribution.** This needs a Developer ID Application certificate:\n```bash\ncodesign --force --options runtime --sign \"Developer ID Application: Name (TEAMID)\" MyApp.app\n```\nHardened runtime (`--options runtime`) is required for notarization.\n\n**4. Notarize and staple.**\n```bash\nditto -c -k --keepParent MyApp.app MyApp.zip\nxcrun notarytool submit MyApp.zip --keychain-profile AC_NOTARY --wait\nxcrun stapler staple MyApp.app\nditto -c -k --keepParent MyApp.app MyApp-1.0.0.zip   # re-zip after stapling\n```\nUse `xcrun notarytool store-credentials AC_NOTARY` once to store an app-specific password. That's safer than passing `--password` on the command line.\n\n**5. Publish.** Run `gh release create v1.0.0 MyApp-1.0.0.zip`. Add a Sparkle appcast if you want auto-updates.\n\nTwo gotchas:\n- If you use `.process(\"Resources\")`, SwiftPM emits `MyApp_MyApp.bundle` next to the binary. Without step 1's resource-bundle copy, `Bundle.module` crashes at launch.\n- Run `spctl -a -vv MyApp.app` and `codesign --verify --deep --strict MyApp.app` before you ship.\n\nI can write the full scripts into your repo if you want. Tell me your app name, bundle ID, and whether it's a menu bar app."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "bundle",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/release-macos-spm-packaging/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/release-macos-spm-packaging/cases/bundle.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/\\.app|bundle/i.test(output)) throw new Error('covers the .app bundle -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/Info\\.plist/i.test(output)) throw new Error('mentions Info.plist -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/Contents\\/MacOS|Contents\\//i.test(output)) throw new Error('gives the bundle layout -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/release-macos-spm-packaging/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/release-macos-spm-packaging/cases/bundle.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/LSUIElement|agent|menu ?bar/i.test(output)) throw new Error('names LSUIElement or the agent-app setting -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "bd1eb0c8-f4ce-4890-9663-2f6824168fcb",
+        "latencyMs": 10171,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: release-macos-spm-packaging\ndescription: Scaffold, build, and package SwiftPM-based macOS apps without Xcode project. Use when you need a from-scratch macOS app layout, SwiftPM targets/resources, custom .app bundle assembly, or signing/notarization steps outside Xcode.\n---\n\n# macOS SwiftPM App Packaging\n\n## Overview\n\nBootstrap a complete SwiftPM macOS app, then build, package, and run it without Xcode. This skill covers the full workflow from project scaffolding to release distribution.\n\n## Project Scaffolding\n\n### Basic Structure\n\n```\nMyApp/\n├── Package.swift\n├── Sources/\n│   └── MyApp/\n│       ├── MyApp.swift          # @main App entry\n│       └── ContentView.swift\n├── Resources/\n│   ├── Assets.xcassets/\n│   └── Info.plist\n├── Scripts/\n│   ├── package_app.sh\n│   ├── compile_and_run.sh\n│   └── sign-and-notarize.sh\n└── version.env\n```\n\n### Package.swift\n\n```swift\n// swift-tools-version: 5.9\nimport PackageDescription\n\nlet package = Package(\n    name: \"MyApp\",\n    platforms: [.macOS(.v14)],\n    products: [\n        .executable(name: \"MyApp\", targets: [\"MyApp\"])\n    ],\n    targets: [\n        .executableTarget(\n            name: \"MyApp\",\n            resources: [\n                .process(\"Resources\")\n            ]\n        )\n    ]\n)\n```\n\n### version.env\n\n```bash\nAPP_NAME=\"MyApp\"\nBUNDLE_ID=\"com.example.myapp\"\nVERSION=\"1.0.0\"\nBUILD_NUMBER=\"1\"\nMIN_MACOS=\"14.0\"\n# Set to 1 for menu bar apps\nMENU_BAR_APP=0\n```\n\n## Build and Run\n\n### Build with SwiftPM\n\n```bash\n# Debug build\nswift build\n\n# Release build\nswift build -c release\n\n# Run tests\nswift test\n```\n\n### Package as .app Bundle\n\nCreate `Scripts/package_app.sh`:\n\n```bash\n#!/bin/bash\nset -e\n\nsource version.env\n\nBUILD_DIR=\".build/release\"\nAPP_BUNDLE=\"$BUILD_DIR/$APP_NAME.app\"\nCONTENTS=\"$APP_BUNDLE/Contents\"\nMACOS=\"$CONTENTS/MacOS\"\nRESOURCES=\"$CONTENTS/Resources\"\n\n# Build release\nswift build -c release\n\n# Create bundle structure\nrm -rf \"$APP_BUNDLE\"\nmkdir -p \"$MACOS\" \"$RESOURCES\"\n\n# Copy binary\ncp \"$BUILD_DIR/$APP_NAME\" \"$MACOS/\"\n\n# Copy resources\ncp -r Resources/* \"$RESOURCES/\" 2>/dev/null || true\n\n# Generate Info.plist\ncat > \"$CONTENTS/Info.plist\" << EOF\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n    <key>CFBundleExecutable</key>\n    <string>$APP_NAME</string>\n    <key>CFBundleIdentifier</key>\n    <string>$BUNDLE_ID</string>\n    <key>CFBundleName</key>\n    <string>$APP_NAME</string>\n    <key>CFBundleVersion</key>\n    <string>$BUILD_NUMBER</string>\n    <key>CFBundleShortVersionString</key>\n    <string>$VERSION</string>\n    <key>LSMinimumSystemVersion</key>\n    <string>$MIN_MACOS</string>\n    <key>CFBundlePackageType</key>\n    <string>APPL</string>\n$([ \"$MENU_BAR_APP\" = \"1\" ] && echo \"    <key>LSUIElement</key>\n    <true/>\")\n</dict>\n</plist>\nEOF\n\necho \"Created $APP_BUNDLE\"\n```\n\n### Development Run Script\n\nCreate `Scripts/compile_and_run.sh`:\n\n```bash\n#!/bin/bash\nset -e\n\nsource version.env\n\n# Kill existing instance\npkill -x \"$APP_NAME\" 2>/dev/null || true\n\n# Package\n./Scripts/package_app.sh\n\n# Launch\nopen \".build/release/$APP_NAME.app\"\n```\n\n## Code Signing\n\n### Development Signing\n\n```bash\n# Sign for local development\ncodesign --force --sign - \".build/release/MyApp.app\"\n\n# Or with a specific identity\ncodesign --force --sign \"Developer ID Application: Your Name\" \".build/release/MyApp.app\"\n```\n\n### Create Stable Dev Identity\n\n```bash\n# Generate self-signed certificate for consistent dev signing\nsecurity create-keychain -p \"\" dev-signing.keychain\nsecurity default-keychain -s dev-signing.keychain\n# Follow prompts in Keychain Access to create certificate\n```\n\n## Notarization and Release\n\nCreate `Scripts/sign-and-notarize.sh`:\n\n```bash\n#!/bin/bash\nset -e\n\nsource version.env\n\nAPP_PATH=\".build/release/$APP_NAME.app\"\nZIP_PATH=\".build/release/$APP_NAME-$VERSION.zip\"\n\n# Sign with Developer ID\ncodesign --force --options runtime --sign \"Developer ID Application: Your Name\" \"$APP_PATH\"\n\n# Create zip for notarization\nditto -c -k --keepParent \"$APP_PATH\" \"$ZIP_PATH\"\n\n# Submit for notarization\nxcrun notarytool submit \"$ZIP_PATH\" \\\n    --apple-id \"your@email.com\" \\\n    --team-id \"TEAM_ID\" \\\n    --password \"@keychain:AC_PASSWORD\" \\\n    --wait\n\n# Staple the ticket\nxcrun stapler staple \"$APP_PATH\"\n\n# Re-zip with stapled ticket\nrm \"$ZIP_PATH\"\nditto -c -k --keepParent \"$APP_PATH\" \"$ZIP_PATH\"\n\necho \"Release ready: $ZIP_PATH\"\n```\n\n## Sparkle Updates (Optional)\n\n### Generate Appcast Entry\n\n```bash\n#!/bin/bash\nsource version.env\n\nZIP_PATH=\".build/release/$APP_NAME-$VERSION.zip\"\nSIZE=$(stat -f%z \"$ZIP_PATH\")\nSIGNATURE=$(./bin/sign_update \"$ZIP_PATH\")\nDATE=$(date -R)\n\ncat << EOF\n<item>\n    <title>Version $VERSION</title>\n    <pubDate>$DATE</pubDate>\n    <sparkle:version>$BUILD_NUMBER</sparkle:version>\n    <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>\n    <enclosure\n        url=\"https://example.com/releases/$APP_NAME-$VERSION.zip\"\n        length=\"$SIZE\"\n        type=\"application/octet-stream\"\n        sparkle:edSignature=\"$SIGNATURE\"\n    />\n</item>\nEOF\n```\n\n## GitHub Release\n\n```bash\n# Create tag\ngit tag -a \"v$VERSION\" -m \"Release $VERSION\"\ngit push origin \"v$VERSION\"\n\n# Create GitHub release\ngh release create \"v$VERSION\" \\\n    \".build/release/$APP_NAME-$VERSION.zip\" \\\n    --title \"v$VERSION\" \\\n    --notes \"Release notes here\"\n```\n\n## Checklist\n\n### Scaffolding\n- [ ] Package.swift with correct targets and resources\n- [ ] version.env with app metadata\n- [ ] Info.plist template or generation script\n- [ ] Basic app entry point (@main App)\n\n### Build\n- [ ] `swift build` succeeds\n- [ ] `swift test` passes\n- [ ] Resources copied correctly\n\n### Packaging\n- [ ] .app bundle structure correct\n- [ ] Info.plist generated with correct values\n- [ ] App launches from Finder\n\n### Release\n- [ ] Code signed with Developer ID\n- [ ] Notarized and stapled\n- [ ] Zip created for distribution\n- [ ] (Optional) Sparkle appcast updated\n\n## Related\n\n- [[release-app-store-changelog]] — generate the release notes for the build.\n- [[secure-coding]] — code signing/notarization alongside secrets/supply-chain hygiene.\n</skill>\n\nUser request:\nIt's a menu bar app with no dock icon. Anything special?",
+          "label": "evals/release-macos-spm-packaging/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "fe88578ebababe2e673fa1e24b53dfa4c047c9726ec39b923ec70888bf020bc6",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Yes, set `MENU_BAR_APP=1` in `version.env`. `package_app.sh` then adds `LSUIElement` (`<true/>`) to the generated Info.plist, which hides the Dock icon and the Cmd-Tab entry.\n\n- **Entry point:** use a `MenuBarExtra` scene in your `@main App`. It's available on macOS 13+, so your `.macOS(.v14)` target is fine. Don't add a `WindowGroup` unless you want a window.\n- **Quit:** an agent app has no app menu, so add a Quit item yourself, e.g. `Button(\"Quit\") { NSApplication.shared.terminate(nil) }`.\n- **Signing and notarization:** no change.\n- **Testing:** run it from the packaged `.app` (`compile_and_run.sh`), not `swift run`. `LSUIElement` only takes effect from the bundle's Info.plist."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "menubar",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/release-macos-spm-packaging/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/release-macos-spm-packaging/cases/menubar.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/LSUIElement|agent|menu ?bar/i.test(output)) throw new Error('names LSUIElement or the agent-app setting -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/release-macos-spm-packaging/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/release-macos-spm-packaging/cases/menubar.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 12604,
+      "evaluationDurationMs": 12604
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "release-macos-spm-packaging — EDD",
+    "prompts": [
+      "file:///private/tmp/b3/evals/release-macos-spm-packaging/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "bundle",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/release-macos-spm-packaging/cases/bundle.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/\\.app|bundle/i.test(output)) throw new Error('covers the .app bundle -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/Info\\.plist/i.test(output)) throw new Error('mentions Info.plist -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/Contents\\/MacOS|Contents\\//i.test(output)) throw new Error('gives the bundle layout -- not found');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "menubar",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/release-macos-spm-packaging/cases/menubar.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/LSUIElement|agent|menu ?bar/i.test(output)) throw new Error('names LSUIElement or the agent-app setting -- not found');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/release-macos-spm-packaging/results/skill_1.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b3/skills/release-macos-spm-packaging/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b3/evals/release-macos-spm-packaging"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T17:04:04.449Z",
+    "evaluationCreatedAt": "2026-10-29T17:03:51.800Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

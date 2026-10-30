@@ -1,0 +1,594 @@
+{
+  "evalId": "eval-ZEb-2026-10-29T17:07:09",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T17:07:09.223Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/agentic-workflows/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "e45973ac1258b340b45b45f3eab11be14bb53e8ad7aaab91c0877435078e7941",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 3,
+          "testPassCount": 3,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 7,
+          "assertFailCount": 0,
+          "totalLatencyMs": 25417,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 6,
+            "restraint": 1
+          },
+          "namedScoresCount": {
+            "accuracy": 6,
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 6,
+            "restraint": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "if (!/simpl|single (call|prompt)|one (call|prompt)|may not need|do you need|escalat|start with/i.test(output)) throw new Error('pushes back toward the simplest thing that works -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "c4cd6db8-1afd-4801-8df6-d2050207fe51",
+        "latencyMs": 9436,
+        "namedScores": {
+          "restraint": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: agentic-workflows\ndescription: Designing and building agentic AI systems — when to use a single LLM call, a structured workflow, or an autonomous agent, and the proven composition patterns for each. Distilled from Anthropic's \"Building Effective Agents,\" the Claude Agent SDK, and LangGraph. Covers the workflow-vs-agent distinction (predefined paths vs model-directed control), the building block (augmented LLM = model + tools + retrieval + memory), the five workflow patterns (prompt chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer), the autonomous agent loop (gather context → act via tools → verify work → repeat), the maker-checker / generator-critic pattern, and the engineering disciplines that matter (start simple, add complexity only when it pays, ground verification in real tool execution, manage context, design tools and guardrails carefully, human-in-the-loop). Use when architecting a multi-agent or agentic system, choosing an orchestration pattern, deciding workflow vs agent, wiring role agents together, or evaluating a framework (Claude Agent SDK, LangGraph, CrewAI, AutoGen). Provides the runtime mechanics for sdlc-orchestration's role agents.\n---\n\n# Agentic Workflows\n\nHow to build systems with LLMs that *act* — choosing between a simple call, a fixed **workflow**, and an autonomous **agent**, and composing them with patterns that are proven to work. Distilled from **Anthropic's \"Building Effective Agents,\"** the **Claude Agent SDK**, and **LangGraph**. This is the runtime-mechanics complement to [[sdlc-orchestration]] (which says *what* the SDLC pipeline is; this says *how* to wire the agents that run it).\n\nCross-links: [[sdlc-orchestration]] (the SDLC application), [[akka]] (a durable actor runtime for long-running/distributed agents), [[software-architecture]] (these are distributed-system designs — the fallacies apply), [[secure-coding]] (tool/guardrail safety).\n\n## The core distinction: workflows vs agents\n\nAnthropic's framing — both are \"agentic systems,\" but:\n\n- **Workflow** — LLMs and tools orchestrated through **predefined code paths**. Predictable, debuggable, cheaper. Use when the task decomposes into known steps.\n- **Agent** — the **LLM dynamically directs its own process and tool use**, maintaining control over how it accomplishes the task. Flexible, but less predictable and more expensive. Use when the steps can't be predicted in advance and the model needs to adapt.\n\n**The cardinal rule: start with the simplest thing that works.** A single well-prompted LLM call (with retrieval/examples) beats a multi-agent system for most tasks. Add workflow structure only when it measurably improves outcomes; reach for a full agent only when flexibility genuinely requires it. *\"Find the simplest solution possible, and only increase complexity when needed.\"* Agentic systems trade latency and cost for better task performance — make that trade deliberately.\n\n## The building block: the augmented LLM\n\nEvery agentic system is built from an **augmented LLM** — a model enhanced with **tools**, **retrieval**, and **memory**. Get this unit right first: a clear interface, well-documented tools, and the model able to decide when/how to use them.\n\n## The five workflow patterns\n\nWhen a fixed structure fits, compose from these (all in `references/patterns-and-frameworks.md` with when-to-use):\n\n1. **Prompt chaining** — decompose into a fixed sequence; each step's output feeds the next, with optional programmatic \"gates\" between. For tasks that cleanly split into ordered subtasks.\n2. **Routing** — classify the input, then dispatch to a specialized follow-up. For distinct categories better handled separately (and to keep each prompt focused).\n3. **Parallelization** — run subtasks concurrently (**sectioning**) or run the same task multiple times for vote/consensus (**voting**). For speed or diverse perspectives.\n4. **Orchestrator-workers** — a central LLM dynamically breaks a task into subtasks, delegates to worker LLMs, and synthesizes. For complex tasks where subtasks aren't known up front (the SDLC Coordinator is this).\n5. **Evaluator-optimizer** — one LLM generates, another **evaluates and gives feedback**, in a loop. For tasks with clear evaluation criteria where iteration helps — this is the **maker-checker / generator-critic** pattern that underpins [[sdlc-orchestration]]'s every phase.\n\n## The autonomous agent loop\n\nWhen you do use a full agent, it runs a loop (the Claude Agent SDK framing): **gather context → take action (via tools) → verify the work → repeat** until done or stopped. Agents start from a human command, then operate independently, ideally **checking in with the human** at checkpoints and on completion. Keys: a clear stopping condition, a max-iteration cap, and — critically — **verification grounded in reality**.\n\n## Engineering disciplines that decide success\n\n- **Ground verification in execution.** The single biggest quality lever (and the source SDLC frameworks' biggest gap): let the agent **run code, tests, linters, `terraform plan`** and read the real output, not judge its own work by reading it. Feedback from the environment beats model self-assessment.\n- **Manage context.** Give each step only what it needs (shard docs — [[spec-driven-development]]); compact long histories; use retrieval/memory deliberately. Context is a budget.\n- **Design tools like an API.** Clear names, documented params, examples, error messages the model can act on; few sharp tools over many dull ones. Test tools in isolation.\n- **Guardrails & safety.** Constrain what tools can do, validate inputs, never give untrusted input a path to dangerous actions ([[secure-coding]]); sandbox execution.\n- **Human-in-the-loop.** Checkpoints for consequential actions; the human approves, the agent proposes.\n- **Observability.** Log the agent's steps/decisions so failures are debuggable (ties to [[site-reliability-engineering]]).\n- **Multi-agent only when it pays.** Multiple agents add coordination cost; use them for genuine parallelism or separation of concerns (e.g. the SDLC role agents), not by default.\n\n## Frameworks (use the simplest that fits)\n\n- **Claude Agent SDK** — build agents on the gather→act→verify loop with tools, subagents, MCP, and context management. (The SDK this very system runs on.)\n- **LangGraph** — graph of nodes (agents) + edges (control flow) over a shared state, with conditional routing, checkpointing/persistence, and human-in-the-loop interrupts. Good for explicit, durable, stateful workflows.\n- **CrewAI / AutoGen** — role-based crews / multi-agent conversation frameworks.\n\nAnthropic's caveat: **frameworks add abstraction layers that can hide what's really happening** — start by calling the API directly, adopt a framework only when it earns its complexity. `references/patterns-and-frameworks.md` compares them.\n\n## Anti-patterns\n\n- Reaching for a multi-agent system when a single augmented call would do (cost/latency/complexity for nothing).\n- **Self-verifying agents** that grade their own output instead of running it (the cardinal sin — see [[test-strategy]], [[sdlc-orchestration]]).\n- Framework-first cargo-culting that obscures the actual prompts/control flow.\n- Unbounded agent loops (no stop condition / max iterations).\n- Dumping everything into one context window; never compacting or sharding.\n- Vague, undocumented tools; tools with unrecoverable error messages.\n- No human checkpoint before consequential/irreversible actions; no observability.\n\n## Always-apply\n\n1. **Start simple**; escalate single-call → workflow → agent only when it pays.\n2. Build on the **augmented LLM**; pick the matching **workflow pattern** before writing a full agent.\n3. Use **evaluator-optimizer (maker-checker)** for iterative quality; **orchestrator-workers** for dynamic decomposition.\n4. **Ground verification in real tool execution**; manage context; design tools and guardrails carefully.\n5. Keep a **human in the loop** for consequential steps; bound every loop; log decisions.\n\n## How to use the reference\n\n- **`references/patterns-and-frameworks.md`** — each workflow pattern with when-to-use and structure, the agent loop in detail, and a Claude Agent SDK / LangGraph / CrewAI / AutoGen comparison.\n\n## Related\n\n- [[sdlc-orchestration]] — the SDLC pipeline these patterns implement (Coordinator = orchestrator-workers; phase gates = evaluator-optimizer).\n- [[akka]] — actor model & durable runtime for long-running, distributed, or stateful agents.\n- [[software-architecture]] — agentic systems are distributed systems; the fallacies and trade-offs apply.\n- [[test-strategy]] — execution-grounded verification, shared discipline.\n- [[secure-coding]] — tool sandboxing, input validation, guardrails.\n- Sources: Anthropic, \"Building Effective Agents\" (anthropic.com/research) & the Claude Agent SDK; LangGraph (langchain-ai/langgraph).\n</skill>\n\nUser request:\nI want to build an autonomous multi-agent system for summarising support tickets. How many agents should it have?",
+          "label": "evals/agentic-workflows/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "e45973ac1258b340b45b45f3eab11be14bb53e8ad7aaab91c0877435078e7941",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "**One agent — and probably not an \"autonomous multi-agent system\" at all.**\n\nSummarising a ticket is a single-step transformation, so a single well-prompted LLM call (with a few examples and the ticket text) is the right starting point. Multi-agent adds cost, latency, and coordination overhead for no gain here.\n\nEscalate only if measurements justify it:\n\n1. **Single call** — start here. Structured output (issue, product area, sentiment, next action).\n2. **Workflow, not agent** — if tickets are long or varied:\n   - *Routing*: classify the ticket type, then use a type-specific summary prompt.\n   - *Prompt chaining*: chunk very long threads, summarise each chunk, then merge.\n3. **Evaluator-optimizer (2 LLM roles: summariser + checker)** — only if quality gaps show up, such as missed details or hallucinated facts. Ground the checker in real checks: verify that quoted order IDs, error codes, and names appear in the source ticket.\n4. **Autonomous agent** — only if summarising requires open-ended lookups (customer history, KB articles, linked tickets). Even then, it's one agent with tools, not several.\n\nWhichever you pick, bound any loop with a max-iteration cap. Log the inputs and outputs so you can debug bad summaries.\n\nI can sketch the single-call version with an eval set to test whether you need more than that."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "start-simple",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/agentic-workflows/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/agentic-workflows/cases/start-simple.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "if (!/simpl|single (call|prompt)|one (call|prompt)|may not need|do you need|escalat|start with/i.test(output)) throw new Error('pushes back toward the simplest thing that works -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/agentic-workflows/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/agentic-workflows/cases/start-simple.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 4
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/prompt chain|chaining/i.test(output)) throw new Error('names prompt chaining -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/routing/i.test(output)) throw new Error('names routing -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/parallel/i.test(output)) throw new Error('names parallelisation -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/orchestrator|evaluator|optimizer|maker-checker/i.test(output)) throw new Error('names orchestrator-workers or evaluator-optimizer -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "cb152d4d-a0b5-475d-9e4e-d80a7b2b40e1",
+        "latencyMs": 7878,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: agentic-workflows\ndescription: Designing and building agentic AI systems — when to use a single LLM call, a structured workflow, or an autonomous agent, and the proven composition patterns for each. Distilled from Anthropic's \"Building Effective Agents,\" the Claude Agent SDK, and LangGraph. Covers the workflow-vs-agent distinction (predefined paths vs model-directed control), the building block (augmented LLM = model + tools + retrieval + memory), the five workflow patterns (prompt chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer), the autonomous agent loop (gather context → act via tools → verify work → repeat), the maker-checker / generator-critic pattern, and the engineering disciplines that matter (start simple, add complexity only when it pays, ground verification in real tool execution, manage context, design tools and guardrails carefully, human-in-the-loop). Use when architecting a multi-agent or agentic system, choosing an orchestration pattern, deciding workflow vs agent, wiring role agents together, or evaluating a framework (Claude Agent SDK, LangGraph, CrewAI, AutoGen). Provides the runtime mechanics for sdlc-orchestration's role agents.\n---\n\n# Agentic Workflows\n\nHow to build systems with LLMs that *act* — choosing between a simple call, a fixed **workflow**, and an autonomous **agent**, and composing them with patterns that are proven to work. Distilled from **Anthropic's \"Building Effective Agents,\"** the **Claude Agent SDK**, and **LangGraph**. This is the runtime-mechanics complement to [[sdlc-orchestration]] (which says *what* the SDLC pipeline is; this says *how* to wire the agents that run it).\n\nCross-links: [[sdlc-orchestration]] (the SDLC application), [[akka]] (a durable actor runtime for long-running/distributed agents), [[software-architecture]] (these are distributed-system designs — the fallacies apply), [[secure-coding]] (tool/guardrail safety).\n\n## The core distinction: workflows vs agents\n\nAnthropic's framing — both are \"agentic systems,\" but:\n\n- **Workflow** — LLMs and tools orchestrated through **predefined code paths**. Predictable, debuggable, cheaper. Use when the task decomposes into known steps.\n- **Agent** — the **LLM dynamically directs its own process and tool use**, maintaining control over how it accomplishes the task. Flexible, but less predictable and more expensive. Use when the steps can't be predicted in advance and the model needs to adapt.\n\n**The cardinal rule: start with the simplest thing that works.** A single well-prompted LLM call (with retrieval/examples) beats a multi-agent system for most tasks. Add workflow structure only when it measurably improves outcomes; reach for a full agent only when flexibility genuinely requires it. *\"Find the simplest solution possible, and only increase complexity when needed.\"* Agentic systems trade latency and cost for better task performance — make that trade deliberately.\n\n## The building block: the augmented LLM\n\nEvery agentic system is built from an **augmented LLM** — a model enhanced with **tools**, **retrieval**, and **memory**. Get this unit right first: a clear interface, well-documented tools, and the model able to decide when/how to use them.\n\n## The five workflow patterns\n\nWhen a fixed structure fits, compose from these (all in `references/patterns-and-frameworks.md` with when-to-use):\n\n1. **Prompt chaining** — decompose into a fixed sequence; each step's output feeds the next, with optional programmatic \"gates\" between. For tasks that cleanly split into ordered subtasks.\n2. **Routing** — classify the input, then dispatch to a specialized follow-up. For distinct categories better handled separately (and to keep each prompt focused).\n3. **Parallelization** — run subtasks concurrently (**sectioning**) or run the same task multiple times for vote/consensus (**voting**). For speed or diverse perspectives.\n4. **Orchestrator-workers** — a central LLM dynamically breaks a task into subtasks, delegates to worker LLMs, and synthesizes. For complex tasks where subtasks aren't known up front (the SDLC Coordinator is this).\n5. **Evaluator-optimizer** — one LLM generates, another **evaluates and gives feedback**, in a loop. For tasks with clear evaluation criteria where iteration helps — this is the **maker-checker / generator-critic** pattern that underpins [[sdlc-orchestration]]'s every phase.\n\n## The autonomous agent loop\n\nWhen you do use a full agent, it runs a loop (the Claude Agent SDK framing): **gather context → take action (via tools) → verify the work → repeat** until done or stopped. Agents start from a human command, then operate independently, ideally **checking in with the human** at checkpoints and on completion. Keys: a clear stopping condition, a max-iteration cap, and — critically — **verification grounded in reality**.\n\n## Engineering disciplines that decide success\n\n- **Ground verification in execution.** The single biggest quality lever (and the source SDLC frameworks' biggest gap): let the agent **run code, tests, linters, `terraform plan`** and read the real output, not judge its own work by reading it. Feedback from the environment beats model self-assessment.\n- **Manage context.** Give each step only what it needs (shard docs — [[spec-driven-development]]); compact long histories; use retrieval/memory deliberately. Context is a budget.\n- **Design tools like an API.** Clear names, documented params, examples, error messages the model can act on; few sharp tools over many dull ones. Test tools in isolation.\n- **Guardrails & safety.** Constrain what tools can do, validate inputs, never give untrusted input a path to dangerous actions ([[secure-coding]]); sandbox execution.\n- **Human-in-the-loop.** Checkpoints for consequential actions; the human approves, the agent proposes.\n- **Observability.** Log the agent's steps/decisions so failures are debuggable (ties to [[site-reliability-engineering]]).\n- **Multi-agent only when it pays.** Multiple agents add coordination cost; use them for genuine parallelism or separation of concerns (e.g. the SDLC role agents), not by default.\n\n## Frameworks (use the simplest that fits)\n\n- **Claude Agent SDK** — build agents on the gather→act→verify loop with tools, subagents, MCP, and context management. (The SDK this very system runs on.)\n- **LangGraph** — graph of nodes (agents) + edges (control flow) over a shared state, with conditional routing, checkpointing/persistence, and human-in-the-loop interrupts. Good for explicit, durable, stateful workflows.\n- **CrewAI / AutoGen** — role-based crews / multi-agent conversation frameworks.\n\nAnthropic's caveat: **frameworks add abstraction layers that can hide what's really happening** — start by calling the API directly, adopt a framework only when it earns its complexity. `references/patterns-and-frameworks.md` compares them.\n\n## Anti-patterns\n\n- Reaching for a multi-agent system when a single augmented call would do (cost/latency/complexity for nothing).\n- **Self-verifying agents** that grade their own output instead of running it (the cardinal sin — see [[test-strategy]], [[sdlc-orchestration]]).\n- Framework-first cargo-culting that obscures the actual prompts/control flow.\n- Unbounded agent loops (no stop condition / max iterations).\n- Dumping everything into one context window; never compacting or sharding.\n- Vague, undocumented tools; tools with unrecoverable error messages.\n- No human checkpoint before consequential/irreversible actions; no observability.\n\n## Always-apply\n\n1. **Start simple**; escalate single-call → workflow → agent only when it pays.\n2. Build on the **augmented LLM**; pick the matching **workflow pattern** before writing a full agent.\n3. Use **evaluator-optimizer (maker-checker)** for iterative quality; **orchestrator-workers** for dynamic decomposition.\n4. **Ground verification in real tool execution**; manage context; design tools and guardrails carefully.\n5. Keep a **human in the loop** for consequential steps; bound every loop; log decisions.\n\n## How to use the reference\n\n- **`references/patterns-and-frameworks.md`** — each workflow pattern with when-to-use and structure, the agent loop in detail, and a Claude Agent SDK / LangGraph / CrewAI / AutoGen comparison.\n\n## Related\n\n- [[sdlc-orchestration]] — the SDLC pipeline these patterns implement (Coordinator = orchestrator-workers; phase gates = evaluator-optimizer).\n- [[akka]] — actor model & durable runtime for long-running, distributed, or stateful agents.\n- [[software-architecture]] — agentic systems are distributed systems; the fallacies and trade-offs apply.\n- [[test-strategy]] — execution-grounded verification, shared discipline.\n- [[secure-coding]] — tool sandboxing, input validation, guardrails.\n- Sources: Anthropic, \"Building Effective Agents\" (anthropic.com/research) & the Claude Agent SDK; LangGraph (langchain-ai/langgraph).\n</skill>\n\nUser request:\nWhat workflow patterns are there before I reach for a full agent?",
+          "label": "evals/agentic-workflows/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "e45973ac1258b340b45b45f3eab11be14bb53e8ad7aaab91c0877435078e7941",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Five, each a fixed, code-defined path:\n\n1. **Prompt chaining**: a fixed sequence of steps where each output feeds the next, with optional programmatic gates between them. Use it when the task splits cleanly into ordered subtasks.\n2. **Routing**: classify the input, then dispatch it to a specialized follow-up. Use it when the input falls into distinct categories that are better handled separately.\n3. **Parallelization**: run subtasks concurrently (*sectioning*), or run the same task several times and vote (*voting*). Use it for speed or for diverse perspectives.\n4. **Orchestrator-workers**: a central LLM breaks the task into subtasks, delegates them to workers, and synthesizes the results. Use it when the subtasks can't be known up front.\n5. **Evaluator-optimizer**: one LLM generates and another critiques, in a loop (maker-checker). Use it when you have clear evaluation criteria and iteration helps.\n\nBefore any of these, try a single augmented LLM call (model + tools + retrieval + memory), since that's enough for most tasks. Go to a full agent only when the steps genuinely can't be predicted in advance. Wherever you can, have the evaluator check real tool output (tests, linters) rather than its own reading of the work."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "patterns",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/agentic-workflows/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/agentic-workflows/cases/patterns.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/prompt chain|chaining/i.test(output)) throw new Error('names prompt chaining -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/routing/i.test(output)) throw new Error('names routing -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/parallel/i.test(output)) throw new Error('names parallelisation -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/orchestrator|evaluator|optimizer|maker-checker/i.test(output)) throw new Error('names orchestrator-workers or evaluator-optimizer -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/agentic-workflows/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/agentic-workflows/cases/patterns.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/tool|execut|run|real|ground/i.test(output)) throw new Error('requires grounding verification in real tool execution -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/human|loop|consequential|bound/i.test(output)) throw new Error('raises human-in-the-loop or bounding -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "924664bd-a867-4b9b-959c-fca590bf8ef0",
+        "latencyMs": 8103,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: agentic-workflows\ndescription: Designing and building agentic AI systems — when to use a single LLM call, a structured workflow, or an autonomous agent, and the proven composition patterns for each. Distilled from Anthropic's \"Building Effective Agents,\" the Claude Agent SDK, and LangGraph. Covers the workflow-vs-agent distinction (predefined paths vs model-directed control), the building block (augmented LLM = model + tools + retrieval + memory), the five workflow patterns (prompt chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer), the autonomous agent loop (gather context → act via tools → verify work → repeat), the maker-checker / generator-critic pattern, and the engineering disciplines that matter (start simple, add complexity only when it pays, ground verification in real tool execution, manage context, design tools and guardrails carefully, human-in-the-loop). Use when architecting a multi-agent or agentic system, choosing an orchestration pattern, deciding workflow vs agent, wiring role agents together, or evaluating a framework (Claude Agent SDK, LangGraph, CrewAI, AutoGen). Provides the runtime mechanics for sdlc-orchestration's role agents.\n---\n\n# Agentic Workflows\n\nHow to build systems with LLMs that *act* — choosing between a simple call, a fixed **workflow**, and an autonomous **agent**, and composing them with patterns that are proven to work. Distilled from **Anthropic's \"Building Effective Agents,\"** the **Claude Agent SDK**, and **LangGraph**. This is the runtime-mechanics complement to [[sdlc-orchestration]] (which says *what* the SDLC pipeline is; this says *how* to wire the agents that run it).\n\nCross-links: [[sdlc-orchestration]] (the SDLC application), [[akka]] (a durable actor runtime for long-running/distributed agents), [[software-architecture]] (these are distributed-system designs — the fallacies apply), [[secure-coding]] (tool/guardrail safety).\n\n## The core distinction: workflows vs agents\n\nAnthropic's framing — both are \"agentic systems,\" but:\n\n- **Workflow** — LLMs and tools orchestrated through **predefined code paths**. Predictable, debuggable, cheaper. Use when the task decomposes into known steps.\n- **Agent** — the **LLM dynamically directs its own process and tool use**, maintaining control over how it accomplishes the task. Flexible, but less predictable and more expensive. Use when the steps can't be predicted in advance and the model needs to adapt.\n\n**The cardinal rule: start with the simplest thing that works.** A single well-prompted LLM call (with retrieval/examples) beats a multi-agent system for most tasks. Add workflow structure only when it measurably improves outcomes; reach for a full agent only when flexibility genuinely requires it. *\"Find the simplest solution possible, and only increase complexity when needed.\"* Agentic systems trade latency and cost for better task performance — make that trade deliberately.\n\n## The building block: the augmented LLM\n\nEvery agentic system is built from an **augmented LLM** — a model enhanced with **tools**, **retrieval**, and **memory**. Get this unit right first: a clear interface, well-documented tools, and the model able to decide when/how to use them.\n\n## The five workflow patterns\n\nWhen a fixed structure fits, compose from these (all in `references/patterns-and-frameworks.md` with when-to-use):\n\n1. **Prompt chaining** — decompose into a fixed sequence; each step's output feeds the next, with optional programmatic \"gates\" between. For tasks that cleanly split into ordered subtasks.\n2. **Routing** — classify the input, then dispatch to a specialized follow-up. For distinct categories better handled separately (and to keep each prompt focused).\n3. **Parallelization** — run subtasks concurrently (**sectioning**) or run the same task multiple times for vote/consensus (**voting**). For speed or diverse perspectives.\n4. **Orchestrator-workers** — a central LLM dynamically breaks a task into subtasks, delegates to worker LLMs, and synthesizes. For complex tasks where subtasks aren't known up front (the SDLC Coordinator is this).\n5. **Evaluator-optimizer** — one LLM generates, another **evaluates and gives feedback**, in a loop. For tasks with clear evaluation criteria where iteration helps — this is the **maker-checker / generator-critic** pattern that underpins [[sdlc-orchestration]]'s every phase.\n\n## The autonomous agent loop\n\nWhen you do use a full agent, it runs a loop (the Claude Agent SDK framing): **gather context → take action (via tools) → verify the work → repeat** until done or stopped. Agents start from a human command, then operate independently, ideally **checking in with the human** at checkpoints and on completion. Keys: a clear stopping condition, a max-iteration cap, and — critically — **verification grounded in reality**.\n\n## Engineering disciplines that decide success\n\n- **Ground verification in execution.** The single biggest quality lever (and the source SDLC frameworks' biggest gap): let the agent **run code, tests, linters, `terraform plan`** and read the real output, not judge its own work by reading it. Feedback from the environment beats model self-assessment.\n- **Manage context.** Give each step only what it needs (shard docs — [[spec-driven-development]]); compact long histories; use retrieval/memory deliberately. Context is a budget.\n- **Design tools like an API.** Clear names, documented params, examples, error messages the model can act on; few sharp tools over many dull ones. Test tools in isolation.\n- **Guardrails & safety.** Constrain what tools can do, validate inputs, never give untrusted input a path to dangerous actions ([[secure-coding]]); sandbox execution.\n- **Human-in-the-loop.** Checkpoints for consequential actions; the human approves, the agent proposes.\n- **Observability.** Log the agent's steps/decisions so failures are debuggable (ties to [[site-reliability-engineering]]).\n- **Multi-agent only when it pays.** Multiple agents add coordination cost; use them for genuine parallelism or separation of concerns (e.g. the SDLC role agents), not by default.\n\n## Frameworks (use the simplest that fits)\n\n- **Claude Agent SDK** — build agents on the gather→act→verify loop with tools, subagents, MCP, and context management. (The SDK this very system runs on.)\n- **LangGraph** — graph of nodes (agents) + edges (control flow) over a shared state, with conditional routing, checkpointing/persistence, and human-in-the-loop interrupts. Good for explicit, durable, stateful workflows.\n- **CrewAI / AutoGen** — role-based crews / multi-agent conversation frameworks.\n\nAnthropic's caveat: **frameworks add abstraction layers that can hide what's really happening** — start by calling the API directly, adopt a framework only when it earns its complexity. `references/patterns-and-frameworks.md` compares them.\n\n## Anti-patterns\n\n- Reaching for a multi-agent system when a single augmented call would do (cost/latency/complexity for nothing).\n- **Self-verifying agents** that grade their own output instead of running it (the cardinal sin — see [[test-strategy]], [[sdlc-orchestration]]).\n- Framework-first cargo-culting that obscures the actual prompts/control flow.\n- Unbounded agent loops (no stop condition / max iterations).\n- Dumping everything into one context window; never compacting or sharding.\n- Vague, undocumented tools; tools with unrecoverable error messages.\n- No human checkpoint before consequential/irreversible actions; no observability.\n\n## Always-apply\n\n1. **Start simple**; escalate single-call → workflow → agent only when it pays.\n2. Build on the **augmented LLM**; pick the matching **workflow pattern** before writing a full agent.\n3. Use **evaluator-optimizer (maker-checker)** for iterative quality; **orchestrator-workers** for dynamic decomposition.\n4. **Ground verification in real tool execution**; manage context; design tools and guardrails carefully.\n5. Keep a **human in the loop** for consequential steps; bound every loop; log decisions.\n\n## How to use the reference\n\n- **`references/patterns-and-frameworks.md`** — each workflow pattern with when-to-use and structure, the agent loop in detail, and a Claude Agent SDK / LangGraph / CrewAI / AutoGen comparison.\n\n## Related\n\n- [[sdlc-orchestration]] — the SDLC pipeline these patterns implement (Coordinator = orchestrator-workers; phase gates = evaluator-optimizer).\n- [[akka]] — actor model & durable runtime for long-running, distributed, or stateful agents.\n- [[software-architecture]] — agentic systems are distributed systems; the fallacies and trade-offs apply.\n- [[test-strategy]] — execution-grounded verification, shared discipline.\n- [[secure-coding]] — tool sandboxing, input validation, guardrails.\n- Sources: Anthropic, \"Building Effective Agents\" (anthropic.com/research) & the Claude Agent SDK; LangGraph (langchain-ai/langgraph).\n</skill>\n\nUser request:\nMy reviewer agent reviews the builder agent's output. Is that a guardrail?",
+          "label": "evals/agentic-workflows/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "e45973ac1258b340b45b45f3eab11be14bb53e8ad7aaab91c0877435078e7941",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Partly. A reviewer agent is an evaluator in the evaluator-optimizer (maker-checker) pattern. That makes it a quality check, not a safety guardrail.\n\n- **Guardrail:** a constraint the builder can't bypass. Examples are sandboxed tools, input validation, permission limits, and a human approval before irreversible actions. These work by limiting what can happen.\n- **Reviewer agent:** an LLM judging output after the fact. It is probabilistic and can miss things. It also shares the builder's blind spots if the two use the same model or context. It catches quality problems, but it doesn't stop a dangerous action.\n\nIt becomes much stronger if you ground it in execution. Have it run tests, linters, or `terraform plan` and read the real output, instead of judging by reading the code.\n\nFor consequential actions, such as deploys, deletes, or anything touching production, don't rely on the reviewer. Gate them with a hard constraint like a tool permission or human approval. Also bound the build→review loop with a max-iteration cap."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "verification",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/agentic-workflows/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/agentic-workflows/cases/verification.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/tool|execut|run|real|ground/i.test(output)) throw new Error('requires grounding verification in real tool execution -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/human|loop|consequential|bound/i.test(output)) throw new Error('raises human-in-the-loop or bounding -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/agentic-workflows/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/agentic-workflows/cases/verification.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 3,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 9464,
+      "evaluationDurationMs": 9464
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "agentic-workflows — EDD",
+    "prompts": [
+      "file:///private/tmp/b3/evals/agentic-workflows/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "start-simple",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/agentic-workflows/cases/start-simple.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "if (!/simpl|single (call|prompt)|one (call|prompt)|may not need|do you need|escalat|start with/i.test(output)) throw new Error('pushes back toward the simplest thing that works -- not found');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "patterns",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/agentic-workflows/cases/patterns.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/prompt chain|chaining/i.test(output)) throw new Error('names prompt chaining -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/routing/i.test(output)) throw new Error('names routing -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/parallel/i.test(output)) throw new Error('names parallelisation -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/orchestrator|evaluator|optimizer|maker-checker/i.test(output)) throw new Error('names orchestrator-workers or evaluator-optimizer -- not found');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "verification",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/agentic-workflows/cases/verification.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/tool|execut|run|real|ground/i.test(output)) throw new Error('requires grounding verification in real tool execution -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/human|loop|consequential|bound/i.test(output)) throw new Error('raises human-in-the-loop or bounding -- not found');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/agentic-workflows/results/skill_2.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b3/skills/agentic-workflows/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b3/evals/agentic-workflows"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T17:07:18.761Z",
+    "evaluationCreatedAt": "2026-10-29T17:07:09.223Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

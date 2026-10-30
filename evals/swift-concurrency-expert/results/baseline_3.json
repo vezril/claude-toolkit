@@ -1,0 +1,522 @@
+{
+  "evalId": "eval-TX4-2026-10-29T18:20:35",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T18:20:35.555Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "label": "evals/swift-concurrency-expert/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "id": "910c70265d5b384fdf72b0707a309c0b151e3ff824b6b5f726b69939866e7b07",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 3,
+          "testPassCount": 3,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 4,
+          "assertFailCount": 0,
+          "totalLatencyMs": 39773,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "restraint": 1,
+            "accuracy": 3
+          },
+          "namedScoresCount": {
+            "restraint": 1,
+            "accuracy": 3
+          },
+          "namedScoreWeights": {
+            "restraint": 1,
+            "accuracy": 3
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "restraint": 1,
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1,
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "if (!/unchecked|not|don'?t|avoid|last resort|silenc|suppress|unsafe/i.test(output)) throw new Error('pushes back on @unchecked Sendable as a silencer');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/@MainActor|isolat|smallest|minimal/i.test(output)) throw new Error('offers the smallest safe isolation fix');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "f5a3422d-6133-4c2c-a408-d50cde1520cc",
+        "latencyMs": 11282,
+        "namedScores": {
+          "restraint": 1,
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nI'm getting 'Main actor-isolated property cannot be referenced from a non-isolated context'. Should I just mark the whole class @unchecked Sendable to make it compile?",
+          "label": "evals/swift-concurrency-expert/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "910c70265d5b384fdf72b0707a309c0b151e3ff824b6b5f726b69939866e7b07",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "No, don't. `@unchecked Sendable` turns the compiler check off, so the data race is still there and you just can't see it. It also doesn't fix this error. The error is about isolation, not Sendability.\n\nThe error means you're touching a `@MainActor` property from code that isn't on the main actor. Pick the fix that matches your case:\n\n- **The code is UI-bound.** Mark the calling function or the whole type `@MainActor`. This is the usual fix.\n- **The code needs to be off the main actor.** Keep the property main-actor and `await` it. Or copy the value you need before leaving the main actor and pass that copy into the background code.\n- **You're conforming to a protocol from a main-actor type.** Use an isolated conformance: `extension Foo: @MainActor SomeProtocol`.\n- **The state really is shared across threads.** Move it into an `actor`.\n- **Heavy work shouldn't block the main thread.** Put it in a `nonisolated` type with `@concurrent` async methods.\n\nIf you paste the class and the line the error points at, I can tell you which of these applies."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "smallest-fix",
+          "vars": {
+            "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/smallest-fix.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "if (!/unchecked|not|don'?t|avoid|last resort|silenc|suppress|unsafe/i.test(output)) throw new Error('pushes back on @unchecked Sendable as a silencer');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/@MainActor|isolat|smallest|minimal/i.test(output)) throw new Error('offers the smallest safe isolation fix');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/smallest-fix.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/actor|@MainActor|Mutex|allocator|nonisolated\\(unsafe\\)|let\\b/i.test(output)) throw new Error('offers actor / immutability rather than a lock-by-hand');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "87100866-3206-47f3-b156-5637a6a911a4",
+        "latencyMs": 14624,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nI have a mutable global var for app config, accessed from several tasks. How do I make it concurrency-safe in Swift 6?",
+          "label": "evals/swift-concurrency-expert/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "910c70265d5b384fdf72b0707a309c0b151e3ff824b6b5f726b69939866e7b07",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Pick one of three options, depending on who touches the config:\n\n**1. UI-bound, or only needs main-thread access: `@MainActor`.** This is the smallest fix.\n```swift\n@MainActor var config = AppConfig()\n```\nEvery access is isolated to the main actor, and tasks off it use `await`.\n\n**2. Read often, written rarely, from any task: make it an immutable `Sendable` value behind an actor.**\n```swift\nstruct AppConfig: Sendable { var apiURL: URL; var timeout: Duration }\n\nactor ConfigStore {\n    static let shared = ConfigStore()\n    private var config = AppConfig(...)\n\n    func current() -> AppConfig { config }\n    func update(_ change: (inout AppConfig) -> Void) { change(&config) }\n}\n\n// usage\nlet cfg = await ConfigStore.shared.current()\nawait ConfigStore.shared.update { $0.timeout = .seconds(30) }\n```\nCallers take a snapshot and then work on the immutable copy. Every access is `async`.\n\n**3. You need synchronous access from non-async code: `Mutex`.** `Mutex` is in the `Synchronization` module (iOS 18 / macOS 15+).\n```swift\nimport Synchronization\n\nenum Config {\n    static let storage = Mutex(AppConfig(...))\n}\n\nlet cfg = Config.storage.withLock { $0 }\nConfig.storage.withLock { $0.timeout = .seconds(30) }\n```\nDon't `await` while holding the lock. Keep the closure short.\n\n**Avoid:**\n- `nonisolated(unsafe) var`. It silences the compiler and does nothing to prevent the race.\n- `@unchecked Sendable` on a class with no real lock behind it.\n\nIf the config is set once at launch and never changes, make it a `let` of a `Sendable` struct. Then you need no isolation at all.\n\nI'd start with option 1 if the config is tied to UI, and option 2 otherwise. If you paste the declaration and the compiler error, I can give you the exact fix."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "global-state",
+          "vars": {
+            "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/global-state.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/actor|@MainActor|Mutex|allocator|nonisolated\\(unsafe\\)|let\\b/i.test(output)) throw new Error('offers actor / immutability rather than a lock-by-hand');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/global-state.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/nonisolated|detach|Task\\.detached|background|off the main actor|concurrentPerform/i.test(output)) throw new Error('moves work off the main actor correctly');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "04e6e987-d23a-478f-b82d-e60437f70467",
+        "latencyMs": 13867,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nHeavy JSON parsing on the main actor is hanging my UI. How do I move it off?",
+          "label": "evals/swift-concurrency-expert/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "910c70265d5b384fdf72b0707a309c0b151e3ff824b6b5f726b69939866e7b07",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Put the decode in a `nonisolated` function marked `@concurrent` (Swift 6.2+), and `await` it from your `@MainActor` code:\n\n```swift\nnonisolated struct FeedParser {\n    @concurrent\n    func parse(_ data: Data) async throws -> [Item] {\n        try JSONDecoder().decode([Item].self, from: data)   // runs off the main actor\n    }\n}\n\n@MainActor\nfinal class ViewModel {\n    var items: [Item] = []\n\n    func load(_ data: Data) async throws {\n        items = try await FeedParser().parse(data)          // back on main to assign\n    }\n}\n```\n\n- **`Item` must be `Sendable`.** A struct of value types with `Codable` conformance is fine. It crosses the actor boundary on return.\n- **Why `@concurrent` and not plain `async`.** With approachable concurrency / main-actor-by-default on, a plain `nonisolated async` function inherits the caller's actor and stays on main. `@concurrent` forces it onto the concurrent pool.\n- **Swift 6.0/6.1.** `@concurrent` doesn't exist there. Use a `nonisolated` async function, which hops off the main actor by default, or an `actor` / `Task.detached`.\n- **Main-actor-by-default projects.** Mark the parser and `Item` as `nonisolated`. Otherwise their `Decodable` conformances are main-actor-isolated and the decode won't compile off main.\n\nIf it still hangs, the cost may be somewhere else, such as a huge `@Published` array triggering a big view diff. Profile it with Instruments' Time Profiler."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "offload",
+          "vars": {
+            "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/offload.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/nonisolated|detach|Task\\.detached|background|off the main actor|concurrentPerform/i.test(output)) throw new Error('moves work off the main actor correctly');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/offload.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 3,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 14641,
+      "evaluationDurationMs": 14641
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "swift-concurrency-expert — EDD — NAIVE BASELINE",
+    "prompts": [
+      "file:///private/tmp/b4/evals/swift-concurrency-expert/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "smallest-fix",
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/smallest-fix.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "if (!/unchecked|not|don'?t|avoid|last resort|silenc|suppress|unsafe/i.test(output)) throw new Error('pushes back on @unchecked Sendable as a silencer');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/@MainActor|isolat|smallest|minimal/i.test(output)) throw new Error('offers the smallest safe isolation fix');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "global-state",
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/global-state.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/actor|@MainActor|Mutex|allocator|nonisolated\\(unsafe\\)|let\\b/i.test(output)) throw new Error('offers actor / immutability rather than a lock-by-hand');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "offload",
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/swift-concurrency-expert/cases/offload.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/nonisolated|detach|Task\\.detached|background|off the main actor|concurrentPerform/i.test(output)) throw new Error('moves work off the main actor correctly');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/swift-concurrency-expert/results/baseline_3.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/private/tmp/b4/evals/swift-concurrency-expert"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T18:20:50.274Z",
+    "evaluationCreatedAt": "2026-10-29T18:20:35.555Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

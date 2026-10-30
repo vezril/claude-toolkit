@@ -1,0 +1,92 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "delivery-flow challenge-breakdown node: schema, verdict, detection, discipline on 9 breakdowns — 2 clean, 7 with one planted defect each"
+# The node reads item.json + triage.json + breakdown.json and writes challenge-breakdown.json.
+# No working_dir and no tools: it attacks the artifact it is handed, which is also the
+# production shape — the challenge runs in a fresh context and never sees the reasoning that
+# produced the breakdown.
+prompts:
+  - file://prompt.txt
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config:
+      model: haiku
+      apiKeyRequired: false
+      max_turns: 5
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config:
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 5
+defaultTest:
+  vars:
+    skill: file://prompts/current.md
+  assert:
+    - type: javascript
+      metric: schema
+      value: file://asserts/schema.js
+    - type: javascript
+      metric: verdict
+      value: file://asserts/verdict.js
+    - type: javascript
+      metric: detection
+      value: file://asserts/detection.js
+    - type: javascript
+      metric: discipline
+      value: file://asserts/discipline.js
+tests:
+  - description: "case-01-clean-dlq (no defect)"
+    vars:
+      case: case-01-clean-dlq
+      item: file://inputs/case-01-clean-dlq.item.json
+      triage: file://inputs/case-01-clean-dlq.triage.json
+      breakdown: file://inputs/case-01-clean-dlq.breakdown.json
+  - description: "case-02-clean-sidebar (no defect)"
+    vars:
+      case: case-02-clean-sidebar
+      item: file://inputs/case-02-clean-sidebar.item.json
+      triage: file://inputs/case-02-clean-sidebar.triage.json
+      breakdown: file://inputs/case-02-clean-sidebar.breakdown.json
+  - description: "case-03-missing-deliverable (A1)"
+    vars:
+      case: case-03-missing-deliverable
+      item: file://inputs/case-03-missing-deliverable.item.json
+      triage: file://inputs/case-03-missing-deliverable.triage.json
+      breakdown: file://inputs/case-03-missing-deliverable.breakdown.json
+  - description: "case-04-contradicts-item (A2)"
+    vars:
+      case: case-04-contradicts-item
+      item: file://inputs/case-04-contradicts-item.item.json
+      triage: file://inputs/case-04-contradicts-item.triage.json
+      breakdown: file://inputs/case-04-contradicts-item.breakdown.json
+  - description: "case-05-unrequested-epic (A3)"
+    vars:
+      case: case-05-unrequested-epic
+      item: file://inputs/case-05-unrequested-epic.item.json
+      triage: file://inputs/case-05-unrequested-epic.triage.json
+      breakdown: file://inputs/case-05-unrequested-epic.breakdown.json
+  - description: "case-06-criteria-miss-story (B1)"
+    vars:
+      case: case-06-criteria-miss-story
+      item: file://inputs/case-06-criteria-miss-story.item.json
+      triage: file://inputs/case-06-criteria-miss-story.triage.json
+      breakdown: file://inputs/case-06-criteria-miss-story.breakdown.json
+  - description: "case-07-vague-outcome (B2)"
+    vars:
+      case: case-07-vague-outcome
+      item: file://inputs/case-07-vague-outcome.item.json
+      triage: file://inputs/case-07-vague-outcome.triage.json
+      breakdown: file://inputs/case-07-vague-outcome.breakdown.json
+  - description: "case-08-duplicate-stories (B3)"
+    vars:
+      case: case-08-duplicate-stories
+      item: file://inputs/case-08-duplicate-stories.item.json
+      triage: file://inputs/case-08-duplicate-stories.triage.json
+      breakdown: file://inputs/case-08-duplicate-stories.breakdown.json
+  - description: "case-09-wrong-domains (B4)"
+    vars:
+      case: case-09-wrong-domains
+      item: file://inputs/case-09-wrong-domains.item.json
+      triage: file://inputs/case-09-wrong-domains.triage.json
+      breakdown: file://inputs/case-09-wrong-domains.breakdown.json

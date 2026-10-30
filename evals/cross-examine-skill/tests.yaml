@@ -1,0 +1,28 @@
+# cross-examine: shared matrix, used verbatim by both arms. Deterministic asserts only.
+
+- description: "verdict"
+  vars: { request: file://cases/verdict.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/rerun|re-run|redo|produce.{0,30}again|invalid|do not patch|don'?t patch/i.test(output)) throw new Error('says REFUTED means rerun the producing step, not patch');
+        return true;
+
+- description: "survived"
+  vars: { request: file://cases/survived.txt }
+  assert:
+    - type: javascript
+      metric: restraint
+      value: |
+        if (!/human|gate|still|not a replacement|does not replace|input to/i.test(output)) throw new Error('says the verdict is input to the gate, not a replacement');
+        return true;
+
+- description: "fresh-context"
+  vars: { request: file://cases/fresh-context.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/fresh context|separate|new context|same context|rationalis|rationaliz|own context|second|different/i.test(output)) throw new Error('requires a fresh/separate context');
+        return true;

@@ -1,0 +1,391 @@
+{
+  "evalId": "eval-hyu-2026-10-29T19:58:55",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:58:55.170Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/akka-edge/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "eb675e76c0176cbde26ac08e69d51d6e4c59f3c5582f5ce715739685b15d1a0e",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 0,
+          "totalLatencyMs": 23499,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 2
+          },
+          "namedScoresCount": {
+            "accuracy": 2
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/local.first|store.and.forward|catch.up|offline|intermittent|buffer/i.test(output)) throw new Error('designs for intermittent connectivity with local-first and catch-up');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "db335f09-155e-4176-9584-be0a47299220",
+        "latencyMs": 11094,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-edge\ndescription: Akka Edge (Scala+Java, plus Akka Edge Rust) — extend Akka services to the edge of the cloud for lower latency, higher availability, and local-first operation. Shares its implementation with Akka Distributed Cluster (Projections over gRPC + Replicated Event Sourcing over gRPC) but targets many more, more resource-constrained, more distributed locations — an edge site can be a single autonomous node connected to the cloud, with all gRPC connections initiated FROM the edge. Covers the edge↔cloud topology, edge-as-consumer/producer (Projection gRPC with producer push), active-active edge↔cloud, H2 storage, lightweight deployments (K3s, GraalVM native image, autoscaling), and Akka Edge Rust for constrained devices. Use when pushing endpoints/state to edge locations, building local-first systems with intermittent connectivity, or running Akka on constrained hardware. Builds on akka-distributed-cluster, akka-persistence, and akka-projections.\n---\n\n# Akka Edge\n\nRun Akka **at the edge of the cloud** for lower latency, higher availability, and **local-first** operation. Akka Edge **shares features and implementation with [[akka-distributed-cluster]]** (Projections over gRPC, Replicated Event Sourcing over gRPC) but targets **many more, more distributed, more resource-constrained** locations — and the two are designed to be used together. Builds on [[akka-persistence]] and [[akka-projections]].\n\nCross-links: [[akka]] (meta), [[akka-distributed-cluster]] (the cloud-region counterpart), [[akka-persistence]], [[akka-projections]], [[akka-grpc]].\n\n## How it differs from Distributed Cluster\n\n- **Scale/constraints:** Distributed Cluster connects *few* services across *cloud regions*; Edge connects *many* services, possibly very resource-constrained, where an edge location can be a **single standalone Akka node** (not a cluster).\n- **Connection direction:** **all gRPC connections are established from the edge** (regardless of whether the edge is producer or consumer), because the cloud usually can't reach into edge networks (NAT/firewall) and shouldn't have to track every edge node.\n- **Topology:** edge services connect to cloud services in a **star** (edge↔edge is possible, an app concern). Edge services are **fully autonomous** — they keep working during disconnection and **catch up on pending events when reconnected**. Devices reach the nearest edge via HTTP/MQTT/etc.\n\n## The same two building blocks\n\n1. **Projections over gRPC** in both directions:\n   - **Edge as consumer** — edge connects to a cloud producer, processing from its stored offset; the offset store on the edge can be an **embeddable H2** database (file mode). Optimizations: start from snapshots, start from a custom offset, and the \"many consumers\" firehose.\n   - **Edge as producer** — edge connects to a cloud consumer and **pushes** events (**Akka Projection gRPC with producer push**); the cloud writes them to its journal, acks, and the edge advances its offset.\n2. **Replicated Event Sourcing over gRPC** — active-active entities across cloud regions and edge **Points-of-Presence**; connection established from the edge; each replica has its own DB (e.g. **Postgres in cloud, H2 at the edge**).\n\nReplication mechanics, slices, dynamic filters, and exactly-once-via-offset-dedup are identical to [[akka-distributed-cluster]].\n\n## Lightweight deployments & Akka Edge Rust\n\n- **Constrained edge:** lightweight Kubernetes (**K3s**, MicroK8s); cloud-optimized JVMs (OpenJ9); **GraalVM Native Image** (AOT to a native executable — smaller, faster start, lower footprint; Akka ships reachability metadata and auto-registers messages via Akka Serialization Jackson; use the tracing agent for unsupported libs). Edge apps can't scale to zero but can scale to **near zero**; combine k8s HPA (on custom metrics like active-entity count) + VPA, keeping ≥2 replicas + a PodDisruptionBudget.\n- **Akka Edge Rust** — a **subset of Akka reimplemented in Rust** to run on **resource-constrained devices** (demonstrated on MIPS32, 500MHz, 128MiB RAM). Provides event-sourced entities (with compaction, a file-log adapter, entity manager), projections (offset store + gRPC source provider/handler) to consume/produce events to the cloud, HTTP event production incl. **SSE**, and **UDP** ingestion; connects to a JVM/cloud counterpart over **gRPC**, remembering its offset across restarts. Event-driven browser UI via **WebAssembly** (Yew). Needs Rust ≥1.70, `wasm32-unknown-unknown` target, Trunk, protobuf ≥v23.\n\n## Always-apply defaults\n\n1. **Initiate all edge↔cloud gRPC from the edge**; treat edge nodes as autonomous (operate offline, reconcile on reconnect).\n2. **Pick the right replication direction:** edge-consumes (cloud→edge data) via Projection gRPC; edge-produces (edge→cloud telemetry) via Projection gRPC **with producer push**; multi-location writes via Replicated Event Sourcing gRPC.\n3. **Use H2 (file mode) for edge storage** where a full DB is impractical; expect each replica to have its own (possibly different) database.\n4. **Design for intermittent connectivity** — local-first behavior, store-and-forward, automatic catch-up; use dynamic filters so only relevant data flows to each edge.\n5. **For very constrained devices, use Akka Edge Rust**; for cloud-region meshes use [[akka-distributed-cluster]] (combine the two).\n\n## Anti-patterns (flag in review)\n\n- Expecting the cloud to dial into edge nodes; edge designs that fail when disconnected (not autonomous); replicating everything to every edge instead of filtering.\n- Running a heavy JVM stack on hardware that calls for Akka Edge Rust / native image; assuming strong consistency edge↔cloud.\n\n## Related\n\n- [[akka-distributed-cluster]] (shared primitives, cloud-region side) · [[akka-persistence]] (Replicated Event Sourcing) · [[akka-projections]] (Projection gRPC + producer push) · [[akka-grpc]] · [[akka]] (meta).\n- Source: https://doc.akka.io/libraries/akka-edge/current/\n</skill>\n\nUser request:\nEdge devices lose network for hours at a time. How should the service behave?",
+          "label": "evals/akka-edge/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "eb675e76c0176cbde26ac08e69d51d6e4c59f3c5582f5ce715739685b15d1a0e",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "The service should keep working normally while offline. Treat disconnection as the steady state, not an error.\n\n- **Stay autonomous.** The edge node serves devices from its local store (H2 in file mode, or Postgres if you have it). Commands and reads never block on the cloud.\n- **Store and forward.** Events persist locally. With Projection gRPC producer push, the edge keeps its offset. When the link returns, it pushes the pending events, the cloud acks them, and the edge advances its offset. Nothing is lost, and hours of backlog is normal.\n- **Edge is the one to reconnect.** The edge initiates all gRPC connections, so it retries with backoff and the cloud never has to dial in. Don't build alerting or logic that assumes the connection is always up.\n- **Catch up from the stored offset.** For cloud→edge data, the edge consumer resumes from its persisted offset and replays what it missed. Delivery is at-least-once, with offset-based dedup, so handlers must be idempotent.\n- **Filter what flows.** After a long outage, dynamic filters keep the catch-up to only the entities and slices that edge needs. Don't replicate everything to every edge.\n- **Writes in both places.** Use Replicated Event Sourcing over gRPC. Each side accepts writes during the outage and merges on reconnect, so model entities with conflict-free merge semantics. Don't assume strong consistency between edge and cloud.\n- **Size for the backlog.** Make sure local storage and journal retention can hold hours of events, since you can't trim events the cloud hasn't acked yet.\n\nAnti-patterns to avoid are:\n- Failing requests when the cloud is unreachable.\n- Synchronous cloud calls on the request path.\n- Relying on the cloud to reach into the edge.\n\nDo your devices run constrained hardware? If so, Akka Edge Rust gives you the same offset-remembering behavior at a much smaller footprint."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "connectivity",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-edge/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-edge/cases/connectivity.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/local.first|store.and.forward|catch.up|offline|intermittent|buffer/i.test(output)) throw new Error('designs for intermittent connectivity with local-first and catch-up');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-edge/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-edge/cases/connectivity.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/dynamic filter|filter/i.test(output)) throw new Error('prescribes dynamic filters to replicate only what is needed');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "13f9e773-4ccb-4d86-9131-72e11865253e",
+        "latencyMs": 12405,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-edge\ndescription: Akka Edge (Scala+Java, plus Akka Edge Rust) — extend Akka services to the edge of the cloud for lower latency, higher availability, and local-first operation. Shares its implementation with Akka Distributed Cluster (Projections over gRPC + Replicated Event Sourcing over gRPC) but targets many more, more resource-constrained, more distributed locations — an edge site can be a single autonomous node connected to the cloud, with all gRPC connections initiated FROM the edge. Covers the edge↔cloud topology, edge-as-consumer/producer (Projection gRPC with producer push), active-active edge↔cloud, H2 storage, lightweight deployments (K3s, GraalVM native image, autoscaling), and Akka Edge Rust for constrained devices. Use when pushing endpoints/state to edge locations, building local-first systems with intermittent connectivity, or running Akka on constrained hardware. Builds on akka-distributed-cluster, akka-persistence, and akka-projections.\n---\n\n# Akka Edge\n\nRun Akka **at the edge of the cloud** for lower latency, higher availability, and **local-first** operation. Akka Edge **shares features and implementation with [[akka-distributed-cluster]]** (Projections over gRPC, Replicated Event Sourcing over gRPC) but targets **many more, more distributed, more resource-constrained** locations — and the two are designed to be used together. Builds on [[akka-persistence]] and [[akka-projections]].\n\nCross-links: [[akka]] (meta), [[akka-distributed-cluster]] (the cloud-region counterpart), [[akka-persistence]], [[akka-projections]], [[akka-grpc]].\n\n## How it differs from Distributed Cluster\n\n- **Scale/constraints:** Distributed Cluster connects *few* services across *cloud regions*; Edge connects *many* services, possibly very resource-constrained, where an edge location can be a **single standalone Akka node** (not a cluster).\n- **Connection direction:** **all gRPC connections are established from the edge** (regardless of whether the edge is producer or consumer), because the cloud usually can't reach into edge networks (NAT/firewall) and shouldn't have to track every edge node.\n- **Topology:** edge services connect to cloud services in a **star** (edge↔edge is possible, an app concern). Edge services are **fully autonomous** — they keep working during disconnection and **catch up on pending events when reconnected**. Devices reach the nearest edge via HTTP/MQTT/etc.\n\n## The same two building blocks\n\n1. **Projections over gRPC** in both directions:\n   - **Edge as consumer** — edge connects to a cloud producer, processing from its stored offset; the offset store on the edge can be an **embeddable H2** database (file mode). Optimizations: start from snapshots, start from a custom offset, and the \"many consumers\" firehose.\n   - **Edge as producer** — edge connects to a cloud consumer and **pushes** events (**Akka Projection gRPC with producer push**); the cloud writes them to its journal, acks, and the edge advances its offset.\n2. **Replicated Event Sourcing over gRPC** — active-active entities across cloud regions and edge **Points-of-Presence**; connection established from the edge; each replica has its own DB (e.g. **Postgres in cloud, H2 at the edge**).\n\nReplication mechanics, slices, dynamic filters, and exactly-once-via-offset-dedup are identical to [[akka-distributed-cluster]].\n\n## Lightweight deployments & Akka Edge Rust\n\n- **Constrained edge:** lightweight Kubernetes (**K3s**, MicroK8s); cloud-optimized JVMs (OpenJ9); **GraalVM Native Image** (AOT to a native executable — smaller, faster start, lower footprint; Akka ships reachability metadata and auto-registers messages via Akka Serialization Jackson; use the tracing agent for unsupported libs). Edge apps can't scale to zero but can scale to **near zero**; combine k8s HPA (on custom metrics like active-entity count) + VPA, keeping ≥2 replicas + a PodDisruptionBudget.\n- **Akka Edge Rust** — a **subset of Akka reimplemented in Rust** to run on **resource-constrained devices** (demonstrated on MIPS32, 500MHz, 128MiB RAM). Provides event-sourced entities (with compaction, a file-log adapter, entity manager), projections (offset store + gRPC source provider/handler) to consume/produce events to the cloud, HTTP event production incl. **SSE**, and **UDP** ingestion; connects to a JVM/cloud counterpart over **gRPC**, remembering its offset across restarts. Event-driven browser UI via **WebAssembly** (Yew). Needs Rust ≥1.70, `wasm32-unknown-unknown` target, Trunk, protobuf ≥v23.\n\n## Always-apply defaults\n\n1. **Initiate all edge↔cloud gRPC from the edge**; treat edge nodes as autonomous (operate offline, reconcile on reconnect).\n2. **Pick the right replication direction:** edge-consumes (cloud→edge data) via Projection gRPC; edge-produces (edge→cloud telemetry) via Projection gRPC **with producer push**; multi-location writes via Replicated Event Sourcing gRPC.\n3. **Use H2 (file mode) for edge storage** where a full DB is impractical; expect each replica to have its own (possibly different) database.\n4. **Design for intermittent connectivity** — local-first behavior, store-and-forward, automatic catch-up; use dynamic filters so only relevant data flows to each edge.\n5. **For very constrained devices, use Akka Edge Rust**; for cloud-region meshes use [[akka-distributed-cluster]] (combine the two).\n\n## Anti-patterns (flag in review)\n\n- Expecting the cloud to dial into edge nodes; edge designs that fail when disconnected (not autonomous); replicating everything to every edge instead of filtering.\n- Running a heavy JVM stack on hardware that calls for Akka Edge Rust / native image; assuming strong consistency edge↔cloud.\n\n## Related\n\n- [[akka-distributed-cluster]] (shared primitives, cloud-region side) · [[akka-persistence]] (Replicated Event Sourcing) · [[akka-projections]] (Projection gRPC + producer push) · [[akka-grpc]] · [[akka]] (meta).\n- Source: https://doc.akka.io/libraries/akka-edge/current/\n</skill>\n\nUser request:\nEvery edge node is getting the whole event stream and it's expensive. Options?",
+          "label": "evals/akka-edge/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "eb675e76c0176cbde26ac08e69d51d6e4c59f3c5582f5ce715739685b15d1a0e",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Stop sending everything to every edge. Filter at the source so each edge only receives what it needs.\n\n1. **Dynamic filters (first choice).** Projection gRPC lets the consumer filter by entity ID, tag, or ID-prefix. The producer applies these filters and updates them at runtime. This cuts bandwidth and edge storage without redeploying.\n\n2. **Static producer-side filter.** If the split is fixed (by region or tenant), put a filter on the producer's event stream or tag the events. Each edge then subscribes only to its own tag.\n\n3. **Slices.** Event streams are partitioned into 1024 slices. You can have each edge consume only a slice range, which spreads the load. This splits by entity-ID hash, so it isn't a semantic filter. Use it only when the data isn't tied to a location.\n\n4. **Start from a snapshot or custom offset.** A new or resetting edge doesn't have to replay history. It can start from snapshots or a chosen offset, which fixes the cost of the initial catch-up.\n\n5. **Reverse the direction for telemetry.** If the traffic is edge→cloud, use producer push. The edge sends only what it chooses to, and the cloud doesn't have to serve a stream to every edge.\n\n6. **Fan-out cost.** If many edges read the same cloud producer, that producer pays for each stream. Put a regional consumer or relay between them, or use the \"many consumers\" firehose optimization.\n\nI'd start with dynamic filters, then add snapshot starts for new edges.\n\nWhat flows, and which way? It would help to know whether it's cloud→edge, what the filter key would be (tenant, region, entity type), and whether the cost is bandwidth, edge storage, or producer load. With that I can narrow this down."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "filters",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-edge/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-edge/cases/filters.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/dynamic filter|filter/i.test(output)) throw new Error('prescribes dynamic filters to replicate only what is needed');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-edge/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-edge/cases/filters.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 12425,
+      "evaluationDurationMs": 12425
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-edge — EDD",
+    "prompts": [
+      "file:///private/tmp/b6/evals/akka-edge/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "connectivity",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-edge/cases/connectivity.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/local.first|store.and.forward|catch.up|offline|intermittent|buffer/i.test(output)) throw new Error('designs for intermittent connectivity with local-first and catch-up');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "filters",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-edge/cases/filters.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/dynamic filter|filter/i.test(output)) throw new Error('prescribes dynamic filters to replicate only what is needed');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-edge/results/skill_3.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b6/skills/akka-edge/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b6/evals/akka-edge"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:59:07.648Z",
+    "evaluationCreatedAt": "2026-10-29T19:58:55.170Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

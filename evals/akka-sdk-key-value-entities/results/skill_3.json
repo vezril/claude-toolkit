@@ -1,0 +1,391 @@
+{
+  "evalId": "eval-DwE-2026-10-29T19:52:21",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:52:21.973Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/akka-sdk-key-value-entities/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "2c7c3bd305c2bcee0a280dd7f45cb87e5e9ad3603cc050f4b7e0ad592a8f97dd",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 0,
+          "totalLatencyMs": 12757,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 2
+          },
+          "namedScoresCount": {
+            "accuracy": 2
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/updateState|effects\\(\\)|never mutat|not mutat|lost|reload/i.test(output)) throw new Error('says the only way to change state is effects().updateState');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "aac69ce4-d638-4d0a-ad54-2f5dd7c6870f",
+        "latencyMs": 5986,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-sdk-key-value-entities\ndescription: Akka SDK Key Value Entities (Java) — durable, stateful components that persist the full latest state on every change (CRUD-style, no event log), the simpler alternative to Event Sourced Entities. Covers defining one (extend KeyValueEntity<State>, @Component(id), emptyState), command handlers returning Effect<T>, the Effect API (updateState/reply/error/deleteEntity/expireAfter, ReadOnlyEffect), the single-writer/sharding guarantee, when to use vs event sourced, multi-region replication & filters, calling via ComponentClient.forKeyValueEntity, and testing with KeyValueEntityTestKit. Use when you only need current state (no history/audit/event consumers) for a stateful entity in an Akka SDK service. Part of the Akka SDK (Java); see akka-sdk for the model and akka-sdk-event-sourced-entities for the event-log alternative.\n---\n\n# Akka SDK — Key Value Entities\n\nA durable, stateful component that stores the **full current state** on every change (like CRUD) — **no event history**, unlike [[akka-sdk-event-sourced-entities]]. Simpler and cheaper when you don't need an audit trail, event replay, or downstream event consumers. Part of the [[akka-sdk]] (Java).\n\nCross-links: [[akka-sdk]] (meta), [[akka-sdk-event-sourced-entities]] (event-log alternative), [[akka-sdk-views]] (read side).\n\n## The model\n\n```java\npublic record Counter(int value) { public Counter increment(int d) { return new Counter(value + d); } }\n\n@Component(id = \"counter\")\npublic class CounterEntity extends KeyValueEntity<Counter> {           // <State> only — no event type\n  public CounterEntity(KeyValueEntityContext ctx) { /* ctx.entityId() */ }\n  @Override public Counter emptyState() { return new Counter(0); }     // ALWAYS override\n\n  public Effect<Counter> plusOne() {\n    var next = currentState().increment(1);\n    return effects().updateState(next).thenReply(next);                // the ONLY way to change state\n  }\n  public ReadOnlyEffect<Counter> get() { return effects().reply(currentState()); }\n  public Effect<Done> delete() { return effects().deleteEntity().thenReply(Done.getInstance()); }\n}\n```\n\n## Key rules\n\n- **The only way to change state is `effects().updateState(newState)`** — never mutate `currentState()` fields directly (lost on reload). Effect API: `updateState(s).thenReply(...)`, `reply(v)`, `error(\"msg\")`, `deleteEntity()`, `.expireAfter(Duration)`, `ReadOnlyEffect<T>` for reads.\n- **Single-writer / sharding** and **stable, unique `@Component(id)`** work exactly as in [[akka-sdk-event-sourced-entities]]; capture the id via `ctx.entityId()` / `commandContext().entityId()`. Override `emptyState()`.\n- **Persist a private/internal model**, not public API types.\n\n## When to use vs Event Sourced\n\nUse a **Key Value Entity** when you only need the current state and don't need history, audit, temporal queries, or event-driven projections/replication of *changes* — it's simpler and cheaper. Use an **Event Sourced Entity** when those matter. Note: a [[akka-sdk-consumers]] consumer / [[akka-sdk-views]] view sourced from a KV entity is guaranteed to see the *most recent* state but **not necessarily every intermediate change** (changes can be coalesced).\n\n## Multi-region, calling, testing\n\n- **Multi-region:** same model as ESE but the replicated unit is the **state change**; primary handles writes, async eventual replication, `ReadOnlyEffect` may be stale, write `Effect` routes to primary. `@EnableReplicationFilter` + `updateReplicationFilter(...)` scope regions.\n- **Call:** `componentClient.forKeyValueEntity(id).method(CounterEntity::plusOne).invoke()`.\n- **Deletion:** `effects().deleteEntity()` leaves an empty state briefly; fully removed ~1 week later; `isDeleted()`; avoid id reuse. `.expireAfter(Duration)` TTL (canceled by a later update without it). Alternatively reset via `updateState(emptyState)`.\n- **Unit test** with `KeyValueEntityTestKit`:\n  ```java\n  var tk = KeyValueEntityTestKit.of(CounterEntity::new);\n  assertEquals(11, tk.method(CounterEntity::plusOne).invoke().getReply().value());\n  assertEquals(11, tk.getState().value());\n  ```\n  **Integration**: extend `TestKitSupport`, drive via `componentClient.forKeyValueEntity(id)`.\n\n## Always-apply defaults / anti-patterns\n\n- Override `emptyState()`; change state only via `updateState`; keep logic in `domain/` records; stable `@Component(id)`.\n- For read-by-attribute/cross-instance queries build a [[akka-sdk-views]] view, not entity scans.\n- **Anti-patterns:** mutating state in place; choosing KV when you actually need event history/projections (use ESE); relying on a KV-sourced consumer to observe every change; reusing ids after deletion.\n\n## Related\n\n- [[akka-sdk]] · [[akka-sdk-event-sourced-entities]] · [[akka-sdk-views]] · [[akka-sdk-consumers]]\n- Source: https://doc.akka.io/sdk/key-value-entities.html\n</skill>\n\nUser request:\nCan I just set a field on currentState() inside my KV entity handler and return done?",
+          "label": "evals/akka-sdk-key-value-entities/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "2c7c3bd305c2bcee0a280dd7f45cb87e5e9ad3603cc050f4b7e0ad592a8f97dd",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "No. Mutating `currentState()` in place isn't persisted. It's lost on reload, and the change never reaches storage. State changes only through `effects().updateState(newState)`.\n\nBuild a new state and return that effect:\n\n```java\npublic Effect<Done> setName(String name) {\n  var next = currentState().withName(name);   // immutable record \"wither\", returns a new state\n  return effects().updateState(next).thenReply(Done.getInstance());\n}\n```\n\nMaking the state a record, as in the skill's `Counter` example, rules out in-place mutation by design."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "mutate",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-sdk-key-value-entities/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-sdk-key-value-entities/cases/mutate.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/updateState|effects\\(\\)|never mutat|not mutat|lost|reload/i.test(output)) throw new Error('says the only way to change state is effects().updateState');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-sdk-key-value-entities/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-sdk-key-value-entities/cases/mutate.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/event.sourc|ESE/i.test(output)) throw new Error('points at event sourced entities');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "69dcd42f-4265-41b6-8e53-0db5e82e5707",
+        "latencyMs": 6771,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-sdk-key-value-entities\ndescription: Akka SDK Key Value Entities (Java) — durable, stateful components that persist the full latest state on every change (CRUD-style, no event log), the simpler alternative to Event Sourced Entities. Covers defining one (extend KeyValueEntity<State>, @Component(id), emptyState), command handlers returning Effect<T>, the Effect API (updateState/reply/error/deleteEntity/expireAfter, ReadOnlyEffect), the single-writer/sharding guarantee, when to use vs event sourced, multi-region replication & filters, calling via ComponentClient.forKeyValueEntity, and testing with KeyValueEntityTestKit. Use when you only need current state (no history/audit/event consumers) for a stateful entity in an Akka SDK service. Part of the Akka SDK (Java); see akka-sdk for the model and akka-sdk-event-sourced-entities for the event-log alternative.\n---\n\n# Akka SDK — Key Value Entities\n\nA durable, stateful component that stores the **full current state** on every change (like CRUD) — **no event history**, unlike [[akka-sdk-event-sourced-entities]]. Simpler and cheaper when you don't need an audit trail, event replay, or downstream event consumers. Part of the [[akka-sdk]] (Java).\n\nCross-links: [[akka-sdk]] (meta), [[akka-sdk-event-sourced-entities]] (event-log alternative), [[akka-sdk-views]] (read side).\n\n## The model\n\n```java\npublic record Counter(int value) { public Counter increment(int d) { return new Counter(value + d); } }\n\n@Component(id = \"counter\")\npublic class CounterEntity extends KeyValueEntity<Counter> {           // <State> only — no event type\n  public CounterEntity(KeyValueEntityContext ctx) { /* ctx.entityId() */ }\n  @Override public Counter emptyState() { return new Counter(0); }     // ALWAYS override\n\n  public Effect<Counter> plusOne() {\n    var next = currentState().increment(1);\n    return effects().updateState(next).thenReply(next);                // the ONLY way to change state\n  }\n  public ReadOnlyEffect<Counter> get() { return effects().reply(currentState()); }\n  public Effect<Done> delete() { return effects().deleteEntity().thenReply(Done.getInstance()); }\n}\n```\n\n## Key rules\n\n- **The only way to change state is `effects().updateState(newState)`** — never mutate `currentState()` fields directly (lost on reload). Effect API: `updateState(s).thenReply(...)`, `reply(v)`, `error(\"msg\")`, `deleteEntity()`, `.expireAfter(Duration)`, `ReadOnlyEffect<T>` for reads.\n- **Single-writer / sharding** and **stable, unique `@Component(id)`** work exactly as in [[akka-sdk-event-sourced-entities]]; capture the id via `ctx.entityId()` / `commandContext().entityId()`. Override `emptyState()`.\n- **Persist a private/internal model**, not public API types.\n\n## When to use vs Event Sourced\n\nUse a **Key Value Entity** when you only need the current state and don't need history, audit, temporal queries, or event-driven projections/replication of *changes* — it's simpler and cheaper. Use an **Event Sourced Entity** when those matter. Note: a [[akka-sdk-consumers]] consumer / [[akka-sdk-views]] view sourced from a KV entity is guaranteed to see the *most recent* state but **not necessarily every intermediate change** (changes can be coalesced).\n\n## Multi-region, calling, testing\n\n- **Multi-region:** same model as ESE but the replicated unit is the **state change**; primary handles writes, async eventual replication, `ReadOnlyEffect` may be stale, write `Effect` routes to primary. `@EnableReplicationFilter` + `updateReplicationFilter(...)` scope regions.\n- **Call:** `componentClient.forKeyValueEntity(id).method(CounterEntity::plusOne).invoke()`.\n- **Deletion:** `effects().deleteEntity()` leaves an empty state briefly; fully removed ~1 week later; `isDeleted()`; avoid id reuse. `.expireAfter(Duration)` TTL (canceled by a later update without it). Alternatively reset via `updateState(emptyState)`.\n- **Unit test** with `KeyValueEntityTestKit`:\n  ```java\n  var tk = KeyValueEntityTestKit.of(CounterEntity::new);\n  assertEquals(11, tk.method(CounterEntity::plusOne).invoke().getReply().value());\n  assertEquals(11, tk.getState().value());\n  ```\n  **Integration**: extend `TestKitSupport`, drive via `componentClient.forKeyValueEntity(id)`.\n\n## Always-apply defaults / anti-patterns\n\n- Override `emptyState()`; change state only via `updateState`; keep logic in `domain/` records; stable `@Component(id)`.\n- For read-by-attribute/cross-instance queries build a [[akka-sdk-views]] view, not entity scans.\n- **Anti-patterns:** mutating state in place; choosing KV when you actually need event history/projections (use ESE); relying on a KV-sourced consumer to observe every change; reusing ids after deletion.\n\n## Related\n\n- [[akka-sdk]] · [[akka-sdk-event-sourced-entities]] · [[akka-sdk-views]] · [[akka-sdk-consumers]]\n- Source: https://doc.akka.io/sdk/key-value-entities.html\n</skill>\n\nUser request:\nI need the full history of changes and projections off it. Key-value entity or event sourced?",
+          "label": "evals/akka-sdk-key-value-entities/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "2c7c3bd305c2bcee0a280dd7f45cb87e5e9ad3603cc050f4b7e0ad592a8f97dd",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "**Event Sourced Entity.** You need the full change history and projections off it. A Key Value Entity stores only the latest state, so it keeps no history. Consumers and views on a KV entity also see only the most recent state, not every intermediate change, because changes can be coalesced.\n\nUse [[akka-sdk-event-sourced-entities]] for the entity and [[akka-sdk-views]] for the projections. Only choose a KV entity if you later decide you need just the current state."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "vs-ese",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-sdk-key-value-entities/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-sdk-key-value-entities/cases/vs-ese.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/event.sourc|ESE/i.test(output)) throw new Error('points at event sourced entities');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-sdk-key-value-entities/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-sdk-key-value-entities/cases/vs-ese.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 6792,
+      "evaluationDurationMs": 6792
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-sdk-key-value-entities — EDD",
+    "prompts": [
+      "file:///private/tmp/b6/evals/akka-sdk-key-value-entities/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "mutate",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-key-value-entities/cases/mutate.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/updateState|effects\\(\\)|never mutat|not mutat|lost|reload/i.test(output)) throw new Error('says the only way to change state is effects().updateState');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "vs-ese",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-key-value-entities/cases/vs-ese.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/event.sourc|ESE/i.test(output)) throw new Error('points at event sourced entities');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-sdk-key-value-entities/results/skill_3.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b6/skills/akka-sdk-key-value-entities/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b6/evals/akka-sdk-key-value-entities"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:52:28.810Z",
+    "evaluationCreatedAt": "2026-10-29T19:52:21.973Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

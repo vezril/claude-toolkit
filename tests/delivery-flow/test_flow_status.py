@@ -41,6 +41,30 @@ class Repo:
         with (self.item_dir / "trace.jsonl").open("a") as f:
             f.write(json.dumps(rec) + "\n")
 
+    def challenge(self, verdict, target="breakdown.json", findings=(), artifact="challenge-breakdown.json"):
+        self.artifact(artifact, {
+            "item": self.item, "target": target, "verdict": verdict,
+            "attacks": [{"attack": f"a{i}", "method": "checked it against the item", "result":
+                         "landed" if verdict != "SURVIVED" and i == 0 else "failed"} for i in range(3)],
+            "findings": [{"finding": f, "evidence": "quoted from the artifact"} for f in findings],
+        })
+
+    def verdict_record(self, verdict, target="breakdown.json", step="challenge-breakdown"):
+        """A challenge run as the trace records it, which is how refutations are counted."""
+        rec = {"ts": "2026-10-21T00:00:00+00:00", "item": self.item, "step": step,
+               "artifact": "challenge-breakdown.json", "target": target, "verdict": verdict}
+        with (self.item_dir / "trace.jsonl").open("a") as f:
+            f.write(json.dumps(rec) + "\n")
+
+    def through_breakdown(self):
+        """Every artifact up to and including breakdown.json, each with a passing edge."""
+        for a in ("item.json", "triage.json"):
+            self.artifact(a, TRIAGE if a == "triage.json" else None)
+            self.edge(a)
+        self.artifact("breakdown.json")
+        self.edge("breakdown.json", step="breakdown")
+        return self
+
     def punch_out(self, n=1, text="scope is unclear"):
         p = self.item_dir / f"punch-out-{n}.md"
         p.write_text(f"# Punch-out {n}\n\n{text}\n")
@@ -89,7 +113,7 @@ class TestRouting(unittest.TestCase):
         r.artifact("item.json")
         r.artifact("triage.json", dict(TRIAGE, type="bug", path="quick"))
         st = r.status()
-        self.assertEqual(st["next_step"], "solutioning")
+        self.assertEqual(st["next_step"], "propose")
         for step in ("breakdown", "challenge-breakdown"):
             self.assertTrue(next(x for x in st["table"] if x["step"] == step)["skipped"])
 
@@ -147,6 +171,123 @@ class TestBlocking(unittest.TestCase):
         st = r.status()
         self.assertIsNone(st["next_step"])
         self.assertIn("stale", st["blocked"])
+
+
+class TestChallengeVerdicts(unittest.TestCase):
+    """The verdict routes mechanically. The reviewer is a node; these rules are the code."""
+
+    def test_survived_proceeds(self):
+        r = Repo().through_breakdown()
+        r.challenge("SURVIVED"); r.edge("challenge-breakdown.json", step="challenge-breakdown")
+        st = r.status()
+        self.assertEqual(st["next_step"], "propose")
+        self.assertIsNone(st["blocked"])
+
+    def test_weakened_proceeds_and_carries_its_findings_forward(self):
+        r = Repo().through_breakdown()
+        r.challenge("WEAKENED", findings=["S2's criteria do not test the toggle it promises"])
+        r.edge("challenge-breakdown.json", step="challenge-breakdown")
+        st = r.status()
+        self.assertEqual(st["next_step"], "propose")
+        self.assertIsNone(st["blocked"])
+        self.assertEqual(st["carry_forward"], ["S2's criteria do not test the toggle it promises"])
+
+    def test_refuted_reruns_the_producing_step(self):
+        r = Repo().through_breakdown()
+        r.challenge("REFUTED", findings=["the zero-quantity deliverable is in no story"])
+        r.edge("challenge-breakdown.json", step="challenge-breakdown")
+        st = r.status()
+        self.assertEqual(st["next_step"], "breakdown")
+        self.assertIn("REFUTED", st["blocked"])
+        self.assertIn("zero-quantity", st["blocked"])
+        self.assertFalse(st["complete"])
+
+    def test_refuted_does_not_carry_findings_forward(self):
+        """A refuted artifact is redone, so its findings are a rerun instruction, not a
+        constraint handed to the step after it."""
+        r = Repo().through_breakdown()
+        r.challenge("REFUTED", findings=["the plan contradicts the item"])
+        r.edge("challenge-breakdown.json", step="challenge-breakdown")
+        self.assertEqual(r.status()["carry_forward"], [])
+
+    def test_refuted_twice_is_a_punch_out_not_a_third_attempt(self):
+        r = Repo().through_breakdown()
+        r.challenge("REFUTED", findings=["still missing the zero-quantity work"])
+        r.edge("challenge-breakdown.json", step="challenge-breakdown")
+        r.verdict_record("REFUTED"); r.verdict_record("REFUTED")
+        st = r.status()
+        self.assertIsNone(st["next_step"])
+        self.assertIn("REFUTED 2 times", st["blocked"])
+        self.assertIn("punch-out", st["blocked"])
+
+    def test_one_refutation_in_the_trace_still_reruns(self):
+        r = Repo().through_breakdown()
+        r.challenge("REFUTED", findings=["a deliverable is missing"])
+        r.edge("challenge-breakdown.json", step="challenge-breakdown")
+        r.verdict_record("REFUTED")
+        self.assertEqual(r.status()["next_step"], "breakdown")
+
+    def test_a_challenge_of_an_older_breakdown_is_stale(self):
+        """The rerun a refutation asks for must not be the thing that keeps the flow blocked:
+        once the breakdown is written again, the verdict on disk is about a version that is
+        gone, so the challenge reruns rather than the step it already refuted."""
+        r = Repo().through_breakdown()
+        r.challenge("REFUTED", findings=["a deliverable is missing"])
+        r.edge("challenge-breakdown.json", step="challenge-breakdown")
+        r.artifact("breakdown.json", {"item": r.item, "v": 2})
+        r.edge("breakdown.json", step="breakdown")
+        st = r.status()
+        self.assertEqual(st["next_step"], "challenge-breakdown")
+        self.assertIn("written again", st["blocked"])
+
+    def test_a_survived_verdict_on_an_older_breakdown_is_also_stale(self):
+        r = Repo().through_breakdown()
+        r.challenge("SURVIVED")
+        r.edge("challenge-breakdown.json", step="challenge-breakdown")
+        r.artifact("breakdown.json", {"item": r.item, "v": 2})
+        r.edge("breakdown.json", step="breakdown")
+        self.assertEqual(r.status()["next_step"], "challenge-breakdown")
+
+    def test_a_verdict_with_no_trace_at_all_is_taken_as_current(self):
+        r = Repo()
+        for a in ("item.json", "triage.json"):
+            r.artifact(a, TRIAGE if a == "triage.json" else None)
+        r.artifact("breakdown.json")
+        r.challenge("REFUTED", findings=["a deliverable is missing"])
+        self.assertEqual(r.status()["next_step"], "breakdown")
+
+    def test_an_unreadable_challenge_blocks_rather_than_being_ignored(self):
+        r = Repo().through_breakdown()
+        (r.item_dir / "challenge-breakdown.json").write_text("{not json")
+        r.edge("challenge-breakdown.json", step="challenge-breakdown")
+        st = r.status()
+        self.assertIsNone(st["next_step"])
+        self.assertIn("cannot be read", st["blocked"])
+
+    def test_an_open_punch_out_outranks_a_refuted_verdict(self):
+        r = Repo().through_breakdown()
+        r.challenge("REFUTED", findings=["a deliverable is missing"])
+        r.edge("challenge-breakdown.json", step="challenge-breakdown")
+        r.punch_out(1)
+        st = r.status()
+        self.assertIsNone(st["next_step"])
+        self.assertIn("punch-out-1", st["blocked"])
+
+    def test_a_failed_edge_outranks_a_refuted_verdict(self):
+        r = Repo().through_breakdown()
+        r.challenge("REFUTED", findings=["a deliverable is missing"])
+        r.edge("challenge-breakdown.json", 1, "sentinel count mismatch", step="challenge-breakdown")
+        st = r.status()
+        self.assertEqual(st["next_step"], "challenge-breakdown")
+        self.assertIn("failed its edge", st["blocked"])
+
+    def test_the_quick_path_has_no_verdict_to_route(self):
+        r = Repo()
+        r.artifact("item.json"); r.edge("item.json")
+        r.artifact("triage.json", dict(TRIAGE, type="bug", path="quick")); r.edge("triage.json")
+        st = r.status()
+        self.assertEqual(st["next_step"], "propose")
+        self.assertEqual(st["challenges"], [])
 
 
 class TestCompletion(unittest.TestCase):

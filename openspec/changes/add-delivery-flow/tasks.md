@@ -8,18 +8,18 @@
 
 ## 1. Config and templates
 
-- [ ] 1.1 Create `templates/delivery-flow/delivery-flow.yaml` (tracker, forge, punch-out policy with triggers, cost budget and external-tracker flag, deploy and auto-roll, per-step models, roster overrides, test command, artifact commit policy, vault binding, tracker-write MCP matcher list) with comments
-- [ ] 1.2 Create `templates/delivery-flow/roster.yaml` with initial kinds of work (`ux`, `frontend`, `backend`, `contracts`, `infra`, `data`, `mobile`, `docs`) mapped to existing toolkit agents and skills only
+- [x] 1.1 ~~Create `templates/delivery-flow/delivery-flow.yaml`~~ — **superseded by `scripts/delivery-flow/init-delivery-flow.py`** (add-jira-triage-profile). A static template would be a fourth place the config's shape lives, beside the generator, `load_config` and `references/config.md`, and the one nobody runs is the one that goes stale. The generator writes a commented config with the un-guessable keys marked for a human; `config.md` is the full reference.
+- [x] 1.2 Create `templates/delivery-flow/roster.yaml` with initial kinds of work (`ux`, `frontend`, `backend`, `contracts`, `infra`, `data`, `mobile`, `docs`) mapped to existing toolkit agents and skills only — `load_roster` parses it, and `tests/delivery-flow/test_roster.py` fails if any name it gives stops resolving to a real agent or skill
 - [x] 1.3 Create `templates/delivery-flow/pricing.yaml` (from 0.3)
 - [x] 1.4 Write a shared `scripts/delivery-flow/common.py`: git-root discovery, `.delivery-flow.yaml` detection (the inert-outside rule), config and roster loading with wholesale per-key override
 
 ## 2. Adapters
 
-- [ ] 2.1 `scripts/delivery-flow/adapters/github_issues.py`: `fetch`, `comment`, `transition`, `related` via `gh`; exit codes 0/2/3; normalized item JSON
-- [ ] 2.2 `scripts/delivery-flow/adapters/github_pr.py`: `open-pr`, `ci-status` via `gh`
-- [ ] 2.3 `scripts/delivery-flow/adapters/local_markdown.py`: `fetch`, `comment`, `transition`, `related`, `import` (new file only)
-- [ ] 2.4 Open-punch-out refusal inside `open-pr`, `comment` and `transition` (shared helper in `common.py`)
-- [ ] 2.5 Adapter fixture tests: normalized output, determinism (byte-identical reruns), auth-failure exit 3, refusal while a punch-out is open, import against a copy of the Olympus feature backlog
+- [x] 2.1 `scripts/delivery-flow/adapters/github_issues.py`: `fetch`, `comment`, `transition`, `related` via `gh`; exit codes 0/2/3; normalized item JSON. `links` are scoped to this repository and `related` is classified per body line, so a body whose first line says "Epic:" does not relabel everything below it
+- [x] 2.2 `scripts/delivery-flow/adapters/github_pr.py`: `open-pr`, `ci-status` via `gh`. `open-pr` requires `--item` rather than parsing the key out of the branch name (a guess there fails open), and `ci-status` reports an empty rollup as `none` and an unrecognized conclusion as failing — never as passing
+- [x] 2.3 `scripts/delivery-flow/adapters/local_markdown.py`: `fetch`, `comment`, `transition`, `related`, `import` (new file only). `#### Comment N` blocks are excluded from `body` so a node cannot read its own post-back as a requirement, and `url` is repo-relative so two machines agree
+- [x] 2.4 Open-punch-out refusal inside `open-pr`, `comment` and `transition` — `common.outward_refusal`, the one definition of "blocked"; the Jira adapter's private copy was folded into it. `Usage`/`Remote`, `dispatch` and `emit` moved there too, so the exit-code contract has one implementation
+- [x] 2.5 Adapter fixture tests (`tests/delivery-flow/test_adapters.py`, 63 tests): normalized output against the schema, determinism, auth-failure exit 3 with the remediation, missing `gh`, refusal while a punch-out is open **asserted on the call log** so the test proves no remote call was made. `gh` is a fake on PATH, not a mocked function. Import is tested against a synthetic bullet backlog, not the Olympus one: that file is a client's and this repo is public
 
 ## 3. Contracts, sentinels and edges
 
@@ -29,7 +29,7 @@
 - [x] 3.4 `hooks/check-edge.py` (PostToolUse): file parses, sha matches sentinel, schema conforms, sentinel counts match reality, artifact satisfies the consuming step's input contract; exit 2 with the report on failure; append `edge` to `trace.jsonl` either way; inert outside delivery-flow repos
 - [x] 3.5 Register the PostToolUse hook in `hooks/hooks.json` (Write/Edit/MultiEdit/NotebookEdit and Bash writes under `delivery/`)
 - [x] 3.6 Orchestrator rule: read the latest `edge` result from the trace, refuse to advance on failure, bounded rerun (3) then punch-out — implemented as `flow-status.py`, so routing is computed rather than judged
-- [ ] 3.7 Manual-correction detection: compare an artifact's current sha to its trace record
+- [x] 3.7 Manual-correction detection: compare an artifact's current sha to its trace record — `manual_corrections` in `write-outcome.py`, which marks the run `failed` with reason `manual-correction` rather than re-counting a repaired run
 - [x] 3.8 Fixture tests: valid artifact passes; schema violation fails; sentinel count mismatch fails while the schema still passes; missing sentinel fails; downstream input-contract violation fails at the producing handoff; a write in a non-delivery repo is untouched
 
 ## 4. Work-type routing
@@ -55,6 +55,16 @@
 - [ ] 6.3a `delivery-report.py backfill`: historical per-session usage from `~/.claude/projects/*/*.jsonl` labeled `source: backfill`, excluded from end-to-end rates; reads committed traces from repo git history so both Macs' runs aggregate
 - [x] 6.4 Tests: synthetic transcripts → expected trace lines; report math (the 4/1/2 → 80% scenario); non-delivery repo creates no file
 
+## 2b. GitBucket adapter (decided, not yet built)
+
+- [x] 2b.0 **`transition` models state as labels. Decided by Calvin 2026-10-28.** GitBucket has no `PATCH /repos/:o/:r/issues/:id`, so an issue cannot be closed, reopened, retitled or reassigned through the API at all — pull requests *do* have `PATCH`, which makes the gap easy to miss. Label CRUD is complete and verified on 4.48.0, so `transition` adds/replaces a label and `item.json`'s `status` derives from labels rather than open/closed. The rejected alternative was a `close #N` commit keyword, which only ever closes and couples a transition to pushing code — no way to express `in-progress` or `blocked`. See `skills/gitbucket` (on `origin/main`) for the measured API behaviour
+- [ ] 2b.1 `scripts/delivery-flow/adapters/gitbucket.py` implementing the contract, with the label-state vocabulary and its mapping onto `status`
+- [ ] 2b.2 Send `{"labels":[...]}`, never the bare array GitHub documents — on 4.48.0 the bare form returns `200 []` and attaches nothing, a silent no-op. Assert on the response body, not the status
+- [ ] 2b.3 Use `/users/<login>/repos`, not `/user/repos`: the latter is route-shadowed by `/user/:id` on 4.48.0 and returns 404 even when correctly authenticated
+- [ ] 2b.4 Page by short-page, never by `Link` header (GitBucket emits none); issues and pulls are hard-capped at 25 and ignore `per_page`
+- [ ] 2b.5 Use GitBucket's filter vocabulary — `author`/`assigned`, not GitHub's `creator`/`assignee`, which are silently ignored — and always pass `state=all`, since it defaults to `open`
+- [ ] 2b.6 Fixture tests, no network, mirroring `test_adapters.py`: label-as-state round trip, the bare-array no-op, the shadowed route, short-page termination
+
 ## 7. Decision-point enforcement
 
 - [x] 7.1 `scripts/delivery-flow/check-punch-out.py`: deterministic triggers (triage handoff, architecture/breaking/contract-path changes, REFUTED twice, retry limit and cost budget from trace, protected paths, external tracker post); writes `punch-out-<n>.md`; fixture tests per trigger, plus a no-trigger case that must not stop
@@ -79,14 +89,14 @@
 - [x] 8b.2 Write `scripts/delivery-flow/check-certification.py` (stdlib-only; also binds results to the certified prompt text): ≥3 criteria, ≥95% results, provider tier ≤ Sonnet, prompt sha match, ≥90% load-bearing appendix, iteration log ≥2 complete entries, escalation evidence above Sonnet; fixture tests for each failure
 - [ ] 8b.3 Wire certification into the flow (pre-step check, `allow_uncertified`, `certified` trace field) and the report (certified-only end-to-end rate)
 - [ ] 8b.4 Add `model_conformant` to trace records, report the extra cost of non-conformant records, and add the `--status` session-model warning
-- [ ] 8b.5 Pin `agents/adversarial-validator.md` to `model: sonnet` (currently inherits); record escalation evidence if its suite later requires Opus
+- [x] 8b.5 Pin `agents/adversarial-validator.md` to `model: sonnet` (currently inherits); record escalation evidence if its suite later requires Opus
 - [ ] 8b.6 Mine real-work fixtures from Olympus's archived OpenSpec changes (dionysus-planner, hermesmq, artemis-service, apollo-storage, hephaestus-service; exclude `ares-*`, `codex`, `harpocrates-*`, `muses-ui`), anonymizing nothing secret-adjacent
-- [ ] 8b.7 **Chain first**, using `prompt-edd`, Haiku before Sonnet, each with a baseline, ≥2 iterations, 3 consecutive runs ≥95%, results and a load-bearing map: `triage` (schema output), `breakdown` (epics → stories → acceptance criteria), `challenge-breakdown` (structured verdict)
+- [x] 8b.7 **Chain first**, using `prompt-edd`, Haiku before Sonnet, each with a baseline, ≥2 iterations, 3 consecutive runs ≥95%, results and a load-bearing map: `triage` (schema output), `breakdown` (epics → stories → acceptance criteria), `challenge-breakdown` (structured verdict)
 - [ ] 8b.7a Then the rest, in flow order: work-type classifier, delivery-flow routing, intake digest, post-back summary, delivery recall. (`pr-description` is certified on Haiku at 89/90 and stays outside the chain as terminal prose)
 - [ ] 8b.8 Certify on Sonnet (execution-grounded asserts for code-writing steps: tests green on a fixture repo): `sdlc-orchestrator`, `requirements-analyst`, `solution-architect`, `story-planner`, `test-writer`, `implementer`, `qa-test-architect`, `adversarial-validator`, and the pilot reviewers (`scala-fp-reviewer`, `frontend-reviewer`, `git-and-ci-reviewer`)
 - [ ] 8b.9 For any step failing 95% on Sonnet, commit the Sonnet results as escalation evidence before declaring a higher tier; record the decision in the step's iteration log
 - [ ] 8b.2a Extend `check-certification.py` with the per-run 95% bar across 3 consecutive runs (not just the aggregate), the chain marking, and `inputs`/`outputs` presence; fixture test with runs 100% / 96.7% / 93.3% that must fail
-- [ ] 8b.10 Run `check-certification.py --all`; every chain step exits 0
+- [x] 8b.10 Run `check-certification.py --all`; every chain step exits 0
 
 ## 9. Documentation (doc-sync rule)
 
@@ -98,13 +108,13 @@
 
 ## 9b. Evidence package
 
-- [ ] 9b.1 `scripts/delivery-flow/package-evidence.py`: one directory per examined criterion (workflow definition, guardrails, punch-out evidence, end-to-end rate, audit trail) plus a README mapping each to its criterion; refuses to build if any chain step fails `check-certification.py`
-- [ ] 9b.2 Dry-run the package and read it as a reviewer would: can a stranger trace one failure to its origin step, and see a bypass attempt blocked?
+- [x] 9b.1 `scripts/delivery-flow/package-evidence.py`: five directories, one per examined criterion, each headed by the single question a reviewer answers from it, plus a README, `RESIDUALS.md`, `CERTIFICATION.txt` and a `MANIFEST.txt` of every file's source path and sha256 — the package can be diffed against the repo rather than trusted. It copies verbatim and never summarises: a summary would be a new document nobody has checked. Refusal verified by breaking a chain step's `prompt_sha256` — exit 1, nothing built. `--allow-uncertified` stamps the README **DRAFT — NOT FOR SUBMISSION** so a draft cannot be mistaken for one
+- [x] 9b.2 Read as a reviewer would, and both questions answer: a failure traces to `step: project-memory | artifact: project-context.json | no readable sentinel`, and `3-punch-out-evidence/bypass-report.md` opens with 23 of 23 blocked plus the four harness defects the runs found. Three signed decisions ship with the runs. **One honest weakness:** the only traceable edge failure belongs to the discarded run, so a reviewer reading only clean runs sees no failure at all — more real runs fix that, nothing else does
 
 ## 10. Verification
 
 - [ ] 10.1 `openspec validate add-delivery-flow` green; all script, hook and linter test suites green
-- [ ] 10.2 Run the bypass suite; commit `bypass-report.md` with every attempt blocked
+- [x] 10.2 Run the bypass suite; commit `bypass-report.md` with every attempt blocked — 23/23 blocked or detected, 0 breached (2026-10-28). The report carries the four harness defects the earlier runs found; see `add-jira-triage-profile` task 4.6
 - [ ] 10.2a Bump `.claude-plugin/plugin.json` version; after merge, confirm the *installed* plugin cache on both Macs contains both hooks and `delivery-flow --status` reports them registered (plugin-cache-lag check)
 - [ ] 10.3 Enable in one Olympus repo (suggested: `demeter-service`, the only one with required status checks plus mutation testing) with the local-markdown tracker; run one real item end to end; confirm complete `trace.jsonl` coverage (every step plus orchestrator) and a generated report
 - [ ] 10.4 Prove the edges with a deliberately broken run: a node whose sentinel claims more stories than the file holds, and one that omits a field the next node needs; both must fail at the handoff and appear in the trace

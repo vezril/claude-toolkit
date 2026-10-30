@@ -1,0 +1,38 @@
+# vault-graphrag: shared matrix, used verbatim by both arms. Deterministic asserts only.
+
+- description: "note-types"
+  vars: { request: file://cases/note-types.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/incident/i.test(output)) throw new Error('incident');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/entit/i.test(output)) throw new Error('entity');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/lesson/i.test(output)) throw new Error('lesson');
+        return true;
+
+- description: "no-dupes"
+  vars: { request: file://cases/no-dupes.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/upsert|never.{0,20}duplicat|no duplicat|same (note|key)|keyed/i.test(output)) throw new Error('says upsert keyed by ticket id, not a duplicate');
+        return true;
+
+- description: "backlinks"
+  vars: { request: file://cases/backlinks.txt }
+  assert:
+    - type: javascript
+      metric: restraint
+      value: |
+        if (!/backlink|never.{0,30}(reverse|by hand)|don'?t maintain|automatic/i.test(output)) throw new Error('says rely on backlinks, not hand-maintained reverse indexes');
+        return true;
