@@ -1,0 +1,119 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "pocock folds: does each folded addition change behaviour vs the skill as it was on main"
+# Run through run.sh: __V__ becomes v1 (the four skills as on main) or v2 (with the folds), and
+# __WORLD__ a temp copy of fixture/ whose .skill/<skill>/ holds that version's skill folder, so a
+# skill can read its own references. Read-only tools; single-turn.
+prompts:
+  - file://prompt.txt
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config: { model: sonnet, apiKeyRequired: false, working_dir: __WORLD__/workspace, max_turns: 12 }
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config: { model: haiku, apiKeyRequired: false, working_dir: __WORLD__/workspace, max_turns: 12 }
+tests:
+  - description: "sd-01-owned-remote (software-design)"
+    vars:
+      case: sd-01-owned-remote
+      skill: file://prompts/__V__/software-design/SKILL.md
+      skill_dir: __WORLD__/.skill/software-design
+      request: |-
+        Our order intake goes OrderController -> OrderValidator -> OrderPricer -> PricingClient. PricingClient wraps HTTP calls to our own pricing service (we own it; it lives in another repo in our org). The first three are thin wrappers, each with its own unit tests full of mocks. I want to collapse them into one deep OrderIntake module. How should it be tested afterwards?
+    assert:
+      - { type: javascript, metric: target, value: file://asserts/target.js }
+      - { type: javascript, metric: guard, value: file://asserts/guard.js }
+  - description: "sd-02-one-adapter (software-design)"
+    vars:
+      case: sd-02-one-adapter
+      skill: file://prompts/__V__/software-design/SKILL.md
+      skill_dir: __WORLD__/.skill/software-design
+      request: |-
+        pantry only ever uses Postgres, and the test suite already runs against a real Postgres in Testcontainers. A colleague wants to add a RecipeRepository trait "so we can swap the database later". Is it worth it?
+    assert:
+      - { type: javascript, metric: target, value: file://asserts/target.js }
+      - { type: javascript, metric: guard, value: file://asserts/guard.js }
+  - description: "sd-03-design-twice (software-design)"
+    vars:
+      case: sd-03-design-twice
+      skill: file://prompts/__V__/software-design/SKILL.md
+      skill_dir: __WORLD__/.skill/software-design
+      request: |-
+        Design the interface for a RateLimiter module in pantry's API: per-user limits, a burst allowance, Redis behind it. I want to choose between real alternatives, not get one design.
+    assert:
+      - { type: javascript, metric: target, value: file://asserts/target.js }
+  - description: "t-01-tautology (tdd)"
+    vars:
+      case: t-01-tautology
+      skill: file://prompts/__V__/tdd/SKILL.md
+      skill_dir: __WORLD__/.skill/tdd
+      request: |-
+        Review this test:
+
+        ```scala
+        it("totals the cart") {
+          val items = Seq(Item(1250), Item(399), Item(99))
+          cart.total(items) shouldBe items.map(_.priceCents).sum
+        }
+        ```
+    assert:
+      - { type: javascript, metric: target, value: file://asserts/target.js }
+  - description: "t-02-mock-internal (tdd)"
+    vars:
+      case: t-02-mock-internal
+      skill: file://prompts/__V__/tdd/SKILL.md
+      skill_dir: __WORLD__/.skill/tdd
+      request: |-
+        Review this test. OrderPricer is our own class; Payments wraps Stripe.
+
+        ```scala
+        it("checkout charges the order") {
+          val pricer = mock[OrderPricer]
+          when(pricer.price(cart)).thenReturn(Money(1748))
+          val payments = mock[Payments]
+          new Checkout(pricer, payments).complete(cart)
+          verify(pricer, times(1)).price(cart)
+          verify(payments).charge(orderId, Money(1748))
+        }
+        ```
+    assert:
+      - { type: javascript, metric: target, value: file://asserts/target.js }
+      - { type: javascript, metric: guard, value: file://asserts/guard.js }
+  - description: "t-03-horizontal (tdd)"
+    vars:
+      case: t-03-horizontal
+      skill: file://prompts/__V__/tdd/SKILL.md
+      skill_dir: __WORLD__/.skill/tdd
+      request: |-
+        My plan: I'll write all 12 tests for the CSV parser up front (header row, quoting, escaped quotes, CRLF, empty lines, trailing commas, ...), then implement the parser until they all pass. Sound good?
+    assert:
+      - { type: javascript, metric: target, value: file://asserts/target.js }
+      - { type: javascript, metric: guard, value: file://asserts/guard.js }
+  - description: "ddd-01-aliases (domain-driven-design)"
+    vars:
+      case: ddd-01-aliases
+      skill: file://prompts/__V__/domain-driven-design/SKILL.md
+      skill_dir: __WORLD__/.skill/domain-driven-design
+      request: |-
+        Model the domain for a library's lending desk. Staff say "patron", "borrower" and "member" for the same person, and "loan" and "checkout" for the same thing. Give me the model.
+    assert:
+      - { type: javascript, metric: target, value: file://asserts/target.js }
+      - { type: javascript, metric: guard, value: file://asserts/guard.js }
+  - description: "arch-01-trivial (software-architecture)"
+    vars:
+      case: arch-01-trivial
+      skill: file://prompts/__V__/software-architecture/SKILL.md
+      skill_dir: __WORLD__/.skill/software-architecture
+      request: |-
+        We changed our code formatter config from 2-space to 4-space indentation. Write the ADR for it.
+    assert:
+      - { type: javascript, metric: target, value: file://asserts/target.js }
+  - description: "arch-02-real (software-architecture)"
+    vars:
+      case: arch-02-real
+      skill: file://prompts/__V__/software-architecture/SKILL.md
+      skill_dir: __WORLD__/.skill/software-architecture
+      request: |-
+        We're writing pantry's reporting queries in hand-written SQL instead of through our ORM, because they need window functions and CTEs the ORM can't express, and everyone on the team will assume we use the ORM everywhere. Record the decision.
+    assert:
+      - { type: javascript, metric: target, value: file://asserts/target.js }

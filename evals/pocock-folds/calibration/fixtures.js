@@ -1,0 +1,21 @@
+// Hand-written replies: a good and a bad one per case. Each lists the criteria it should fail.
+module.exports = [
+  { case: 'sd-01-owned-remote', label: 'good', fails: [], output: 'Define a port (a PricingPort trait) at the seam. Production gets an HTTP adapter; tests get an in-memory adapter. Test OrderIntake through its interface, and delete the old unit tests on the three wrappers: they test shallow modules that no longer exist.' },
+  { case: 'sd-01-owned-remote', label: 'layers mocks', fails: ['target', 'guard'], output: 'Keep the existing tests and add new ones; mock the OrderValidator and OrderPricer in each test, and stub the HTTP client.' },
+  { case: 'sd-02-one-adapter', label: 'good', fails: [], output: 'No. With only one adapter the trait is a hypothetical seam; keep testing against the real Postgres in Testcontainers and add the trait when a second adapter is real.' },
+  { case: 'sd-02-one-adapter', label: 'adds the trait', fails: ['target'], output: 'Yes, add the trait: it is good practice and keeps the Testcontainers setup flexible.' },
+  { case: 'sd-03-design-twice', label: 'good', fails: [], output: '## Design A: one call\n...\n## Design B: policy objects\n...\n## Design C: decorator\n...\nCompared on depth, locality and seam placement: A is deepest. I recommend A.' },
+  { case: 'sd-03-design-twice', label: 'one design', fails: ['target'], output: 'Here is the interface:\n```scala\ntrait RateLimiter { def allow(u: UserId): Boolean }\n```\nThis is deep and simple.' },
+  { case: 't-01-tautology', label: 'good', fails: [], output: 'The assertion recomputes the expected value the same way the code does, so it passes by construction. Use the literal: `shouldBe 1748`.' },
+  { case: 't-01-tautology', label: 'misses it', fails: ['target'], output: 'Looks fine; maybe add an empty-cart case.' },
+  { case: 't-02-mock-internal', label: 'good', fails: [], output: 'OrderPricer is your own class: use the real one rather than mocking an internal collaborator, and drop `verify(pricer, times(1))`, an implementation detail that breaks on refactor. Mocking Payments is fine: it is the external boundary.' },
+  { case: 't-02-mock-internal', label: 'praises it', fails: ['target', 'guard'], output: 'Good isolation; consider also verifying the order is saved.' },
+  { case: 't-03-horizontal', label: 'good', fails: [], output: 'No: that is horizontal slicing. Work one test at a time: write the header-row test, watch it fail (Red), make it pass, then the next.' },
+  { case: 't-03-horizontal', label: 'agrees', fails: ['target'], output: 'Sounds good. Make sure each test fails before you implement.' },
+  { case: 'ddd-01-aliases', label: 'good', fails: [], output: '## Glossary\n\n**Patron**: a person registered to borrow. _Avoid_: borrower, member\n\n**Loan**: an item lent to a patron. _Avoid_: checkout' },
+  { case: 'ddd-01-aliases', label: 'glossary without aliases', fails: ['target'], output: '## Glossary\n\n| Term | Meaning |\n|---|---|\n| Patron | a registered borrower |\n| Loan | an item lent out |' },
+  { case: 'arch-01-trivial', label: 'good', fails: [], output: 'This does not warrant an ADR: it is easy to reverse and nobody will wonder why. Record it in the formatter config commit message instead.' },
+  { case: 'arch-01-trivial', label: 'writes it', fails: ['target'], output: '# ADR 12: 4-space indentation\n\n## Status\nAccepted\n\n## Context\nWe used 2 spaces.\n\n## Decision\nWe will use 4.' },
+  { case: 'arch-02-real', label: 'good', fails: [], output: '# ADR 7: Hand-written SQL for reporting\n\nReporting needs window functions and CTEs the ORM cannot express, so we decided to write those queries in SQL; everything else stays on the ORM.' },
+  { case: 'arch-02-real', label: 'declines', fails: ['target'], output: 'This is not worth an ADR; just leave a code comment.' },
+];

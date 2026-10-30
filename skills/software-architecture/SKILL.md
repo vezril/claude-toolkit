@@ -55,7 +55,7 @@ Decide from: the **architecture characteristics** that dominate, the **domain pa
 
 ## Architecture decisions & ADRs
 
-Significant, hard-to-reverse decisions must be **recorded with their rationale** ("why over how"). Use **ADRs** (Michael Nygard format): **Title, Status** (proposed/accepted/deprecated/superseded), **Context, Decision, Consequences** (positive *and* negative). Avoid the decision anti-patterns: **Cover Your Assets** (won't decide for fear of being wrong), **Groundhog Day** (re-deciding because rationale wasn't recorded), **Email-Driven Architecture** (decisions lost in inboxes). → `references/decisions-and-diagramming.md`
+Significant, hard-to-reverse decisions must be **recorded with their rationale** ("why over how"). **Write one only when all three hold:** it's **hard to reverse** (changing your mind later costs real time), it would be **surprising without context** (a future reader would ask "why on earth did they do it this way?"), and it was **a real trade-off** (genuine alternatives existed and you picked one for reasons). Missing any one, skip the ADR: an easy-to-reverse choice you'll just reverse, an unsurprising one nobody will question, one with no alternative has nothing to record. Use **ADRs** (Michael Nygard format): **Title, Status** (proposed/accepted/deprecated/superseded), **Context, Decision, Consequences** (positive *and* negative). Avoid the decision anti-patterns: **Cover Your Assets** (won't decide for fear of being wrong), **Groundhog Day** (re-deciding because rationale wasn't recorded), **Email-Driven Architecture** (decisions lost in inboxes). → `references/decisions-and-diagramming.md`
 
 ## Analyzing architecture risk
 
