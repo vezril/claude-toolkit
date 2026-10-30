@@ -23,6 +23,8 @@ import os
 import re
 from pathlib import Path
 
+import layout
+
 # Honours CLAUDE_PLUGIN_ROOT for the same reason `common.PLUGIN_ROOT` does, and it must agree
 # with it: if one resolved from the installed plugin and the other from the checkout, the
 # descriptors and the schemas they point at would come from different trees — a workflow
@@ -167,3 +169,61 @@ def step_table(descriptor: dict) -> list:
     """
     return [(s["artifact"], s["step"], s["kind"], s.get("optional_when"))
             for s in descriptor.get("steps") or []]
+
+
+# ---------------------------------------------------------------------------
+# What the hooks ask. All three hooks need the same four answers, and each used
+# to hard-code its own version — which is how `delivery/` ended up written into
+# a detection regex in one hook and a different regex in another. One definition
+# each, here, derived from whatever descriptors exist.
+# ---------------------------------------------------------------------------
+
+_CACHE = None
+
+
+def active(plugin_root: Path = None) -> list:
+    """Every descriptor, loaded once per process and cached.
+
+    A hook is one invocation in one process, so a process-lifetime cache is the whole
+    lifetime. A descriptor that will not parse degrades to "no workflows" rather than raising:
+    a broken file in the plugin must not fail every tool call in every session, and no
+    workflows is the inert answer.
+    """
+    global _CACHE
+    if plugin_root is not None:
+        try:
+            return descriptors(plugin_root)
+        except Exception:
+            return []
+    if _CACHE is None:
+        try:
+            _CACHE = descriptors()
+        except Exception:
+            _CACHE = []
+    return _CACHE
+
+
+def artifact_dirs(plugin_root: Path = None) -> list:
+    """Directory names holding artifacts, across every workflow, longest first.
+
+    Longest first so a name that is a suffix of another cannot win the match — the same rule
+    `schema.for_name` applies to its globs.
+    """
+    return sorted({d["artifact_dir"].strip("/") for d in active(plugin_root)},
+                  key=len, reverse=True)
+
+
+def config_names(plugin_root: Path = None) -> list:
+    """Files whose presence at a repo root opts it into some workflow."""
+    return sorted({d["config_name"] for d in active(plugin_root)})
+
+
+def any_opted_in(paths, plugin_root: Path = None) -> bool:
+    """True when any of `paths` sits in a repo that opted into any workflow.
+
+    This is the inert-path gate for every hook: a filesystem fact, never a text match on the
+    command. An early exit that depends on a command spelling the artifact directory is an
+    early exit an artifact can be written behind.
+    """
+    names = config_names(plugin_root)
+    return any(layout.opted_in(p, n) for p in paths if str(p) for n in names)

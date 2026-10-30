@@ -33,6 +33,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 HOOK = ROOT / "hooks" / "check-edge.py"
+TRACE_HOOK = ROOT / "hooks" / "trace-step.py"
+ENFORCE_HOOK = ROOT / "hooks" / "enforce-punch-outs.py"
 sys.path.insert(0, str(ROOT / "scripts" / "workflow"))
 
 STEPS = """steps:
@@ -239,6 +241,74 @@ class TestTheRealDescriptorStillDrivesDeliveryFlow(unittest.TestCase):
         self.assertTrue(pattern.findall("cat x > delivery/AN-1/item.json"))
         self.assertTrue(pattern.findall('R=/abs; cat x > "$R/delivery/K/f.json"'))
         self.assertEqual(pattern.findall("cat x > notdelivery_x/AN-1/item.json"), [])
+
+
+class TestAllThreeHooksShareOneDefinition(unittest.TestCase):
+    """Tasks 2.2 and 2.3: the other two hooks resolve the descriptor too.
+
+    They each used to hard-code their own version of "is this mine" and "which directory
+    holds artifacts" — which is how the artifact directory ended up written into a regex in
+    check-edge.py and a *different* regex in enforce-punch-outs.py. One definition in the
+    substrate, three callers.
+    """
+
+    def _plain_repo(self, tmp):
+        repo = Path(tmp)
+        (repo / ".git").mkdir()
+        return repo
+
+    def test_each_hook_is_inert_in_a_repo_with_no_descriptor(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo = self._plain_repo(d)
+            payload = {"hook_event_name": "PreToolUse", "tool_name": "Bash",
+                       "cwd": str(repo), "tool_input": {"command": "echo hello"}}
+            for hook in (HOOK, TRACE_HOOK, ENFORCE_HOOK):
+                with self.subTest(hook=hook.name):
+                    r = subprocess.run([sys.executable, str(hook)],
+                                       input=json.dumps(payload),
+                                       capture_output=True, text=True)
+                    self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_the_enforcement_hook_still_denies_once_the_gate_passes(self):
+        """Inertness must not have been bought with silence.
+
+        enforce-punch-outs is the hook that stops an agent merging or writing its own
+        decision. A generalisation that made it inert everywhere would pass every inertness
+        test above and quietly remove the guardrail — the exact shape of this week's defects,
+        so it gets its own assertion rather than being inferred from the suite.
+
+        The command is `gh pr merge`, which is what MERGE actually matches. The first version
+        of this test used `git merge --no-ff`, asserted a denial the hook never promised, and
+        reported the correct behaviour as a regression. The pattern covers `gh pr merge`,
+        `gh api .../merge` and `git push` to a default branch — a local merge is not an
+        outward action and is deliberately not gated.
+        """
+        with tempfile.TemporaryDirectory() as d:
+            repo = self._plain_repo(d)
+            (repo / ".delivery-flow.yaml").write_text("profile: full\n")
+            payload = {"hook_event_name": "PreToolUse", "tool_name": "Bash",
+                       "cwd": str(repo),
+                       "tool_input": {"command": "gh pr merge 12 --squash"}}
+            r = subprocess.run([sys.executable, str(ENFORCE_HOOK)],
+                               input=json.dumps(payload), capture_output=True, text=True)
+            self.assertIn("deny", (r.stdout + r.stderr).lower(),
+                          f"the merge was not denied: {r.stdout!r} {r.stderr!r}")
+
+    def test_the_substrate_owns_the_definitions(self):
+        """Each hook must delegate, not re-derive.
+
+        Compared by qualified name rather than by object identity: `HookUnder` evicts
+        `descriptor` from sys.modules and re-imports it, so the hook's reference and a
+        reference taken out here are different objects for the same function. Identity is the
+        stronger assertion and it is the wrong one to use through a deliberate re-import.
+        """
+        with HookUnder(ROOT) as hook:
+            for attr, expected in (("artifact_dirs", "artifact_dirs"),
+                                   ("any_workflow_repo", "any_opted_in"),
+                                   ("config_names", "config_names")):
+                fn = getattr(hook, attr)
+                self.assertEqual(fn.__module__, "descriptor", attr)
+                self.assertEqual(fn.__name__, expected, attr)
 
 
 if __name__ == "__main__":

@@ -35,53 +35,13 @@ import descriptor as workflow_descriptor  # noqa: E402
 import layout as workflow_layout  # noqa: E402
 import registry as workflow_registry  # noqa: E402
 
-_WORKFLOWS = None
-
-
-def workflows() -> list:
-    """Every workflow descriptor the plugin defines, loaded once per process.
-
-    Read eagerly rather than behind the inert-path guard, because the guard itself now needs
-    them: which directory names count as artifacts, and which files mark a repo as opted in,
-    are descriptor fields. That is a real cost added to every tool call in every unrelated
-    session — one small YAML read — and it buys the hook the ability to serve a second
-    workflow instead of one. A broken descriptor must not take the hook down with it, so a
-    parse failure degrades to "no workflows", which is the inert answer.
-    """
-    global _WORKFLOWS
-    if _WORKFLOWS is None:
-        try:
-            _WORKFLOWS = workflow_descriptor.descriptors()
-        except Exception:
-            _WORKFLOWS = []
-    return _WORKFLOWS
-
-
-def artifact_dirs() -> list:
-    """Directory names that hold artifacts, across every workflow, longest first.
-
-    Longest first so that if one workflow's directory name is a suffix of another's, the more
-    specific wins the match — the same reason `schema_for` sorts its globs that way.
-    """
-    return sorted({d["artifact_dir"].strip("/") for d in workflows()}, key=len, reverse=True)
-
-
-def config_names() -> list:
-    """Files whose presence at a repo root opts it into some workflow."""
-    return sorted({d["config_name"] for d in workflows()})
-
-
-def any_workflow_repo(paths) -> bool:
-    """True when any of `paths` sits in a repo that opted into any workflow."""
-    names = config_names()
-    return any(workflow_layout.opted_in(p, n) for p in paths if str(p) for n in names)
-
-# Any path under delivery/<ITEM-KEY>/, in a tool input or a shell command. Checked against
-# the raw payload first: a session that writes nothing there costs one regex and exits.
-# No text-match hint here on purpose. An early exit that depends on the command spelling
-# `delivery/` is an early exit an artifact can be written behind, which is how the first
-# version of this hook let three real writes through. `main` gates on a filesystem fact
-# instead: is anything in reach a delivery-flow repo.
+# The four answers every hook needs come from the substrate, not from here. Each hook used to
+# derive its own, which is how the artifact directory ended up written into one regex in this
+# file and a different one in `enforce-punch-outs.py`.
+workflows = workflow_descriptor.active
+artifact_dirs = workflow_descriptor.artifact_dirs
+config_names = workflow_descriptor.config_names
+any_workflow_repo = workflow_descriptor.any_opted_in
 
 
 def _helpers():
