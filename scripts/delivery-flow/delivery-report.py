@@ -33,6 +33,51 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import artifact_root, is_delivery_repo, load_json, repo_root  # noqa: E402
 
+
+def _routing_kinds() -> dict:
+    """step -> its kind in the routing table, read from `flow-status.py` rather than repeated."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "flow_status_for_report", Path(__file__).resolve().parent / "flow-status.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return {step: kind for _artifact, step, kind, _opt in mod.STEPS}
+
+
+ROUTING_KINDS = _routing_kinds()
+
+# Kinds whose step is a model with a prompt, and so the only kinds a certification claim can
+# be made about. `script`, `adapter` and `build` steps are deterministic producers with no
+# prompt to certify, and `orchestrator` is not in the routing table at all.
+CERTIFIABLE_KINDS = {"node", "sdlc"}
+
+
+def certifiable(step) -> bool:
+    """Whether a `certified: false` on this step should disqualify the run.
+
+    This is the fix for a number that could never exist. `trace-step.py` records the
+    orchestrator's own turns as `step: "orchestrator"` — deliberately, because its cost is
+    real — and those records carry `certified: false`, since there is no registry entry for a
+    conductor and never will be. The run-level judgement was "every record certified", so
+    every orchestrated run was disqualified, and the certified-only rate could only ever be
+    0/0. DISCARDED-AN-3704 is the proof: a clean `triage`-profile run whose *only* uncertified
+    step was the orchestrator.
+
+    Deterministic steps fail it the same way. `report`, `verify`, `brief`, `intake` and the
+    adapters have no prompt, which is exactly why `.delivery-flow.yaml` does not list them
+    under `allow_uncertified` — and they were still recording `certified: false` and still
+    disqualifying the run.
+
+    **This is a claim a reviewer may reject**, so the report states it rather than applying it
+    silently: the certified-only rate asserts that every *node* in the chain was Stage 3
+    certified. A deterministic producer has no prompt to certify, and the orchestrator
+    produces no artifact — `flow-status.py` computes the routing, so the conductor executes a
+    decision rather than making one. If a reviewer wants the orchestrator inside the claim,
+    the fix is to certify it, not to widen the denominator; `excluded_from_certification` in
+    the report names exactly what was set aside.
+    """
+    return ROUTING_KINDS.get(step) in CERTIFIABLE_KINDS
+
 TOKEN_FIELDS = ("input_tokens", "output_tokens", "cache_creation_tokens", "cache_read_tokens")
 
 
@@ -106,6 +151,7 @@ def summarize(items: dict) -> dict:
     for key, entry in sorted(items.items()):
         tokens = {f: 0 for f in TOKEN_FIELDS}
         cost, priced, certified_all = 0.0, True, True
+        uncertified_nodes, excluded = set(), set()
         for rec in entry["records"]:
             for f in TOKEN_FIELDS:
                 tokens[f] += rec.get(f) or 0
@@ -116,7 +162,12 @@ def summarize(items: dict) -> dict:
             else:
                 cost += rec["api_equivalent_cost_usd"]
             if rec.get("certified") is False:
-                certified_all = False
+                # Only a node's certification is a claim about the chain. See `certifiable`.
+                if certifiable(rec.get("step")):
+                    certified_all = False
+                    uncertified_nodes.add(rec.get("step") or "?")
+                else:
+                    excluded.add(rec.get("step") or "?")
             step = rec.get("step") or "?"
             per_step[step]["cost"] += rec.get("api_equivalent_cost_usd") or 0
             per_step[step]["input"] += rec.get("input_tokens") or 0
@@ -153,6 +204,11 @@ def summarize(items: dict) -> dict:
                      "cost_usd": round(cost, 4), "priced": priced,
                      "certified": certified_all, "failed_edges": failed_edges,
                      "unchecked_edges": unchecked_edges,
+                     # Both named, so the certification claim is auditable rather than
+                     # asserted: which nodes broke it, and what was set aside as having no
+                     # prompt to certify in the first place.
+                     "uncertified_nodes": sorted(uncertified_nodes),
+                     "excluded_from_certification": sorted(excluded),
                      "steps": len(entry["records"])})
 
     def rate(counts, prefix=""):
@@ -188,6 +244,21 @@ def markdown(s: dict, pricing_as_of: str) -> str:
                  f"{r['input_tokens']:,} | {r['output_tokens']:,} | "
                  f"{'$' + format(r['cost_usd'], '.4f') if r['priced'] else 'unpriced'} | "
                  f"{'yes' if r['certified'] else 'no'} | {r['failed_edges']} | {r['unchecked_edges']} |")
+
+    uncert = sorted({n for r in s["items"] for n in r["uncertified_nodes"]})
+    excl = sorted({e for r in s["items"] for e in r["excluded_from_certification"]})
+    L += ["", "### What the certified-only rate claims", "",
+          "It asserts that every **node** in the chain was Stage 3 certified. A deterministic "
+          "producer has no prompt to certify, and the orchestrator produces no artifact — "
+          "`flow-status.py` computes the routing, so the conductor executes a decision rather "
+          "than making one. **This is a claim a reviewer may reject**, so what was set aside "
+          "is named rather than assumed."]
+    if excl:
+        L += ["", f"- Set aside as having no prompt to certify: `{'`, `'.join(excl)}`"]
+    if uncert:
+        L += [f"- Uncertified **nodes**, which do disqualify their run: `{'`, `'.join(uncert)}`"]
+    if not excl and not uncert:
+        L += ["", "- Nothing was set aside, and no node was uncertified."]
 
     L += ["", "## Weekly end-to-end rate", "",
           "| Week | Completed | Failed | Punched out | Excluding punch-outs | Counting them | Certified-only (Stage 4) |",
