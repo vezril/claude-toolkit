@@ -479,5 +479,92 @@ class TestEnforceUnderExternalRoot(unittest.TestCase):
                          "the hook must be inert where no delivery-flow config exists")
 
 
+class TestTheChangeDirectoryResolvesAgainstTheRepo(unittest.TestCase):
+    """`proposal.json`'s change directory lives in the delivery repo, not under the root.
+
+    This blocked a real run at `propose`. `check_artifact` called
+    `proposal_rules.problems(path, common.repo_root(path.parent))`, and `path.parent` is the
+    item directory under `artifacts.root`. The real root is inside the Obsidian vault, which
+    is itself a git repo, so `repo_root` climbed to the vault and looked for
+    `openspec/changes/<id>` there — somewhere a change directory will never be. The edge
+    reported "no change directory at openspec/changes/<id>" against a change that existed, and
+    the flow correctly refused to advance past a failed edge. A checker bug presenting as a bad
+    artifact.
+
+    It also hid a second check: `openspec-validate` only runs once the directory is found, so
+    it had never executed under an external root at all.
+
+    `policy_disagreements` already took `repo` for this exact reason; this one call site was
+    missed. The lesson is the one the rest of this file records — a default argument that
+    resolves from the artifact's own path is wrong the moment the artifacts move.
+    """
+
+    CHANGE_ID = "add-thing"
+
+    def _fixture(self):
+        x = ExternalRoot()
+        change = x.repo / "openspec" / "changes" / self.CHANGE_ID
+        (change / "specs" / "thing").mkdir(parents=True)
+        (change / "specs" / "thing" / "spec.md").write_text("## ADDED Requirement: a\n")
+        for name in ("proposal.md", "design.md", "tasks.md"):
+            (change / name).write_text("- [ ] T1 do it\n")
+        x.write("proposal.json", {
+            "item": "AN-1", "change_id": self.CHANGE_ID,
+            "change_path": f"openspec/changes/{self.CHANGE_ID}",
+            "specs_touched": [], "tasks": [
+                {"id": "T1", "description": "do it", "files": ["src/a.py"]}]})
+        return x, change
+
+    def _problems(self, path, repo):
+        """`check_artifact`'s change-dir problems, with and without the repo threaded in."""
+        import importlib.util
+
+        import common
+
+        def load(name, p):
+            spec = importlib.util.spec_from_file_location(name, p)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod
+
+        ce = load("ce", EDGE)
+        va = load("va", SCRIPTS / "validate-artifact.py")
+        tg = load("tg", SCRIPTS / "triggers.py")
+        pr = load("pr", SCRIPTS / "validate-proposal.py")
+        _ok, problems, ran = ce.check_artifact(path, common.load_schemas(), common, va, tg, pr,
+                                               repo)
+        return problems, ran
+
+    def test_the_change_directory_is_found_in_the_repo(self):
+        x, _ = self._fixture()
+        problems, ran = self._problems(x.item_dir / "proposal.json", x.repo)
+        self.assertIn("change-dir", ran)
+        missing = [p for p in problems if "no change directory" in p]
+        self.assertEqual(missing, [], f"the change dir exists in {x.repo} and was not found")
+
+    def test_without_the_repo_it_looks_in_the_wrong_place(self):
+        """Pins the old behaviour, so the fix cannot be quietly reverted.
+
+        Asserted through the default-argument path rather than by editing the source: calling
+        with `repo=None` is exactly what the buggy call site did.
+        """
+        x, _ = self._fixture()
+        problems, _ = self._problems(x.item_dir / "proposal.json", None)
+        self.assertTrue([p for p in problems if "no change directory" in p],
+                        "resolving from the artifact path should miss the change dir")
+
+    def test_openspec_validate_becomes_reachable(self):
+        """The check the bug was hiding. It cannot run until the directory is found.
+
+        `openspec` may not be installed, in which case the checker records the attempt
+        differently — so this asserts the gating problem is gone rather than that the
+        validator ran, which would make the test depend on the host.
+        """
+        x, _ = self._fixture()
+        problems, ran = self._problems(x.item_dir / "proposal.json", x.repo)
+        self.assertIn("change-dir", ran)
+        self.assertNotIn("no change directory at openspec/changes/" + self.CHANGE_ID, problems)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

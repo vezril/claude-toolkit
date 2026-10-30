@@ -4,16 +4,6 @@ The machine-checkable contract for story files. `scripts/lint-story.py` enforces
 the story-planner writes to it; the readiness gate short-circuits on violations. Prose guidance
 lives in the skill body — this file is the format law. Keep the three in sync.
 
-## Scope: this governs stories a planner wrote
-
-There is a second story format, and this file does **not** govern it. Work that came from a
-tracker is rendered from a challenged `breakdown.json` into `story-<epic>-<story>.json`, whose
-law is `schemas/story.schema.json`. `lint-story.py` is not applicable to it and must not be
-pointed at it: the rules below require a task↔AC breakdown, Dev Notes and `FR-{n}`/`CAP-{n}`
-traceability, none of which a tracker item carries — a renderer forbidden from inventing a
-criterion cannot invent those either. See "Where stories come from" in
-`skills/sdlc-orchestration/SKILL.md` for which path applies.
-
 ## Required structure
 
 ```markdown

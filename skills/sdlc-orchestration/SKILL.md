@@ -29,38 +29,9 @@ idea → product brief → PRD/SRS → ┌─ OpenSpec change ──────
 
 Each stage consumes the prior artifact and emits a new, versioned one. The PRD tells the architect which constraints matter; the architecture tells the dev which patterns to follow; the story gives focused, complete context for one unit of implementation. Keep artifacts as files in the repo.
 
-## Where stories come from (two entry points)
+## Where stories come from
 
-The story set has two possible origins, and **which one applies is decided by whether a `breakdown.json` exists — not by preference**.
-
-1. **No `breakdown.json` → story-planner.** This is the default and covers everything above: a feature that entered through Analysis/Planning, an idea, a repo doc, a conversation. The story-planner decomposes PRD + architecture into epics and INVEST stories with testable acceptance criteria. It is a node: it exercises judgement, so it is the thing that gets certified.
-2. **A challenged `breakdown.json` → render it.** A [[delivery-flow]] run that starts from a tracker item ends holding `breakdown.json` — epics, stories and acceptance criteria written by a certified node and then attacked by `challenge-breakdown`. `scripts/delivery-flow/render-stories.py` turns that into one `story-<epic>-<story>.json` per story, carrying every field across unchanged.
-
-### Running the tracker handoff
-
-```bash
-# 1. Render the story set. Refuses on an unchallenged or REFUTED breakdown.
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/delivery-flow/render-stories.py" AN-1234 \
-        --repo . [--change openspec/changes/<id>]
-
-# 2. Layer zero: schema + the consuming agent's input contract, per story.
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/delivery-flow/validate-artifact.py" \
-        <artifacts>/AN-1234/story-E1-S1.json --consumer test-writer
-
-# 3. Hand one story to the dev pair, test-writer first. Pass the *path*, not the contents —
-#    both agents are told to open `sources[]` themselves.
-```
-
-**Layer zero is different on this path, not absent.** A markdown story set is gated by `scripts/lint-story.py`; a rendered set is gated by `schemas/story.schema.json` (via `validate-artifact.py` and the edge hook, which governs `story-*.json`) plus the renderer's own `invented()` / `missing_from()` fidelity checks and its refusal to run before `challenge-breakdown`. `lint-story.py` does not apply here and should not be forced to: it requires a task↔AC breakdown, Dev Notes and `FR-{n}`/`CAP-{n}` traceability, none of which a tracker item has — satisfying it would mean **inventing** the three things the renderer exists not to invent.
-
-Two consequences to carry into implementation: there is **no dependency order** (`ordering.determined: false` — you sequence the stories), and a `WEAKENED` challenge verdict means the plan stands with recorded findings that are meant to be fixed in place, so read `challenge-breakdown.json` before building.
-
-**The rendered path is for tracker items only.** Two mistakes it exists to prevent:
-
-- **Do not feed a breakdown to story-planner.** That puts an uncertified decomposition downstream of a certified one, which voids the chain's end-to-end number and creates a second place the plan can drift from the ticket. The renderer is an **edge, not a node**: no judgement, nothing to certify, and it cannot invent a story the challenge never saw (`invented()` enforces that rather than a reviewer checking it).
-- **Do not reach for the renderer when there is no breakdown.** There is nothing to render, and story-planner is not a fallback for it — it is the entry point for that work.
-
-The renderer **refuses to run on an unchallenged or refuted breakdown**. The challenge is the control for a dropped requirement, and that is the `breakdown` node's known residual defect; rendering before the challenge would carry the drop straight into the build. Two gaps it states rather than fills: stories carry a `sources` array pointing at the artifacts they came from instead of summarised Dev Notes, and they sit in breakdown order with `ordering.determined: false`, because dependency ordering is a judgement that belongs to a node or a human.
+**The story-planner, always.** A tracker item that came through [[delivery-flow]] arrives as an OpenSpec change — `proposal.json` plus the change's `tasks.md` — and *that* is the spec the dev pair builds from, because `propose` is what reconciles the challenge findings. There is no second path and no rendered story set; a breakdown is planning input, never the story set itself.
 
 ## The maker-checker pattern (per phase)
 
@@ -154,6 +125,6 @@ The human's role shifts from gatekeeper to **exception handler + merge authority
 
 - [[requirements-engineering]] · [[software-architecture]] · [[spec-driven-development]] · [[test-strategy]] — the phase specialists.
 - [[agentic-workflows]] — how to wire the agents together at runtime (Anthropic patterns, Claude Agent SDK, LangGraph).
-- [[delivery-flow]] — the tracker-item workflow that feeds this one. Its `breakdown.json` is the story set; see "Where stories come from" above for which entry point applies.
+- [[delivery-flow]] — the tracker-item workflow that feeds this one. It hands over an OpenSpec change, not a story set; see "Where stories come from" above.
 - [[tdd]] · [[clean-code]] · [[software-design]] · [[domain-driven-design]] · [[event-storming]] · [[secure-coding]] · [[devops]] · [[github-actions]] — invoked within phases.
 - Sources: the BMAD-method workflow & docs (MIT); the multi-agent SDLC series (Aravinda Kumar); adapted with execution-grounded review.

@@ -29,6 +29,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 HELPERS = Path(__file__).resolve().parents[1] / "scripts" / "delivery-flow"
+SUBSTRATE = Path(__file__).resolve().parents[1] / "scripts" / "workflow"
+sys.path.insert(0, str(SUBSTRATE))
+import descriptor as workflow_descriptor  # noqa: E402
+import layout as workflow_layout  # noqa: E402
+import registry as workflow_registry  # noqa: E402
+
+# The four answers every hook needs come from the substrate, not from here. Each hook used to
+# derive its own, which is how the artifact directory ended up written into one regex in this
+# file and a different one in `enforce-punch-outs.py`.
+workflows = workflow_descriptor.active
+artifact_dirs = workflow_descriptor.artifact_dirs
+config_names = workflow_descriptor.config_names
+any_workflow_repo = workflow_descriptor.any_opted_in
 
 # Any path under delivery/<ITEM-KEY>/, in a tool input or a shell command. Checked against
 # the raw payload first: a session that writes nothing there costs one regex and exits.
@@ -58,7 +71,22 @@ def _helpers():
 
 
 # Paths inside a Bash command line; quotes and redirects are stripped by the split.
-BASH_PATH_RE = re.compile(r"[A-Za-z0-9._/-]*delivery/[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]+")
+def bash_path_re():
+    """Artifact paths in a Bash command, for every workflow's artifact directory.
+
+    Built from the descriptors rather than written out. The directory names are escaped and
+    tried longest-first: an unescaped metacharacter would silently widen the match, and a
+    name that is a suffix of another must not win it. A detection regex that quietly stops
+    matching is this hook's failure mode four times over.
+
+    None when no workflow is defined, which the caller reads as "nothing to scan for".
+    """
+    dirs = artifact_dirs()
+    if not dirs:
+        return None
+    alt = "|".join(re.escape(d) for d in dirs)
+    return re.compile(
+        rf"[A-Za-z0-9._/-]*(?:{alt})/[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]+")
 
 
 # `cd <dir>` anywhere in the command. The payload's `cwd` is the *session's* directory, not the
@@ -82,12 +110,24 @@ def _cd_targets(command: str) -> list:
 
 
 def _registered_bases() -> list:
-    """Opted-in repos, as bases a relative artifact fragment may belong to."""
-    try:
-        common = _helpers()[0]
-        return list(common.known_repos())
-    except Exception:
-        return []
+    """Opted-in repos across every workflow, as bases a relative fragment may belong to.
+
+    Read through the substrate rather than one workflow's `common`, so a repo registered
+    against a second workflow is a candidate base too. Each workflow's registry is consulted
+    with *its own* membership predicate: a repo listed in one registry but holding only the
+    other's config has not opted into the one doing the asking.
+    """
+    out = []
+    for d in workflows():
+        try:
+            path = workflow_registry.path_for(d["workflow"])
+            member = lambda p, name=d["config_name"]: workflow_layout.opted_in(p, name)
+            for repo in workflow_registry.known(path, member):
+                if repo not in out:
+                    out.append(repo)
+        except Exception:
+            continue
+    return out
 
 
 # `<ITEM>/<file>` immediately after a root, or after an item directory's own name.
@@ -190,15 +230,19 @@ def written_paths(payload: dict) -> list:
         command = ti.get("command", "")
         bases += _cd_targets(command)
         out += rooted_paths(command, artifact_roots())
-        for token in BASH_PATH_RE.findall(command):
+        pattern = bash_path_re()
+        for token in (pattern.findall(command) if pattern else []):
             out.append(Path(token))
             # The leading character class swallows whatever precedes `delivery/` — in
             # `"$R/delivery/K/f.json"` it captures `R/delivery/K/f.json`, because `$` stops it
             # but `R` and `/` do not. Joining that to a base yields `<base>/R/delivery/...`,
             # which never exists. So also consider the fragment from `delivery/` onward.
-            cut = token.find("delivery/")
-            if cut > 0:
-                out.append(Path(token[cut:]))
+            # Tried for every workflow's directory: the token was matched by an
+            # alternation and this code cannot tell which branch won.
+            for d in artifact_dirs():
+                cut = token.find(d + "/")
+                if cut > 0:
+                    out.append(Path(token[cut:]))
 
     resolved = []
     for p in out:
@@ -443,7 +487,7 @@ def changed_artifacts(payload: dict, common, schemas: dict, governed: set = froz
             repo = common.repo_root(base)
         except OSError:
             continue
-        if repo not in repos and common.is_delivery_repo(repo):
+        if repo not in repos and any_workflow_repo([repo]):
             repos.append(repo)
 
     for repo in repos:
@@ -532,13 +576,13 @@ def main() -> int:
     if payload.get("tool_name") == "Bash":
         gate += _cd_targets((payload.get("tool_input") or {}).get("command", ""))
     # A configured `artifacts.root` sits outside its repo on purpose, so an artifact under one
-    # has no `.delivery-flow.yaml` above it and `is_delivery_repo` says no all the way up. The
+    # has no workflow config above it and no descriptor claims it all the way up. The
     # repo that opted in is the one that named the root, so a path under a known root is in
     # reach by that repo's choice. Still gated on the registry: a root nobody registered
     # contributes nothing, which is what keeps an unconfigured repo inert.
     roots = artifact_roots()
     under_root = any(any(_is_within(p, root) for root in roots) for p in paths)
-    if not under_root and not any(common.is_delivery_repo(c) for c in gate if str(c)):
+    if not under_root and not any_workflow_repo(gate):
         return 0
 
     # Union with what actually changed on disk, so a write the command text hid still gets
@@ -565,7 +609,7 @@ def main() -> int:
         item, filename, repo = identify(path, common, payload)
         if not item:
             continue
-        if not common.is_delivery_repo(repo):
+        if not any_workflow_repo([repo]):
             continue
         if not path.exists():
             continue  # a command that mentioned the path without writing it
