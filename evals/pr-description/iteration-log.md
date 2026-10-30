@@ -124,3 +124,40 @@ and keeps its other numbers on the 11-case suite. v6 gets the door right on the 
 on case-11 for Sonnet; Haiku might call case-11 two-way ("it's a migration, revert it"). The extra
 section may cost a point or two of **contract** (a model treating the Blast radius line as a place
 for a sign-off) but shouldn't touch coverage or fidelity.
+
+**First attempt, discarded:** the first v5-suite2 / v6 / v6-s2 chain ran alongside another suite and
+hit my 5-hour usage limit after one or two cases per run. Those files are kept as
+`*.DISCARDED-usage-limit-partial.json` and not scored. Everything below is the re-run, done one
+suite at a time.
+
+**Result:**
+
+| Run | Model | contract | coverage | fidelity | risk | Total |
+|-----|-------|----------|----------|----------|------|-------|
+| v5 on the 11-case suite | Haiku | 32/33 | 33/33 | 33/33 | 0/33 | 98/132 (74.2%) |
+| v5 on the 11-case suite | Sonnet | 33/33 | 33/33 | 33/33 | 0/33 | 99/132 (75.0%) |
+| v6 | Haiku | 29/33 | 33/33 | 33/33 | 33/33 | 128/132 (97.0%) |
+| v6 | Sonnet | 33/33 | 33/33 | 33/33 | 33/33 | 132/132 (100%) |
+| v6 (second sample, s2) | Haiku | 31/33 | 33/33 | 32/33 | 33/33 | 129/132 (97.7%) |
+| v6 (second sample, s2) | Sonnet | 33/33 | 33/33 | 33/33 | 33/33 | 132/132 (100%) |
+
+Evidence: `run_v5_all.suite2.json`, `run_v6_all.json`, `run_v6_all.s2.json`.
+
+**Reasoning:** the v5 half of the prediction held exactly: 0 on risk, everything else where it was
+(Haiku's one contract miss is the familiar two-sentence What). On v6 I was wrong about Haiku and the
+one-way door: it called case-11 one-way in all six runs, as did Sonnet, and every other case came out
+two-way. The contract cost I half-expected showed up on Haiku, in a different shape than I guessed:
+in 3 of 33 runs of the first sample it dropped the `## Merge danger` heading and put the Door and
+Blast radius lines at the bottom of `## Changes`, which then fails the bullets-only rule. It didn't
+happen once in the second sample, so it's a sometimes habit, not every run. Haiku's other contract
+misses are the two-sentence What that v5 also has.
+
+The one fidelity miss is worth reading. On case-01 Haiku's Blast radius said retries now wait "at
+most `MAX_DELAY * 1.35`". That's correct arithmetic: the diff caps the delay at `MAX_DELAY` and raises
+`JITTER` to 0.35. But 1.35 isn't in the diff, and the rule is "copy numbers exactly", so it counts
+as a miss. The new section gives the model a reason to compute consequences, and a computed number
+is one step from an invented one, so I'm leaving the check strict.
+
+Certified: v6 on **Haiku**, 257/264 (97.3%) over two samples. Sonnet is 264/264. The known residual
+to watch is Haiku occasionally folding Merge danger into Changes. If it shows up in real PRs, the fix
+I'd try first is one sentence saying Merge danger is its own heading after Changes.

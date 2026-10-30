@@ -1,8 +1,8 @@
-# Load-bearing map: pr-description (v5)
+# Load-bearing map: pr-description (v6)
 
-This file is documentation, not part of the prompt. The certified prompt is `skills/pr-description/SKILL.md`, byte-identical to `prompts/prompt_v5.md`, and that's what the suite runs.
+This file is documentation, not part of the prompt. The certified prompt is `skills/pr-description/SKILL.md`, byte-identical to `prompts/prompt_v6.md`, and that's what the suite runs.
 
-Every instruction maps to the criterion it serves and the evidence that proves it. Criteria: **contract** (the reply is exactly the three-section description), **coverage** (every changed file and key change is there), **fidelity** (nothing invented).
+Every instruction maps to the criterion it serves and the evidence that proves it. Criteria: **contract** (the reply is exactly the four-section description), **coverage** (every changed file and key change is there), **fidelity** (nothing invented), **risk** (the door is called right and the blast radius is named).
 
 | # | Instruction | Serves | Proven by |
 |---|-------------|--------|-----------|
@@ -21,9 +21,12 @@ Every instruction maps to the criterion it serves and the evidence that proves i
 | 13 | Each bullet names its file(s) and what changed; every changed file appears | coverage | v2 → v3: Haiku coverage 20/30 → 30/30, Sonnet 27/30 → 30/30 |
 | 14 | A new file says what it contains | coverage | case-07 (new service-docs spec: OpenAPI / Swagger), case-04 |
 | 15 | Mention files deleted or renamed | coverage | case-01 (deleted file), case-07 (five renames) |
-| 16 | Reply is only the description: first line `## What`, no preamble, notes, sign-off or fence; Changes only bullets | contract | v1 → v2: Sonnet contract 25/30 → 30/30 |
+| 16 | Reply is only the description: first line `## What`, last line the Blast radius line, no preamble, notes, sign-off or fence; Changes only bullets | contract | v1 → v2: Sonnet contract 25/30 → 30/30; v6 Haiku contract misses when the heading is dropped |
 | 17 | Name files the way the diff headers do; a class name isn't a file | fidelity | case-08 (`PostgresFlyerLedger.scala`, still 1 of 3 on Haiku in v5) |
 | 18 | Copy versions, numbers and identifiers exactly | fidelity | case-07 v1 ("OpenAPI 3" became "3.0"), case-10 versions |
 | 19 | Don't guess what a release includes; no issue numbers, tickets or results the diff doesn't show | fidelity | case-10 v1–v3 ("typically include … security updates") |
+| 20 | `## Merge danger`: **Door:** one-way or two-way, with one sentence why, from the diff | risk | v5 → v6 on the 11-case suite: risk 0/33 → 33/33 on both models |
+| 21 | **Blast radius:** who or what is affected if the change is wrong, named from the diff | risk | same; every case needs one radius keyword from its expected file |
+| 22 | One-way only if a revert wouldn't undo it (dropped data, removed public contract, published release); everything else two-way | risk | case-11-drop-notes one-way 12/12; the other ten cases two-way 120/120 |
 
-18 of 19 instructions are load-bearing (94.7%). Instruction 12 is the honest exception: nothing in the suite measures grouping, and I'd rather report that than invent a mapping.
+21 of 22 instructions are load-bearing (95.5%). Instruction 12 is the honest exception: nothing in the suite measures grouping, and I'd rather report that than invent a mapping.
