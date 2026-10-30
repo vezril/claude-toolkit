@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT / "scripts" / "delivery-flow"))
 import common  # noqa: E402
 import pricing  # noqa: E402
 import registry  # noqa: E402
+import layout  # noqa: E402
 import schema  # noqa: E402
 
 
@@ -108,6 +109,67 @@ class TestRegistryShims(unittest.TestCase):
     def test_the_workflow_name_drives_the_registry_location(self):
         self.assertEqual(common.WORKFLOW_NAME, "delivery-flow")
         self.assertEqual(registry.env_var(common.WORKFLOW_NAME), "DELIVERY_FLOW_REPOS")
+
+
+class TestLayout(unittest.TestCase):
+    """`scripts/workflow/layout.py`, moved in task 1.1. What section 2 is blocked on."""
+
+    def test_repo_root_is_the_substrate_function(self):
+        self.assertIs(common.repo_root, layout.repo_root)
+
+    def test_is_delivery_repo_delegates_with_this_workflows_config_name(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d)
+            (repo / ".git").mkdir()
+            self.assertFalse(common.is_delivery_repo(repo))
+            (repo / common.CONFIG_NAME).write_text("\n")
+            self.assertTrue(common.is_delivery_repo(repo))
+            self.assertEqual(common.is_delivery_repo(repo),
+                             layout.opted_in(repo, common.CONFIG_NAME))
+
+    def test_a_second_workflows_config_does_not_opt_a_repo_in(self):
+        """The isolation property, at the layout level."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d)
+            (repo / ".git").mkdir()
+            (repo / ".other-workflow.yaml").write_text("\n")
+            self.assertFalse(layout.opted_in(repo, common.CONFIG_NAME))
+            self.assertTrue(layout.opted_in(repo, ".other-workflow.yaml"))
+
+    def test_parse_artifact_path_matches_the_default_layout(self):
+        self.assertEqual(common.parse_artifact_path("x/delivery/AN-1/triage.json"),
+                         ("AN-1", "triage.json"))
+
+    def test_parse_artifact_path_with_a_root_matches_that_root(self):
+        self.assertEqual(
+            common.parse_artifact_path("/vault/_runs/AN-1/triage.json", Path("/vault/_runs")),
+            ("AN-1", "triage.json"))
+
+    def test_a_directory_merely_named_like_the_root_does_not_match(self):
+        """Why passing `root` matters: the fallback would claim this."""
+        self.assertEqual(
+            common.parse_artifact_path("/elsewhere/delivery/AN-1/t.json", Path("/vault/_runs")),
+            (None, None))
+
+    def test_the_artifact_dir_is_escaped_in_the_pattern(self):
+        """A workflow whose artifact dir contains regex metacharacters must still match."""
+        self.assertEqual(layout.parse_artifact_path("a/my.dir/AN-1/t.json", "my.dir"),
+                         ("AN-1", "t.json"))
+        self.assertEqual(layout.parse_artifact_path("a/myXdir/AN-1/t.json", "my.dir"),
+                         (None, None))
+
+    def test_artifact_root_defaults_inside_the_repo(self):
+        self.assertEqual(common.artifact_root(Path("/r"), {}), Path("/r/delivery"))
+
+    def test_an_absolute_configured_root_leaves_the_repo(self):
+        cfg = {"artifacts": {"root": "/vault/_runs"}}
+        self.assertEqual(common.artifact_root(Path("/r"), cfg), Path("/vault/_runs"))
+
+    def test_a_relative_configured_root_stays_inside(self):
+        cfg = {"artifacts": {"root": "runs"}}
+        self.assertEqual(common.artifact_root(Path("/r"), cfg), Path("/r/runs"))
 
 
 class TestTheSubstrateStaysWorkflowAgnostic(unittest.TestCase):

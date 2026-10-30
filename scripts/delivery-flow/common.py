@@ -15,6 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "workflow"))
 import pricing as _pricing  # noqa: E402
 import registry as _registry  # noqa: E402
+import layout as _layout  # noqa: E402
 import schema as _schema  # noqa: E402
 import trace as _trace  # noqa: E402
 
@@ -28,20 +29,16 @@ SCHEMA_DIR = PLUGIN_ROOT / "schemas"
 # repo synced between machines, so the trail is still versioned and still aggregates. The
 # pattern is built per call because the root is per repo.
 ARTIFACT_DIR = "delivery"
-ARTIFACT_RE = re.compile(r"(?:^|/)delivery/([A-Za-z0-9][A-Za-z0-9._-]*)/([A-Za-z0-9][A-Za-z0-9._-]*)$")
 
-
-def repo_root(start: Path) -> Path:
-    start = start.resolve()
-    for p in [start, *start.parents]:
-        if (p / ".git").exists():
-            return p
-    return start
+# Repo detection and artifact layout live in the substrate (`scripts/workflow/layout.py`).
+# What stays here is delivery-flow's two answers: the opt-in file name and the artifact
+# directory. Re-exports below, so no existing call site changes (task 1.3).
+repo_root = _layout.repo_root
 
 
 def is_delivery_repo(path: Path) -> bool:
     """A delivery-flow repo has the config at its root. Everything is inert otherwise."""
-    return (repo_root(path) / CONFIG_NAME).exists()
+    return _layout.opted_in(path, CONFIG_NAME)
 
 
 def sha256(path: Path) -> str:
@@ -49,42 +46,22 @@ def sha256(path: Path) -> str:
 
 
 def parse_artifact_path(path, root: Path = None):
-    """(item_key, filename) for a path inside the artifact root, else (None, None).
-
-    With no `root` this matches the default `delivery/<ITEM>/<file>` anywhere in the path, which
-    is what the hooks relied on before the root was configurable. With a `root` it matches that
-    directory specifically, so a configured vault root is recognised and an unrelated directory
-    that merely happens to be called `delivery` is not.
-    """
-    text = str(path).replace(os.sep, "/")
-    if root is not None:
-        base = str(Path(root)).replace(os.sep, "/").rstrip("/")
-        if text.startswith(base + "/"):
-            rest = text[len(base) + 1:].split("/")
-            if len(rest) == 2 and rest[0] and rest[1]:
-                return rest[0], rest[1]
-        return (None, None)
-    m = ARTIFACT_RE.search(text)
-    return (m.group(1), m.group(2)) if m else (None, None)
+    """(item_key, filename) for a path inside the artifact root, else (None, None)."""
+    return _layout.parse_artifact_path(path, ARTIFACT_DIR, root)
 
 
 def artifact_root(repo: Path, cfg: dict = None) -> Path:
-    """Where this repo's run artifacts live.
+    """Where this repo's run artifacts live. See `scripts/workflow/layout.py`.
 
-    `artifacts.root` in `.delivery-flow.yaml`: absolute to put them outside the repo (the vault),
-    relative to keep them inside it. Defaults to `<repo>/delivery`, so a repo that says nothing
-    behaves exactly as before — the submission under review must not move.
+    Loads the config when the caller has none — the substrate cannot, because which file to
+    read and how to parse it are this workflow's business.
     """
     if cfg is None:
         try:
             cfg = load_config(repo)
         except OSError:
             cfg = {}
-    configured = ((cfg or {}).get("artifacts") or {}).get("root")
-    if not configured:
-        return repo / ARTIFACT_DIR
-    path = Path(str(configured)).expanduser()
-    return path if path.is_absolute() else repo / path
+    return _layout.artifact_root(repo, ARTIFACT_DIR, cfg)
 
 
 def item_dir(repo: Path, item: str, cfg: dict = None) -> Path:
