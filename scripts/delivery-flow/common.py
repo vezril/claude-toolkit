@@ -15,6 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "workflow"))
 import pricing as _pricing  # noqa: E402
 import registry as _registry  # noqa: E402
+import schema as _schema  # noqa: E402
 import trace as _trace  # noqa: E402
 
 CONFIG_NAME = ".delivery-flow.yaml"
@@ -90,66 +91,23 @@ def item_dir(repo: Path, item: str, cfg: dict = None) -> Path:
     return artifact_root(repo, cfg) / item
 
 
-def load_schemas(schema_dir: Path = None) -> dict:
-    """Map artifact file name -> schema.
+# Schema loading and resolution live in the substrate (`scripts/workflow/schema.py`).
+# Re-exports, so no existing call site changes (task 1.3). `SCHEMA_DIR` above is the one
+# workflow-specific part — which contracts apply — and the substrate's `load` requires it
+# rather than defaulting, so a second workflow cannot be validated against these.
+for_name = _schema.for_name
+count_expr = _schema.count_expr
+expected_counts = _schema.expected_counts
 
-    Most artifacts are one fixed file name. A sentinel is not — there is one per artifact —
-    so `*.sentinel.json` declares a glob as its `artifact` and `schema_for` resolves it.
-    """
-    schema_dir = schema_dir or SCHEMA_DIR
-    out = {}
-    for p in sorted(schema_dir.glob("*.schema.json")):
-        schema = json.loads(p.read_text())
-        schema["_path"] = str(p)
-        out[schema["artifact"]] = schema
-    return out
+
+def load_schemas(schema_dir: Path = None) -> dict:
+    """delivery-flow's artifact schemas. Parser: `scripts/workflow/schema.py`."""
+    return _schema.load(schema_dir or SCHEMA_DIR)
 
 
 def schema_for(filename: str, schemas: dict):
-    """The schema for an artifact file name, by exact name then by glob.
-
-    The glob fallback is what makes a *set* of artifacts checkable rather than only fixed file
-    names. Globs are matched longest-first so a specific pattern always beats a broad one: an
-    artifact and its sentinel are both `<name>.json`-shaped, and the sentinel must not resolve
-    to the artifact's schema.
-    """
-    if filename in schemas:
-        return schemas[filename]
-    for key in sorted((k for k in schemas if "*" in k), key=len, reverse=True):
-        if fnmatch.fnmatch(filename, key):
-            return schemas[key]
-    return None
-
-
-def count_expr(doc, expr: str) -> int:
-    """Evaluate a count expression: 'epics[]' or 'epics[].stories[]'.
-
-    Each '<key>[]' segment descends into a list; the result is the number of items at
-    the deepest level, summed across the branches above it.
-    """
-    parts = [p for p in expr.split(".") if p]
-    nodes = [doc]
-    total = 0
-    for i, part in enumerate(parts):
-        if not part.endswith("[]"):
-            raise ValueError(f"count expression segment must end with []: {part!r}")
-        key = part[:-2]
-        nxt = []
-        for node in nodes:
-            if not isinstance(node, dict):
-                continue
-            value = node.get(key)
-            if isinstance(value, list):
-                if i == len(parts) - 1:
-                    total += len(value)
-                else:
-                    nxt.extend(value)
-        nodes = nxt
-    return total
-
-
-def expected_counts(doc, schema: dict) -> dict:
-    return {name: count_expr(doc, expr) for name, expr in (schema.get("counts") or {}).items()}
+    """The schema for an artifact file name, by exact name then by glob."""
+    return _schema.for_name(filename, schemas)
 
 
 def load_json(path: Path):

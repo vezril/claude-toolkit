@@ -27,6 +27,8 @@ sys.path.insert(0, str(ROOT / "scripts" / "workflow"))
 sys.path.insert(0, str(ROOT / "scripts" / "delivery-flow"))
 import common  # noqa: E402
 import pricing  # noqa: E402
+import registry  # noqa: E402
+import schema  # noqa: E402
 
 
 class TestPricing(unittest.TestCase):
@@ -62,6 +64,50 @@ class TestPricing(unittest.TestCase):
     def test_an_unknown_model_is_unpriced_rather_than_free(self):
         """A model the table does not list must not silently cost zero."""
         self.assertIsNone(common.price_for("some-model-nobody-listed", common.load_pricing()))
+
+
+class TestSchema(unittest.TestCase):
+    """`scripts/workflow/schema.py`, moved in task 1.1."""
+
+    def test_the_shims_are_the_substrate_functions(self):
+        for name in ("count_expr", "expected_counts"):
+            with self.subTest(name=name):
+                self.assertIs(getattr(common, name), getattr(schema, name))
+
+    def test_schema_for_delegates(self):
+        loaded = common.load_schemas()
+        self.assertIs(common.schema_for("breakdown.json", loaded),
+                      schema.for_name("breakdown.json", loaded))
+
+    def test_load_schemas_delegates_to_the_substrate(self):
+        self.assertEqual(sorted(common.load_schemas()), sorted(schema.load(common.SCHEMA_DIR)))
+
+    def test_the_substrate_refuses_to_guess_a_schema_directory(self):
+        with self.assertRaises(TypeError):
+            schema.load()
+
+    def test_a_sentinel_resolves_to_the_sentinel_schema_not_its_artifact(self):
+        """Longest-glob-first, which is load-bearing: both names are `<x>.json`-shaped."""
+        loaded = common.load_schemas()
+        self.assertEqual(
+            common.schema_for("breakdown.json.sentinel.json", loaded)["artifact"],
+            "*.sentinel.json")
+
+    def test_count_expr_sums_across_branches(self):
+        doc = {"epics": [{"stories": [1, 2]}, {"stories": [3]}]}
+        self.assertEqual(common.count_expr(doc, "epics[].stories[]"), 3)
+
+    def test_count_expr_rejects_a_segment_without_brackets(self):
+        with self.assertRaises(ValueError):
+            common.count_expr({}, "epics")
+
+
+class TestRegistryShims(unittest.TestCase):
+    """`scripts/workflow/registry.py`, moved in task 1.1."""
+
+    def test_the_workflow_name_drives_the_registry_location(self):
+        self.assertEqual(common.WORKFLOW_NAME, "delivery-flow")
+        self.assertEqual(registry.env_var(common.WORKFLOW_NAME), "DELIVERY_FLOW_REPOS")
 
 
 class TestTheSubstrateStaysWorkflowAgnostic(unittest.TestCase):
