@@ -188,6 +188,82 @@ class TestReport(unittest.TestCase):
         self.assertEqual(week["all"]["completed"], 1)
         self.assertEqual(week["certified_only"]["completed"], 0)
 
+    def test_the_orchestrators_own_turns_do_not_disqualify_the_run(self):
+        """The reason the Stage 4 number could never exist.
+
+        `trace-step.py` records the conductor's turns as `step: "orchestrator"` with
+        `certified: false`, because there is no registry entry for an orchestrator. The
+        run-level judgement was "every record certified", so every orchestrated run — which
+        is every real run — was disqualified and the certified-only rate could only be 0/0.
+        DISCARDED-AN-3704 was exactly this: a clean triage-profile run whose only uncertified
+        step was the orchestrator.
+        """
+        r = Repo(); r.current_step("triage")
+        (r.item_dir / "trace.jsonl").write_text("\n".join([
+            json.dumps({"ts": "2026-10-20T10:00:00+00:00", "item": r.item, "step": "triage",
+                        "model": "claude-sonnet-5", "input_tokens": 1, "output_tokens": 1,
+                        "api_equivalent_cost_usd": 0.0, "certified": True}),
+            json.dumps({"ts": "2026-10-20T10:01:00+00:00", "item": r.item,
+                        "step": "orchestrator", "model": "claude-opus-5",
+                        "input_tokens": 99, "output_tokens": 99,
+                        "api_equivalent_cost_usd": 0.0, "certified": False}),
+        ]) + "\n")
+        r.outcome("completed")
+        row = r.report()["items"][0]
+        self.assertTrue(row["certified"], "the orchestrator disqualified a certified chain")
+        self.assertEqual(["orchestrator"], row["excluded_from_certification"])
+        self.assertEqual([], row["uncertified_nodes"])
+
+    def test_a_deterministic_step_does_not_disqualify_the_run(self):
+        """`report` is a script. A producer with no prompt has nothing to certify, which is
+        why `.delivery-flow.yaml` never lists these under `allow_uncertified`."""
+        r = Repo(); r.current_step("report")
+        (r.item_dir / "trace.jsonl").write_text(json.dumps({
+            "ts": "2026-10-20T10:00:00+00:00", "item": r.item, "step": "report",
+            "model": "claude-sonnet-5", "input_tokens": 1, "output_tokens": 1,
+            "api_equivalent_cost_usd": 0.0, "certified": False}) + "\n")
+        r.outcome("completed")
+        row = r.report()["items"][0]
+        self.assertTrue(row["certified"])
+        self.assertEqual(["report"], row["excluded_from_certification"])
+
+    def test_an_uncertified_node_still_disqualifies_the_run(self):
+        """The exemption must not become a blanket. `propose` is a node, and an uncertified
+        node is the one thing that makes the end-to-end number meaningless."""
+        r = Repo(); r.current_step("propose")
+        (r.item_dir / "trace.jsonl").write_text(json.dumps({
+            "ts": "2026-10-20T10:00:00+00:00", "item": r.item, "step": "propose",
+            "model": "claude-sonnet-5", "input_tokens": 1, "output_tokens": 1,
+            "api_equivalent_cost_usd": 0.0, "certified": False}) + "\n")
+        r.outcome("completed")
+        row = r.report()["items"][0]
+        self.assertFalse(row["certified"])
+        self.assertEqual(["propose"], row["uncertified_nodes"])
+        week = list(r.report()["weekly"].values())[0]
+        self.assertEqual(0, week["certified_only"]["completed"])
+
+    def test_a_fully_certified_chain_reaches_the_stage4_rate(self):
+        """The number the whole exercise is for: it must be reachable at all."""
+        r = Repo(); r.current_step("triage")
+        (r.item_dir / "trace.jsonl").write_text("\n".join([
+            json.dumps({"ts": "2026-10-20T10:00:00+00:00", "item": r.item, "step": step,
+                        "model": "claude-sonnet-5", "input_tokens": 1, "output_tokens": 1,
+                        "api_equivalent_cost_usd": 0.0, "certified": True})
+            for step in ("triage", "breakdown", "challenge-breakdown")
+        ] + [
+            json.dumps({"ts": "2026-10-20T10:05:00+00:00", "item": r.item,
+                        "step": "orchestrator", "model": "claude-opus-5",
+                        "input_tokens": 9, "output_tokens": 9,
+                        "api_equivalent_cost_usd": 0.0, "certified": False}),
+            json.dumps({"ts": "2026-10-20T10:06:00+00:00", "item": r.item, "step": "report",
+                        "model": "claude-sonnet-5", "input_tokens": 1, "output_tokens": 1,
+                        "api_equivalent_cost_usd": 0.0, "certified": False}),
+        ]) + "\n")
+        r.outcome("completed")
+        week = list(r.report()["weekly"].values())[0]
+        self.assertEqual(1, week["certified_only"]["completed"])
+        self.assertEqual(100.0, week["certified_only"]["rate_excluding_punch_outs"])
+
     def test_an_artifact_root_inside_another_git_repo_is_read(self):
         """The shape the real data has, and the report could not read it.
 
