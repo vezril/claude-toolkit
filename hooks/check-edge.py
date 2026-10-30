@@ -264,8 +264,16 @@ def unschemad(flow_status, common, schemas: dict) -> set:
             if a not in TERMINAL_PROSE and common.schema_for(a, schemas) is None}
 
 
-def check_artifact(path: Path, schemas: dict, common, validator, trigger_rules, proposal_rules) -> tuple:
-    """Return (ok, problems, checks_run) for one artifact."""
+def check_artifact(path: Path, schemas: dict, common, validator, trigger_rules, proposal_rules,
+                   repo: Path = None) -> tuple:
+    """Return (ok, problems, checks_run) for one artifact.
+
+    `repo` is the **code** repository, handed in by `main` from `identify()`. It is not
+    derivable from `path`: with `artifacts.root` pointing outside the project, the artifact
+    sits in the vault and walking up from it finds the vault — or nothing — rather than the
+    repo whose `openspec/changes/` the proposal is a contract about. Left as None only for
+    callers with no repo to offer, which then falls back to the old inference.
+    """
     problems, ran = [], []
     schema = common.schema_for(path.name, schemas)
     if schema is None:
@@ -312,7 +320,10 @@ def check_artifact(path: Path, schemas: dict, common, validator, trigger_rules, 
         # interesting failure is the two disagreeing. Schema conformance cannot see that.
         if path.name == "proposal.json":
             ran.append("change-dir")
-            found, info = proposal_rules.problems(path, common.repo_root(path.parent))
+            # The code repo, not the artifact's own directory. Under an external
+            # `artifacts.root` those are different filesystems, and inferring from the
+            # artifact pointed the change-directory check at the vault.
+            found, info = proposal_rules.problems(path, repo or common.repo_root(path.parent))
             problems += found
             if info.get("openspec_validate"):
                 ran.append("openspec-validate")
@@ -546,7 +557,7 @@ def main() -> int:
             ok, problems, ran = True, [], [NO_SCHEMA]
         else:
             ok, problems, ran = check_artifact(path, schemas, common, validator, trigger_rules,
-                                               proposal_rules)
+                                               proposal_rules, repo)
         if not ran:
             continue
         step = None
