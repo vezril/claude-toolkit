@@ -365,24 +365,49 @@ def policy_disagreements(path: Path, common, trigger_rules, repo: Path = None) -
         cfg)
 
 
-def last_edge(repo: Path, item: str, filename: str, common):
-    """(sha, failed) for the newest edge record over this artifact, or (None, False).
+def sentinel_sha(path: Path, common):
+    """The sha of this artifact's sentinel, or None when it is absent or unreadable."""
+    try:
+        return common.sha256(path.with_name(path.name + common.SENTINEL_SUFFIX))
+    except OSError:
+        return None
 
-    `failed` is why this returns a pair. The sha gate below asks "have the bytes changed since
-    an edge last ran", which is the right question for a *passing* record and the wrong one for
-    a failing one: an edge can fail for a reason that lives outside the artifact's own bytes,
-    and then no amount of waiting changes the sha. The case that found this is the normal
-    node contract — `SKILL.md` has a node write its artifact and *then* its sentinel, so the
-    hook fires on the artifact's write while the sentinel does not yet exist, records "no
-    readable sentinel", and the sentinel lands a moment later. The artifact was correct, the
-    sentinel was correct, and the run was blocked forever on a verdict that was true only for
-    the instant it was taken.
+
+def last_edge(repo: Path, item: str, filename: str, common):
+    """(artifact sha, sentinel sha) the newest edge over this artifact ran on.
+
+    Both, because both are the edge's input. The gate used to compare only the artifact's
+    bytes, which is the right question for a passing record and the wrong one for a failing
+    one: an edge can fail on something that is not the artifact, and then its sha never
+    changes. `SKILL.md` has a node write its artifact and *then* its sentinel, so the hook
+    fires while the sentinel does not yet exist, records "no readable sentinel", and the
+    sentinel lands a moment later — AN-3702 sat blocked forever on a verdict that was true
+    only for the instant it was taken.
+
+    The first fix for that was `or failed`: re-check whenever the last verdict was a failure.
+    It had no termination condition. A failure whose cause is neither the artifact nor its
+    sentinel — AN-3702's proposal, whose change directory was being looked for in the wrong
+    repo — re-checked on *every* subsequent hook invocation and appended a record each time.
+    It reached 44 identical failures on one artifact, and took AN-3631 from 8 failed edges to
+    65. The suite missed it because it tested that a *passing* record suppresses re-checking
+    and never asked what a failing one does.
+
+    So the gate compares the edge's whole input instead. Re-check when the artifact changed or
+    when its sentinel did, including a sentinel appearing where there was none, and otherwise
+    do not: if neither input moved, no re-run can reach a different verdict. A failure caused
+    by a third thing is cleared by rerunning the producing step, which rewrites the artifact —
+    the recovery path the design already specifies, at most three times before it becomes a
+    punch-out.
+
+    A record from before this field existed has no sentinel sha. Those are treated as
+    unchanged rather than unknown, so upgrading does not re-fire every historical failure at
+    once.
     """
-    sha, failed = None, False
+    sha, sent = None, None
     try:
         lines = common.trace_path(repo, item).read_text().splitlines()
     except OSError:
-        return None, False
+        return None, None
     for line in lines:                      # the newest matching record wins
         try:
             rec = json.loads(line)
@@ -390,8 +415,8 @@ def last_edge(repo: Path, item: str, filename: str, common):
             continue
         if rec.get("artifact") == filename and rec.get("sha256"):
             sha = rec["sha256"]
-            failed = bool((rec.get("edge") or {}).get("exit"))
-    return sha, failed
+            sent = rec.get("sentinel_sha256", "unrecorded")
+    return sha, sent
 
 
 def last_traced_sha(repo: Path, item: str, filename: str, common):
@@ -455,14 +480,12 @@ def changed_artifacts(payload: dict, common, schemas: dict, governed: set = froz
                 current = common.sha256(path)
             except OSError:
                 continue
-            # Changed bytes, or unchanged bytes whose last verdict was a failure. The second
-            # clause is scoped deliberately narrowly: a *passing* record still suppresses
-            # re-checking, which is what keeps the trace from tripling on every command. Only
-            # a failure is retried, because only a failure can be stale — the artifact may
-            # have been failed for something beside itself (its sentinel, most often) that has
-            # since been put right, and nothing else in the pipeline would ever notice.
-            sha, failed = last_edge(repo, item, filename, common)
-            if current != sha or failed:
+            # Either of the edge's inputs moving is reason to look again; neither moving is
+            # reason not to. That covers the sentinel landing after its artifact without
+            # re-checking a verdict nothing could have changed — see `last_edge`.
+            sha, sent = last_edge(repo, item, filename, common)
+            current_sent = sentinel_sha(path, common)
+            if current != sha or (sent != "unrecorded" and current_sent != sent):
                 out.append(path)
     return out
 
@@ -582,6 +605,9 @@ def main() -> int:
             # but it sits beside the artifact and is as editable as the artifact is; the trace
             # is append-only, which is what makes a later hand-edit detectable at all.
             "sha256": common.sha256(path),
+            # The other half of this edge's input. Without it the gate below cannot tell a
+            # sentinel landing from nothing happening, which is the whole of AN-3702.
+            "sentinel_sha256": sentinel_sha(path, common),
             "edge": {"name": "+".join(ran), "exit": 0 if ok else 1, "summary": summary[:500]},
         }
         if metrics:

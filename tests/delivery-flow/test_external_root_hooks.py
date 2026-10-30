@@ -28,6 +28,8 @@ EDGE = ROOT / "hooks" / "check-edge.py"
 ENFORCE = ROOT / "hooks" / "enforce-punch-outs.py"
 sys.path.insert(0, str(SCRIPTS))
 
+import common  # noqa: E402
+
 TRIAGE = {"item": "AN-1", "type": "feature", "path": "standard", "domains": ["backend"],
           "summary": "s", "rationale": "r", "handoff": False, "handoff_reason": None,
           "architecture_change": False, "breaking_change": False}
@@ -245,6 +247,60 @@ class TestTheSentinelLandsAfterTheArtifact(unittest.TestCase):
         self.assertEqual(2, out.returncode, "a schema violation must survive the retry")
         records = [x for x in r.trace() if x.get("artifact") == "triage.json"]
         self.assertEqual(1, records[-1]["edge"]["exit"])
+
+    def test_a_persistent_failure_does_not_record_forever(self):
+        """The regression the first fix shipped, and the test that was missing.
+
+        `or failed` re-checked on every hook invocation while the last verdict was a failure.
+        For a failure whose cause is neither the artifact nor its sentinel, nothing ever
+        changes, so it appended a record each time: 44 identical failures on one artifact in
+        the live AN-3702, and AN-3631 from 8 failed edges to 65. The earlier suite asked only
+        whether a *passing* record suppresses re-checking.
+        """
+        r = ExternalRoot()
+        # Fails on something that is neither the artifact nor the sentinel: a proposal whose
+        # change directory does not exist. Both inputs are valid and stay valid.
+        r.write("proposal.json", {
+            "item": r.item, "change_id": "nope", "change_path": "openspec/changes/nope",
+            "specs_touched": [], "tasks": [{"id": "T1", "description": "d", "files": ["a.py"]}],
+            "dependencies_added": [], "scope": False, "architecture": False, "breaking": False})
+        self.assertEqual(0, r.sentinel("proposal.json", "propose").returncode)
+        self.assertEqual(2, r.edge("proposal.json").returncode)
+        after_first = len([x for x in r.trace() if x.get("artifact") == "proposal.json"])
+        self.assertEqual(1, after_first)
+
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                   "cwd": str(r.repo), "tool_input": {"command": "ls -la"}}
+        for _ in range(5):
+            subprocess.run([sys.executable, str(EDGE)], input=json.dumps(payload),
+                           capture_output=True, text=True)
+        after = len([x for x in r.trace() if x.get("artifact") == "proposal.json"])
+        self.assertEqual(after_first, after,
+                         f"the failure re-recorded {after - after_first} extra times")
+
+    def test_the_record_carries_the_sentinel_sha(self):
+        """What lets the gate tell a sentinel landing from nothing happening."""
+        r = ExternalRoot()
+        r.write("breakdown.json", breakdown())
+        r.sentinel("breakdown.json", "breakdown")
+        r.edge("breakdown.json")
+        rec = [x for x in r.trace() if x.get("artifact") == "breakdown.json"][-1]
+        expected = common.sha256(r.item_dir / "breakdown.json.sentinel.json")
+        self.assertEqual(expected, rec["sentinel_sha256"])
+
+    def test_a_rewritten_sentinel_is_rechecked(self):
+        """A sentinel that starts lying after a pass must not be suppressed by the gate."""
+        r = ExternalRoot()
+        r.write("breakdown.json", breakdown(stories=2))
+        r.sentinel("breakdown.json", "breakdown")
+        self.assertEqual(0, r.edge("breakdown.json").returncode)
+        r.sentinel("breakdown.json", "breakdown", counts={"stories": 99})
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                   "cwd": str(r.repo), "tool_input": {"command": "ls -la"}}
+        out = subprocess.run([sys.executable, str(EDGE)], input=json.dumps(payload),
+                             capture_output=True, text=True)
+        self.assertEqual(2, out.returncode, "a sentinel rewritten to lie was not re-checked")
+        self.assertIn("99", out.stderr)
 
     def test_a_passing_record_still_suppresses_rechecking(self):
         """The sha gate's real job. Only a failure is retried, or the trace triples."""
