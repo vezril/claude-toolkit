@@ -19,10 +19,16 @@ and inline lists that must close on their own line.
 Normative pair with `skills/*/workflow.yaml`: change the format and change this parser.
 """
 
+import os
 import re
 from pathlib import Path
 
-PLUGIN_ROOT = Path(__file__).resolve().parents[2]
+# Honours CLAUDE_PLUGIN_ROOT for the same reason `common.PLUGIN_ROOT` does, and it must agree
+# with it: if one resolved from the installed plugin and the other from the checkout, the
+# descriptors and the schemas they point at would come from different trees — a workflow
+# validated against contracts it was not written for, with nothing to indicate it.
+PLUGIN_ROOT = Path(os.environ.get("CLAUDE_PLUGIN_ROOT",
+                                  Path(__file__).resolve().parents[2]))
 DESCRIPTOR_NAME = "workflow.yaml"
 
 # Keys a descriptor must carry. A descriptor missing one of these cannot be used to resolve a

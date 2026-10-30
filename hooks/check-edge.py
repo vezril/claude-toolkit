@@ -29,6 +29,52 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 HELPERS = Path(__file__).resolve().parents[1] / "scripts" / "delivery-flow"
+SUBSTRATE = Path(__file__).resolve().parents[1] / "scripts" / "workflow"
+sys.path.insert(0, str(SUBSTRATE))
+import descriptor as workflow_descriptor  # noqa: E402
+import layout as workflow_layout  # noqa: E402
+import registry as workflow_registry  # noqa: E402
+
+_WORKFLOWS = None
+
+
+def workflows() -> list:
+    """Every workflow descriptor the plugin defines, loaded once per process.
+
+    Read eagerly rather than behind the inert-path guard, because the guard itself now needs
+    them: which directory names count as artifacts, and which files mark a repo as opted in,
+    are descriptor fields. That is a real cost added to every tool call in every unrelated
+    session — one small YAML read — and it buys the hook the ability to serve a second
+    workflow instead of one. A broken descriptor must not take the hook down with it, so a
+    parse failure degrades to "no workflows", which is the inert answer.
+    """
+    global _WORKFLOWS
+    if _WORKFLOWS is None:
+        try:
+            _WORKFLOWS = workflow_descriptor.descriptors()
+        except Exception:
+            _WORKFLOWS = []
+    return _WORKFLOWS
+
+
+def artifact_dirs() -> list:
+    """Directory names that hold artifacts, across every workflow, longest first.
+
+    Longest first so that if one workflow's directory name is a suffix of another's, the more
+    specific wins the match — the same reason `schema_for` sorts its globs that way.
+    """
+    return sorted({d["artifact_dir"].strip("/") for d in workflows()}, key=len, reverse=True)
+
+
+def config_names() -> list:
+    """Files whose presence at a repo root opts it into some workflow."""
+    return sorted({d["config_name"] for d in workflows()})
+
+
+def any_workflow_repo(paths) -> bool:
+    """True when any of `paths` sits in a repo that opted into any workflow."""
+    names = config_names()
+    return any(workflow_layout.opted_in(p, n) for p in paths if str(p) for n in names)
 
 # Any path under delivery/<ITEM-KEY>/, in a tool input or a shell command. Checked against
 # the raw payload first: a session that writes nothing there costs one regex and exits.
@@ -57,7 +103,19 @@ def _helpers():
 
 
 # Paths inside a Bash command line; quotes and redirects are stripped by the split.
-BASH_PATH_RE = re.compile(r"[A-Za-z0-9._/-]*delivery/[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]+")
+#
+# Built from the descriptors rather than written out, so a second workflow's artifact
+# directory is scanned too. With one workflow the pattern is character-for-character what it
+# was. The directory names are escaped: one of them containing a regex metacharacter would
+# otherwise silently widen or break the match, and a detection regex that quietly stops
+# matching is the exact failure this hook has had three times.
+def bash_path_re():
+    dirs = artifact_dirs()
+    if not dirs:
+        return None
+    alt = "|".join(re.escape(d) for d in dirs)
+    return re.compile(
+        rf"[A-Za-z0-9._/-]*(?:{alt})/[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]+")
 
 
 # `cd <dir>` anywhere in the command. The payload's `cwd` is the *session's* directory, not the
@@ -81,12 +139,24 @@ def _cd_targets(command: str) -> list:
 
 
 def _registered_bases() -> list:
-    """Opted-in repos, as bases a relative artifact fragment may belong to."""
-    try:
-        common, _, _, _, _ = _helpers()
-        return list(common.known_repos())
-    except Exception:
-        return []
+    """Opted-in repos across every workflow, as bases a relative fragment may belong to.
+
+    Read through the substrate rather than one workflow's `common`, so a repo registered
+    against a second workflow is a candidate base too. Each workflow's registry is consulted
+    with *its own* membership predicate: a repo listed in one registry but holding only the
+    other's config has not opted into the one doing the asking.
+    """
+    out = []
+    for d in workflows():
+        try:
+            path = workflow_registry.path_for(d["workflow"])
+            member = lambda p, name=d["config_name"]: workflow_layout.opted_in(p, name)
+            for repo in workflow_registry.known(path, member):
+                if repo not in out:
+                    out.append(repo)
+        except Exception:
+            continue
+    return out
 
 
 def written_paths(payload: dict) -> list:
@@ -112,15 +182,19 @@ def written_paths(payload: dict) -> list:
     elif tool == "Bash":
         command = ti.get("command", "")
         bases += _cd_targets(command)
-        for token in BASH_PATH_RE.findall(command):
+        pattern = bash_path_re()
+        for token in (pattern.findall(command) if pattern else []):
             out.append(Path(token))
-            # The leading character class swallows whatever precedes `delivery/` — in
-            # `"$R/delivery/K/f.json"` it captures `R/delivery/K/f.json`, because `$` stops it
-            # but `R` and `/` do not. Joining that to a base yields `<base>/R/delivery/...`,
-            # which never exists. So also consider the fragment from `delivery/` onward.
-            cut = token.find("delivery/")
-            if cut > 0:
-                out.append(Path(token[cut:]))
+            # The leading character class swallows whatever precedes the artifact directory —
+            # in `"$R/delivery/K/f.json"` it captures `R/delivery/K/f.json`, because `$` stops
+            # it but `R` and `/` do not. Joining that to a base yields `<base>/R/delivery/...`,
+            # which never exists. So also consider the fragment from each artifact directory
+            # onward. Tried for every workflow's directory, because the token was matched by
+            # an alternation and this code cannot tell which branch won.
+            for d in artifact_dirs():
+                cut = token.find(d + "/")
+                if cut > 0:
+                    out.append(Path(token[cut:]))
 
     resolved = []
     for p in out:
@@ -299,7 +373,7 @@ def changed_artifacts(payload: dict, common, schemas: dict) -> list:
             repo = common.repo_root(base)
         except OSError:
             continue
-        if repo not in repos and common.is_delivery_repo(repo):
+        if repo not in repos and any_workflow_repo([repo]):
             repos.append(repo)
 
     for repo in repos:
@@ -374,7 +448,9 @@ def main() -> int:
     gate = [Path(payload.get("cwd") or ".")] + [p.parent for p in paths]
     if payload.get("tool_name") == "Bash":
         gate += _cd_targets((payload.get("tool_input") or {}).get("command", ""))
-    if not any(common.is_delivery_repo(c) for c in gate if str(c)):
+    # Any workflow, not just delivery-flow: this is the gate that keeps the hook inert in
+    # unrelated sessions, and a second workflow's repo must get past it.
+    if not any_workflow_repo(gate):
         return 0
 
     # Union with what actually changed on disk, so a write the command text hid still gets
@@ -401,7 +477,7 @@ def main() -> int:
         item, filename, repo = identify(path, common, payload)
         if not item:
             continue
-        if not common.is_delivery_repo(repo):
+        if not any_workflow_repo([repo]):
             continue
         if not path.exists():
             continue  # a command that mentioned the path without writing it
