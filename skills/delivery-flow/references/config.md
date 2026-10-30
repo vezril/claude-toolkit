@@ -32,15 +32,14 @@ vault:
 test_command: "sbt test"     # what `verify` runs
 
 artifacts:
-  root: delivery             # where a run's artifacts live. Relative keeps them in the repo;
-                             # absolute puts them anywhere — typically the Obsidian vault,
-                             # which is itself a git repo synced between machines, so the
-                             # trail is still versioned and still aggregates. Default
-                             # `delivery/` inside the repo.
-  commit: true               # commit the artifact root to the work branch, so the audit
-                             # trail travels with the PR and both machines aggregate.
-                             # Meaningless when `root` is outside the repo — the vault's own
-                             # git is doing that job instead.
+  # Run artifacts belong in the vault, not in the repo. `flow-status.py` refuses to compute a
+  # position when they are in the repo without a recorded reason, so this is a gate rather
+  # than advice — see "Where artifacts live" below.
+  root: ~/Vault/Atlas/RAG/_runs   # absolute: the vault's runs directory. `init` derives it
+                                  # from --vault-path and --graph-root rather than taking it
+                                  # by hand.
+  # ...or, instead of `root`, the recorded exception:
+  in_repo_ack: "our own tracker, private repo"   # keeps artifacts in `delivery/` and says why
 
 punch_out:
   cost_budget_usd: 5.00      # API-equivalent, per item
@@ -124,15 +123,41 @@ allow_uncertified: [propose, vault-update]   # steps that may run without certif
   network that may not be there, so it waits for a human on the right network.
 - **The proposal ceilings gate the `full` profile.** They are the decision gate for real work:
   under them, a change goes from ticket to PR without stopping. Lower them to be asked more.
-- **`artifacts.commit: true`** is the default for a reason — traces committed to the work
-  branch are how two machines' runs end up in one report.
-- **`artifacts.root` outside the repo takes over that job.** Point it at the vault and the
-  vault's own git provides the versioning and the cross-machine sync, which is why
-  `commit` stops mattering there. Two things to get right: give the runs their own
-  subdirectory rather than mixing them into `deliveries/`, where recall scans for notes and
-  would start reading `trace.jsonl` as a decision; and prefix it with an underscore
-  (`_runs`) so Obsidian keeps a few hundred JSON files out of search and the graph view,
-  the same convention `_templates` uses.
+### Where artifacts live
+
+**A run's artifacts go in the vault.** `delivery/<KEY>/` holds the ticket body, the triage
+rationale, the breakdown and the brief — someone else's words, most of the time. Inside the
+code repo that is one `git add` from a branch and one push from publishing a client's text.
+`nx-neptune` is the case in point: a public AWS checkout whose tracker is a client's Jira.
+
+So `flow-status.py` runs a preflight before it computes anything, and exits 2 when:
+
+- the resolved root is inside the code repo's working tree, or
+- a vault is bound and the root is not under it.
+
+Since every invocation starts with `flow-status.py`, a misplaced root stops the flow rather
+than warning into a log. The vault being its own git repo is fine and is the point — that is
+what versions the trail and syncs it between machines. What must not happen is the artifacts
+sitting in the repository being worked on.
+
+`artifacts.in_repo_ack` is the only exception, and it is a sentence, not a boolean: say why
+in-repo is acceptable here. It covers the default layout, test fixtures, and a private repo
+whose tracker is its own. It has to be written down rather than implied, because this is the
+one place where "it was fine on my machine" publishes someone else's data.
+
+`init-delivery-flow.py` refuses to guess, the way it already refuses to guess the Jira key and
+`contract_paths`: pass `--vault-path ~/Vault [--graph-root Atlas/RAG]` and it derives
+`artifacts.root`, or pass `--artifacts-in-repo "<reason>"` and it records the exception.
+
+Two things to get right in the vault: give the runs their own subdirectory rather than mixing
+them into `deliveries/`, where recall scans for notes and would start reading `trace.jsonl` as
+a decision; and prefix it with an underscore (`_runs`) so Obsidian keeps a few hundred JSON
+files out of search and the graph view, the same convention `_templates` uses.
+
+**`artifacts.commit` is gone.** It was written into every generated config and read by no
+code — the mechanism it described, traces committed to the work branch so two machines
+aggregate, did not exist. The question it was answering does not arise once the trail is not
+in the repo.
 - **A configured root means that directory and no other.** Path matching is anchored to it, so
   an unrelated directory that happens to be called `delivery` is not mistaken for the root.
 - **Roster overrides replace**, so an override is the whole entry for that kind of work.

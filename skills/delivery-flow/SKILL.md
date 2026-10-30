@@ -26,6 +26,21 @@ blocked, stop and tell the human what the block is; do not route around it.
 `--status` means: print that and stop. `--step <name>` forces one step, which is for redoing
 a distillation after new input arrives, not for skipping a block.
 
+## Artifacts live in the vault, never in the repo
+
+A run's artifacts are the ticket body, the triage rationale, the breakdown and the brief —
+someone else's words, most of the time. In the code repo that is one `git add` from a branch
+and one push from publishing a client's text, so `artifacts.root` points at the vault's
+`_runs` directory and the vault's own private git does the versioning and the cross-machine
+sync.
+
+This is enforced, not advised: `flow-status.py` exits 2 before computing a position if the
+root is inside the code repo, or if a vault is bound and the root sits outside it. The only
+exception is `artifacts.in_repo_ack`, a written reason rather than a flag. **Never add that
+ack to get a blocked run moving** — it is a decision about where a client's data may live,
+which makes it a human's, and the honest fix is almost always to point `artifacts.root` at
+the vault instead.
+
 ## Before anything: the binding
 
 Read `.delivery-flow.yaml` at the repo root ([references/config.md](references/config.md)).

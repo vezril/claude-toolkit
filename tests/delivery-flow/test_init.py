@@ -17,6 +17,7 @@ SCRIPTS = ROOT / "scripts" / "delivery-flow"
 INIT = SCRIPTS / "init-delivery-flow.py"
 FLOW = SCRIPTS / "flow-status.py"
 sys.path.insert(0, str(SCRIPTS))
+import common  # noqa: E402
 from common import CONFIG_NAME, load_config, load_profiles, select_profile  # noqa: E402
 
 import importlib.util  # noqa: E402
@@ -43,6 +44,15 @@ def repo(files=(), dirs=(), remote="git@github.com:acme/svc.git", branch="main",
 
 
 def run(d, *args):
+    """Init with a placement already chosen, since it now refuses to guess one.
+
+    Defaults to the in-repo acknowledgement so every test that is not *about* placement reads
+    as it did before. The tests that are about it pass `--vault-path` or their own
+    `--artifacts-in-repo` explicitly.
+    """
+    if not any(a.startswith("--vault-path") or a.startswith("--artifacts-in-repo")
+               for a in args):
+        args = (*args, "--artifacts-in-repo", "test fixture")
     return subprocess.run([sys.executable, str(INIT), str(d), *args],
                           capture_output=True, text=True,
                               env={**os.environ, "DELIVERY_FLOW_REPOS": str(Path(tempfile.gettempdir()) / "df-test-repos")})
@@ -226,36 +236,77 @@ class TestAdditiveAndConfined(unittest.TestCase):
         self.assertFalse((d / CONFIG_NAME).exists())
 
 
-class TestCommitTrailSafety(unittest.TestCase):
-    """The audit trail carries ticket text. Where it may be published, do not commit it."""
+class TestArtifactPlacement(unittest.TestCase):
+    """Where a run's artifacts live, which init now refuses to guess.
 
-    def test_a_public_repo_does_not_commit_the_trail(self):
-        self.assertEqual(init.commit_artifacts_default("public", external=True)[0], False)
-        self.assertEqual(init.commit_artifacts_default("public", external=False)[0], False)
-        self.assertIn("PUBLIC", init.commit_artifacts_default("public", True)[1])
+    They hold the ticket body, the triage rationale, the breakdown and the brief — someone
+    else's words, most of the time. The old default put them in the repo under `delivery/`
+    with `artifacts.commit: true` on a private repo, which is one `git add` from a branch and
+    one push from publishing a client's text.
 
-    def test_a_private_repo_commits_it(self):
-        self.assertEqual(init.commit_artifacts_default("private", external=True)[0], True)
+    `artifacts.commit` is gone rather than defaulted differently. Nothing ever read it — it
+    was written into every config and consumed by no code — and the question it was trying to
+    answer ("may we commit the trail?") does not arise once the trail is not in the repo.
+    """
 
-    def test_unknown_visibility_with_an_external_tracker_declines(self):
-        """Someone else's ticket text is not ours to publish on a guess."""
-        self.assertEqual(init.commit_artifacts_default(None, external=True)[0], False)
-
-    def test_unknown_visibility_with_our_own_tracker_commits(self):
-        self.assertEqual(init.commit_artifacts_default(None, external=False)[0], True)
-
-    def test_the_reason_is_written_into_the_file(self):
+    def test_it_refuses_to_guess(self):
         d = repo(files=[("build.sbt", "x\n")])
-        run(d, "--no-commit-artifacts")
-        text = (d / CONFIG_NAME).read_text()
-        self.assertIn("commit: false", text)
-        self.assertIn("forced with --no-commit-artifacts", text)
-        self.assertIs(load_config(d)["artifacts"]["commit"], False)
+        out = subprocess.run([sys.executable, str(INIT), str(d)],
+                             capture_output=True, text=True,
+                             env={**os.environ, "DELIVERY_FLOW_REPOS":
+                                  str(Path(tempfile.gettempdir()) / "df-test-repos")})
+        self.assertEqual(2, out.returncode)
+        self.assertIn("--vault-path", out.stderr)
+        self.assertIn("--artifacts-in-repo", out.stderr)
+        self.assertFalse((d / CONFIG_NAME).exists(), "it wrote a config while refusing")
 
-    def test_it_can_be_forced_on(self):
+    def test_a_vault_path_derives_the_runs_directory(self):
         d = repo(files=[("build.sbt", "x\n")])
-        run(d, "--commit-artifacts")
-        self.assertIs(load_config(d)["artifacts"]["commit"], True)
+        run(d, "--vault-path", "/tmp/Vault", "--graph-root", "Atlas/RAG")
+        cfg = load_config(d)
+        self.assertEqual("/tmp/Vault/Atlas/RAG/_runs", str(cfg["artifacts"]["root"]))
+        self.assertNotIn("in_repo_ack", cfg["artifacts"])
+
+    def test_a_vault_path_without_a_graph_root_still_derives(self):
+        d = repo(files=[("build.sbt", "x\n")])
+        run(d, "--vault-path", "/tmp/Vault")
+        self.assertEqual("/tmp/Vault/_runs", str(load_config(d)["artifacts"]["root"]))
+
+    def test_the_in_repo_reason_is_written_into_the_file(self):
+        d = repo(files=[("build.sbt", "x\n")])
+        run(d, "--artifacts-in-repo", "our own tracker, private repo")
+        cfg = load_config(d)
+        self.assertEqual("our own tracker, private repo", cfg["artifacts"]["in_repo_ack"])
+        self.assertNotIn("root", cfg["artifacts"])
+
+    def test_the_two_choices_are_contradictory(self):
+        d = repo(files=[("build.sbt", "x\n")])
+        out = run(d, "--vault-path", "/tmp/Vault", "--artifacts-in-repo", "why")
+        self.assertEqual(2, out.returncode)
+        self.assertIn("contradictory", out.stderr)
+
+    def test_commit_is_gone(self):
+        """It was written into every config and read by nothing."""
+        d = repo(files=[("build.sbt", "x\n")])
+        run(d, "--vault-path", "/tmp/Vault")
+        self.assertNotIn("commit:", (d / CONFIG_NAME).read_text())
+
+    def test_a_vault_rooted_repo_passes_the_preflight(self):
+        """The point of all of it: the generated config is runnable without an ack."""
+        d = repo(files=[("build.sbt", "x\n")])
+        vault = Path(tempfile.mkdtemp()) / "Vault With Spaces"
+        (vault / "Atlas" / "RAG" / "_runs").mkdir(parents=True)
+        run(d, "--vault-path", str(vault), "--graph-root", "Atlas/RAG")
+        self.assertEqual([], common.artifact_root_problems(d))
+
+    def test_an_unexplained_in_repo_root_fails_the_preflight(self):
+        d = repo(files=[("build.sbt", "x\n")])
+        run(d, "--artifacts-in-repo", "declared")
+        text = (d / CONFIG_NAME).read_text().replace("in_repo_ack: declared", "root: delivery")
+        (d / CONFIG_NAME).write_text(text)
+        problems = common.artifact_root_problems(d)
+        self.assertTrue(problems)
+        self.assertIn("inside the repository", problems[0])
 
 
 class TestTestCommandPrecedence(unittest.TestCase):

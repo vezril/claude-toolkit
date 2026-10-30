@@ -104,5 +104,91 @@ class TestUnreadableConfig(unittest.TestCase):
         self.assertEqual(artifact_root(d), d / "delivery")
 
 
+class TestArtifactsBelongInTheVault(unittest.TestCase):
+    """The rule, and the preflight that enforces it.
+
+    A run's artifacts are the ticket body, the triage rationale, the breakdown and the brief —
+    someone else's words, most of the time. Inside the code repo they are one `git add` from a
+    branch and one push from being published, which on a public checkout with a client's Jira
+    is a disclosure. So `flow-status.py` refuses to compute a position when they are in the
+    repo without a recorded reason.
+
+    These drive `flow-status.py` rather than only `artifact_root_problems`, because the gate is
+    the refusal, not the predicate: a correct predicate nobody consults is this week's recurring
+    defect, not a guardrail.
+    """
+
+    FLOW = SCRIPTS / "flow-status.py"
+
+    def flow(self, repo: Path):
+        return subprocess.run([sys.executable, str(self.FLOW), "AN-9", "--repo", str(repo)],
+                              capture_output=True, text=True)
+
+    def test_an_unexplained_in_repo_root_blocks_the_flow(self):
+        d = repo_with("tracker:\n  kind: jira\n  external: true\n")
+        out = self.flow(d)
+        self.assertEqual(2, out.returncode, out.stdout)
+        self.assertIn("BLOCKED", out.stderr)
+        self.assertIn("inside the repository", out.stderr)
+
+    def test_the_refusal_names_the_two_ways_out(self):
+        d = repo_with("tracker:\n  kind: jira\n  external: true\n")
+        err = self.flow(d).stderr
+        self.assertIn("in_repo_ack", err)
+        self.assertIn("vault", err)
+
+    def test_a_recorded_reason_lets_it_run(self):
+        d = repo_with("tracker:\n  kind: jira\n  external: true\n"
+                      "artifacts:\n  in_repo_ack: our own tracker, private repo\n")
+        self.assertEqual(0, self.flow(d).returncode, self.flow(d).stderr)
+
+    def test_an_empty_reason_is_not_a_reason(self):
+        d = repo_with("tracker:\n  kind: jira\n  external: true\n"
+                      "artifacts:\n  in_repo_ack: \"  \"\n")
+        self.assertEqual(2, self.flow(d).returncode)
+
+    def test_a_vault_rooted_run_is_fine(self):
+        vault = Path(tempfile.mkdtemp()) / "Vault With Spaces"
+        runs = vault / "Atlas" / "RAG" / "_runs"
+        runs.mkdir(parents=True)
+        d = repo_with("tracker:\n  kind: jira\n  external: true\n"
+                      f"vault:\n  path: {vault}\n  graph_root: Atlas/RAG\n"
+                      f"artifacts:\n  root: {runs}\n")
+        self.assertEqual(0, self.flow(d).returncode, self.flow(d).stderr)
+
+    def test_a_bound_vault_with_the_root_elsewhere_is_refused(self):
+        """The positive form of the rule: if there is a vault, that is where runs go."""
+        vault = Path(tempfile.mkdtemp()) / "Vault"
+        (vault / "Atlas" / "RAG" / "_runs").mkdir(parents=True)
+        elsewhere = Path(tempfile.mkdtemp()) / "somewhere-else"
+        elsewhere.mkdir()
+        d = repo_with("tracker:\n  kind: jira\n  external: true\n"
+                      f"vault:\n  path: {vault}\n  graph_root: Atlas/RAG\n"
+                      f"artifacts:\n  root: {elsewhere}\n")
+        out = self.flow(d)
+        self.assertEqual(2, out.returncode)
+        self.assertIn("outside it", out.stderr)
+
+    def test_the_vault_being_a_git_repo_is_not_the_problem(self):
+        """It is its own private repo, and that is what versions the trail."""
+        vault = Path(tempfile.mkdtemp()) / "Vault"
+        runs = vault / "_runs"
+        runs.mkdir(parents=True)
+        (vault / ".git").mkdir()
+        d = repo_with("tracker:\n  kind: jira\n  external: true\n"
+                      f"vault:\n  path: {vault}\n"
+                      f"artifacts:\n  root: {runs}\n")
+        self.assertEqual(0, self.flow(d).returncode, self.flow(d).stderr)
+
+    def test_the_derived_vault_runs_directory(self):
+        from common import vault_artifact_root
+        self.assertEqual(
+            Path("/v/Atlas/RAG/_runs"),
+            vault_artifact_root({"vault": {"path": "/v", "graph_root": "Atlas/RAG"}}))
+        self.assertEqual(Path("/v/_runs"), vault_artifact_root({"vault": {"path": "/v"}}))
+        self.assertIsNone(vault_artifact_root({"vault": {"binding": "olympus"}}))
+        self.assertIsNone(vault_artifact_root({}))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

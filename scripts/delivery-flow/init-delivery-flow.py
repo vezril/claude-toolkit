@@ -110,20 +110,13 @@ def detect_visibility(repo: Path):
     return v if v in ("public", "private", "internal") else None
 
 
-def commit_artifacts_default(visibility, external: bool) -> tuple:
-    """(value, why) for `artifacts.commit`.
-
-    `delivery/<KEY>/` holds the ticket body, the triage rationale, the breakdown and the brief.
-    Committing it sends all of that wherever the branch goes — which is the point on a private
-    repo, and a disclosure on a public one. Someone else's ticket text is not ours to publish,
-    so where visibility is unknown and the tracker belongs to someone else, we do not commit.
-    """
-    if visibility == "public":
-        return False, "this repo is PUBLIC, so committing the trail would publish ticket content"
-    if visibility is None and external:
-        return False, ("repo visibility could not be determined and the tracker is external, "
-                       "so the cautious reading applies")
-    return True, "the trail travels with the PR, which is how two machines' runs aggregate"
+# `commit_artifacts_default` lived here. It decided `artifacts.commit`, which was written into
+# every generated config and read by no code at all — the mechanism it described ("traces
+# committed to the work branch are how two machines' runs aggregate") did not exist. The
+# question it was trying to answer, may we commit the trail, does not arise now that the trail
+# does not live in the repo: `--vault-path` puts it in the vault, whose own private git does
+# the versioning and the cross-machine sync, and `--artifacts-in-repo` is a recorded decision
+# rather than a default nobody saw.
 
 
 def render(repo: Path, args, forge: dict, test_cmd, protected: list, visibility=None) -> str:
@@ -162,21 +155,33 @@ def render(repo: Path, args, forge: dict, test_cmd, protected: list, visibility=
     else:
         L += ['test_command: ""   # NOT DETECTED — set this or `verify` has nothing to run', ""]
 
-    commit, why = commit_artifacts_default(visibility, external)
-    if args.commit_artifacts:
-        commit, why = True, "forced with --commit-artifacts"
-    elif args.no_commit_artifacts:
-        commit, why = False, "forced with --no-commit-artifacts"
-
+    vault_path = args.vault_path
+    graph_root = args.graph_root
     L += ["vault:",
-          "  binding: null   # a project name enables the recall and update steps",
-          "  path: null", "  graph_root: null", "  backend: filesystem", "",
-          "artifacts:",
-          f"  # {why}.",
-          f"  commit: {str(commit).lower()}",
-          "  # delivery/<KEY>/ holds the ticket body, the triage rationale, the breakdown and",
-          "  # the brief. Only commit it where all of that may go.", "",
-          "punch_out:", "  cost_budget_usd: 5.00", "  retry_limit: 3",
+          f"  binding: {args.vault_binding or 'null'}"
+          "   # a project name enables the recall and update steps",
+          f"  path: {vault_path or 'null'}",
+          f"  graph_root: {graph_root or 'null'}", "  backend: filesystem", "",
+          "artifacts:"]
+    if vault_path:
+        runs = Path(vault_path).expanduser()
+        if graph_root:
+            runs = runs / graph_root
+        runs = runs / "_runs"
+        L += ["  # Outside the repo on purpose. `delivery/<KEY>/` holds the ticket body, the",
+              "  # triage rationale, the breakdown and the brief — someone else's words, most",
+              "  # of the time. In the repo that is one `git add` from a branch and one push",
+              "  # from being published. The vault is its own private git repo, so the trail",
+              "  # is still versioned and still aggregates across machines.",
+              "  # `_runs` is underscore-prefixed so Obsidian keeps a few hundred JSON files",
+              "  # out of search and the graph view.",
+              f"  root: {runs}", ""]
+    else:
+        L += ["  # In-repo, declared. The preflight in flow-status.py refuses an unexplained",
+              "  # in-repo root, because that is how a client's ticket text reaches a remote.",
+              f"  in_repo_ack: {args.artifacts_in_repo}", ""]
+
+    L += ["punch_out:", "  cost_budget_usd: 5.00", "  retry_limit: 3",
           "  # Only a human knows which paths other teams depend on, so this starts empty.",
           "  # A planned or realized edit under one of these fires a breaking-change punch-out.",
           f"  contract_paths: [{', '.join(contracts)}]",
@@ -209,15 +214,35 @@ def main(argv=None) -> int:
     ap.add_argument("--internal", action="store_true", help="the tracker is yours")
     ap.add_argument("--signers", default=None)
     ap.add_argument("--contract-paths", default=None, metavar="a,b")
-    ap.add_argument("--commit-artifacts", action="store_true",
-                    help="commit delivery/<KEY>/ even where the default declines to")
-    ap.add_argument("--no-commit-artifacts", action="store_true")
+    ap.add_argument("--vault-path", default=None, metavar="PATH",
+                    help="the Obsidian vault clone; run artifacts go under it")
+    ap.add_argument("--graph-root", default=None, metavar="DIR",
+                    help="the vault subdirectory holding the graph (e.g. Atlas/RAG)")
+    ap.add_argument("--vault-binding", default=None, metavar="NAME",
+                    help="project name for the recall and update steps")
+    ap.add_argument("--artifacts-in-repo", default=None, metavar="REASON",
+                    help="keep artifacts inside the repo, recording why it is acceptable")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--force", action="store_true")
     args = ap.parse_args(argv)
 
     if args.external and args.internal:
         print("--external and --internal are contradictory", file=sys.stderr)
+        return 2
+
+    # The fourth thing guessing gets wrong. A run's artifacts are the ticket body, the triage
+    # rationale, the breakdown and the brief; the old default put them in the repo, where one
+    # `git add` sends a client's words wherever the branch goes. There is no safe guess, so
+    # this refuses rather than picking one.
+    if args.vault_path and args.artifacts_in_repo:
+        print("--vault-path and --artifacts-in-repo are contradictory", file=sys.stderr)
+        return 2
+    if not args.vault_path and not args.artifacts_in_repo:
+        print("where do the run artifacts go? They hold ticket text, so the default used to\n"
+              "put a client's words one commit away from a remote. Choose explicitly:\n"
+              "  --vault-path ~/Vault [--graph-root Atlas/RAG]   runs live under the vault\n"
+              "  --artifacts-in-repo '<reason>'                  keep them in the repo, on "
+              "the record", file=sys.stderr)
         return 2
 
     repo = Path(args.repo).expanduser().resolve()
@@ -265,12 +290,11 @@ def main(argv=None) -> int:
     print(f"  test command:   {test_cmd or 'NOT DETECTED — set test_command'}")
     print(f"  protected:      {', '.join(protected) or 'none detected'}")
     print(f"  visibility:     {visibility or 'could not determine (gh unavailable?)'}")
-    commit, why = commit_artifacts_default(visibility, bool(args.jira_project) and not args.internal)
-    if args.commit_artifacts:
-        commit, why = True, "forced"
-    elif args.no_commit_artifacts:
-        commit, why = False, "forced"
-    print(f"  commit trail:   {str(commit).lower()} — {why}")
+    if args.vault_path:
+        print(f"  artifacts:      under the vault at {args.vault_path}"
+              + (f"/{args.graph_root}" if args.graph_root else "") + "/_runs")
+    else:
+        print(f"  artifacts:      IN-REPO — {args.artifacts_in_repo}")
     print("\nStill yours to decide:")
     print("  - punch_out.contract_paths: which paths other teams depend on")
     if args.jira_project and not (args.external or args.internal):

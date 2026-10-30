@@ -33,7 +33,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import (CONFIG_NAME, artifact_root, is_delivery_repo, load_config, load_json,  # noqa: E402
+from common import (CONFIG_NAME, artifact_root, artifact_root_problems,  # noqa: E402
+                    is_delivery_repo, load_config, load_json,
                     load_profiles, open_punch_outs, repo_root, select_profile)
 
 MAX_RERUNS = 3
@@ -415,6 +416,16 @@ def main(argv=None) -> int:
         return 2
 
     cfg = load_config(repo)
+    # Preflight, before any position is computed: a run whose artifacts sit in the code repo
+    # is one `git add` from putting a client's ticket text on a branch. Refused here because
+    # this is the one thing every invocation runs first — SKILL.md's rule is "do what
+    # flow-status says", so a refusal here stops the flow rather than warning into a log.
+    misplaced = artifact_root_problems(repo, cfg)
+    if misplaced:
+        print("BLOCKED — the run artifacts are in the wrong place:", file=sys.stderr)
+        for p in misplaced:
+            print(f"  - {p}", file=sys.stderr)
+        return 2
     try:
         profiles = load_profiles()
     except (OSError, ValueError) as e:

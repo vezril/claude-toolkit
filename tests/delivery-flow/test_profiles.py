@@ -45,7 +45,10 @@ class Repo:
     def __init__(self, profile="triage", vault=False, item="PRO-1"):
         self.dir = Path(tempfile.mkdtemp())
         (self.dir / ".git").mkdir()
-        cfg = "tracker:\n  kind: jira\n  external: true\nforge:\n  kind: github-pr\n"
+        # In-repo artifacts, declared as such: the preflight refuses an unexplained in-repo
+        # root, because that is where a client's ticket text gets committed by accident.
+        cfg = ("tracker:\n  kind: jira\n  external: true\nforge:\n  kind: github-pr\n"
+               "artifacts:\n  in_repo_ack: test fixture, no real ticket text\n")
         if profile is not None:
             cfg += f"profile: {profile}\n"
         cfg += "vault:\n  binding: olympus\n" if vault else "vault:\n  binding: null\n"
