@@ -28,13 +28,12 @@ The boundary is by *file*, not by intent. A test that is flaky, over-specified, 
 
 The plugin's PreToolUse hook (`hooks/enforce-dev-pair-boundary.py`) enforces this mechanically: edits to test files are denied. A denial is a boundary signal, not an obstacle — never work around it (no `Bash` file writes via `sed`/`echo >`/heredocs; `Bash` is for *running* the build and tests only). Turn it into a report instead.
 
-## When the story is a `story.json`
+## When the work came from a tracker
 
-Work that came from a tracker arrives as `story-<epic>-<story>.json` rather than a markdown story file — rendered from a challenged `breakdown.json`. The failing test is still the spec; the story is what you check it against. Three things it does differently:
+The spec is the OpenSpec change: `proposal.json` plus the change's `tasks.md`. The failing test is still what you satisfy; the change artifacts are what you check it against.
 
-- **`acceptance_criteria[]` is the contract**, in `{id, given, when, then}` form. When a test and a criterion disagree, that is the disagreement to report — quote the `id`.
-- **`sources[]` is context to read, not a summary to trust.** There are deliberately no Dev Notes, so constraints live in the artifacts it points at (`item.json`, `breakdown.json`, `challenge-breakdown.json`, sometimes an OpenSpec change dir). Open them rather than inferring the constraint from the test.
-- **No tasks, and `ordering.determined` is `false`.** Nothing has sequenced these stories, so if this one needs another shipped first, report it instead of building around the gap.
+- **Work the tasks, and only the tasks you were given.** They name the files they touch, so a change outside them is a question, not an edit.
+- **`proposal.json` carries the criteria.** When a test and a criterion disagree, that is the disagreement to report — quote the task id.
 
 ## The loop (per hand-off)
 

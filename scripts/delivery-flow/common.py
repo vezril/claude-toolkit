@@ -87,9 +87,8 @@ def item_dir(repo: Path, item: str, cfg: dict = None) -> Path:
 def load_schemas(schema_dir: Path = None) -> dict:
     """Map artifact file name -> schema.
 
-    Most artifacts are one fixed file name. Two kinds are not, and declare a glob as their
-    `artifact` instead: `*.sentinel.json` (one per artifact) and `story-*.json` (one per story
-    in the breakdown). `schema_for` resolves both.
+    Most artifacts are one fixed file name. A sentinel is not — there is one per artifact —
+    so `*.sentinel.json` declares a glob as its `artifact` and `schema_for` resolves it.
     """
     schema_dir = schema_dir or SCHEMA_DIR
     out = {}
@@ -103,11 +102,10 @@ def load_schemas(schema_dir: Path = None) -> dict:
 def schema_for(filename: str, schemas: dict):
     """The schema for an artifact file name, by exact name then by glob.
 
-    The glob fallback is what makes a *set* of artifacts checkable. Rendered stories are named
-    `story-<epic>-<story>.json`, one per breakdown story, so an exact-name lookup returned None
-    for every one of them — the schema existed and could never be found, which meant nothing
-    validated the handoff into implementation. Globs are matched longest-first so a specific
-    pattern always beats a broad one.
+    The glob fallback is what makes a *set* of artifacts checkable rather than only fixed file
+    names. Globs are matched longest-first so a specific pattern always beats a broad one: an
+    artifact and its sentinel are both `<name>.json`-shaped, and the sentinel must not resolve
+    to the artifact's schema.
     """
     if filename in schemas:
         return schemas[filename]

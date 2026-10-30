@@ -4,9 +4,11 @@
 Every other edge test asks whether a checker is correct. None of them asks whether the
 checker is ever called. That gap is where today's defects lived:
 
-- `story-*.json` declared `artifact: "story.json"`, so `schema_for` returned None and
-  `changed_artifacts` dropped it. The schema, `validate()` and `consumer_problems()` were all
-  correct and all covered by tests; the dispatcher never gave them the file.
+- A glob-keyed artifact whose declared `artifact` did not match the name its producer wrote:
+  `schema_for` returned None, `check_artifact` reported "not mine", and `main`'s
+  `if not ran: continue` dropped it. The schema and both validators were correct and covered
+  by tests; nothing ever handed them the file. (That producer has since been retired, but the
+  shape is why this file exists.)
 - The punch-out breaking trigger matched a correct contract-path list against the whole
   branch diff instead of the item's own (defect 12).
 - The architecture trigger was fed the guarded node's own `rationale` (defect 8).
@@ -54,10 +56,9 @@ SCHEMAS = common.load_schemas()
 #
 #   - `schemas/` alone cannot see an artifact with no schema. There is nothing to iterate.
 #     That hides the six routed-but-ungoverned artifacts below.
-#   - `STEPS` alone cannot see an artifact that is not a routed step. `story-*.json` appears
-#     nowhere in `flow-status.py` — it is produced by `render-stories.py` and consumed by the
-#     dev pair, off the step table entirely. So iterating STEPS would have missed the exact
-#     bug that prompted this file.
+#   - `STEPS` alone cannot see a schema'd artifact that is not a routed step. An artifact can
+#     be produced and consumed off the step table entirely, and iterating STEPS would miss it
+#     — which is exactly how the bug that prompted this file escaped.
 #
 # Hence both. `(artifact, origin)` pairs; the origin only sharpens failure messages.
 ARTIFACTS = sorted(
@@ -143,47 +144,24 @@ class TestEveryRoutedArtifactReachesAChecker(unittest.TestCase):
         # failure it exists to catch.
         self.assertGreater(checked, 5, "the parametrisation covered almost nothing")
 
-    def test_a_rendered_story_is_recorded(self):
-        """Named explicitly, because this is the case the file was written for.
-
-        `story-*.json` is not in `flow-status.STEPS`, so it is only reachable through the
-        `schemas/` half of the union. Before today `schema_for` returned None for it and
-        `changed_artifacts` dropped it, so every story ever rendered crossed an edge that was
-        not looking. If this regresses, the handoff into implementation is unguarded again.
-        """
-        f = Fixture()
-        f.write("story-E1-S1.json", "{ not valid json")
-        f.hook("story-E1-S1.json")
-        self.assertTrue([r for r in f.trace() if r.get("artifact") == "story-E1-S1.json"],
-                        "a rendered story produced no trace record")
-
 
 class TestDeclaredNamesMatchProducedNames(unittest.TestCase):
     """A schema's declared `artifact` must match the name its producer actually writes.
 
-    This is the blind spot that let today's bug through, and it is a subtle one: the
+    This is the blind spot that let the original bug through, and it is a subtle one: the
     parametrised test above iterates *declared* names, so it is satisfied by whatever the
-    schema claims. Mutating `artifact` back to `"story.json"` keeps that test green — it
-    dutifully writes a file called `story.json`, which resolves — while every real
-    `story-E1-S1.json` goes unchecked. A test keyed to the declaration cannot detect a
-    declaration that is wrong.
+    schema claims. A schema declaring a fixed `artifact` while its producer writes a varying
+    name keeps that test green — it dutifully writes a file by the declared name, which
+    resolves — while every file the producer actually wrote goes unchecked. **A test keyed to
+    the declaration cannot detect a declaration that is wrong.**
 
-    So the authority has to be the producer. `stories.STORY_FILE` is what `render-stories.py`
-    writes, and the schema has to agree with it.
+    So for any artifact whose name is not a literal, the authority has to be the producer, and
+    the assertion has to use the producer's own name-building code rather than the registry's.
+    The sentinel is the only such artifact left; add a case here for the next one.
     """
 
-    def test_a_rendered_story_filename_resolves_to_the_story_schema(self):
-        from stories import story_filename  # the producer's own definition
-        name = story_filename("E1", "S1")
-        schema = common.schema_for(name, SCHEMAS)
-        self.assertIsNotNone(
-            schema, f"render-stories.py writes {name} and no schema claims it; "
-                    f"declared artifacts are {sorted(SCHEMAS)}")
-        self.assertEqual(schema["produced_by"], "render-stories",
-                         f"{name} resolved to the wrong schema: {schema['artifact']}")
-
     def test_a_sentinel_filename_resolves_to_the_sentinel_schema(self):
-        """The other glob-keyed artifact, for the same reason."""
+        """Built the way `write-sentinel.py` builds it, not the way the schema declares it."""
         name = "breakdown.json" + common.SENTINEL_SUFFIX
         schema = common.schema_for(name, SCHEMAS)
         self.assertIsNotNone(schema, f"nothing claims {name}")
