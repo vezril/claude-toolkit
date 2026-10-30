@@ -100,3 +100,27 @@ Certified: v5 on **Haiku**, the cheapest model that clears 95%. Sonnet also clea
 - Keep the eval harness neutral. If the wrapper tells the model how to format, the contract criterion measures the wrapper.
 - A shape constraint makes models terser. Pair it with an explicit content requirement, or coverage pays for it.
 - Repeat every case. Single runs moved by one or two asserts between identical runs, which is the same size as the effects I was trying to measure.
+
+## v6: Merge danger (folded from Matt Pocock's `pr` skill)
+
+The suite grows a fourth criterion, **risk**: the reply's Merge danger section calls the door right
+(one-way only when reverting the merge wouldn't undo it) and names a blast radius from the diff.
+Ground truth: every real PR here is a two-way door, which would let "always two-way" score full
+marks, so I added **case-11-drop-notes**, a synthetic migration that copies a column's data into a
+new table and then drops it: the one one-way door. contract now accepts an optional fourth section
+after Changes. Calibrated on 5 hand replies (contract + risk, all agree).
+
+Left out of the fold on purpose: Pocock's **Evidence** section (before/after screenshots or test
+runs). This skill's constraint is not to add results the diff doesn't show, and the diff never shows
+a test run's outcome, so Evidence would invite exactly the fabrication fidelity exists to catch. His
+visual Summary (call trees, diff sketches) is also out: it would compete with the Changes list this
+skill was certified on.
+
+v5 is re-run on the extended suite (TAG suite2) so v5 → v6 compares like with like. The original v5
+evidence (`run_v5_all.json`) is untouched.
+
+**Prediction, written before running:** v5 scores 0 on risk by construction (it has no such section)
+and keeps its other numbers on the 11-case suite. v6 gets the door right on the 10 two-way cases and
+on case-11 for Sonnet; Haiku might call case-11 two-way ("it's a migration, revert it"). The extra
+section may cost a point or two of **contract** (a model treating the Blast radius line as a place
+for a sign-off) but shouldn't touch coverage or fidelity.
