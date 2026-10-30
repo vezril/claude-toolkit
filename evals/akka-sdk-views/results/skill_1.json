@@ -1,0 +1,391 @@
+{
+  "evalId": "eval-nQR-2026-10-29T19:50:56",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:50:56.272Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/akka-sdk-views/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "dfae7daeda6e55a743ac045b2ef529834268b72526f021cfc5d14efa5eb24345",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 0,
+          "totalLatencyMs": 17226,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 2
+          },
+          "namedScoresCount": {
+            "accuracy": 2
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/eventually consistent|eventual|not.{0,25}synchron|Awaitility|poll|retry/i.test(output)) throw new Error('says views are eventually consistent; poll rather than read-your-write');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "67415b78-509a-472a-bd1d-5036bfcebebd",
+        "latencyMs": 8363,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-sdk-views\ndescription: Akka SDK Views (Java) — read-optimized projections (read models) built from entity/topic/stream events and queried with an SQL-like language; the CQRS read side. Covers defining a View (extend View, an inner TableUpdater with @Consume.FromEventSourcedEntity/FromKeyValueEntity/FromWorkflow/FromTopic/FromServiceStream, update handlers via effects().updateRow/deleteRow/ignore), @Query methods returning QueryEffect/QueryStreamEffect, the query syntax (SELECT/FROM/WHERE/ORDER BY/LIMIT/OFFSET, joins, GROUP BY/collect, text_search, pagination tokens, * AS), single vs multi-table views, streaming updates, snapshot/delete handlers, eventual consistency, and testing. Use when you need to query entities by attributes other than their id, query across many instances, or build a materialized read model in an Akka SDK service. Part of the Akka SDK (Java); see akka-sdk for the model.\n---\n\n# Akka SDK — Views\n\nA **read model / projection** that lets you query entities by attributes other than their id, and across many instances. You build one View per access pattern (it's auto-indexed for its queries). Views are **eventually consistent**. The CQRS read side for [[akka-sdk-event-sourced-entities]] / [[akka-sdk-key-value-entities]]. Part of the [[akka-sdk]] (Java).\n\nCross-links: [[akka-sdk]] (meta), [[akka-sdk-event-sourced-entities]], [[akka-sdk-key-value-entities]], [[akka-sdk-consumers]], [[akka-sdk-endpoints]].\n\n## Anatomy\n\n```java\n@Component(id = \"customers-by-email\")          // mandatory, unique, STABLE id\npublic class CustomersByEmail extends View {\n  public record Customers(List<Customer> customers) {}\n\n  @Consume.FromKeyValueEntity(CustomerEntity.class)            // the source goes on the TableUpdater\n  public static class Updater extends TableUpdater<Customer> {}  // Row type; empty body = store state as-is\n\n  @Query(\"SELECT * AS customers FROM customers_by_email WHERE email = :email\")\n  public QueryEffect<Customers> getByEmail(String email) { return queryResult(); }\n}\n```\n\n- A View `extends View`; one or more inner `static class … extends TableUpdater<Row>` declares a table (the table name in the SQL is your choice). The `@Consume.*` annotation goes on the **TableUpdater**.\n- Sources: `@Consume.FromEventSourcedEntity` (handle events), `FromKeyValueEntity` (state changes), `FromWorkflow` (state), `FromTopic` (broker messages — need `ce-subject` metadata; can't be rebuilt), `FromServiceStream` (another service's events).\n- Update handlers return `View.Effect<Row>`: `effects().updateRow(row)` (upsert), `deleteRow()`, `ignore()`. Helpers: `rowState()`, `updateContext().eventSubject()` (source id).\n- `@Query` methods return `QueryEffect<T>` (body `return queryResult();`) or `QueryStreamEffect<T>` (`queryStreamResult();`).\n\n```java\n@Consume.FromEventSourcedEntity(CustomerEntity.class)\npublic static class Updater extends TableUpdater<CustomerRow> {\n  public Effect<CustomerRow> onEvent(CustomerEvent e) {\n    return switch (e) {\n      case CustomerEvent.Created c -> effects().updateRow(new CustomerRow(c.email(), c.name()));\n      case CustomerEvent.NameChanged n -> effects().updateRow(rowState().withName(n.name()));\n      // effects().ignore() for events you don't track\n    };\n  }\n}\n```\n\n## Always-apply defaults\n\n1. **One View per query/access pattern;** `@Component(id)` must be **stable** (changing it forces a full rebuild from source — replays all events for ESE-sourced views; topic-sourced views can't rebuild and may lose history).\n2. **For ESE sources, switch over a `sealed` event interface** so every case is handled; `ignore()` what you don't need. Add a `@SnapshotHandler` to bootstrap from the latest snapshot (big speedup on long histories).\n3. **Treat views as eventually consistent** — poll with Awaitility in tests; never read-your-write synchronously after an entity update.\n4. **Build the View instead of scanning entities** by non-id attributes; pass multiple query params as a record whose field names bind to `:placeholders`.\n5. **Handle deletes** with a `@DeleteHandler` if you want logical-delete (`updateRow(row.asDeleted())`) vs the default hard delete.\n6. **Incompatible schema changes** (adding/removing tables, changing an indexed column's type) require a **new View id** that the runtime rebuilds — deploy alongside the old, let it catch up, switch, remove old.\n\n## Query syntax & streaming\n\nFull detail in **`references/query-syntax.md`** — SELECT/FROM/WHERE/ORDER BY/LIMIT/OFFSET, `:params`, `IN`/`= ANY(:array)`/`LIKE`/`IS NULL`, dot-access for nested fields, `text_search(...)`, `GROUP BY` + `collect(*)`, JOINs across multi-table views, `* AS field` to wrap rows into a result record, and token-based pagination (`next_page_token()` / `page_token_offset(:token)`). **Streaming**: return `QueryStreamEffect<T>` to stream collected results; add `streamUpdates = true` to a `@Query` to emit the current result then keep pushing changed rows (pipe to SSE/gRPC; not for service-to-service propagation and not guaranteed delivery — use a topic for that).\n\n## Testing\n\nIntegration via `TestKitSupport`: enable the source (`TestKit.Settings.DEFAULT.withKeyValueEntityIncomingMessages(CustomerEntity.class)`), publish test data through `testKit.getKeyValueEntityIncomingMessages(...).publish(...)`, then query via `componentClient.forView().method(View::getByEmail).invoke(...)` inside an `Awaitility.await()...untilAsserted(...)` (views lag).\n\n## Anti-patterns (flag in review)\n\n- Changing a View's `@Component(id)` casually (forces a rebuild); expecting immediate consistency after a write.\n- A topic-sourced view assumed to be rebuildable; non-idempotent topic updater without dedup.\n- Scanning/iterating entities for a query a View should serve; relying on `streamUpdates` for reliable service-to-service delivery (use a topic / [[akka-sdk-consumers]]).\n\n## Related\n\n- [[akka-sdk]] · [[akka-sdk-event-sourced-entities]] · [[akka-sdk-key-value-entities]] · [[akka-sdk-consumers]] · [[akka-sdk-endpoints]] (expose query results)\n- Source: https://doc.akka.io/sdk/views.html and https://doc.akka.io/reference/views/.\n</skill>\n\nUser request:\nI update the entity then immediately query the view in my test and get stale data. Bug?",
+          "label": "evals/akka-sdk-views/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "dfae7daeda6e55a743ac045b2ef529834268b72526f021cfc5d14efa5eb24345",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Not a bug. Views are eventually consistent: the entity write commits first, and the View catches up asynchronously from the event or state stream. A query right after the update can return the old row.\n\n**Fix in the test:** poll with Awaitility until the View reflects the change.\n\n```java\nAwaitility.await()\n    .ignoreExceptions()   // row may not exist yet\n    .atMost(10, TimeUnit.SECONDS)\n    .untilAsserted(() -> {\n      var result = componentClient.forView()\n          .method(CustomersByEmail::getByEmail)\n          .invoke(\"a@b.com\");\n      assertThat(result.customers()).hasSize(1);\n      assertThat(result.customers().get(0).name()).isEqualTo(\"New Name\");\n    });\n```\n\n**If the test never converges, check these:**\n- **Key-value entity source:** you need `TestKit.Settings.DEFAULT.withKeyValueEntityIncomingMessages(CustomerEntity.class)`, and you must publish through `testKit.getKeyValueEntityIncomingMessages(...).publish(...)`.\n- **Source annotation:** `@Consume.From…` must be on the inner `TableUpdater`, not the View class.\n- **Event sources:** the updater must handle the event, not `ignore()` it.\n\n**In production code:** if you need read-your-write, return the new state from the entity command's reply. Don't re-query the View."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "consistency",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-sdk-views/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-sdk-views/cases/consistency.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/eventually consistent|eventual|not.{0,25}synchron|Awaitility|poll|retry/i.test(output)) throw new Error('says views are eventually consistent; poll rather than read-your-write');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-sdk-views/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-sdk-views/cases/consistency.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/TableUpdater|@Consume|@Query|row|table/i.test(output)) throw new Error('names the view component parts');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "33617714-95ff-447b-adbd-3eeda99be219",
+        "latencyMs": 8863,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-sdk-views\ndescription: Akka SDK Views (Java) — read-optimized projections (read models) built from entity/topic/stream events and queried with an SQL-like language; the CQRS read side. Covers defining a View (extend View, an inner TableUpdater with @Consume.FromEventSourcedEntity/FromKeyValueEntity/FromWorkflow/FromTopic/FromServiceStream, update handlers via effects().updateRow/deleteRow/ignore), @Query methods returning QueryEffect/QueryStreamEffect, the query syntax (SELECT/FROM/WHERE/ORDER BY/LIMIT/OFFSET, joins, GROUP BY/collect, text_search, pagination tokens, * AS), single vs multi-table views, streaming updates, snapshot/delete handlers, eventual consistency, and testing. Use when you need to query entities by attributes other than their id, query across many instances, or build a materialized read model in an Akka SDK service. Part of the Akka SDK (Java); see akka-sdk for the model.\n---\n\n# Akka SDK — Views\n\nA **read model / projection** that lets you query entities by attributes other than their id, and across many instances. You build one View per access pattern (it's auto-indexed for its queries). Views are **eventually consistent**. The CQRS read side for [[akka-sdk-event-sourced-entities]] / [[akka-sdk-key-value-entities]]. Part of the [[akka-sdk]] (Java).\n\nCross-links: [[akka-sdk]] (meta), [[akka-sdk-event-sourced-entities]], [[akka-sdk-key-value-entities]], [[akka-sdk-consumers]], [[akka-sdk-endpoints]].\n\n## Anatomy\n\n```java\n@Component(id = \"customers-by-email\")          // mandatory, unique, STABLE id\npublic class CustomersByEmail extends View {\n  public record Customers(List<Customer> customers) {}\n\n  @Consume.FromKeyValueEntity(CustomerEntity.class)            // the source goes on the TableUpdater\n  public static class Updater extends TableUpdater<Customer> {}  // Row type; empty body = store state as-is\n\n  @Query(\"SELECT * AS customers FROM customers_by_email WHERE email = :email\")\n  public QueryEffect<Customers> getByEmail(String email) { return queryResult(); }\n}\n```\n\n- A View `extends View`; one or more inner `static class … extends TableUpdater<Row>` declares a table (the table name in the SQL is your choice). The `@Consume.*` annotation goes on the **TableUpdater**.\n- Sources: `@Consume.FromEventSourcedEntity` (handle events), `FromKeyValueEntity` (state changes), `FromWorkflow` (state), `FromTopic` (broker messages — need `ce-subject` metadata; can't be rebuilt), `FromServiceStream` (another service's events).\n- Update handlers return `View.Effect<Row>`: `effects().updateRow(row)` (upsert), `deleteRow()`, `ignore()`. Helpers: `rowState()`, `updateContext().eventSubject()` (source id).\n- `@Query` methods return `QueryEffect<T>` (body `return queryResult();`) or `QueryStreamEffect<T>` (`queryStreamResult();`).\n\n```java\n@Consume.FromEventSourcedEntity(CustomerEntity.class)\npublic static class Updater extends TableUpdater<CustomerRow> {\n  public Effect<CustomerRow> onEvent(CustomerEvent e) {\n    return switch (e) {\n      case CustomerEvent.Created c -> effects().updateRow(new CustomerRow(c.email(), c.name()));\n      case CustomerEvent.NameChanged n -> effects().updateRow(rowState().withName(n.name()));\n      // effects().ignore() for events you don't track\n    };\n  }\n}\n```\n\n## Always-apply defaults\n\n1. **One View per query/access pattern;** `@Component(id)` must be **stable** (changing it forces a full rebuild from source — replays all events for ESE-sourced views; topic-sourced views can't rebuild and may lose history).\n2. **For ESE sources, switch over a `sealed` event interface** so every case is handled; `ignore()` what you don't need. Add a `@SnapshotHandler` to bootstrap from the latest snapshot (big speedup on long histories).\n3. **Treat views as eventually consistent** — poll with Awaitility in tests; never read-your-write synchronously after an entity update.\n4. **Build the View instead of scanning entities** by non-id attributes; pass multiple query params as a record whose field names bind to `:placeholders`.\n5. **Handle deletes** with a `@DeleteHandler` if you want logical-delete (`updateRow(row.asDeleted())`) vs the default hard delete.\n6. **Incompatible schema changes** (adding/removing tables, changing an indexed column's type) require a **new View id** that the runtime rebuilds — deploy alongside the old, let it catch up, switch, remove old.\n\n## Query syntax & streaming\n\nFull detail in **`references/query-syntax.md`** — SELECT/FROM/WHERE/ORDER BY/LIMIT/OFFSET, `:params`, `IN`/`= ANY(:array)`/`LIKE`/`IS NULL`, dot-access for nested fields, `text_search(...)`, `GROUP BY` + `collect(*)`, JOINs across multi-table views, `* AS field` to wrap rows into a result record, and token-based pagination (`next_page_token()` / `page_token_offset(:token)`). **Streaming**: return `QueryStreamEffect<T>` to stream collected results; add `streamUpdates = true` to a `@Query` to emit the current result then keep pushing changed rows (pipe to SSE/gRPC; not for service-to-service propagation and not guaranteed delivery — use a topic for that).\n\n## Testing\n\nIntegration via `TestKitSupport`: enable the source (`TestKit.Settings.DEFAULT.withKeyValueEntityIncomingMessages(CustomerEntity.class)`), publish test data through `testKit.getKeyValueEntityIncomingMessages(...).publish(...)`, then query via `componentClient.forView().method(View::getByEmail).invoke(...)` inside an `Awaitility.await()...untilAsserted(...)` (views lag).\n\n## Anti-patterns (flag in review)\n\n- Changing a View's `@Component(id)` casually (forces a rebuild); expecting immediate consistency after a write.\n- A topic-sourced view assumed to be rebuildable; non-idempotent topic updater without dedup.\n- Scanning/iterating entities for a query a View should serve; relying on `streamUpdates` for reliable service-to-service delivery (use a topic / [[akka-sdk-consumers]]).\n\n## Related\n\n- [[akka-sdk]] · [[akka-sdk-event-sourced-entities]] · [[akka-sdk-key-value-entities]] · [[akka-sdk-consumers]] · [[akka-sdk-endpoints]] (expose query results)\n- Source: https://doc.akka.io/sdk/views.html and https://doc.akka.io/reference/views/.\n</skill>\n\nUser request:\nWhat does an Akka SDK View consist of?",
+          "label": "evals/akka-sdk-views/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "dfae7daeda6e55a743ac045b2ef529834268b72526f021cfc5d14efa5eb24345",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "An Akka SDK View consists of:\n\n- **A class extending `View`** with a mandatory, stable `@Component(id = \"...\")`.\n- **One or more inner `static class … extends TableUpdater<Row>`**, each declaring a table (you choose the table name used in SQL). The source annotation goes on the TableUpdater, not the View. The sources are:\n  - `@Consume.FromEventSourcedEntity`\n  - `@Consume.FromKeyValueEntity`\n  - `@Consume.FromWorkflow`\n  - `@Consume.FromTopic`\n  - `@Consume.FromServiceStream`\n- **Update handlers** in the TableUpdater, returning `Effect<Row>`:\n  - `effects().updateRow(row)` upserts a row.\n  - `deleteRow()` removes it.\n  - `ignore()` skips the event.\n  - `rowState()` gives you the current row.\n\n  An empty TableUpdater body stores the source state as-is.\n- **`@Query` methods** returning `QueryEffect<T>` or `QueryStreamEffect<T>`. They contain SQL-like queries (`SELECT … FROM <table> WHERE … :param`), and the method body is just `return queryResult();`.\n- **Optional extras:** `@SnapshotHandler`, `@DeleteHandler` (for logical delete), and `streamUpdates = true` on a query.\n\nViews are eventually consistent."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "anatomy",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-sdk-views/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-sdk-views/cases/anatomy.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/TableUpdater|@Consume|@Query|row|table/i.test(output)) throw new Error('names the view component parts');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-sdk-views/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-sdk-views/cases/anatomy.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 8886,
+      "evaluationDurationMs": 8886
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-sdk-views — EDD",
+    "prompts": [
+      "file:///private/tmp/b6/evals/akka-sdk-views/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "consistency",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-views/cases/consistency.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/eventually consistent|eventual|not.{0,25}synchron|Awaitility|poll|retry/i.test(output)) throw new Error('says views are eventually consistent; poll rather than read-your-write');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "anatomy",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-views/cases/anatomy.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/TableUpdater|@Consume|@Query|row|table/i.test(output)) throw new Error('names the view component parts');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-sdk-views/results/skill_1.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b6/skills/akka-sdk-views/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b6/evals/akka-sdk-views"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:51:05.220Z",
+    "evaluationCreatedAt": "2026-10-29T19:50:56.272Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

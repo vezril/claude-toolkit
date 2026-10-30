@@ -1,0 +1,516 @@
+{
+  "evalId": "eval-NYm-2026-10-29T19:25:15",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:25:15.221Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "label": "evals/stripe-payments/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "id": "408b435250c4752b9de6d4aba80ac7e77d51f3ce2f8b2d83eb4fe1acbbc82bf4",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 3,
+          "testPassCount": 3,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 4,
+          "assertFailCount": 0,
+          "totalLatencyMs": 37984,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 4
+          },
+          "namedScoresCount": {
+            "accuracy": 4
+          },
+          "namedScoreWeights": {
+            "accuracy": 4
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/webhook/i.test(output)) throw new Error('says fulfil from webhooks');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/close.{0,20}tab|settle|days|unreliable|not.{0,20}success page|don'?t.{0,25}success/i.test(output)) throw new Error('explains why the success page is unreliable');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "7a7770a4-6ebb-4fca-ad3c-09ccec2e60dd",
+        "latencyMs": 12351,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nWhere should I mark the order paid — on my success page after redirect, or somewhere else?",
+          "label": "evals/stripe-payments/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "408b435250c4752b9de6d4aba80ac7e77d51f3ce2f8b2d83eb4fe1acbbc82bf4",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Mark it paid in a webhook handler, not on the success page.\n\n- **Events to handle:** `checkout.session.completed` and `checkout.session.async_payment_succeeded` if you use Checkout. If you use PaymentIntents directly, handle `payment_intent.succeeded`.\n- **Check `payment_status`:** `checkout.session.completed` doesn't mean the customer paid. Delayed methods such as ACH complete the session while it's still `unpaid`. Only fulfill when `payment_status == \"paid\"`.\n- **Why not the success page:** Customers close the tab before the redirect, and bank debits can settle days later. Anyone can also open your success URL by hand.\n- **Verify the signature:** Use the SDK's `constructEvent` on the raw request body. A framework that parses and re-serializes the JSON will break verification.\n- **Make it idempotent:** Stripe delivers events at least once, and sometimes concurrently. Put a unique constraint on the session or payment ID, and dedupe on `event.id`.\n- **Respond fast:** Return 2xx right away and do the heavy work asynchronously.\n- **Join back to your order:** Put your `order_id` in `metadata` (or `client_reference_id` for Checkout) when you create the session. The webhook can then look up the order.\n- **Success page:** It can show \"processing\" or \"paid\" by reading your own order status. If you also want to fulfill there for speed, call the same idempotent function the webhook uses."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "fulfill",
+          "vars": {
+            "request": "file:///private/tmp/b5/evals/stripe-payments/cases/fulfill.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/webhook/i.test(output)) throw new Error('says fulfil from webhooks');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/close.{0,20}tab|settle|days|unreliable|not.{0,20}success page|don'?t.{0,25}success/i.test(output)) throw new Error('explains why the success page is unreliable');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/stripe-payments/cases/fulfill.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/raw (request )?body|raw body|unparsed|before.{0,20}pars/i.test(output)) throw new Error('identifies the raw-body requirement');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "0ad87eb6-d6bd-49dc-ab7f-76e19601ce39",
+        "latencyMs": 11211,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nMy webhook signature check fails intermittently. My framework parses JSON then I re-serialize it for verification.",
+          "label": "evals/stripe-payments/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "408b435250c4752b9de6d4aba80ac7e77d51f3ce2f8b2d83eb4fe1acbbc82bf4",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Re-serializing changes the bytes, and the signature is an HMAC over the exact raw bytes the sender signed. Whitespace, key order, unicode escaping (`\\u00e9` vs `é`), number formatting (`1.0` vs `1`) and escaped slashes can all differ after a parse and re-serialize. The check only fails on payloads where one of those differs, which is why it looks intermittent.\n\nThe fix is to verify against the raw request body and parse JSON only afterward.\n\n**Express** (Stripe example):\n```js\n// Must come before any express.json() on this route\napp.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {\n  const event = stripe.webhooks.constructEvent(\n    req.body,                         // Buffer, not parsed object\n    req.headers['stripe-signature'],\n    process.env.WEBHOOK_SECRET\n  );\n  // ...\n});\n```\n\n**Flask:**\n```python\npayload = request.get_data()          # raw bytes; call before request.get_json()\nevent = stripe.Webhook.construct_event(payload, request.headers[\"Stripe-Signature\"], secret)\n```\n\n**Generic HMAC:**\n- Compute the HMAC over the raw bytes.\n- Compare with a constant-time function (`hmac.compare_digest`, `crypto.timingSafeEqual`).\n- Don't decode the body to a string and re-encode it.\n\nIf a global JSON middleware consumes the body first, either exempt the webhook route from it or use the framework's `verify`/raw-body hook to stash the raw bytes. In Express, that's `express.json({ verify: (req, _res, buf) => { req.rawBody = buf; } })`.\n\nIf it still fails after that, check for a proxy or gateway that rewrites the body, and check that you're using the right endpoint's signing secret. Test and live endpoints have different secrets."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "signature",
+          "vars": {
+            "request": "file:///private/tmp/b5/evals/stripe-payments/cases/signature.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/raw (request )?body|raw body|unparsed|before.{0,20}pars/i.test(output)) throw new Error('identifies the raw-body requirement');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/stripe-payments/cases/signature.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/idempot|dedup|event\\.id|at least once/i.test(output)) throw new Error('prescribes idempotent fulfilment / dedupe on event id');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "b273b1b0-ca2a-4d0c-8684-4492bd3ef9dc",
+        "latencyMs": 14422,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nStripe delivered the same event twice and we shipped twice. How do I stop that?",
+          "label": "evals/stripe-payments/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "408b435250c4752b9de6d4aba80ac7e77d51f3ce2f8b2d83eb4fe1acbbc82bf4",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Stripe delivers webhooks at least once, so your handler has to be idempotent. Two layers do that:\n\n1. **Dedupe on `event.id`.** Insert it into a `processed_events` table with a unique constraint, in the same transaction as the fulfillment. If the insert conflicts, return 200 and do nothing.\n2. **Guard on the business object.** Put a unique constraint on `checkout_session_id` (or `payment_intent_id`) in your orders or fulfillments table. This also covers two different events for the same payment, such as `checkout.session.completed` and `async_payment_succeeded`, or the success page and the webhook both fulfilling.\n\n```sql\nCREATE TABLE fulfillments (\n  checkout_session_id text PRIMARY KEY,\n  order_id text NOT NULL,\n  fulfilled_at timestamptz NOT NULL DEFAULT now()\n);\n-- in the handler, inside one transaction:\nINSERT INTO fulfillments (...) VALUES (...) ON CONFLICT DO NOTHING;\n-- only ship if a row was actually inserted\n```\n\nStripe can deliver the duplicates concurrently, so a \"check, then ship\" read is a race. Make the insert the lock, and ship only if the insert won.\n\nAlso:\n- **Ack fast.** Enqueue the work and return 2xx right away. Slow handlers time out, and Stripe retries them, which creates duplicates.\n- **Check `payment_status == \"paid\"`.** `checkout.session.completed` doesn't mean the money has arrived.\n- **Send an `Idempotency-Key` on your own mutating Stripe calls**, keyed to your order ID.\n\nIf you show me the handler, I can apply the fix directly. Grep is disabled in this session, so I haven't looked at your code yet."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "idempotent",
+          "vars": {
+            "request": "file:///private/tmp/b5/evals/stripe-payments/cases/idempotent.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/idempot|dedup|event\\.id|at least once/i.test(output)) throw new Error('prescribes idempotent fulfilment / dedupe on event id');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/stripe-payments/cases/idempotent.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 3,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 14442,
+      "evaluationDurationMs": 14442
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "stripe-payments — EDD — NAIVE BASELINE",
+    "prompts": [
+      "file:///private/tmp/b5/evals/stripe-payments/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "fulfill",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/stripe-payments/cases/fulfill.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/webhook/i.test(output)) throw new Error('says fulfil from webhooks');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/close.{0,20}tab|settle|days|unreliable|not.{0,20}success page|don'?t.{0,25}success/i.test(output)) throw new Error('explains why the success page is unreliable');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "signature",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/stripe-payments/cases/signature.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/raw (request )?body|raw body|unparsed|before.{0,20}pars/i.test(output)) throw new Error('identifies the raw-body requirement');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "idempotent",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/stripe-payments/cases/idempotent.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/idempot|dedup|event\\.id|at least once/i.test(output)) throw new Error('prescribes idempotent fulfilment / dedupe on event id');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/stripe-payments/results/baseline_3.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/private/tmp/b5/evals/stripe-payments"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:25:29.706Z",
+    "evaluationCreatedAt": "2026-10-29T19:25:15.221Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

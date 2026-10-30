@@ -1,0 +1,534 @@
+{
+  "evalId": "eval-hbG-2026-10-29T18:29:36",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T18:29:36.112Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/game-programming-patterns/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "a2d37817758e6af797c894c4a4f4ec1fdfe81cb76ca7f90b843a17e8a49fc92e",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 3,
+          "testPassCount": 3,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 4,
+          "assertFailCount": 0,
+          "totalLatencyMs": 32257,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 3,
+            "restraint": 1
+          },
+          "namedScoresCount": {
+            "accuracy": 3,
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 3,
+            "restraint": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "if (!/speculativ|don'?t|avoid|real problem|pain|wait|only when|premature|as needed/i.test(output)) throw new Error('warns against applying patterns speculatively');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "9692360f-6d28-4805-8cec-6ddf207ff3ea",
+        "latencyMs": 10278,
+        "namedScores": {
+          "restraint": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: game-programming-patterns\ndescription: Software design patterns for games, distilled from Robert Nystrom's *Game Programming Patterns*. Covers the architecture/performance/dev-speed tension unique to games and the pattern catalog — the Game Loop, Update Method, Component (entity composition / ECS roots), State (finite state machines), Observer, Command (input handling/undo/replay), Event Queue, Service Locator, Flyweight, Type Object, Subclass Sandbox, Bytecode, Prototype, Double Buffer, Data Locality, Dirty Flag, Object Pool, and Spatial Partition — plus a games-eye critique of the GoF patterns (incl. Singleton as an anti-pattern). Use when structuring game code, choosing how to represent entities/behavior/state, decoupling systems, handling input, optimizing a hot path (cache locality, pooling, spatial queries), or picking the right pattern for a gameplay problem. The code-architecture layer of the game-dev cluster; builds on design-patterns and pairs with godot, game-development, and the technical skills.\n---\n\n# Game Programming Patterns\n\nBattle-tested **software design patterns for games**, from **Robert Nystrom's *Game Programming Patterns*** (free at gameprogrammingpatterns.com). Where [[design-patterns]] is the Gang-of-Four for general software, this is the games dialect — patterns shaped by the game loop, real-time performance, and designer-driven content.\n\nCross-links: [[design-patterns]] (the GoF base these revisit), [[godot]] (which builds several of these in — nodes/scenes ≈ Component, signals ≈ Observer, the SceneTree ≈ Game Loop), [[software-architecture]] / [[software-design]] (the general design tier), [[game-development]] (where these are applied), [[functional-programming]] (immutability/data-oriented thinking).\n\n## The central tension\n\nNystrom frames it up front: game code lives in tension between **good architecture** (decoupled, changeable), **runtime performance** (the frame budget — ~16 ms at 60 fps), and **development speed** (ship the game). Patterns are tools to buy one without sacrificing too much of the others — *and knowing when not to use them* is as important as knowing them. Don't apply a pattern speculatively; apply it when the pain it solves is real ([[design-patterns]]/[[software-design]] restraint).\n\n## The catalog (when to reach for each)\n\nGrouped as in the book. Full one-liners + trade-offs in `references/pattern-catalog.md`.\n\n**Design Patterns Revisited (GoF, for games)**\n- **Command** — wrap an action as an object → input remapping, undo/redo, replays, AI issuing orders, queued actions.\n- **Flyweight** — share the identical part of many objects (tile/tree/forest data) → massive memory savings.\n- **Observer** — let systems react to state changes without coupling (achievements, UI updating on model changes). *(Godot signals are this.)*\n- **Prototype** — spawn objects by cloning exemplars → data-driven spawners, monster \"breeds.\"\n- **Singleton** — included **as a cautionary tale**: usually an anti-pattern (global state, hidden coupling, untestable); prefer passing dependencies or a Service Locator. *(Godot autoloads are a constrained version.)*\n- **State** — finite state machines: behavior that changes with internal state (idle/run/jump/attack) instead of a tangle of booleans; extends to hierarchical & pushdown FSMs.\n\n**Sequencing (control time & order)**\n- **Double Buffer** — compute into a back buffer, swap atomically → no tearing/half-updated state (rendering, simulation steps).\n- **Game Loop** — the heart: process input → update the world → render, **decoupled from real time** (fixed timestep — see [[multiplayer-networking]]/Fix-Your-Timestep). *(Godot's main loop + `_process`/`_physics_process`.)*\n- **Update Method** — each entity gets `update(dt)` called once per frame to advance its own behavior. *(Godot `_process(delta)`.)*\n\n**Behavioral (define behavior, data-driven)**\n- **Bytecode** — encode behavior as data run by a little VM → safe, sandboxed, hot-reloadable designer scripting.\n- **Subclass Sandbox** — a base class exposes safe primitive ops; subclasses combine them to define behavior.\n- **Type Object** — represent \"kinds\" (monster types, item types) as runtime data, not subclasses → data-driven categories.\n\n**Decoupling**\n- **Component** — compose entities from reusable components (position, sprite, physics, AI) instead of deep inheritance — the root of **ECS**. *(Godot nodes/scenes are composition-first.)*\n- **Event Queue** — decouple *when* an event is sent from *when* it's handled (input, audio, async messaging).\n- **Service Locator** — global access to a service (audio, logging) without hard-coupling to its implementation; a disciplined alternative to Singleton.\n\n**Optimization (the frame budget)**\n- **Data Locality** — lay data out for cache friendliness (contiguous arrays, struct-of-arrays) → big speedups on CPU-bound update loops; the gateway to **data-oriented design** / ECS. ([[operating-systems]] caches.)\n- **Dirty Flag** — defer expensive recomputation until the result is actually needed (transforms, derived state).\n- **Object Pool** — reuse a fixed pool instead of alloc/free per frame (bullets, particles, enemies) → no fragmentation/GC stalls.\n- **Spatial Partition** — index objects by position (grid, quadtree, BVH, BSP) for fast collision/range/visibility queries. ([[game-physics]] broad-phase; [[game-math]].)\n\n## How this maps to Godot\n\n[[godot]] bakes in several patterns, so \"use the engine's version\" is often the answer: **nodes/scenes = Component/composition**, **signals = Observer**, **the SceneTree + `_process`/`_physics_process` = Game Loop/Update Method**, **autoload = (constrained) Singleton/Service Locator**, **resources = Type Object/Flyweight-ish data**. Reach for the hand-rolled pattern when the engine's affordance doesn't fit (e.g. an Object Pool for bullets, a Command stack for undo, a Spatial Partition for a custom collision query).\n\n## Anti-patterns\n\n- Applying patterns **speculatively** (Nystrom's biggest warning) — pattern soup that adds indirection for no real problem.\n- **Singleton everywhere** → global mutable state, hidden coupling, untestable; reach for it last.\n- Deep **inheritance hierarchies** for entities where **Component** composition fits.\n- Allocating per-frame in hot loops (no **Object Pool**) → GC/alloc stutter; ignoring **Data Locality** in the update loop.\n- Recomputing derived state every frame instead of a **Dirty Flag**; O(n²) collision checks instead of a **Spatial Partition**.\n- Tangled boolean flags where a **State** machine belongs; tight coupling where **Observer**/**Event Queue** would decouple.\n\n## Always-apply\n\n1. Mind the **architecture / performance / dev-speed** trade-off; apply a pattern only when the pain is real.\n2. Prefer **composition (Component)** over inheritance; **State machines** over flag tangles; **Observer/Event Queue** to decouple.\n3. In hot paths optimize with **Data Locality, Object Pool, Dirty Flag, Spatial Partition** — but measure first.\n4. **Use the engine's built-in version** ([[godot]] nodes/signals/loop) before hand-rolling.\n5. Avoid **Singleton**; treat patterns as tools, not goals ([[design-patterns]] restraint).\n\n## How to use the reference\n\n- **`references/pattern-catalog.md`** — every pattern with its intent, when-to-use, trade-offs, and Godot equivalent.\n\n## Related\n\n- [[design-patterns]] — the GoF patterns these revisit for games.\n- [[godot]] — the engine that implements many of these; where you apply them.\n- [[software-architecture]] / [[software-design]] — the general design tier and the \"apply only to real complexity\" restraint.\n- [[game-physics]] (spatial partition / broad-phase), [[game-ai]] (State/behavior), [[operating-systems]] (data locality / caches), [[functional-programming]] (data-oriented thinking).\n- Source: *Game Programming Patterns* (Robert Nystrom, free at gameprogrammingpatterns.com).\n</skill>\n\nUser request:\nI'm starting a new game. Which of the game programming patterns should I put in from the beginning so the architecture is right?",
+          "label": "evals/game-programming-patterns/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "a2d37817758e6af797c894c4a4f4ec1fdfe81cb76ca7f90b843a17e8a49fc92e",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Put in only the few patterns that are hard to retrofit, and leave the rest until you've measured a problem.\n\n**From day one:**\n- **Game Loop and Update Method:** a fixed-timestep loop with per-entity `update(dt)`. Your engine probably gives you this (Godot's `_process` and `_physics_process`).\n- **Component:** compose entities from parts instead of deep inheritance. It's painful to unwind later.\n- **State:** use a state machine for player and enemy behavior rather than piles of booleans.\n- **Command:** route input through actions or commands. This gives you remapping now and undo, replay, or AI-issued orders later.\n- **Observer (or Event Queue):** use it for UI, audio, and achievements so gameplay code doesn't depend on them.\n\n**Wait until profiling or real pain:** Object Pool, Spatial Partition, Dirty Flag, Data Locality, Flyweight, Bytecode, and Type Object. Add Type Object early only if you already know you'll have many data-defined kinds of monsters or items.\n\n**Avoid:** Singleton. Pass dependencies in, or use a Service Locator for things like audio.\n\nIf you're on Godot, nodes and scenes, signals, and the SceneTree already cover Component, Observer, and Game Loop, so use those. What engine are you using? I can map this to your setup."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "speculative",
+          "vars": {
+            "skill": "file:///private/tmp/b4/skills/game-programming-patterns/SKILL.md",
+            "request": "file:///private/tmp/b4/evals/game-programming-patterns/cases/speculative.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "if (!/speculativ|don'?t|avoid|real problem|pain|wait|only when|premature|as needed/i.test(output)) throw new Error('warns against applying patterns speculatively');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b4/skills/game-programming-patterns/SKILL.md",
+          "request": "file:///private/tmp/b4/evals/game-programming-patterns/cases/speculative.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/state machine|\\bState\\b/i.test(output)) throw new Error('prescribes a State machine');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "c909343f-efd7-4abf-8eab-c969ff9e6f64",
+        "latencyMs": 12509,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: game-programming-patterns\ndescription: Software design patterns for games, distilled from Robert Nystrom's *Game Programming Patterns*. Covers the architecture/performance/dev-speed tension unique to games and the pattern catalog — the Game Loop, Update Method, Component (entity composition / ECS roots), State (finite state machines), Observer, Command (input handling/undo/replay), Event Queue, Service Locator, Flyweight, Type Object, Subclass Sandbox, Bytecode, Prototype, Double Buffer, Data Locality, Dirty Flag, Object Pool, and Spatial Partition — plus a games-eye critique of the GoF patterns (incl. Singleton as an anti-pattern). Use when structuring game code, choosing how to represent entities/behavior/state, decoupling systems, handling input, optimizing a hot path (cache locality, pooling, spatial queries), or picking the right pattern for a gameplay problem. The code-architecture layer of the game-dev cluster; builds on design-patterns and pairs with godot, game-development, and the technical skills.\n---\n\n# Game Programming Patterns\n\nBattle-tested **software design patterns for games**, from **Robert Nystrom's *Game Programming Patterns*** (free at gameprogrammingpatterns.com). Where [[design-patterns]] is the Gang-of-Four for general software, this is the games dialect — patterns shaped by the game loop, real-time performance, and designer-driven content.\n\nCross-links: [[design-patterns]] (the GoF base these revisit), [[godot]] (which builds several of these in — nodes/scenes ≈ Component, signals ≈ Observer, the SceneTree ≈ Game Loop), [[software-architecture]] / [[software-design]] (the general design tier), [[game-development]] (where these are applied), [[functional-programming]] (immutability/data-oriented thinking).\n\n## The central tension\n\nNystrom frames it up front: game code lives in tension between **good architecture** (decoupled, changeable), **runtime performance** (the frame budget — ~16 ms at 60 fps), and **development speed** (ship the game). Patterns are tools to buy one without sacrificing too much of the others — *and knowing when not to use them* is as important as knowing them. Don't apply a pattern speculatively; apply it when the pain it solves is real ([[design-patterns]]/[[software-design]] restraint).\n\n## The catalog (when to reach for each)\n\nGrouped as in the book. Full one-liners + trade-offs in `references/pattern-catalog.md`.\n\n**Design Patterns Revisited (GoF, for games)**\n- **Command** — wrap an action as an object → input remapping, undo/redo, replays, AI issuing orders, queued actions.\n- **Flyweight** — share the identical part of many objects (tile/tree/forest data) → massive memory savings.\n- **Observer** — let systems react to state changes without coupling (achievements, UI updating on model changes). *(Godot signals are this.)*\n- **Prototype** — spawn objects by cloning exemplars → data-driven spawners, monster \"breeds.\"\n- **Singleton** — included **as a cautionary tale**: usually an anti-pattern (global state, hidden coupling, untestable); prefer passing dependencies or a Service Locator. *(Godot autoloads are a constrained version.)*\n- **State** — finite state machines: behavior that changes with internal state (idle/run/jump/attack) instead of a tangle of booleans; extends to hierarchical & pushdown FSMs.\n\n**Sequencing (control time & order)**\n- **Double Buffer** — compute into a back buffer, swap atomically → no tearing/half-updated state (rendering, simulation steps).\n- **Game Loop** — the heart: process input → update the world → render, **decoupled from real time** (fixed timestep — see [[multiplayer-networking]]/Fix-Your-Timestep). *(Godot's main loop + `_process`/`_physics_process`.)*\n- **Update Method** — each entity gets `update(dt)` called once per frame to advance its own behavior. *(Godot `_process(delta)`.)*\n\n**Behavioral (define behavior, data-driven)**\n- **Bytecode** — encode behavior as data run by a little VM → safe, sandboxed, hot-reloadable designer scripting.\n- **Subclass Sandbox** — a base class exposes safe primitive ops; subclasses combine them to define behavior.\n- **Type Object** — represent \"kinds\" (monster types, item types) as runtime data, not subclasses → data-driven categories.\n\n**Decoupling**\n- **Component** — compose entities from reusable components (position, sprite, physics, AI) instead of deep inheritance — the root of **ECS**. *(Godot nodes/scenes are composition-first.)*\n- **Event Queue** — decouple *when* an event is sent from *when* it's handled (input, audio, async messaging).\n- **Service Locator** — global access to a service (audio, logging) without hard-coupling to its implementation; a disciplined alternative to Singleton.\n\n**Optimization (the frame budget)**\n- **Data Locality** — lay data out for cache friendliness (contiguous arrays, struct-of-arrays) → big speedups on CPU-bound update loops; the gateway to **data-oriented design** / ECS. ([[operating-systems]] caches.)\n- **Dirty Flag** — defer expensive recomputation until the result is actually needed (transforms, derived state).\n- **Object Pool** — reuse a fixed pool instead of alloc/free per frame (bullets, particles, enemies) → no fragmentation/GC stalls.\n- **Spatial Partition** — index objects by position (grid, quadtree, BVH, BSP) for fast collision/range/visibility queries. ([[game-physics]] broad-phase; [[game-math]].)\n\n## How this maps to Godot\n\n[[godot]] bakes in several patterns, so \"use the engine's version\" is often the answer: **nodes/scenes = Component/composition**, **signals = Observer**, **the SceneTree + `_process`/`_physics_process` = Game Loop/Update Method**, **autoload = (constrained) Singleton/Service Locator**, **resources = Type Object/Flyweight-ish data**. Reach for the hand-rolled pattern when the engine's affordance doesn't fit (e.g. an Object Pool for bullets, a Command stack for undo, a Spatial Partition for a custom collision query).\n\n## Anti-patterns\n\n- Applying patterns **speculatively** (Nystrom's biggest warning) — pattern soup that adds indirection for no real problem.\n- **Singleton everywhere** → global mutable state, hidden coupling, untestable; reach for it last.\n- Deep **inheritance hierarchies** for entities where **Component** composition fits.\n- Allocating per-frame in hot loops (no **Object Pool**) → GC/alloc stutter; ignoring **Data Locality** in the update loop.\n- Recomputing derived state every frame instead of a **Dirty Flag**; O(n²) collision checks instead of a **Spatial Partition**.\n- Tangled boolean flags where a **State** machine belongs; tight coupling where **Observer**/**Event Queue** would decouple.\n\n## Always-apply\n\n1. Mind the **architecture / performance / dev-speed** trade-off; apply a pattern only when the pain is real.\n2. Prefer **composition (Component)** over inheritance; **State machines** over flag tangles; **Observer/Event Queue** to decouple.\n3. In hot paths optimize with **Data Locality, Object Pool, Dirty Flag, Spatial Partition** — but measure first.\n4. **Use the engine's built-in version** ([[godot]] nodes/signals/loop) before hand-rolling.\n5. Avoid **Singleton**; treat patterns as tools, not goals ([[design-patterns]] restraint).\n\n## How to use the reference\n\n- **`references/pattern-catalog.md`** — every pattern with its intent, when-to-use, trade-offs, and Godot equivalent.\n\n## Related\n\n- [[design-patterns]] — the GoF patterns these revisit for games.\n- [[godot]] — the engine that implements many of these; where you apply them.\n- [[software-architecture]] / [[software-design]] — the general design tier and the \"apply only to real complexity\" restraint.\n- [[game-physics]] (spatial partition / broad-phase), [[game-ai]] (State/behavior), [[operating-systems]] (data locality / caches), [[functional-programming]] (data-oriented thinking).\n- Source: *Game Programming Patterns* (Robert Nystrom, free at gameprogrammingpatterns.com).\n</skill>\n\nUser request:\nMy player class has eleven boolean flags — isJumping, isCrouching, isAttacking and so on — and the combinations are a nightmare.",
+          "label": "evals/game-programming-patterns/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "a2d37817758e6af797c894c4a4f4ec1fdfe81cb76ca7f90b843a17e8a49fc92e",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Replace the flags with a **State** machine (enum or state objects), so only one state is active at a time and illegal combinations like jumping+crouching can't exist.\n\n```gdscript\nenum State { IDLE, RUN, JUMP, CROUCH, ATTACK }\nvar state := State.IDLE\n\nfunc _physics_process(delta):\n    match state:\n        State.IDLE:   _idle(delta)\n        State.JUMP:   _jump(delta)\n        State.CROUCH: _crouch(delta)\n        # ...\n\nfunc _crouch(delta):\n    if Input.is_action_just_pressed(\"attack\"): change_state(State.ATTACK)\n    elif not Input.is_action_pressed(\"crouch\"): change_state(State.IDLE)\n```\n\n- **Not every flag is a state.** Some are independent (e.g. `isInvincible`, `isGrounded`). Keep those as flags.\n- **Overlapping behaviors:** If you need to crouch and attack at once, use two machines, one for movement and one for action. Don't multiply states into CROUCH_ATTACK, JUMP_ATTACK and so on.\n- **Shared behavior:** If many states share it, use a hierarchical FSM, where a parent state like `OnGround` handles it.\n- **Returning to the previous state:** For something like a hit-stun, use a pushdown FSM (a stack of states).\n- **Godot:** Start with the enum and `match` above. Move to one node per state once the enum gets unwieldy.\n\nIf you paste the class, I can map your eleven flags to states, independent flags and a second machine."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "flags",
+          "vars": {
+            "skill": "file:///private/tmp/b4/skills/game-programming-patterns/SKILL.md",
+            "request": "file:///private/tmp/b4/evals/game-programming-patterns/cases/flags.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/state machine|\\bState\\b/i.test(output)) throw new Error('prescribes a State machine');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b4/skills/game-programming-patterns/SKILL.md",
+          "request": "file:///private/tmp/b4/evals/game-programming-patterns/cases/flags.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/object pool|pooling/i.test(output)) throw new Error('prescribes Object Pool');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/measur|profil|hot path|first/i.test(output)) throw new Error('mentions measuring / hot paths');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "1e517477-4933-4f99-9282-7f7bea77e5f6",
+        "latencyMs": 9470,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: game-programming-patterns\ndescription: Software design patterns for games, distilled from Robert Nystrom's *Game Programming Patterns*. Covers the architecture/performance/dev-speed tension unique to games and the pattern catalog — the Game Loop, Update Method, Component (entity composition / ECS roots), State (finite state machines), Observer, Command (input handling/undo/replay), Event Queue, Service Locator, Flyweight, Type Object, Subclass Sandbox, Bytecode, Prototype, Double Buffer, Data Locality, Dirty Flag, Object Pool, and Spatial Partition — plus a games-eye critique of the GoF patterns (incl. Singleton as an anti-pattern). Use when structuring game code, choosing how to represent entities/behavior/state, decoupling systems, handling input, optimizing a hot path (cache locality, pooling, spatial queries), or picking the right pattern for a gameplay problem. The code-architecture layer of the game-dev cluster; builds on design-patterns and pairs with godot, game-development, and the technical skills.\n---\n\n# Game Programming Patterns\n\nBattle-tested **software design patterns for games**, from **Robert Nystrom's *Game Programming Patterns*** (free at gameprogrammingpatterns.com). Where [[design-patterns]] is the Gang-of-Four for general software, this is the games dialect — patterns shaped by the game loop, real-time performance, and designer-driven content.\n\nCross-links: [[design-patterns]] (the GoF base these revisit), [[godot]] (which builds several of these in — nodes/scenes ≈ Component, signals ≈ Observer, the SceneTree ≈ Game Loop), [[software-architecture]] / [[software-design]] (the general design tier), [[game-development]] (where these are applied), [[functional-programming]] (immutability/data-oriented thinking).\n\n## The central tension\n\nNystrom frames it up front: game code lives in tension between **good architecture** (decoupled, changeable), **runtime performance** (the frame budget — ~16 ms at 60 fps), and **development speed** (ship the game). Patterns are tools to buy one without sacrificing too much of the others — *and knowing when not to use them* is as important as knowing them. Don't apply a pattern speculatively; apply it when the pain it solves is real ([[design-patterns]]/[[software-design]] restraint).\n\n## The catalog (when to reach for each)\n\nGrouped as in the book. Full one-liners + trade-offs in `references/pattern-catalog.md`.\n\n**Design Patterns Revisited (GoF, for games)**\n- **Command** — wrap an action as an object → input remapping, undo/redo, replays, AI issuing orders, queued actions.\n- **Flyweight** — share the identical part of many objects (tile/tree/forest data) → massive memory savings.\n- **Observer** — let systems react to state changes without coupling (achievements, UI updating on model changes). *(Godot signals are this.)*\n- **Prototype** — spawn objects by cloning exemplars → data-driven spawners, monster \"breeds.\"\n- **Singleton** — included **as a cautionary tale**: usually an anti-pattern (global state, hidden coupling, untestable); prefer passing dependencies or a Service Locator. *(Godot autoloads are a constrained version.)*\n- **State** — finite state machines: behavior that changes with internal state (idle/run/jump/attack) instead of a tangle of booleans; extends to hierarchical & pushdown FSMs.\n\n**Sequencing (control time & order)**\n- **Double Buffer** — compute into a back buffer, swap atomically → no tearing/half-updated state (rendering, simulation steps).\n- **Game Loop** — the heart: process input → update the world → render, **decoupled from real time** (fixed timestep — see [[multiplayer-networking]]/Fix-Your-Timestep). *(Godot's main loop + `_process`/`_physics_process`.)*\n- **Update Method** — each entity gets `update(dt)` called once per frame to advance its own behavior. *(Godot `_process(delta)`.)*\n\n**Behavioral (define behavior, data-driven)**\n- **Bytecode** — encode behavior as data run by a little VM → safe, sandboxed, hot-reloadable designer scripting.\n- **Subclass Sandbox** — a base class exposes safe primitive ops; subclasses combine them to define behavior.\n- **Type Object** — represent \"kinds\" (monster types, item types) as runtime data, not subclasses → data-driven categories.\n\n**Decoupling**\n- **Component** — compose entities from reusable components (position, sprite, physics, AI) instead of deep inheritance — the root of **ECS**. *(Godot nodes/scenes are composition-first.)*\n- **Event Queue** — decouple *when* an event is sent from *when* it's handled (input, audio, async messaging).\n- **Service Locator** — global access to a service (audio, logging) without hard-coupling to its implementation; a disciplined alternative to Singleton.\n\n**Optimization (the frame budget)**\n- **Data Locality** — lay data out for cache friendliness (contiguous arrays, struct-of-arrays) → big speedups on CPU-bound update loops; the gateway to **data-oriented design** / ECS. ([[operating-systems]] caches.)\n- **Dirty Flag** — defer expensive recomputation until the result is actually needed (transforms, derived state).\n- **Object Pool** — reuse a fixed pool instead of alloc/free per frame (bullets, particles, enemies) → no fragmentation/GC stalls.\n- **Spatial Partition** — index objects by position (grid, quadtree, BVH, BSP) for fast collision/range/visibility queries. ([[game-physics]] broad-phase; [[game-math]].)\n\n## How this maps to Godot\n\n[[godot]] bakes in several patterns, so \"use the engine's version\" is often the answer: **nodes/scenes = Component/composition**, **signals = Observer**, **the SceneTree + `_process`/`_physics_process` = Game Loop/Update Method**, **autoload = (constrained) Singleton/Service Locator**, **resources = Type Object/Flyweight-ish data**. Reach for the hand-rolled pattern when the engine's affordance doesn't fit (e.g. an Object Pool for bullets, a Command stack for undo, a Spatial Partition for a custom collision query).\n\n## Anti-patterns\n\n- Applying patterns **speculatively** (Nystrom's biggest warning) — pattern soup that adds indirection for no real problem.\n- **Singleton everywhere** → global mutable state, hidden coupling, untestable; reach for it last.\n- Deep **inheritance hierarchies** for entities where **Component** composition fits.\n- Allocating per-frame in hot loops (no **Object Pool**) → GC/alloc stutter; ignoring **Data Locality** in the update loop.\n- Recomputing derived state every frame instead of a **Dirty Flag**; O(n²) collision checks instead of a **Spatial Partition**.\n- Tangled boolean flags where a **State** machine belongs; tight coupling where **Observer**/**Event Queue** would decouple.\n\n## Always-apply\n\n1. Mind the **architecture / performance / dev-speed** trade-off; apply a pattern only when the pain is real.\n2. Prefer **composition (Component)** over inheritance; **State machines** over flag tangles; **Observer/Event Queue** to decouple.\n3. In hot paths optimize with **Data Locality, Object Pool, Dirty Flag, Spatial Partition** — but measure first.\n4. **Use the engine's built-in version** ([[godot]] nodes/signals/loop) before hand-rolling.\n5. Avoid **Singleton**; treat patterns as tools, not goals ([[design-patterns]] restraint).\n\n## How to use the reference\n\n- **`references/pattern-catalog.md`** — every pattern with its intent, when-to-use, trade-offs, and Godot equivalent.\n\n## Related\n\n- [[design-patterns]] — the GoF patterns these revisit for games.\n- [[godot]] — the engine that implements many of these; where you apply them.\n- [[software-architecture]] / [[software-design]] — the general design tier and the \"apply only to real complexity\" restraint.\n- [[game-physics]] (spatial partition / broad-phase), [[game-ai]] (State/behavior), [[operating-systems]] (data locality / caches), [[functional-programming]] (data-oriented thinking).\n- Source: *Game Programming Patterns* (Robert Nystrom, free at gameprogrammingpatterns.com).\n</skill>\n\nUser request:\nI'm allocating bullet objects every frame and getting stutter. What pattern?",
+          "label": "evals/game-programming-patterns/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "a2d37817758e6af797c894c4a4f4ec1fdfe81cb76ca7f90b843a17e8a49fc92e",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "**Object Pool.** Preallocate a fixed array of bullets at startup, mark each active or inactive, and reuse them instead of allocating and freeing every frame. That removes the alloc/GC stutter and heap fragmentation.\n\n- **Pool size:** Pick it from your peak bullet count. When the pool is full, drop the new bullet or recycle the oldest one.\n- **Reset state:** Reset a bullet's state when you reuse it, so stale velocity or position doesn't carry over.\n- **Data Locality:** If updating thousands of bullets is still slow after pooling, store them contiguously (struct-of-arrays) for cache-friendly iteration.\n- **Measure first:** Profile to confirm allocation is the cause before you change anything.\n\nIn Godot, pool the bullet scenes: instantiate them once, then toggle `visible`/`process_mode` and reposition them instead of calling `queue_free()` and `instantiate()`."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "hotloop",
+          "vars": {
+            "skill": "file:///private/tmp/b4/skills/game-programming-patterns/SKILL.md",
+            "request": "file:///private/tmp/b4/evals/game-programming-patterns/cases/hotloop.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/object pool|pooling/i.test(output)) throw new Error('prescribes Object Pool');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/measur|profil|hot path|first/i.test(output)) throw new Error('mentions measuring / hot paths');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b4/skills/game-programming-patterns/SKILL.md",
+          "request": "file:///private/tmp/b4/evals/game-programming-patterns/cases/hotloop.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 3,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 12529,
+      "evaluationDurationMs": 12529
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "game-programming-patterns — EDD",
+    "prompts": [
+      "file:///private/tmp/b4/evals/game-programming-patterns/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "speculative",
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/game-programming-patterns/cases/speculative.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "if (!/speculativ|don'?t|avoid|real problem|pain|wait|only when|premature|as needed/i.test(output)) throw new Error('warns against applying patterns speculatively');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "flags",
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/game-programming-patterns/cases/flags.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/state machine|\\bState\\b/i.test(output)) throw new Error('prescribes a State machine');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "hotloop",
+        "vars": {
+          "request": "file:///private/tmp/b4/evals/game-programming-patterns/cases/hotloop.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/object pool|pooling/i.test(output)) throw new Error('prescribes Object Pool');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/measur|profil|hot path|first/i.test(output)) throw new Error('mentions measuring / hot paths');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/game-programming-patterns/results/skill_1.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b4/skills/game-programming-patterns/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b4/evals/game-programming-patterns"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T18:29:48.686Z",
+    "evaluationCreatedAt": "2026-10-29T18:29:36.112Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

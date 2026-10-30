@@ -1,0 +1,36 @@
+# Named slices of the delivery-flow routing table.
+#
+# A profile is a window onto the one routing table in `scripts/delivery-flow/flow-status.py`,
+# not a second pipeline: it lists the steps it runs, in order, and declares the step it ends
+# on. `.delivery-flow.yaml` selects one with `profile:`; a repo that names none gets `full`,
+# which is the whole table, so nothing changes for repos that never opt in.
+#
+# Rules the test suite enforces (tests/delivery-flow/test_profiles.py):
+#   - every step named here exists in the routing table;
+#   - the union of all profiles' steps equals the routing table, so no step is orphaned;
+#   - `terminus` is the last entry in `steps`;
+#   - `next` names another profile or is null.
+#
+# Paired with the parser in `scripts/delivery-flow/common.py` (`load_profiles`). Change the
+# format and the parser together — see the consistency rules in CLAUDE.md.
+
+profiles:
+  # The Stage 4 certified chain: three certified nodes (triage, breakdown,
+  # challenge-breakdown) between deterministic edges, ending in a rendered brief and an
+  # outcome. Nothing is implemented and no PR is opened, so this profile has no outward
+  # action except an optional post-back, which it deliberately omits.
+  - profile: triage
+    terminus: report
+    next: full
+    steps: [intake, triage, project-memory, breakdown, challenge-breakdown, brief, report]
+
+  # Everything: the certified chain, then the OpenSpec proposal, the brief a human approves,
+  # implementation, verification, the PR, the post-back and the vault update. The brief sits
+  # directly after `propose` because that is the artifact the decision rests on, and the
+  # proposal's punch-out triggers fire on leaving it — explanation before decision.
+  # One line per `steps:` list, deliberately: the parser takes an inline list and does not
+  # join continuations, so a wrapped list would be a silent truncation.
+  - profile: full
+    terminus: vault-update
+    next: null
+    steps: [intake, triage, project-memory, breakdown, challenge-breakdown, propose, brief, implementation, verify, challenge-implementation, pr-description, open-pr, post-summary, post-back, report, vault-update]

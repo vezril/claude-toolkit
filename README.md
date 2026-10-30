@@ -183,6 +183,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **humanize** — edits stilted, AI-drafted, or over-formal prose to read naturally (rhythm variance, cliché removal, real stances, `--touch light|standard|deep`), with a hard scope boundary: refuses detector-evasion and academic-misrepresentation framing, and never fabricates "human" details. *(Adapted from a third-party detector-bypass tool; the bypass purpose was removed, not carried.)*
 - **cold-email** — 50–125-word cold outreach drafts on AIDA/PAS/BAB with honesty guardrails: no fabricated personalization, no bait-and-switch subjects, no fake urgency, spam-law reminder for bulk. Drafts only — never sends. *(Adapted from a third-party skill.)*
 - **follow-up** — re-engage a non-responder without nagging: bump → value-add → breakup matched to follow-up number, each shorter than the last, always a new angle; advises stopping after #3, and the breakup must be honest — no fake-breakups engineered for more outreach. *(Adapted from a third-party skill.)*
+- **writing-for-adhd** — how to write text a reader with ADHD will actually read and act on, grounded in the working-memory literature (Martinussen et al. 2005; Cowan's ~4-chunk capacity), cognitive load theory (Sweller; split-attention, expertise reversal) and measured reading-behaviour research (concise text +58%, scannable +47%, objective language +27%, combined +124%; the F-shaped scanning pattern). One mechanism explains every rule: **working memory is impaired, comprehension is not** — so the failure is never "couldn't follow it" but "couldn't hold it". Covers naming referents, ≤3-item lists, one decision per message, front-loading, externalising detail to files, a concrete next action over a complete plan, opening with the win, and not over-explaining to an expert.
 - **readability** — Flesch/Flesch-Kincaid/Fog/SMOG computed by a bundled stdlib-only Python script ("compute, don't estimate" — LLM syllable-counting is unreliable), then interpreted: audience fit plus three fixes quoting the actual text. *(Adapted from a third-party skill; script reviewed + executed here.)*
 - **word-stats** — exact word/character/sentence/paragraph counts, reading & speaking time, vocabulary stats via a bundled stdlib-only script; one table, zero prose, no questions asked. *(Adapted from a third-party skill; script reviewed + executed here.)*
 - **ai-layoff-radar** — scan recent news for layoffs linked to AI/automation and return a skeptically-classified JSON report. **Free and keyless**: a bundled stdlib-only script (`fetch_layoffs.py`) pulls candidate headlines from Google News RSS and the model does the AI-causality judgment itself — separating layoffs a company *spins* as AI-driven from those independently *reported* as AI-caused, excluding trend commentary, and never inventing a figure. Honest limits stated (headline-level, recency-bound; points to layoffs.fyi / WARN Act for verified numbers). *(Clean-room rebuild of a third-party skill after a security review — the original required a paid per-call billing service + an OpenAI key; both removed, nothing carried over but the idea.)*
@@ -212,6 +213,7 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 
 **Health & wellbeing**
 
+- **dsm-5** — the DSM-5-TR (APA, 2022) classification system as a meta/router skill plus **22 diagnostic-chapter sub-skills**, organised like the Akka suite. The meta skill covers the definition of a mental disorder, criteria-as-necessary-but-not-sufficient, specifiers/subtypes/severity, "other specified" vs "unspecified", the differential-diagnosis method, the cross-cutting dimensional measures (Level 1/2, WHODAS 2.0), the Cultural Formulation Interview, ICD-10-CM coding, and what changed in the TR. **Hard rails throughout: not a diagnostic instrument, never diagnose a person, crisis content outranks the taxonomy, and criteria text is named rather than reproduced** (the manual is APA-copyrighted). Chapters: `dsm-neurodevelopmental`, `dsm-schizophrenia-spectrum`, `dsm-bipolar`, `dsm-depressive`, `dsm-anxiety`, `dsm-ocd-related`, `dsm-trauma-stressor`, `dsm-dissociative`, `dsm-somatic-symptom`, `dsm-feeding-eating`, `dsm-elimination`, `dsm-sleep-wake`, `dsm-sexual-dysfunctions`, `dsm-gender-dysphoria`, `dsm-disruptive-impulse-conduct`, `dsm-substance-related`, `dsm-neurocognitive`, `dsm-personality`, `dsm-paraphilic`, `dsm-other-mental`, `dsm-medication-induced`, `dsm-other-conditions`.
 - **phq-9** — walk someone through the PHQ-9 depression screening questionnaire as a warm, one-question-at-a-time supportive check-in (verbatim instrument, 0–27 scoring + severity bands, functional-impairment item, PHQ-2 pre-screen), with hard rails the roleplay never overrides: it's a **screen, not a diagnosis**; **not a replacement for professional care**; and any endorsement of item 9 (self-harm) triggers a real, non-fictional safety response + crisis resources (988/911/findahelpline.com) regardless of the total. From the PHQ-9 instrument PDFs + Wikipedia/MDCalc/safe-interpretation sources.
 - **gad-7** — walk someone through the GAD-7 generalized-anxiety screening questionnaire as a warm, one-question-at-a-time supportive check-in (verbatim instrument, 0–21 scoring + severity bands, functional-impairment item, GAD-2 pre-screen, the ≥10 threshold; also screens panic/social-anxiety/PTSD, not just GAD), with hard rails the roleplay never overrides: it's a **screen, not a diagnosis**, and **not a replacement for professional care**. No self-harm item, but surfaces real crisis resources (988/911/findahelpline.com) if distress arises. Sibling of **phq-9**; anxiety and depression often co-occur.
 
@@ -257,36 +259,36 @@ Each skill is a folder with a `SKILL.md` (YAML frontmatter `name` + `description
 
 ## Skill evaluation (EDD) status
 
-Every skill in the repo, with evaluation-driven-development (EDD) results where a skill has been put through a deterministic promptfoo eval suite. Untested skills are listed with blank results. Scores are N=3-per-case majority against a deterministic rubric (no LLM judge); "naive baseline" is the task with no skill loaded, "with skill" is the real `SKILL.md` embedded. Full suites and iteration logs live in `promptfoo/skill-evals/<skill>/`. "Eval model" is the Claude model the suite's provider ran (`claude -p --model <m>`) — the baseline for any future try-it-on-a-cheaper-model optimization; "—" marks deterministic script harnesses with no model arm. (The `ci-watcher` agent has its own tool-using eval suite there as well, run on **haiku** by design: naive 29% → definition 100%.)
+Every skill in the repo, with evaluation-driven-development (EDD) results where a skill has been put through a deterministic promptfoo eval suite. Untested skills are listed with blank results. **The table is the inventory**, so a skill missing from it is a skill nobody notices is untested — `python3 scripts/check-edd-table.py` asserts every `skills/` directory has exactly one row and vice versa, and prints the current scored/blank counts (as of this writing: **113 scored, 169 blank, 282 total**). Scores are N=3-per-case majority; most suites grade deterministically, though `phq-9`, `detect-ai` and the agent suites use a thresholded `llm-rubric` for judgment criteria (noted per row); "naive baseline" is the task with no skill loaded, "with skill" is the real `SKILL.md` embedded. Full suites and iteration logs live in `evals/<skill>/` (`iteration-log.md`); older runs are in `promptfoo/skill-evals/<skill>/`. "Eval model" is the Claude model the suite's provider ran (`claude -p --model <m>`) — the baseline for any future try-it-on-a-cheaper-model optimization; "—" marks deterministic script harnesses with no model arm. (Agents are scored separately: `ci-watcher` has its own tool-using suite, run on **haiku** by design, naive 29% → definition 100%; and `adversarial-validator` scores **0% → 100%** on `evals/cross-examine/`, where the 0% is a contract failure — a generic assistant writes balanced review prose instead of a verdict line and attack log.)
 
 | Skill | EDD naive baseline | With skill | Eval model | Outcome |
 |---|---|---|---|---|
 | `6502-assembly` |  |  |  |  |
 | `agent-interoperability` |  |  |  |  |
-| `agentic-workflows` |  |  |  |  |
+| `agentic-workflows` | 100% | 100% | sonnet | No delta on 3 cases — baseline already pushes back on multi-agent-by-default and names the workflow patterns. Log: `evals/_batch3/iteration-log.md` |
 | `ai-layoff-radar` |  |  |  |  |
 | `akka` | 96% | 100% | sonnet | Routing base-strong; naive omits the serializer from the k8s cluster checklist; no patch |
 | `akka-actors` | 96% | 100% | sonnet | Typed largely base-strong; naive replyTo discipline gap; no patch |
 | `akka-cluster` | 100% | 100% | sonnet | ✅ Shipped — skill-induced regression by omission (Cluster Bootstrap's home module); patched to 100% |
-| `akka-diagnostics` |  |  |  |  |
+| `akka-diagnostics` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
 | `akka-discovery` |  |  |  |  |
-| `akka-distributed-cluster` |  |  |  |  |
-| `akka-edge` |  |  |  |  |
+| `akka-distributed-cluster` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
+| `akka-edge` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
 | `akka-grpc` | 96% | 100% | sonnet | Naive strong; client-lifecycle wobble; no patch |
 | `akka-http` | 96% | 100% | sonnet | ✅ Shipped — omission regression on long-poll client level; patched to 100% |
-| `akka-insights` |  |  |  |  |
+| `akka-insights` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
 | `akka-management` |  |  |  |  |
 | `akka-persistence` | 96% | 100% | sonnet | Judgment base-strong; naive misses withEnforcedReplies+StatusReply convention; no patch |
 | `akka-persistence-plugins` | 83% | 100% | sonnet | Naive misses R2DBC-default + backtracking-duplicates; no patch |
 | `akka-projections` | 83% | 100% | sonnet | Naive misses the 10x tag rule + withSaveOffset; no patch |
 | `akka-sdk` | 96% | 100% | sonnet | Kalix-lineage catalog known; naive wobbles on the no-@Acl default-deny; no patch |
-| `akka-sdk-agents` |  |  |  |  |
-| `akka-sdk-consumers` |  |  |  |  |
-| `akka-sdk-endpoints` |  |  |  |  |
+| `akka-sdk-agents` | 50% | 100% | sonnet | **The one gain in the batch.** Baseline FPF on *an Agent cannot be a tool for another agent — orchestrate with Workflows*; skill PPP. Consistent with the Akka SDK family holding the lowest baselines in the table, the one domain where the model reliably hallucinates API. Log: `evals/_batch5/iteration-log.md` |
+| `akka-sdk-consumers` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
+| `akka-sdk-endpoints` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
 | `akka-sdk-event-sourced-entities` | 79% | 100% | sonnet | Biggest round-4 floor: naive hallucinates SDK API (deletion/consistency); no patch |
-| `akka-sdk-key-value-entities` |  |  |  |  |
-| `akka-sdk-timed-actions` |  |  |  |  |
-| `akka-sdk-views` |  |  |  |  |
+| `akka-sdk-key-value-entities` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
+| `akka-sdk-timed-actions` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
+| `akka-sdk-views` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
 | `akka-sdk-workflows` | 83% | 100% | sonnet | Naive hallucinates lifecycle API, misses session memory + compensation shape; no patch |
 | `akka-serialization` | 88% | 100% | sonnet | Naive misses rolling-migration order + the (bytes,id,manifest) triple; no patch |
 | `akka-streams` | 100% | 100% | sonnet | Operator catalog fully base-strong incl. jitter + fusion; neutral-safe, no patch |
@@ -318,33 +320,60 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `cold-email` | 100% | 96% | sonnet | Base-strong (wash within noise), no patch |
 | `compiler-construction` |  |  |  |  |
 | `computer-networks` |  |  |  |  |
+| `constellation-logo-drop` |  |  |  | Not yet evaluated |
+| `constellation-logo-key` |  |  |  | Not yet evaluated |
+| `constellation-logo-prompt` |  |  |  | Not yet evaluated |
 | `cooklang` |  |  |  |  |
 | `cqrs-event-sourcing` |  |  |  |  |
-| `cross-examine` |  |  |  |  |
-| `cryptography` |  |  |  |  |
-| `design-patterns` |  |  |  |  |
-| `detect-ai` |  |  |  |  |
+| `cross-examine` | 67% | 100% | sonnet | Suite at `evals/cross-examine-skill/` (the older `evals/cross-examine/` tests the `adversarial-validator` **agent**, not this skill). Gain is the procedural rule that **REFUTED means rerun the producing step, not patch the holes** — baseline PFF, skill PPP. Log: `evals/_batch4/iteration-log.md` |
+| `cryptography` | 50% | 100% | sonnet | The discriminator is **reasoning, not recommendations**. Baseline passes the CBC-with-random-IV case I built the suite around, but fails the 2n rule FFF — it gives 256-bit/RSA-2048 and cannot say why — and treats a GCM nonce-counter rollback as a bug to fix rather than a key-compromise needing rotation. Noisiest baseline in the batch (1/4, 3/4, 2/4). Log: `evals/cryptography/iteration-log.md` |
+| `delivery-flow` |  |  |  | Not evaluated as a skill. Its **nodes** are separately Stage-3 certified in `skills/delivery-flow/steps.yaml` (triage, breakdown, challenge-breakdown), which is a different bar from this table's naive-vs-skill delta. |
+| `design-patterns` | 67% | 100% | sonnet | **First run was an assert bug, not a skill gap** — it scored FFF in *both* arms because one assert accepted a bare `=>` and another demanded a GoF/1994 framing the skill never requires; rewritten and both arms re-run from scratch. Post-fix, Visitor and Singleton are base-strong (PPP) and only Strategy moves — the naive arm never offers the function form. Log: `evals/design-patterns/iteration-log.md` |
+| `detect-ai` | 25% | 100% | sonnet | **Widest gap in the repo.** Naive arm passes only the restraint case (won't supply a verdict for a misconduct accusation); it fails all three quantitative ones and notably won't volunteer that a sub-100-word sample is too short — it answers anyway. One unstable case in the skill arm (`short`, P-F-P) left recorded rather than smoothed. Uses `llm-rubric` on 4 asserts. Log: `evals/detect-ai/iteration-log.md` |
 | `devops` |  |  |  |  |
 | `diagnosing-bugs` | 90% | 100% | haiku | ✅ Imported EDD-first (`evals/diagnosing-bugs/`): the agent edits four buggy projects and the code it leaves is graded. Upstream 95%; one added sentence (a regression test fails on every run, so a flaky bug's test pins its seed) → 60/60 on **haiku**, Sonnet 59/60 (its v1: 73%) |
 | `docker` | 83% | 100% | sonnet | ✅ Shipped (PR #51) — 3 linter-derived practices added (secret ENV, exec form, pinned installs) |
-| `dockerhub-setup` |  |  |  |  |
+| `dockerhub-setup` | 50% | 100% | sonnet | Fully deterministic suite, no judge. **The baseline never echoes a password pasted into chat (0 leaks in 3 runs)** — what it misses is treating that paste as a rotation event, and noting that Actions secret values are never readable back. Skill arm isn't rock-solid (3/4 twice, on the unreadable-values note). Log: `evals/dockerhub-setup/iteration-log.md` |
 | `domain-driven-design` | 96% | 100% | sonnet | ✅ Shipped (PR #56) — ubiquitous-language glossary made part of the deliverable |
-| `event-storming` |  |  |  |  |
+| `dsm-5` | 20% | 60% | sonnet | Rails + routing suite (batch 2). Lowest baseline in the batch (1/5). Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-anxiety` | 80% | 100% | sonnet | Baseline knows the chapter well; the skill adds agoraphobia-as-independent-diagnosis and the panic-attack-as-specifier framing. Skill arm *less* stable than baseline (4/3/5 vs 4/5/3). Log: `evals/_dsm/iteration-log.md` |
+| `dsm-bipolar` | 100% | 100% | sonnet | **No measurable delta** — baseline gets bipolar I needing one manic episode, the mixed-features change and the not-milder correction unprompted. Run 1 showed a *regression* that turned out to be my assert rejecting "DSM-5 also requires…"; fixed and both arms re-run. Log: `evals/_dsm/iteration-log.md` |
+| `dsm-depressive` | 80% | 100% | sonnet | **The clearest gain in the batch.** Baseline FFF on the removed bereavement exclusion and its contested status; flapped on DMDD's ODD exclusivity and PMDD's prospective-daily-ratings requirement. Skill arm 5/5 on all three runs. Log: `evals/_dsm/iteration-log.md` |
+| `dsm-disruptive-impulse-conduct` | 80% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-dissociative` | 40% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-elimination` | 60% | 80% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-feeding-eating` | 100% | 100% | sonnet | Rails + routing suite (batch 2). **No delta** — baseline already 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-gender-dysphoria` | 80% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-medication-induced` | 60% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-neurocognitive` | 60% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-neurodevelopmental` | 80% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-ocd-related` | 80% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-other-conditions` | 60% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-other-mental` | 100% | 100% | sonnet | **Corrected from 3/5 → 3/5.** Two asserts had been broken since batch 2 by an unescaped apostrophe (`chapter's`), so two of five cases threw on every run in both arms. Fixed; the true score is 5/5 → 5/5 — still a tie, but the earlier figure was an artifact. Log: `evals/_batch4/iteration-log.md` |
+| `dsm-paraphilic` | 100% | 100% | sonnet | Rails + routing suite (batch 2). **No delta** — baseline already 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-personality` | 60% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-schizophrenia-spectrum` | 80% | 80% | sonnet | **No measurable delta.** Baseline has the removed subtypes, the duration gradient and the bizarre-delusion change. Skill arm flapped on its own refuse-to-diagnose case (3/5/3) — possible rails-vs-content tension, noted for investigation. Log: `evals/_dsm/iteration-log.md` |
+| `dsm-sexual-dysfunctions` | 60% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-sleep-wake` | 60% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-somatic-symptom` | 60% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `dsm-substance-related` | 100% | 100% | sonnet | **No measurable delta.** Baseline already has the abuse/dependence merger, caffeine having no use disorder, internet gaming being Section III only, and alcohol withdrawal being potentially fatal. Log: `evals/_dsm/iteration-log.md` |
+| `dsm-trauma-stressor` | 60% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
+| `event-storming` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already has orange past-tense domain events and frames hot spots as valuable output. Log: `evals/_batch4/iteration-log.md` |
 | `finch` | 44% | 100% | sonnet | Baseline 6/8/6 of 16 across the 3 runs; skill 16/16 on all 3. 8 cases fail the baseline every run: read-only home mount, Rosetta's macOS-26 floor, SOCI, cosign-keyless-unsupported, Containerfile auto-detect, DevContainers wiring, `creds_helpers`+`credsStore`, "VM = isolation" pushback. Skill was 100% from v1, so no patch — iteration went into the *suite*: added a `no-hallucination` criterion (baseline invents `finch vm ssh`, `finch soci create`), and N=3 overturned an N=1 read that had credited the model with 3 facts it doesn't reliably know. Ships a paired naive-baseline arm. Log: `evals/finch/iteration-log.md` |
-| `flipper-unleashed` |  |  |  |  |
+| `flipper-unleashed` | 100% | 100% | sonnet | No delta — baseline already separates the region unlock from DangerousSettings and warns about the latter. Log: `evals/_batch5/iteration-log.md` |
 | `flipper-zero` |  |  |  |  |
 | `follow-up` |  |  |  |  |
 | `functional-programming` | 96% | 100% | sonnet | Base-strong; skill fixes the impure-shuffle fragility; no patch |
-| `gad-7` |  |  |  |  |
+| `gad-7` | 80% | 100% | sonnet | Baseline is strong and passes the cases I built the suite for: it keeps the functional-impairment item out of the 0-21 total unprompted and volunteers that ≥10 flags panic/social-anxiety/PTSD, not GAD specifically. Only the **GAD-2 pre-screen** (0-6 range, ≥3 cue) moves. With [[phq-9]], the pattern across both screeners is that safety and interpretation rails are native while procedural mechanics are not. Log: `evals/gad-7/iteration-log.md` |
 | `game-ai` |  |  |  |  |
 | `game-audio` |  |  |  |  |
-| `game-design` |  |  |  |  |
-| `game-development` |  |  |  |  |
+| `game-design` | 50% | 100% | sonnet | **Treat the number as soft** — 2 cases, both arms unstable (baseline ran 2/2, 0/2, 1/2), so one flip moves it 50 points. The real finding is the ethics case: asked for the most effective retention-and-spending mechanics, the naive arm supplies them with no pushback in 2 of 3 runs; with the skill it names and declines the dark patterns every time. Log: `evals/game-design/iteration-log.md` |
+| `game-development` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already routes to prototyping/find-the-fun and requires playtesting as the gate. Log: `evals/_batch4/iteration-log.md` |
 | `game-graphics` |  |  |  |  |
 | `game-math` |  |  |  |  |
 | `game-physics` |  |  |  |  |
-| `game-production` |  |  |  |  |
-| `game-programming-patterns` |  |  |  |  |
+| `game-production` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already pushes back on crunch and raises scope cutting. Log: `evals/_batch4/iteration-log.md` |
+| `game-programming-patterns` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already warns against speculative patterns and reaches for State over flag tangles. Log: `evals/_batch4/iteration-log.md` |
 | `gcp-alloydb` |  |  |  |  |
 | `gcp-api-gateway` |  |  |  |  |
 | `gcp-apigee` |  |  |  |  |
@@ -403,23 +432,25 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `gcp-workflows` |  |  |  |  |
 | `git` | 96% | 100% | sonnet | Sole gap: ~50-char imperative subjects; rescue/safety calls base-strong; no patch |
 | `git-ship` | 100% | 100% | sonnet | Base-strong (universal ship-safety instincts); neutral-safe, no patch |
-| `gitbucket` |  |  |  | Not yet evaluated |
+| `gitbucket` | 100% | 100% | sonnet | **Tie, but weak evidence.** I verified the model getting these facts wrong against a live 4.48.0 instance, yet it scored 3/3 — because my cases were refusal-shaped (*does not invent*, *declines the premise*) rather than fact-shaped. A fact-shaped rerun would likely show a delta. Log: `evals/_batch5/iteration-log.md` |
 | `github-actions` | 83% | 96% | sonnet | ✅ Shipped (PR #50) — pwn-request safe pattern + SHA-pin phrasing made imperative |
 | `github-actions-python-ci` | 100% | 100% | sonnet | Guardrails base-strong + deterministic scaffold contract 10/10 (actionlint); no patch |
 | `github-actions-scala-ci` | n/a (script) | 10/10 contract | — | Deterministic scaffold-contract harness; guardrail layer measured in python-ci |
 | `github-branch-protection` | 67% | 100% | sonnet | ✅ Shipped (PR #58) — confirm-means-ask guardrail; real house-spec floor |
 | `github-issue-fix-flow` | 88% | 100% | sonnet | Format-convention floor (--comments intake, fix/issue-N, Closes #N); no patch |
 | `github-new-repo` | 83% | 100% | sonnet | ✅ Shipped (PR #59) — an extra ask never aborts the authorized creation |
-| `godot` |  |  |  |  |
+| `godot` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already prescribes scene composition over deep inheritance and the right `_ready`/`_physics_process` split. Log: `evals/_batch4/iteration-log.md` |
 | `graph-databases` |  |  |  |  |
 | `gremlin` |  |  |  |  |
 | `grilling` | 60% | 99% | haiku | ✅ Imported EDD-first (`evals/grilling/`): upstream skill certified as is on **haiku**, 89/90 over two samples (Sonnet the same); v1 asked downstream questions early and had no round format |
+| `grounded-answers` |  |  |  | Not yet evaluated |
 | `hackrf-one` |  |  |  |  |
 | `haiku` | 70% | 98% | sonnet | ✅ Built EDD-first (v1 → v10, `evals/haiku/`); the 5-7-5 myth was most of the floor. Certified on **haiku**: 41% → 99%, same skill |
 | `handoff` | 26% | 100% | sonnet | ✅ Built EDD-first (v1 → v5, `evals/handoff/`); format + delivery were most of the floor, authority rules and a negative-evidence slot the rest. Certified on **haiku**: 100%, same skill |
 | `home-assistant` |  |  |  |  |
 | `html-css` |  |  |  |  |
 | `humanize` | 92% | 96% | sonnet | Style/edit skill; de-cliché lift (mechanical tells), no patch |
+| `indian-super-chief` |  |  |  | Not yet evaluated |
 | `information-theory` |  |  |  |  |
 | `intentional-daily` | — | 100% | haiku | ✅ `evals/intentional/` (17 cases, real vault diffs). v1 as written 91% → v4 100% on haiku-5-5; pinned `model: claude-haiku-5-5`. Sonnet-5-5 98%, haiku-4-5 63% |
 | `intentional-weekly` | — | 100% | haiku | ✅ `evals/intentional/` (17 cases, real vault diffs). v1 as written 91% → v4 100% on haiku-5-5; pinned `model: claude-haiku-5-5`. Sonnet-5-5 98%, haiku-4-5 63% |
@@ -429,18 +460,19 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `malbolge` |  |  |  |  |
 | `markdown` |  |  |  |  |
 | `merge` | 96% | 96% | sonnet | ✅ Shipped (PR #49) — house version rules + over-wait regression fixed |
-| `modern-java` |  |  |  |  |
+| `modern-java` | 100% | 100% | sonnet | No delta on 3 cases. Run 1 showed an apparent *regression* that was my assert rejecting "public fields" vs "no public field"; fixed and re-run. Log: `evals/_batch3/iteration-log.md` |
 | `morning` | 50% | 100% | sonnet | 2nd-biggest lift; run exposed the provider skill-contamination bug (isolation rule) |
 | `multiplayer-networking` |  |  |  |  |
 | `native-app-profiling` |  |  |  |  |
 | `network-engineering` |  |  |  |  |
-| `network-security` |  |  |  |  |
+| `network-security` | 100% | 100% | sonnet | No delta on 2 cases — baseline already prescribes segmentation, default-deny and upstream DDoS mitigation. Log: `evals/_batch3/iteration-log.md` |
+| `new-constellation-service` |  |  |  | Not yet evaluated |
 | `nextjs` |  |  |  |  |
 | `nginx` |  |  |  |  |
 | `nodejs` |  |  |  |  |
 | `nx-neptune` |  |  |  |  |
 | `opencypher` |  |  |  |  |
-| `openclaw-agents` |  |  |  |  |
+| `openclaw-agents` | 100% | 100% | sonnet | No delta — baseline already explains the async `runId` contract and `sessions_spawn` delegation. Log: `evals/_batch5/iteration-log.md` |
 | `operating-systems` |  |  |  |  |
 | `os-concurrency` |  |  |  |  |
 | `os-file-systems-and-persistence` |  |  |  |  |
@@ -450,18 +482,19 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `os-security` |  |  |  |  |
 | `os-virtualization` |  |  |  |  |
 | `osdev-kernel` |  |  |  |  |
-| `personal-finance` |  |  |  |  |
-| `phq-9` |  |  |  |  |
+| `personal-finance` |  |  |  | **Measured 100% → 100%, recorded as no result.** Six runs, zero variation: the naive arm already declines to state TFSA/RESP figures from memory and already refuses to bless a concentrated bet. By this table's own standard a tie means the skill isn't pulling weight on what was tested — but the honest read is that my two restraint cases were the behaviours a safety-trained model already has. The skill's actual substance is untested. Log: `evals/personal-finance/iteration-log.md` |
+| `phq-9` | 67% | 100% | sonnet | Both **safety** rails are base-strong (crisis response on item-9, screen-not-diagnosis) — PPP in the naive arm, so the skill's measured value is the administration protocol: the no-skill arm dumps the instrument instead of the gentle one-item-at-a-time setup. Suite is a regression net for rails the model already holds, not proof it installs them. Uses `llm-rubric` on 2 of 3 cases. Log: `evals/phq-9/iteration-log.md` |
 | `portapack-mayhem` |  |  |  |  |
+| `pr-description` | 93% | 100% | haiku | **Prompt-EDD shape, not naive-vs-skill**: v1 baseline → v5 certified, 10 cases × 3 repeats = 90 asserts per version. Sonnet 93.3% → 100%; Haiku 92.2% → 98.9%, so **haiku is the certified tier** under the cheapest-that-passes policy. Log: `evals/pr-description/iteration-log.md` |
 | `prime` | 58% | 100% | sonnet | Biggest round-2 lift: confidence/evidence discipline; no patch |
 | `procedural-generation` |  |  |  |  |
-| `prompt-edd` |  |  |  |  |
+| `prompt-edd` | 100% | 100% | sonnet | No delta — baseline already refuses to write an iteration log before running evals, and refuses to weaken an assert to raise a score. Log: `evals/_batch5/iteration-log.md` |
 | `promptfoo` |  |  |  |  |
 | `python` | 71% | 100% | sonnet | Modern-idiom contract lift (pathlib, hints, EAFP); no patch |
 | `python-networkx` |  |  |  |  |
-| `python-package` |  |  |  |  |
-| `python-tests` |  |  |  |  |
-| `python-uv-build` |  |  |  |  |
+| `python-package` | 50% | 100% | sonnet | **Territory rail.** Naive arm agrees to write tests when asked; the skill declines (it is the production-only half of a split pair). Log: `evals/_batch3/iteration-log.md` |
+| `python-tests` | 100% | 100% | sonnet | No delta. Scored FFF in both arms until I fixed a runtime bug in my own assert (unescaped slash). Log: `evals/_batch5/iteration-log.md` |
+| `python-uv-build` | 67% | 100% | sonnet | **Territory rail** plus the generated-file rule (`uv.lock` is not scaffolded). Cases ask for the rule, not the action — see the harness limitation in the log. Log: `evals/_batch3/iteration-log.md` |
 | `quebec-charter-rights` |  |  |  |  |
 | `quebec-civil-code` |  |  |  |  |
 | `quebec-housing-rights` |  |  |  |  |
@@ -469,45 +502,49 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `quebec-municipal-law` |  |  |  |  |
 | `react` |  |  |  |  |
 | `readability` |  |  |  |  |
-| `release-app-store-changelog` |  |  |  |  |
-| `release-macos-spm-packaging` |  |  |  |  |
+| `release-app-store-changelog` | 100% | 100% | sonnet | No delta on 2 cases — baseline already triages to user-facing changes and uses New/Improved/Fixed. Log: `evals/_batch3/iteration-log.md` |
+| `release-macos-spm-packaging` | 100% | 100% | sonnet | No delta on 2 cases — baseline already has the `.app` bundle layout, `Info.plist` and `LSUIElement`. Log: `evals/_batch3/iteration-log.md` |
 | `repo-starter-docs` | 54% | 100% | sonnet | Biggest round-3 floor: MIT-by-default + honest README template; no patch |
 | `requirements-engineering` | 67% | 100% | sonnet | ✅ Shipped (PR #46) — 3 measured gaps patched |
 | `scala` | 92% | 100% | sonnet | House-convention floor (`from` factories, AnyFunSpec); no patch |
 | `scala-pekko-server` | n/a (script) | pair harness green | — | Deterministic pair contract harness (territory, purity, components, refusals) |
 | `scala-pekko-tests` | n/a (script) | pair harness green | — | Deterministic pair contract harness (pkg-from-production, test territory, spec coverage) |
-| `scala-sbt-build` |  |  |  |  |
+| `scala-sbt-build` | 100% | 100% | sonnet | No delta — baseline already declines out-of-territory work and refuses to overwrite an existing `build.sbt`. Log: `evals/_batch5/iteration-log.md` |
 | `sdlc-orchestration` | 100% | 100% | sonnet | Base-strong; governance inferable from stated facts; neutral-safe, no patch |
+| `secretary-followups` |  |  |  | Not yet evaluated |
 | `secure-coding` | 100% | 100% | sonnet | Base-model-strong; skill precision-safe (no over-flag) |
 | `site-reliability-engineering` |  |  |  |  |
 | `software-architecture` | 92% | 100% | sonnet | Base-strong; +trade-off discipline, no patch |
-| `software-design` |  |  |  |  |
+| `software-design` | 67% | 100% | sonnet | **Deep-module judgment.** Shown five single-method classes and asked "good separation of concerns?", the naive arm approves; the skill names it shallow modules / classitis. Log: `evals/_batch3/iteration-log.md` |
 | `spec-driven-development` | 0% | 100% | sonnet | ✅ Shipped (PR #47) — 2 measured gaps patched |
-| `stripe-payments` |  |  |  |  |
+| `stripe-payments` | 100% | 100% | sonnet | No delta — baseline already fulfils from webhooks, verifies against the raw body, and dedupes on event id. Log: `evals/_batch5/iteration-log.md` |
 | `swgoh-expert` |  |  |  |  |
-| `swift-concurrency-expert` |  |  |  |  |
-| `swiftui-liquid-glass` |  |  |  |  |
-| `swiftui-performance-audit` |  |  |  |  |
+| `swift-concurrency-expert` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already pushes back on `@unchecked Sendable` and offers the smallest isolation fix. Log: `evals/_batch4/iteration-log.md` |
+| `swiftui-liquid-glass` | 100% | 100% | sonnet | **No delta.** Picked because the scored Akka SDK siblings sit at 50–83% baseline, yet this suite puts the family at 100% — strong evidence the **suite**, not the skill, produces the tie: 1–2 cases with asserts written from the skill's own Always-apply list is close to unfalsifiable. Log: `evals/_batch6/iteration-log.md` |
+| `swiftui-performance-audit` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already demands code before diagnosing and requires profiling before optimising. Log: `evals/_batch4/iteration-log.md` |
 | `swiftui-ui-patterns` |  |  |  |  |
 | `swiftui-view-refactor` |  |  |  |  |
 | `tcp-ip` |  |  |  |  |
 | `tdd` | 46% | 100% | sonnet | Big lift; skill already optimal, no patch |
 | `terraform` |  |  |  |  |
 | `test-strategy` | 100% | 100% | sonnet | Base-model-strong; skill neutral, no patch |
-| `toolkit-archive` |  |  |  |  |
+| `toolkit-archive` | 100% | 100% | sonnet | No delta — baseline already refuses to archive a component an active one still references. Log: `evals/_batch5/iteration-log.md` |
+| `toyota-matrix-2009` |  |  |  | Not yet evaluated |
 | `ttrpg-storytelling` |  |  |  |  |
 | `typescript` |  |  |  |  |
-| `ux-design` |  |  |  |  |
-| `vault-graphrag` |  |  |  |  |
+| `ux-design` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already refuses dark patterns and invokes Jakob's Law. Scored FFF in both arms until I fixed an apostrophe bug in my own assert. Log: `evals/_batch4/iteration-log.md` |
+| `vault-graphrag` | 100% | 100% | sonnet | No delta — baseline already upserts rather than duplicating, and relies on backlinks over hand-maintained reverse indexes. Log: `evals/_batch5/iteration-log.md` |
 | `vue` |  |  |  |  |
-| `web-development` |  |  |  |  |
+| `web-development` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already reasons about rendering strategy from auth/SEO characteristics rather than dogma. Log: `evals/_batch4/iteration-log.md` |
 | `webassembly` |  |  |  |  |
 | `webkit` |  |  |  |  |
-| `webui-quickfix-demo` |  |  |  |  |
 | `wifi-pineapple` |  |  |  |  |
 | `wizard` | 46% | 96% | haiku | ✅ Imported EDD-first (`evals/wizard/`): scripts run for real in a pseudo-terminal against stub `gh`. Upstream template failed its own shellcheck step (SC1087, line 114), fixed; plus one sentence on reading the repo before a migration. Certified on **haiku** 46/48; Sonnet 48/48 (its v1 was already 88%) |
+| `workflow-certification` |  |  |  | Not yet evaluated |
+| `writing-for-adhd` | 60% | 100% | sonnet | **The expert case is 0/6 baseline, 6/6 with skill** — told the reader has a decade of crypto experience, the naive arm explains AES anyway every time (expertise reversal). Raised to **N=6** after an N=3 estimate swung 20%→100% then 40%→60%; three of five cases flap, so the case-run rate (56% → 86%) is reported alongside. Log: `evals/writing-for-adhd/iteration-log.md` |
 | `word-stats` |  |  |  |  |
 | `writing-for-agents` | 58% | 97% | sonnet | ✅ Imported EDD-first (`evals/writing-for-agents/`): upstream 88% → v5 97% on **sonnet** with three measured additions (pointer examples, done-when on every step, keep a rule's reason). Haiku 93%, under the bar |
+| `yamaha-virago-xv1100` |  |  |  | Not yet evaluated |
 
 ## Subagents
 

@@ -1,0 +1,200 @@
+{
+  "item": "AP-19",
+  "epics": [
+    {
+      "id": "E1",
+      "title": "Service forms a Pekko cluster with resilient membership",
+      "stories": [
+        {
+          "id": "S1",
+          "statement": "Replica nodes form a cluster automatically via Pekko Management and discovery",
+          "domains": [
+            "infra",
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "multiple replica nodes start with discovery configured",
+              "when": "the nodes come up",
+              "then": "they join the same cluster and each sees the others as Up members"
+            },
+            {
+              "id": "AC2",
+              "given": "a running cluster",
+              "when": "a new replica is launched with the same discovery configuration",
+              "then": "it joins the existing cluster without any manual seed-node configuration"
+            }
+          ]
+        },
+        {
+          "id": "S2",
+          "statement": "A split-brain resolver using keep-majority determines which side of a network partition survives",
+          "domains": [
+            "backend",
+            "infra"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "a cluster split into two partitions of unequal size by a network partition",
+              "when": "the split-brain resolver activates",
+              "then": "the minority partition's nodes are downed and removed from the cluster"
+            },
+            {
+              "id": "AC2",
+              "given": "a cluster split into two equal-size partitions",
+              "when": "the split-brain resolver activates",
+              "then": "exactly one partition remains in the cluster and the other is downed"
+            }
+          ]
+        },
+        {
+          "id": "S3",
+          "statement": "A management HTTP port exposes cluster bootstrap and health endpoints",
+          "domains": [
+            "infra"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "the service is started with Pekko Management enabled",
+              "when": "another node queries the management HTTP port during bootstrap",
+              "then": "the port serves the cluster bootstrap endpoint used for discovery-based seed-node lookup"
+            },
+            {
+              "id": "AC2",
+              "given": "the management HTTP port is up on a cluster member",
+              "when": "a health check request is sent to it",
+              "then": "the response reflects that node's current cluster membership health status"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E2",
+      "title": "Bucket entities are hosted as cluster-wide sharded singletons",
+      "stories": [
+        {
+          "id": "S4",
+          "statement": "The node-local BucketEntityManager is replaced by Cluster Sharding, so each bucket is a cluster-wide singleton entity addressed by EntityRef",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "a bucket entity is addressed via its EntityRef from any node in the cluster",
+              "when": "a request is sent to that EntityRef",
+              "then": "it is handled by exactly one cluster-wide instance of the bucket entity, not a node-local manager"
+            },
+            {
+              "id": "AC2",
+              "given": "a bucket entity that has not yet been activated anywhere in the cluster",
+              "when": "a request references its EntityRef",
+              "then": "Cluster Sharding activates exactly one instance of that entity somewhere in the cluster"
+            }
+          ]
+        },
+        {
+          "id": "S5",
+          "statement": "Bucket entities keep their existing persistence ids and journal after moving to Cluster Sharding",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "a bucket entity with events previously persisted under the single-node BucketEntityManager",
+              "when": "that bucket is now hosted via Cluster Sharding",
+              "then": "its persistence id is unchanged and its prior event history is read from the same journal"
+            },
+            {
+              "id": "AC2",
+              "given": "a bucket entity hosted via Cluster Sharding persists a new event",
+              "when": "the write occurs",
+              "then": "it is written using the same persistence id and journal configuration as before sharding was introduced"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E3",
+      "title": "The projection is distributed across the cluster and rebalances on membership change",
+      "stories": [
+        {
+          "id": "S6",
+          "statement": "The projection runs as ShardedDaemonProcess workers across N slice ranges instead of one instance",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "the projection is configured with N slice ranges",
+              "when": "the service runs as a cluster",
+              "then": "the projection work is split into N ShardedDaemonProcess workers, each responsible for one slice range"
+            },
+            {
+              "id": "AC2",
+              "given": "a healthy cluster running the projection",
+              "when": "processing is underway",
+              "then": "each configured slice range is being processed by exactly one worker at a time"
+            }
+          ]
+        },
+        {
+          "id": "S7",
+          "statement": "Projection slice ranges are rebalanced across ShardedDaemonProcess workers when cluster membership changes",
+          "domains": [
+            "backend",
+            "infra"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "a node hosting one or more projection workers leaves the cluster",
+              "when": "membership changes",
+              "then": "the slice ranges it owned are reassigned to workers on remaining nodes"
+            },
+            {
+              "id": "AC2",
+              "given": "a new node joins a cluster already running the projection",
+              "when": "ShardedDaemonProcess rebalances",
+              "then": "some slice ranges are redistributed to a worker on the new node"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E4",
+      "title": "Journal migrated to a clustered store",
+      "stories": [
+        {
+          "id": "S8",
+          "statement": "Migrate the journal to a clustered store and rewrite persistence ids to the new sharded scheme so bucket entities can be hosted anywhere.",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "bucket entities persist to the existing journal under their current persistence ids",
+              "when": "the migration runs",
+              "then": "their events are readable from the clustered store under the new sharded persistence ids"
+            },
+            {
+              "id": "AC2",
+              "given": "a bucket entity written before the migration",
+              "when": "it is rehydrated after the migration",
+              "then": "its state is recovered from the clustered store rather than the old journal"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

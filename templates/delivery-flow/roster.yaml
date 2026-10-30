@@ -1,0 +1,67 @@
+# The roster: kinds of work -> specialists.
+#
+# A story says which kinds of work it touches (`Domains:`); this says who handles each kind.
+# The lookup is a script (`resolve-roster.py`), not a judgement call, so the same story always
+# dispatches the same way — which is what makes the dispatch auditable rather than a thing the
+# orchestrator remembered.
+#
+# The vocabulary is closed: ux, frontend, backend, contracts, infra, data, mobile, docs.
+# A label outside it fails the resolve on purpose; an invented domain would dispatch to nobody.
+#
+# Every `architect`, `reviewers` and `deploy` value names an agent in `agents/`, and every
+# `skills` value names a skill in `skills/`. Nothing here is aspirational — a name that does
+# not resolve is a broken dispatch, and `tests/delivery-flow/test_roster.py` fails on it.
+#
+# Copy this to a repo and edit, or override a kind wholesale under `roster_overrides:` in
+# `.delivery-flow.yaml`. An override *replaces* the entry rather than merging into it, so what
+# you write is what dispatches.
+#
+# The dev pair is deliberately absent: the same test-writer and implementer build every story,
+# loaded with the skills resolved here. There is no `implementer-ux`, because the pair's file
+# boundary is enforced by a hook that would have to be duplicated for every variant.
+
+ux:
+  architect: full-stack-architect
+  skills: [ux-design, react, html-css]
+  reviewers: [frontend-reviewer]
+
+frontend:
+  architect: full-stack-architect
+  skills: [react, nextjs, typescript, html-css]
+  reviewers: [frontend-reviewer, clean-code-reviewer]
+
+backend:
+  architect: solution-architect
+  skills: [scala, functional-programming, software-design]
+  reviewers: [scala-fp-reviewer, clean-code-reviewer]
+
+# Contracts are the paths other teams depend on — an API shape, a published schema, an event
+# payload. The architect models them; the reviewers are the ones who catch a change that is
+# compatible for us and breaking for a consumer.
+contracts:
+  architect: domain-modeler
+  skills: [domain-driven-design, software-architecture, cqrs-event-sourcing]
+  reviewers: [clean-code-reviewer]
+
+infra:
+  architect: solution-architect
+  skills: [terraform, docker, github-actions, devops]
+  reviewers: [git-and-ci-reviewer]
+  deploy: helm-deployer
+
+data:
+  architect: solution-architect
+  skills: [python, graph-databases, software-design]
+  reviewers: [clean-code-reviewer]
+
+mobile:
+  architect: full-stack-architect
+  skills: [apple-dev, swiftui-ui-patterns, swift-concurrency-expert]
+  reviewers: [swiftui-reviewer]
+
+# A documentation change needs no architect, which is what `null` says. The resolve treats an
+# absent architect as "no architecture step for this kind", not as an error.
+docs:
+  architect: null
+  skills: [markdown, readability]
+  reviewers: [clean-code-reviewer]

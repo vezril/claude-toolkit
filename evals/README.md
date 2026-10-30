@@ -49,6 +49,44 @@ install it spawns the claude-code binary, inherits no AWS credentials, and error
 Only the plain `promptfooconfig.yaml` name is auto-discovered by CI, so `.local.*` variants
 and baseline arms stay out of the gate by construction.
 
+## Running a suite where the agent-SDK provider can't authenticate
+
+The canonical `promptfooconfig.yaml` in each suite is the **CI arm** and the single source of
+truth for tests and asserts. On a Bedrock-backed install the `anthropic:claude-agent-sdk`
+provider cannot authenticate at all — it spawns the claude-code binary, which inherits no AWS
+credentials, and every case errors with `Could not load AWS credentials`.
+
+For those machines each suite can carry two **derived** configs on an `exec:` provider:
+
+```
+evals/_provider/claude.sh             generation
+evals/_provider/claude-grader.sh      grading (llm-rubric needs bare JSON back)
+evals/_provider/make-local-configs.py derives both .local.* configs from the canonical one
+```
+
+```bash
+python3 evals/_provider/make-local-configs.py evals/<suite>
+npx promptfoo@latest eval -c evals/<suite>/promptfooconfig.local.yaml --no-cache
+npx promptfoo@latest eval -c evals/<suite>/promptfooconfig.local.baseline.yaml --no-cache
+```
+
+**Derive, don't hand-copy.** The arms have to share tests and asserts byte for byte or the
+naive-vs-skill delta measures nothing, and copying across suites is exactly how that drifts.
+Only the bare name `promptfooconfig.yaml` is auto-discovered, so `.local.*` variants and
+baseline arms stay out of CI's gate by construction.
+
+Three things these scripts encode, each learned the hard way:
+
+- **The prompt goes in on stdin, never as an argument.** A rendered prompt starting with `-`
+  (cross-examine's begins with the `---` of an agent file's frontmatter) is parsed as a CLI
+  option. Suites whose template puts prose before the injected file escape it, so the bug
+  looks suite-specific when it's structural.
+- **Only `$1` is ever forwarded.** promptfoo passes the test context as `$3`, and that context
+  contains the asserts — forwarding it leaks expected answers into the prompt and turns the
+  whole suite green while measuring nothing.
+- **A 0% score and a 0% error rate look identical in the summary line.** Check for empty
+  outputs and `Command failed` separately from assert failures before believing a zero.
+
 ## Run one
 
 The provider under test is the **Claude Agent SDK** (`anthropic:claude-agent-sdk`) — the model

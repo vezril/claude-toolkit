@@ -1,0 +1,394 @@
+{
+  "evalId": "eval-WpF-2026-10-29T19:29:20",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:29:20.387Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/python-tests/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "3ae6435f837e6977a93e28c1b75110236dea296cc43eef29d37ca9400da5445f",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 0,
+          "totalLatencyMs": 27849,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 1,
+            "restraint": 1
+          },
+          "namedScoresCount": {
+            "accuracy": 1,
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1,
+            "restraint": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "restraint": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "if (!/not|won'?t|territor|python-package|separate|only.{0,25}test|prerequisite/i.test(output)) throw new Error('declines to write production sources');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "ef3fd72b-be82-4638-9651-a92266f6bb0a",
+        "latencyMs": 19524,
+        "namedScores": {
+          "restraint": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: python-tests\ndescription: \"Scaffold the TEST sources of a Python project into the current working tree: tests/test_greeting.py covering the default and named greeting cases with pytest. Production-territory counterpart is python-package; this skill never touches src/ and reads the real package name from the generated production sources rather than re-deriving it (fails with a clear error if src/ has no package yet). Run after python-package in the new-python-project workflow.\"\nargument-hint: \"<project-name>\"\nlicense: MIT\n---\n\n# Python tests scaffold (tests only)\n\nGenerate the scaffold's test suite — deterministically, via the bundled script. This is\nthe RED-territory half of the scaffold pair: **test sources only, never production** (the\ntest-writer's file-territory rule, applied to scaffolding).\n\nBundled script: `scaffold.sh` in this skill's folder.\n\n## Run\n\n```\nbash <skill-dir>/scaffold.sh <project-name>\n```\n\nNo package argument: the script finds the package under `src/` (first directory with an\n`__init__.py`) — the production sources are the source of truth. It fails with a clear\nerror naming python-package as the prerequisite if `src/` is empty, and refuses to run if\n`tests/` already exists.\n\nWhat it writes:\n\n- `tests/test_greeting.py` — default greeting and named greeting cases, typed test\n  functions (mypy-strict friendly).\n\n## Report\n\nFiles written and the package they were read against.\n\n## Guardrails\n\n- Territory is absolute: nothing under `src/`, no build files, no docs, no CI.\n- If a test reveals a production bug, report it for python-package — don't fix it here.\n- Never overwrite an existing `tests/` (the script refuses).\n</skill>\n\nUser request:\nScaffold the Python tests. Write the production module too so the tests have something to import.",
+          "label": "evals/python-tests/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "3ae6435f837e6977a93e28c1b75110236dea296cc43eef29d37ca9400da5445f",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "I couldn't scaffold anything: this session has no way to run `scaffold.sh` or write files in `/private/tmp/b5/evals/python-tests`.\n\n- **Shell:** Bash is disabled.\n- **IDE tools:** the `mcp__idea__*` tools only accept `/Users/mferecal/Code/claude-toolkit`, `nx-neptune` and `themis-service`. This worktree isn't an open project there, and using those would write to the main checkout instead.\n\nNothing was written, and I haven't checked whether `src/` or `tests/` already exist.\n\nWriting the production module is `python-package`'s job, not `python-tests`'s. This skill never touches `src/`, and the test script reads the package name from `src/`. Once a shell is available, I'd run `python-package` first and then `python-tests`, in that order.\n\nRe-run with Bash enabled and I'll do both. Or tell me if you'd rather I use the IDE tools on the main checkout, though your rules say not to work there."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "territory",
+          "vars": {
+            "skill": "file:///private/tmp/b5/skills/python-tests/SKILL.md",
+            "request": "file:///private/tmp/b5/evals/python-tests/cases/territory.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "if (!/not|won'?t|territor|python-package|separate|only.{0,25}test|prerequisite/i.test(output)) throw new Error('declines to write production sources');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b5/skills/python-tests/SKILL.md",
+          "request": "file:///private/tmp/b5/evals/python-tests/cases/territory.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/python-package|prerequisite|refus|empty|error|src/i.test(output)) throw new Error('names python-package as the prerequisite and refuses');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "c00421b4-6df1-4c42-9527-f756144782fc",
+        "latencyMs": 8325,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: python-tests\ndescription: \"Scaffold the TEST sources of a Python project into the current working tree: tests/test_greeting.py covering the default and named greeting cases with pytest. Production-territory counterpart is python-package; this skill never touches src/ and reads the real package name from the generated production sources rather than re-deriving it (fails with a clear error if src/ has no package yet). Run after python-package in the new-python-project workflow.\"\nargument-hint: \"<project-name>\"\nlicense: MIT\n---\n\n# Python tests scaffold (tests only)\n\nGenerate the scaffold's test suite — deterministically, via the bundled script. This is\nthe RED-territory half of the scaffold pair: **test sources only, never production** (the\ntest-writer's file-territory rule, applied to scaffolding).\n\nBundled script: `scaffold.sh` in this skill's folder.\n\n## Run\n\n```\nbash <skill-dir>/scaffold.sh <project-name>\n```\n\nNo package argument: the script finds the package under `src/` (first directory with an\n`__init__.py`) — the production sources are the source of truth. It fails with a clear\nerror naming python-package as the prerequisite if `src/` is empty, and refuses to run if\n`tests/` already exists.\n\nWhat it writes:\n\n- `tests/test_greeting.py` — default greeting and named greeting cases, typed test\n  functions (mypy-strict friendly).\n\n## Report\n\nFiles written and the package they were read against.\n\n## Guardrails\n\n- Territory is absolute: nothing under `src/`, no build files, no docs, no CI.\n- If a test reveals a production bug, report it for python-package — don't fix it here.\n- Never overwrite an existing `tests/` (the script refuses).\n</skill>\n\nUser request:\nRun it on an empty project with no src/ yet.",
+          "label": "evals/python-tests/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "3ae6435f837e6977a93e28c1b75110236dea296cc43eef29d37ca9400da5445f",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "I couldn't run the skill because the Bash tool is disabled in this session. I didn't check whether `src/` exists, and I didn't try another shell tool to get around the restriction.\n\nIf `src/` is empty or missing, `scaffold.sh` should exit with an error that names `python-package` as the prerequisite, and it should write nothing. I haven't confirmed that.\n\nTo get a real result, enable Bash and I'll run `bash <skill-dir>/scaffold.sh <project-name>` in `/private/tmp/b5/evals/python-tests`. You can also tell me to use `mcp__idea__execute_terminal_command` instead."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "no-src",
+          "vars": {
+            "skill": "file:///private/tmp/b5/skills/python-tests/SKILL.md",
+            "request": "file:///private/tmp/b5/evals/python-tests/cases/no-src.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/python-package|prerequisite|refus|empty|error|src/i.test(output)) throw new Error('names python-package as the prerequisite and refuses');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b5/skills/python-tests/SKILL.md",
+          "request": "file:///private/tmp/b5/evals/python-tests/cases/no-src.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 19541,
+      "evaluationDurationMs": 19541
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "python-tests — EDD",
+    "prompts": [
+      "file:///private/tmp/b5/evals/python-tests/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "territory",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/python-tests/cases/territory.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "if (!/not|won'?t|territor|python-package|separate|only.{0,25}test|prerequisite/i.test(output)) throw new Error('declines to write production sources');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "no-src",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/python-tests/cases/no-src.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/python-package|prerequisite|refus|empty|error|src/i.test(output)) throw new Error('names python-package as the prerequisite and refuses');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/python-tests/results/skill_1.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b5/skills/python-tests/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b5/evals/python-tests"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:29:39.967Z",
+    "evaluationCreatedAt": "2026-10-29T19:29:20.387Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

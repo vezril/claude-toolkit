@@ -1,0 +1,28 @@
+# gitbucket: shared matrix, used verbatim by both arms. Deterministic asserts only.
+
+- description: "mounts"
+  vars: { request: file://cases/mounts.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/GITBUCKET_HOME|additional|finch\.yaml|not a VM|no VM|gitbucket\.conf|lima/i.test(output)) throw new Error('does not invent a VM-mount config for GitBucket');
+        return true;
+
+- description: "socket"
+  vars: { request: file://cases/socket.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/not|no\b|GitBucket (is|does)|unrelated|different|nothing to do/i.test(output)) throw new Error('declines the false premise rather than inventing a socket');
+        return true;
+
+- description: "issues-api"
+  vars: { request: file://cases/issues-api.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/no (PATCH|endpoint)|cannot|can'?t|not (available|supported|implemented)|commit message|close #|label/i.test(output)) throw new Error('says there is no issue-close endpoint and gives the workaround');
+        return true;

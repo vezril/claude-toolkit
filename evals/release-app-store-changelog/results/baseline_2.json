@@ -1,0 +1,444 @@
+{
+  "evalId": "eval-LXx-2026-10-29T17:01:56",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T17:01:56.705Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "label": "evals/release-app-store-changelog/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "id": "a9f02ab2438f7f947ab945248fd50c59cd4a9e36594b049dcb57fb58c62ffbc7",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 5,
+          "assertFailCount": 0,
+          "totalLatencyMs": 20960,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 4,
+            "restraint": 1
+          },
+          "namedScoresCount": {
+            "accuracy": 4,
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 4,
+            "restraint": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1,
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1,
+            "restraint": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/dark mode/i.test(output)) throw new Error('includes the user-facing feature -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "// Negative assert: the non-user-facing commits must NOT appear. The original\n// used a negative lookahead with .*, which cannot cross newlines and so passed\n// trivially on any multi-line reply.\n// Scope to the release-notes BULLETS only. Scanning the whole reply failed a\n// correct answer that listed the notes and then explained which commits it had\n// deliberately left out as internal -- good behaviour, penalised by the regex.\nconst bullets = (output.match(/^\\s*[-*\\u2022]\\s+.*$/gm) || []).join('\\n');\nconst leaked = ['bump deps','refactor NetworkClient','update CI'].filter(x => new RegExp(x,'i').test(bullets));\nif (leaked.length) throw new Error('listed non-user-facing commits as notes: ' + leaked.join(', '));\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "6ed19889-a3d2-4c27-b114-3664b8a6b259",
+        "latencyMs": 9805,
+        "namedScores": {
+          "accuracy": 1,
+          "restraint": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nHere are my commits since v1.2.0: 'bump deps', 'refactor NetworkClient', 'fix crash on launch when offline', 'add dark mode', 'update CI', 'improve sync speed'. Write the App Store release notes.",
+          "label": "evals/release-app-store-changelog/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "a9f02ab2438f7f947ab945248fd50c59cd4a9e36594b049dcb57fb58c62ffbc7",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "What's New\n\nNew\n• Added dark mode.\n\nImproved\n• Faster syncing.\n\nFixed\n• Fixed a crash when launching the app while offline.\n\nI left out \"bump deps\", \"refactor NetworkClient\" and \"update CI\" because users won't see them. I worked from your list rather than running git against the repo."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "triage",
+          "vars": {
+            "request": "file:///private/tmp/b3/evals/release-app-store-changelog/cases/triage.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/dark mode/i.test(output)) throw new Error('includes the user-facing feature -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "// Negative assert: the non-user-facing commits must NOT appear. The original\n// used a negative lookahead with .*, which cannot cross newlines and so passed\n// trivially on any multi-line reply.\n// Scope to the release-notes BULLETS only. Scanning the whole reply failed a\n// correct answer that listed the notes and then explained which commits it had\n// deliberately left out as internal -- good behaviour, penalised by the regex.\nconst bullets = (output.match(/^\\s*[-*\\u2022]\\s+.*$/gm) || []).join('\\n');\nconst leaked = ['bump deps','refactor NetworkClient','update CI'].filter(x => new RegExp(x,'i').test(bullets));\nif (leaked.length) throw new Error('listed non-user-facing commits as notes: ' + leaked.join(', '));\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/release-app-store-changelog/cases/triage.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 3
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/new/i.test(output)) throw new Error('names the New category -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/improv/i.test(output)) throw new Error('names the Improved category -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/fix/i.test(output)) throw new Error('names the Fixed category -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "a0ef8244-d5b5-48e4-b03f-ccc0f6cfda48",
+        "latencyMs": 11155,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nWhat structure should App Store release notes follow?",
+          "label": "evals/release-app-store-changelog/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "a9f02ab2438f7f947ab945248fd50c59cd4a9e36594b049dcb57fb58c62ffbc7",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "Open with a \"What's New\" header, optionally with the version. Then list short, benefit-focused bullets. Each bullet is one sentence that starts with a verb.\n\n```\nWhat's New in 2.4\n\nNew\n• Added account switching from the profile menu.\n\nImproved\n• Improved timeline loading speed on slow connections.\n\nFixed\n• Fixed media attachments not opening in full screen.\n```\n\n- **Sections:** Group bullets under New, Improved and Fixed. For a small release, skip the sections and use a flat list.\n- **Length:** Aim for 5–10 bullets unless you have a different target. Stay inside the App Store character limit.\n- **Tense:** Pick present or past and keep it for the whole list.\n- **Language:** Use plain language. Leave out API, refactor, ticket IDs, file paths and other internal terms.\n- **Scope:** Include only changes users can see: features, UI, behavior, noticeable fixes and visible performance gains. Leave out refactors, dependency bumps, CI and tooling.\n- **Source:** Take changes from `git log $(git describe --tags --abbrev=0)..HEAD --no-merges`. Each bullet should match a real commit, and no two bullets should describe the same change.\n\nI can draft the notes from your commits since the last tag if you'd like."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "categories",
+          "vars": {
+            "request": "file:///private/tmp/b3/evals/release-app-store-changelog/cases/categories.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/new/i.test(output)) throw new Error('names the New category -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/improv/i.test(output)) throw new Error('names the Improved category -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/fix/i.test(output)) throw new Error('names the Fixed category -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/release-app-store-changelog/cases/categories.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 11176,
+      "evaluationDurationMs": 11176
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "release-app-store-changelog — EDD — NAIVE BASELINE",
+    "prompts": [
+      "file:///private/tmp/b3/evals/release-app-store-changelog/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "triage",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/release-app-store-changelog/cases/triage.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/dark mode/i.test(output)) throw new Error('includes the user-facing feature -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "// Negative assert: the non-user-facing commits must NOT appear. The original\n// used a negative lookahead with .*, which cannot cross newlines and so passed\n// trivially on any multi-line reply.\n// Scope to the release-notes BULLETS only. Scanning the whole reply failed a\n// correct answer that listed the notes and then explained which commits it had\n// deliberately left out as internal -- good behaviour, penalised by the regex.\nconst bullets = (output.match(/^\\s*[-*\\u2022]\\s+.*$/gm) || []).join('\\n');\nconst leaked = ['bump deps','refactor NetworkClient','update CI'].filter(x => new RegExp(x,'i').test(bullets));\nif (leaked.length) throw new Error('listed non-user-facing commits as notes: ' + leaked.join(', '));\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "categories",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/release-app-store-changelog/cases/categories.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/new/i.test(output)) throw new Error('names the New category -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/improv/i.test(output)) throw new Error('names the Improved category -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/fix/i.test(output)) throw new Error('names the Fixed category -- not found');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/release-app-store-changelog/results/baseline_2.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/private/tmp/b3/evals/release-app-store-changelog"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T17:02:07.951Z",
+    "evaluationCreatedAt": "2026-10-29T17:01:56.705Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

@@ -1,0 +1,391 @@
+{
+  "evalId": "eval-cBv-2026-10-29T19:54:56",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:54:56.701Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/akka-sdk-timed-actions/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "70dce9f880f635429169228214180bc95733d89826eff46136908bd14ca100bd",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 0,
+          "totalLatencyMs": 12796,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 2
+          },
+          "namedScoresCount": {
+            "accuracy": 2
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/before|register.{0,30}first|timer first/i.test(output)) throw new Error('says register the timer before the business operation');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "5f77a68e-0f88-4e36-bc65-40ab75792e64",
+        "latencyMs": 5545,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-sdk-timed-actions\ndescription: Akka SDK Timed Actions (Java) — schedule a durable deferred call to run at or after a future time (timeouts, reminders, \"do X later\"), guaranteed to run at least once by the Akka runtime. Covers the TimedAction component (extend TimedAction, @Component(id), effects().done()/error()), scheduling via the injected TimerScheduler (createSingleTimer(name, delay, deferredCall), delete), deduplication by unique timer name, building deferred ComponentClient calls (.deferred(arg)), retry/backoff behavior, limits, and designing the target to be idempotent. Use to implement order/payment expiration, confirmation timeouts, reminders, or scheduled work in an Akka SDK service. Part of the Akka SDK (Java); see akka-sdk for the model and akka-sdk-workflows for multi-step orchestration.\n---\n\n# Akka SDK — Timed Actions\n\nSchedule a call to run **at/after a future time** — order/payment expiration, confirmation timeouts, reminders, \"check later\". Timers are **stored by the Akka runtime and guaranteed to run at least once**: on success the timer auto-removes; on failure it reschedules (exponential backoff) until it succeeds. Part of the [[akka-sdk]] (Java).\n\nCross-links: [[akka-sdk]] (meta), [[akka-sdk-workflows]] (durable multi-step orchestration — often a better fit than many timers), [[akka-sdk-event-sourced-entities]] / [[akka-sdk-key-value-entities]] (timer targets).\n\n## Scheduling & the component\n\nInject `TimerScheduler` (available in Setup, Endpoints, Consumers, Timed Actions, Workflows) and schedule a **deferred** `ComponentClient` call:\n\n```java\n// scheduling (e.g. from an endpoint), BEFORE the business op\nprivate String timerName(String orderId) { return \"order-expiration-\" + orderId; }\ntimerScheduler.createSingleTimer(\n  timerName(orderId),                       // unique name across the cluster — rescheduling the same name REPLACES it\n  Duration.ofSeconds(10),\n  componentClient.forTimedAction().method(OrderTimedAction::expireOrder).deferred(orderId));\n\n// the Timed Action component\n@Component(id = \"order-timed-action\")\npublic class OrderTimedAction extends TimedAction {\n  private final ComponentClient componentClient;\n  public OrderTimedAction(ComponentClient cc) { this.componentClient = cc; }\n\n  public Effect expireOrder(String orderId) {\n    var result = componentClient.forKeyValueEntity(orderId).method(OrderEntity::cancel).invoke();\n    return switch (result) {                 // NotFound/Invalid/Ok all => done() (obsolete => no reschedule)\n      case OrderEntity.Result.Ok o, OrderEntity.Result.NotFound n, OrderEntity.Result.Invalid i -> effects().done();\n    };\n  }\n}\n```\n\nA Timed Action `extends TimedAction`, has `@Component(id)`, and its handlers return `effects().done()` (success → timer removed) or `effects().error(...)` (failure → reschedule). A timer can target **any** `ComponentClient`-reachable method, not only Timed Actions. Cancel with `timerScheduler.delete(timerName(orderId))`.\n\n## Always-apply defaults\n\n1. **Use a deterministic timer name keyed on the business id** — timers are unique by name across the cluster, so scheduling the same name **replaces** the existing one (this is the dedup mechanism).\n2. **Register the timer *before* the business operation** so a failed registration leaves no untracked work; the target handles the reverse (timer fires, op never completed) gracefully.\n3. **The timer target must not fail unless retry is intended** — an unhandled error reschedules forever. Design it to return success for terminal/obsolete cases (entity not found / already cancelled).\n4. **Make the target idempotent** — it may run more than once (at-least-once); deleting the timer on completion is just housekeeping (the target still handles an obsolete trigger).\n5. **Reach for [[akka-sdk-workflows]] instead** when you need multi-step orchestration with retries/compensation — Timed Actions are for single deferred calls.\n\n## Limits & evolution\n\n- Payload ≤ **1024 bytes**; ≤ **50,000 active timers** per service.\n- Backoff starts ~3s, capped ~30s, indefinite by default (cap via the `maxRetries` parameter).\n- The serialized timer stores **component id + method name + parameter**, so those must stay stable across deploys — a changed id/method/payload makes the timer fail and reschedule until a compatible deploy. When refactoring a timer-target method, keep the old method (delegate or make it a no-op `return effects().done();`) while scheduled calls may still reference it.\n- CLI: `akka services components list-timers <service> -o json`.\n\n## Anti-patterns (flag in review)\n\n- Random/non-deterministic timer names (lose the dedup/replace semantics); registering the timer after the business op.\n- A target that throws/`error()`s on obsolete triggers (reschedules forever); non-idempotent target side effects.\n- Renaming/moving a timer-target method without keeping a compatible shim; using many timers where a Workflow's steps/timeouts fit better.\n\n## Related\n\n- [[akka-sdk]] · [[akka-sdk-workflows]] · [[akka-sdk-event-sourced-entities]] · [[akka-sdk-key-value-entities]]\n- Source: https://doc.akka.io/sdk/timed-actions.html\n</skill>\n\nUser request:\nShould I run the business operation first and then register the timer, or the other way round?",
+          "label": "evals/akka-sdk-timed-actions/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "70dce9f880f635429169228214180bc95733d89826eff46136908bd14ca100bd",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Register the timer first, then run the business operation.\n\nIf registration fails, nothing has happened yet, so no work goes untracked. If the operation fails after the timer is set, the timer fires later and the target handles it. It returns `effects().done()` for the not-found or obsolete case, so it doesn't retry forever.\n\nThe reverse order can leave the operation done with no timer, for example an order that never expires. That failure is silent.\n\nUse a deterministic timer name like `\"order-expiration-\" + orderId`. Scheduling the same name replaces the existing timer, and that is what deduplicates retries. Because the timer may fire more than once, make the target idempotent."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "order",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-sdk-timed-actions/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-sdk-timed-actions/cases/order.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/before|register.{0,30}first|timer first/i.test(output)) throw new Error('says register the timer before the business operation');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-sdk-timed-actions/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-sdk-timed-actions/cases/order.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/stable|component id|method name|serial|break|cannot (be )?resolv|orphan|fail/i.test(output)) throw new Error('warns the serialized timer stores component id and method name');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "b0d95795-de6f-4207-916a-74c311ca8fc9",
+        "latencyMs": 7251,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: akka-sdk-timed-actions\ndescription: Akka SDK Timed Actions (Java) — schedule a durable deferred call to run at or after a future time (timeouts, reminders, \"do X later\"), guaranteed to run at least once by the Akka runtime. Covers the TimedAction component (extend TimedAction, @Component(id), effects().done()/error()), scheduling via the injected TimerScheduler (createSingleTimer(name, delay, deferredCall), delete), deduplication by unique timer name, building deferred ComponentClient calls (.deferred(arg)), retry/backoff behavior, limits, and designing the target to be idempotent. Use to implement order/payment expiration, confirmation timeouts, reminders, or scheduled work in an Akka SDK service. Part of the Akka SDK (Java); see akka-sdk for the model and akka-sdk-workflows for multi-step orchestration.\n---\n\n# Akka SDK — Timed Actions\n\nSchedule a call to run **at/after a future time** — order/payment expiration, confirmation timeouts, reminders, \"check later\". Timers are **stored by the Akka runtime and guaranteed to run at least once**: on success the timer auto-removes; on failure it reschedules (exponential backoff) until it succeeds. Part of the [[akka-sdk]] (Java).\n\nCross-links: [[akka-sdk]] (meta), [[akka-sdk-workflows]] (durable multi-step orchestration — often a better fit than many timers), [[akka-sdk-event-sourced-entities]] / [[akka-sdk-key-value-entities]] (timer targets).\n\n## Scheduling & the component\n\nInject `TimerScheduler` (available in Setup, Endpoints, Consumers, Timed Actions, Workflows) and schedule a **deferred** `ComponentClient` call:\n\n```java\n// scheduling (e.g. from an endpoint), BEFORE the business op\nprivate String timerName(String orderId) { return \"order-expiration-\" + orderId; }\ntimerScheduler.createSingleTimer(\n  timerName(orderId),                       // unique name across the cluster — rescheduling the same name REPLACES it\n  Duration.ofSeconds(10),\n  componentClient.forTimedAction().method(OrderTimedAction::expireOrder).deferred(orderId));\n\n// the Timed Action component\n@Component(id = \"order-timed-action\")\npublic class OrderTimedAction extends TimedAction {\n  private final ComponentClient componentClient;\n  public OrderTimedAction(ComponentClient cc) { this.componentClient = cc; }\n\n  public Effect expireOrder(String orderId) {\n    var result = componentClient.forKeyValueEntity(orderId).method(OrderEntity::cancel).invoke();\n    return switch (result) {                 // NotFound/Invalid/Ok all => done() (obsolete => no reschedule)\n      case OrderEntity.Result.Ok o, OrderEntity.Result.NotFound n, OrderEntity.Result.Invalid i -> effects().done();\n    };\n  }\n}\n```\n\nA Timed Action `extends TimedAction`, has `@Component(id)`, and its handlers return `effects().done()` (success → timer removed) or `effects().error(...)` (failure → reschedule). A timer can target **any** `ComponentClient`-reachable method, not only Timed Actions. Cancel with `timerScheduler.delete(timerName(orderId))`.\n\n## Always-apply defaults\n\n1. **Use a deterministic timer name keyed on the business id** — timers are unique by name across the cluster, so scheduling the same name **replaces** the existing one (this is the dedup mechanism).\n2. **Register the timer *before* the business operation** so a failed registration leaves no untracked work; the target handles the reverse (timer fires, op never completed) gracefully.\n3. **The timer target must not fail unless retry is intended** — an unhandled error reschedules forever. Design it to return success for terminal/obsolete cases (entity not found / already cancelled).\n4. **Make the target idempotent** — it may run more than once (at-least-once); deleting the timer on completion is just housekeeping (the target still handles an obsolete trigger).\n5. **Reach for [[akka-sdk-workflows]] instead** when you need multi-step orchestration with retries/compensation — Timed Actions are for single deferred calls.\n\n## Limits & evolution\n\n- Payload ≤ **1024 bytes**; ≤ **50,000 active timers** per service.\n- Backoff starts ~3s, capped ~30s, indefinite by default (cap via the `maxRetries` parameter).\n- The serialized timer stores **component id + method name + parameter**, so those must stay stable across deploys — a changed id/method/payload makes the timer fail and reschedule until a compatible deploy. When refactoring a timer-target method, keep the old method (delegate or make it a no-op `return effects().done();`) while scheduled calls may still reference it.\n- CLI: `akka services components list-timers <service> -o json`.\n\n## Anti-patterns (flag in review)\n\n- Random/non-deterministic timer names (lose the dedup/replace semantics); registering the timer after the business op.\n- A target that throws/`error()`s on obsolete triggers (reschedules forever); non-idempotent target side effects.\n- Renaming/moving a timer-target method without keeping a compatible shim; using many timers where a Workflow's steps/timeouts fit better.\n\n## Related\n\n- [[akka-sdk]] · [[akka-sdk-workflows]] · [[akka-sdk-event-sourced-entities]] · [[akka-sdk-key-value-entities]]\n- Source: https://doc.akka.io/sdk/timed-actions.html\n</skill>\n\nUser request:\nWe renamed a timed action's method and changed its id in a deploy. Any risk?",
+          "label": "evals/akka-sdk-timed-actions/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "70dce9f880f635429169228214180bc95733d89826eff46136908bd14ca100bd",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Yes, real risk. Timers store the **component id + method name + parameter**, so any timer scheduled before the deploy still points at the old id and method.\n\n- **What happens:** when an old timer fires, the runtime can't find the target. The call fails and the timer reschedules with backoff (about 3s up to a 30s cap). By default that repeats indefinitely until a compatible deploy exists, so those timers never complete.\n- **Effect on your app:** whatever the timer was meant to do (order expiration, a timeout) won't happen for any timer created before the deploy.\n\n**Fix:** redeploy with the old target restored as a shim. Keep a component with the old `@Component(id)` and the old method name. It can delegate to the new method, or just `return effects().done();` if the work is obsolete. Old timers then fire, succeed, and remove themselves. You can drop the shim once none remain.\n\n**Check what's pending:** `akka services components list-timers <service> -o json`. Look for timers that reference the old id or method.\n\nChanging the payload type is the same problem. If you also changed the parameter, keep that compatible in the shim."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "stability",
+          "vars": {
+            "skill": "file:///private/tmp/b6/skills/akka-sdk-timed-actions/SKILL.md",
+            "request": "file:///private/tmp/b6/evals/akka-sdk-timed-actions/cases/stability.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/stable|component id|method name|serial|break|cannot (be )?resolv|orphan|fail/i.test(output)) throw new Error('warns the serialized timer stores component id and method name');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b6/skills/akka-sdk-timed-actions/SKILL.md",
+          "request": "file:///private/tmp/b6/evals/akka-sdk-timed-actions/cases/stability.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 7272,
+      "evaluationDurationMs": 7272
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-sdk-timed-actions — EDD",
+    "prompts": [
+      "file:///private/tmp/b6/evals/akka-sdk-timed-actions/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "order",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-timed-actions/cases/order.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/before|register.{0,30}first|timer first/i.test(output)) throw new Error('says register the timer before the business operation');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "stability",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-timed-actions/cases/stability.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/stable|component id|method name|serial|break|cannot (be )?resolv|orphan|fail/i.test(output)) throw new Error('warns the serialized timer stores component id and method name');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-sdk-timed-actions/results/skill_3.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b6/skills/akka-sdk-timed-actions/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b6/evals/akka-sdk-timed-actions"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:55:04.017Z",
+    "evaluationCreatedAt": "2026-10-29T19:54:56.701Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

@@ -1,0 +1,208 @@
+{
+  "item": "DP-61",
+  "epics": [
+    {
+      "id": "E1",
+      "title": "Product identity captured on ingredients",
+      "stories": [
+        {
+          "id": "S1",
+          "statement": "Extend the ingredient model so brand, barcode, packageQuantity, and packageUnit are optional fields, with barcode enforced unique when present.",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "an ingredient is created without any product-identity fields",
+              "when": "it is saved",
+              "then": "it persists successfully with brand, barcode, packageQuantity, and packageUnit absent"
+            },
+            {
+              "id": "AC2",
+              "given": "an ingredient already exists with a given barcode",
+              "when": "another ingredient is saved with the same barcode",
+              "then": "the save is rejected"
+            },
+            {
+              "id": "AC3",
+              "given": "two ingredients are created without barcodes",
+              "when": "both are saved",
+              "then": "both persist successfully"
+            },
+            {
+              "id": "AC4",
+              "given": "an ingredient is created with packageQuantity and packageUnit set",
+              "when": "it is saved",
+              "then": "both values persist together on the ingredient"
+            }
+          ]
+        },
+        {
+          "id": "S2",
+          "statement": "The ingredient form (create and edit) gains optional fields for brand, barcode, packageQuantity, and packageUnit, submitted and persisted alongside the ingredient.",
+          "domains": [
+            "ux",
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "a user fills in brand, barcode, packageQuantity, and packageUnit on the ingredient form",
+              "when": "the form is submitted",
+              "then": "the ingredient is saved with those values set"
+            },
+            {
+              "id": "AC2",
+              "given": "a user leaves brand, barcode, packageQuantity, and packageUnit blank on the ingredient form",
+              "when": "the form is submitted",
+              "then": "the ingredient is saved successfully with those fields absent"
+            },
+            {
+              "id": "AC3",
+              "given": "a user submits the ingredient form with a barcode already used by another ingredient",
+              "when": "the form is submitted",
+              "then": "the submission is rejected and no ingredient is saved"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E2",
+      "title": "Create a branded pantry item in one step",
+      "stories": [
+        {
+          "id": "S3",
+          "statement": "Add a \"Create custom item\" action on /pantry that opens a one-step form creating the custom ingredient and its pantry row together via a single Server Action.",
+          "domains": [
+            "ux",
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "the operator is on /pantry",
+              "when": "they select \"Create custom item\"",
+              "then": "a form opens for entering the new item's details without navigating to /ingredients/new"
+            },
+            {
+              "id": "AC2",
+              "given": "the operator submits the one-step form with a name and quantity",
+              "when": "the submission completes",
+              "then": "both a new ingredient and a corresponding pantry row exist"
+            },
+            {
+              "id": "AC3",
+              "given": "the operator submits the one-step form with brand, barcode, packageQuantity, and packageUnit filled in",
+              "when": "the submission completes",
+              "then": "the created ingredient stores those product-identity values"
+            },
+            {
+              "id": "AC4",
+              "given": "the one-step form submission fails, such as from a duplicate barcode",
+              "when": "the Server Action rejects it",
+              "then": "no ingredient or pantry row is created"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E3",
+      "title": "Zero-quantity pantry rows persist as out of stock",
+      "stories": [
+        {
+          "id": "S4",
+          "statement": "Allow pantry rows to exist at zero quantity instead of enforcing quantity greater than zero.",
+          "domains": [
+            "backend"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "a pantry row's quantity is reduced to zero",
+              "when": "the update is saved",
+              "then": "the pantry row continues to exist rather than being removed"
+            },
+            {
+              "id": "AC2",
+              "given": "a pantry row is created with a quantity of zero",
+              "when": "it is saved",
+              "then": "the save succeeds"
+            }
+          ]
+        },
+        {
+          "id": "S5",
+          "statement": "Render an \"out of stock\" state on the pantry page for rows at zero quantity.",
+          "domains": [
+            "ux"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "a pantry row has a quantity of zero",
+              "when": "the pantry page is rendered",
+              "then": "that row displays an \"out of stock\" state"
+            },
+            {
+              "id": "AC2",
+              "given": "a pantry row has a quantity greater than zero",
+              "when": "the pantry page is rendered",
+              "then": "that row does not display the \"out of stock\" state"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E4",
+      "title": "Product identity visible on pantry detail",
+      "stories": [
+        {
+          "id": "S6",
+          "statement": "/pantry/[id] displays brand, barcode, packageQuantity, and packageUnit when present on the ingredient.",
+          "domains": [
+            "ux"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "a pantry item's ingredient has brand, barcode, packageQuantity, and packageUnit set",
+              "when": "/pantry/[id] is viewed",
+              "then": "those values are displayed"
+            },
+            {
+              "id": "AC2",
+              "given": "a pantry item's ingredient has none of those product-identity fields set",
+              "when": "/pantry/[id] is viewed",
+              "then": "the page renders without showing those fields"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E5",
+      "title": "Out-of-stock rows on the pantry page",
+      "stories": [
+        {
+          "id": "S7",
+          "statement": "Render an \"out of stock\" state on the pantry page for rows at zero quantity.",
+          "domains": [
+            "ux"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC1",
+              "given": "a pantry row has a quantity of zero",
+              "when": "the pantry page is rendered",
+              "then": "that row is shown as out of stock"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

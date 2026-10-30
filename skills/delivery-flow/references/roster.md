@@ -3,6 +3,11 @@
 A story says which kinds of work it touches; `roster.yaml` says who handles each kind. The
 lookup is a script, not a judgement call, so the same story always dispatches the same way.
 
+The shipped roster is `templates/delivery-flow/roster.yaml`, parsed by `load_roster` in
+`scripts/delivery-flow/common.py`. Every name in it resolves to a real agent in `agents/` or a
+real skill in `skills/`, and `tests/delivery-flow/test_roster.py` fails if one stops doing so —
+a name that does not exist is not a typo, it is a story that silently gets no reviewer.
+
 ```yaml
 backend:
   architect: solution-architect
@@ -22,6 +27,10 @@ infra:
 The vocabulary is fixed: `ux`, `frontend`, `backend`, `contracts`, `infra`, `data`,
 `mobile`, `docs`. A label outside it fails the resolve, which is the point — an invented
 domain would dispatch to nobody.
+
+`architect: null` is a kind of work that needs no architecture step — `docs` is the one. It is
+written out rather than left absent, because an absent key reads as an omission and the resolve
+treats it as one.
 
 ## How a story is dispatched
 

@@ -1,0 +1,496 @@
+{
+  "evalId": "eval-W94-2026-10-29T19:10:37",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:10:37.716Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "label": "evals/gitbucket/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "id": "502651b88b8dbd7e7ddc90b620a592d38b23516738cc6640b6d97e62db2b4260",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 3,
+          "testPassCount": 3,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 3,
+          "assertFailCount": 0,
+          "totalLatencyMs": 41108,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 3
+          },
+          "namedScoresCount": {
+            "accuracy": 3
+          },
+          "namedScoreWeights": {
+            "accuracy": 3
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/GITBUCKET_HOME|additional|finch\\.yaml|not a VM|no VM|gitbucket\\.conf|lima/i.test(output)) throw new Error('does not invent a VM-mount config for GitBucket');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "1f634b6e-18d8-40a7-b633-b4fd67c410b7",
+        "latencyMs": 14297,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nShow me the finch.yaml... sorry, the gitbucket.yaml entry to mount an extra host directory into the VM. Actually — for GitBucket, how do I add a directory the server can see?",
+          "label": "evals/gitbucket/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "502651b88b8dbd7e7ddc90b620a592d38b23516738cc6640b6d97e62db2b4260",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "GitBucket has no `gitbucket.yaml`. The VM mount lives in Finch's `~/.finch/finch.yaml`, and GitBucket then sees the directory through a container volume.\n\n**1. Mount the host directory into the Finch VM** in `~/.finch/finch.yaml`. The entry is a map with a `path:` key, so a bare string won't parse:\n\n```yaml\nadditional_directories:\n  - path: /Volumes/data\n```\n\nThen run `finch vm stop && finch vm start`. Paths under your home directory are already mounted, so you only need this for paths outside it.\n\n**2. Bind-mount it into the container:**\n\n```bash\nfinch run -d -p 8080:8080 -p 29418:29418 \\\n  -v ~/gitbucket-home:/gitbucket \\\n  -v /Volumes/data/repos:/extra \\\n  gitbucket/gitbucket\n```\n\nThe `/gitbucket` mount is `GITBUCKET_HOME`. The `/extra` mount is the extra directory, and GitBucket can read it at `/extra`.\n\nIf you mean a GitBucket setting, such as pointing its data directory elsewhere, use `--gitbucket.home=DIR` or `GITBUCKET_HOME`. GitBucket has no \"additional directory\" option, so anything outside `GITBUCKET_HOME` has to come in through the volume mount.\n\nYour home directory is mounted into the VM writable, so a compromised container can modify it. Mount only the directory you need."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "mounts",
+          "vars": {
+            "request": "file:///private/tmp/b5/evals/gitbucket/cases/mounts.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/GITBUCKET_HOME|additional|finch\\.yaml|not a VM|no VM|gitbucket\\.conf|lima/i.test(output)) throw new Error('does not invent a VM-mount config for GitBucket');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/gitbucket/cases/mounts.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/not|no\\b|GitBucket (is|does)|unrelated|different|nothing to do/i.test(output)) throw new Error('declines the false premise rather than inventing a socket');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "c3387800-c235-4a16-ae0c-7047dfa22e8f",
+        "latencyMs": 15037,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nOur CI uses Testcontainers against a Docker socket. Does GitBucket give me one?",
+          "label": "evals/gitbucket/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "502651b88b8dbd7e7ddc90b620a592d38b23516738cc6640b6d97e62db2b4260",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "No. GitBucket has no CI runner, so it has no Docker socket to give you. The API has no Actions or Checks, only the commit status API (`POST …/statuses/:sha`) and webhooks.\n\nYou need a separate runner that provides the socket:\n\n- **Runner on a host with Docker:** wire it up with a push or PR webhook. Jenkins, Drone, Woodpecker and Buildkite agents all work. Mount `/var/run/docker.sock` into the build container, or use a Docker-in-Docker sidecar with `DOCKER_HOST=tcp://…`. Testcontainers works with either.\n- **Result reporting:** have the runner post back via the status API. You can read it with `GET …/commits/:ref/status`.\n\nGitBucket also has community CI plugins, but I haven't verified them. Even if they work, they'd run builds on the GitBucket host, not in a Docker-managed environment.\n\nIf GitBucket itself runs in Docker, don't mount its socket into the builds. Run the runner separately."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "socket",
+          "vars": {
+            "request": "file:///private/tmp/b5/evals/gitbucket/cases/socket.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/not|no\\b|GitBucket (is|does)|unrelated|different|nothing to do/i.test(output)) throw new Error('declines the false premise rather than inventing a socket');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/gitbucket/cases/socket.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/no (PATCH|endpoint)|cannot|can'?t|not (available|supported|implemented)|commit message|close #|label/i.test(output)) throw new Error('says there is no issue-close endpoint and gives the workaround');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "ae592d5f-4926-4975-a885-2f2268e9851e",
+        "latencyMs": 11774,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nClose an issue via the GitBucket API — what's the call?",
+          "label": "evals/gitbucket/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "502651b88b8dbd7e7ddc90b620a592d38b23516738cc6640b6d97e62db2b4260",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "There isn't one. GitBucket's API (verified on 4.48.0) has no `PATCH /api/v3/repos/:o/:r/issues/:id`, so you can't close an issue through it. That request returns `404 {\"message\":\"Not Found\"}` and leaves the issue unchanged.\n\nWorkarounds:\n- **Commit keyword:** push a commit whose message says `closes #N`. `close`, `fix`, `resolve` and their variants also work, and one message can list several issues.\n- **Web UI:** close it by hand.\n- **Labels:** if you're automating, use a label like `done` as the state. Labels have full API support:\n\n```bash\ncurl -X POST -H \"Authorization: token $GB_TOKEN\" \\\n  -d '{\"labels\":[\"done\"]}' \"$GB/api/v3/repos/$O/$R/issues/$N/labels\"\n```\n\nSend the `{\"labels\":[…]}` object form. A bare array returns `200 []` and attaches nothing.\n\nPull requests do have `PATCH …/pulls/:id`, so the gap is only for issues."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "issues-api",
+          "vars": {
+            "request": "file:///private/tmp/b5/evals/gitbucket/cases/issues-api.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/no (PATCH|endpoint)|cannot|can'?t|not (available|supported|implemented)|commit message|close #|label/i.test(output)) throw new Error('says there is no issue-close endpoint and gives the workaround');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/gitbucket/cases/issues-api.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 3,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 15052,
+      "evaluationDurationMs": 15052
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "gitbucket — EDD — NAIVE BASELINE",
+    "prompts": [
+      "file:///private/tmp/b5/evals/gitbucket/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "mounts",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/gitbucket/cases/mounts.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/GITBUCKET_HOME|additional|finch\\.yaml|not a VM|no VM|gitbucket\\.conf|lima/i.test(output)) throw new Error('does not invent a VM-mount config for GitBucket');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "socket",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/gitbucket/cases/socket.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/not|no\\b|GitBucket (is|does)|unrelated|different|nothing to do/i.test(output)) throw new Error('declines the false premise rather than inventing a socket');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "issues-api",
+        "vars": {
+          "request": "file:///private/tmp/b5/evals/gitbucket/cases/issues-api.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/no (PATCH|endpoint)|cannot|can'?t|not (available|supported|implemented)|commit message|close #|label/i.test(output)) throw new Error('says there is no issue-close endpoint and gives the workaround');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/gitbucket/results/baseline_1.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/private/tmp/b5/evals/gitbucket"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:10:52.832Z",
+    "evaluationCreatedAt": "2026-10-29T19:10:37.716Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

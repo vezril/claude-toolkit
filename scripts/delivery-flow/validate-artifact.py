@@ -90,6 +90,13 @@ def consumer_problems(doc, schema: dict, consumer: str) -> list:
             out.append(f"{consumer} requires field {field!r}, which is absent")
         elif doc[field] in ("", [], {}, None):
             out.append(f"{consumer} requires field {field!r}, which is empty")
+    # Fields that must exist but may legitimately hold nothing. `project-context.decisions` is
+    # the case that forced this: an empty list is the honest answer from a vault with no
+    # decisions recorded, and demanding content made a cold start block the flow — directly
+    # against the design's own rule that a cold start is not a failure.
+    for field in spec.get("requires_present", []):
+        if not isinstance(doc, dict) or field not in doc:
+            out.append(f"{consumer} requires field {field!r} to be present, and it is absent")
     return out
 
 

@@ -1,0 +1,531 @@
+{
+  "evalId": "eval-2Hy-2026-10-29T17:05:57",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T17:05:57.986Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/software-design/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "3d91a19c8c8644940488f5288fdf590ddeae140994a670ddd3b4940c445b45e2",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 3,
+          "testPassCount": 3,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 4,
+          "assertFailCount": 0,
+          "totalLatencyMs": 33788,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 3,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 4
+          },
+          "namedScoresCount": {
+            "accuracy": 4
+          },
+          "namedScoreWeights": {
+            "accuracy": 4
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/shallow|deep module|too many|thin|classitis|interface.{0,30}(complex|bigger)/i.test(output)) throw new Error('identifies shallow modules / classitis -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/deep/i.test(output)) throw new Error('uses the deep-module framing -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "2a99a9ef-5281-4ee1-a520-8259cede62da",
+        "latencyMs": 14909,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: software-design\ndescription: Module- and system-level software design, distilled from John Ousterhout's *A Philosophy of Software Design* — complexity is the enemy; fight it with deep modules (simple interfaces over powerful implementations), information hiding, pulling complexity downward, defining errors out of existence, strategic (not tactical) programming, designing it twice, and comments that capture what the code can't. Use whenever designing or reviewing the structure of a module/class/API/system, deciding how to split or combine components, reducing complexity/coupling/cognitive load, judging an abstraction or interface, choosing what to hide vs expose, or reasoning about whether a change makes the system simpler — i.e. design decisions above the line-by-line level. Sits at the design tier above the clean-code skill (which is line-level) and pairs with design-patterns and domain-driven-design. Language-agnostic with Scala/FP notes; flags where it diverges from Clean Code (comments, function size).\n---\n\n# Software Design (A Philosophy of Software Design)\n\nModule- and system-level design, from John Ousterhout's *A Philosophy of Software Design* (APoSD). One thesis: **complexity is the enemy**, it accumulates incrementally, and the job of design is to keep it manageable so the system stays understandable as it grows. This is the **design tier above [[clean-code]]** (which is more line-level): APoSD is about interfaces, modules, abstractions, and how complexity flows through a system.\n\nLanguage-agnostic principles with Scala/FP notes (the book's examples are Java/C++). Pairs with [[clean-code]], [[design-patterns]], [[domain-driven-design]], [[functional-programming]], [[tdd]]. Where it disagrees with Clean Code, this skill says so.\n\nIf the user's explicit instructions or an existing codebase's conventions conflict with this skill, those win. Otherwise this is a default design lens.\n\n## Complexity is the enemy\n\n**Complexity** = anything about the structure that makes a system hard to understand or modify. It shows up as three **symptoms**:\n- **Change amplification** — a simple change requires edits in many places.\n- **Cognitive load** — how much you must know to make a change.\n- **Unknown unknowns** — it's not obvious *what* you must change or know (the worst, because you can't even see it).\n\nIts two **causes** are **dependencies** (when code can't be understood/changed in isolation) and **obscurity** (when important information isn't obvious). Complexity is **incremental** — it accrues a little at a time, so the discipline is to resist each increment (\"zero-tolerance\"), not to wait for a big cleanup.\n\n## Strategic, not tactical, programming\n\n- **Tactical programming** optimizes for getting *this* feature working now; each shortcut adds a little complexity, and they compound into an unmaintainable mess.\n- **Strategic programming** treats *working code as not enough* — the real goal is a clean design that stays easy to change. Invest a small, continuous amount (Ousterhout suggests ~10–20% of time) in design; it pays for itself quickly. The best designs come from many small investments, not heroics.\n\n## Deep modules — the central idea\n\nA **module** (class, file, service, subsystem) has an **interface** (what a caller must know) and an **implementation** (how it works). Think of each as providing **abstraction** — a simplified view that omits unimportant detail.\n\n> **The best modules are *deep*: a simple interface over a powerful (large) implementation.** Depth = the ratio of functionality to interface complexity. A deep module hides a lot behind a little, so it removes more complexity than it adds.\n\n- **Shallow modules** (lots of interface for little functionality) are a net loss — they add interface complexity without hiding much. **\"Classitis\"** — the belief that classes should be small, leading to many tiny shallow classes — *increases* system complexity (more interfaces, more boilerplate, more interconnections). (This is the book's sharpest disagreement with Clean Code's \"small classes/functions\" emphasis.)\n- The best interface is **simpler than the implementation**; pass-through methods/variables that just forward are a red flag (a layer that adds interface but no abstraction).\n\n## Always-apply design moves\n\n1. **Make modules deep** — hide as much as possible behind a simple interface; the interface should describe *what*, not *how*.\n2. **Information hiding** — each module encapsulates a design decision (a data structure, an algorithm) so it doesn't leak into its interface or other modules. Fight **information leakage** (the same knowledge appearing in multiple modules) and **temporal decomposition** (structuring code by execution order instead of by knowledge).\n3. **Make classes somewhat general-purpose** — a slightly more general interface is usually simpler *and* deeper than a special-purpose one; design the API around what's fundamentally needed, not the first use case.\n4. **Different layer → different abstraction.** Adjacent layers should offer different abstractions; if a method just forwards to another with the same signature (pass-through), or a variable is threaded through many layers unused (pass-through variable), collapse or redesign.\n5. **Pull complexity downward** — it's better for the *module* to absorb complexity (e.g. sensible defaults, handling edge cases internally) than to push it up to many callers. A developer-author suffers complexity once so every caller is spared.\n6. **Define errors out of existence** — the best exception handling is to design the API so the error *can't occur* (e.g. make an operation idempotent, or define semantics so the \"error\" is normal). Failing that, **mask** exceptions low down, **aggregate** handling, or even just crash for unrecoverable cases — anything to reduce the number of places that handle exceptions.\n7. **Design it twice** — consider at least two genuinely different designs for any important interface/module before choosing; comparing alternatives produces far better results than taking the first idea.\n8. **Better together or apart?** Bring pieces together if they share information, simplify the interface, or eliminate duplication; keep them apart to separate general-purpose from special-purpose code. Don't split methods just to make them short.\n\n## The famous divergences from Clean Code (apply judgment)\n\n[[clean-code]] (Martin) and APoSD (Ousterhout) agree on most goals but **clash on two points** — surface both when reviewing:\n- **Comments.** APoSD is strongly **pro-comment**: comments capture design intent and information *not present in the code* (the *why*, cross-module decisions, interface contracts); \"self-documenting code\" is largely a myth for non-trivial design, and you should **write comments first** (Ch. 15) as a design tool. Clean Code treats most comments as a failure to express intent in code. Reconcile: don't comment *what the code already says*, but **do** comment what it can't — and don't treat comments as inherently bad.\n- **Method/class size.** Clean Code pushes toward very small functions/classes; APoSD warns that over-decomposition (**classitis**, splitting that creates shallow modules and entanglement) *adds* complexity. Reconcile: extract to make a module **deeper** (hide complexity) or remove duplication — not to hit a line count.\n\nAPoSD is also mildly skeptical of some industry trends (Ch. 19): it values **information hiding over deep inheritance**, accepts unit testing but is **critical of strict TDD** (it can encourage tactical, design-last coding), and warns against **design-pattern overuse** and reflexive getters/setters. Treat these as \"apply with judgment,\" cross-referencing [[tdd]] and [[design-patterns]].\n\n## Scala / FP notes\n\nSeveral APoSD principles are structural defaults in [[functional-programming]] / [[scala]]: **information hiding** ≈ encapsulation behind a small module/trait with a pure interface; **deep modules** ≈ a small total function/typeclass hiding a rich implementation; **define errors out of existence** ≈ make illegal states unrepresentable (smart constructors, ADTs) and use `Option`/`Either` so the error case is ordinary data, not an exception; **pull complexity downward** ≈ the pure-core/effectful-shell boundary absorbing messiness. \"Different layer, different abstraction\" maps onto ports & adapters.\n\n## Anti-patterns / red flags (a selection; full list in `references/errors-trends-redflags.md`)\n\n- **Shallow module** (interface complexity ≈ implementation) and **classitis** (many tiny classes).\n- **Information leakage** / **temporal decomposition** (structure mirrors execution order, not knowledge).\n- **Pass-through method / variable**; **overexposure** (callers must learn rarely-used features to use common ones).\n- **Conjoined methods** (two pieces only understandable together, far apart); **repetition** (DRY violation).\n- **Hard to describe** — if a comment/interface is hard to write simply, the underlying design is probably too complex.\n- **Non-obvious code** — a reader can't quickly tell what it does or why.\n\n## How to use this skill\n\n- **`references/deep-modules.md`** — Ch. 4–9: deep vs shallow modules & classitis, information hiding & leakage, general-purpose modules, different-layer/different-abstraction (pass-through methods/variables, decorators), pull complexity downward, better-together-or-apart.\n- **`references/comments-names-design.md`** — Ch. 11–18: design it twice, the comments chapters (the four excuses, describe what isn't obvious, write comments first), choosing names, modifying existing code, consistency, code should be obvious.\n- **`references/errors-trends-redflags.md`** — Ch. 2 (complexity in depth), Ch. 10 (define errors out of existence), Ch. 19 (software trends & critiques), Ch. 20 (designing for performance), and the book's **Summary of Design Principles** and **Summary of Red Flags**.\n\n## Related\n\n- [[clean-code]] — the line-level companion; agrees on most goals, diverges on comments and method/class size (see above).\n- [[design-patterns]] — patterns are tools for deepening modules; APoSD warns against applying them for their own sake.\n- [[domain-driven-design]] — bounded contexts/aggregates are deep modules at the domain scale; information hiding ≈ a context boundary.\n- [[functional-programming]], [[scala]] — purity, ADTs, and errors-as-values realize \"define errors out of existence\" and \"pull complexity down.\"\n- [[tdd]] — APoSD accepts unit tests but is critical of strict TDD; balance the two.\n- Source: *A Philosophy of Software Design*, John Ousterhout (2nd ed.). Principles faithful; Scala/FP notes and the Clean Code reconciliation added for this repo.\n</skill>\n\nUser request:\nReview this design: I've split my user service into UserValidator, UserMapper, UserFetcher, UserCacheKeyBuilder and UserResponseShaper, each one class with one small method. Good separation of concerns?",
+          "label": "evals/software-design/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "3d91a19c8c8644940488f5288fdf590ddeae140994a670ddd3b4940c445b45e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Not really. This is classitis: five shallow classes, each with one small method, so you've added interface surface without hiding much.\n\n**Why it's a net loss (APoSD lens):**\n- **Shallow modules.** Each class's interface is about as complex as its implementation. Callers must learn five names to do what one `UserService` could do behind a single call.\n- **Temporal decomposition.** The split mirrors execution order (validate, fetch, map, shape) rather than knowledge. That's the structure APoSD warns about.\n- **Information leakage.** `UserCacheKeyBuilder` is the clearest case. Cache key format is a decision that belongs with whatever owns the cache. If `UserFetcher` reads the cache and a separate class builds the key, they're conjoined: change one, and you must remember the other.\n- **Likely pass-throughs.** `UserMapper` and `UserResponseShaper` probably both transform the same data. If so, that's two layers with the same abstraction.\n\n**\"Separation of concerns\" is the wrong test.** Ask instead whether each class hides a design decision. Most of these don't.\n\n**What to do:**\n1. Merge `UserCacheKeyBuilder` into `UserFetcher` and make it private. Callers shouldn't know a cache key exists.\n2. Merge `UserMapper` and `UserResponseShaper`, unless they map to different representations (for example DB row to domain, then domain to API). If they do, keep both and say so in a comment.\n3. Decide about `UserValidator`. Keep it separate only if multiple callers share the rules. Otherwise fold it into the service. Better still, define the errors out of existence: use smart constructors or types that can't hold invalid state.\n4. Present one deep `UserService` with a small interface, such as `getUser(id)` and `updateUser(...)`, that absorbs fetching, caching, mapping, and validation internally.\n5. Follow \"design it twice.\" Sketch the single-class version and compare its interface to the five-class one. The simpler interface wins.\n\n**Caveat:** if the service is large, extract a class only when it hides a real decision, such as the cache strategy or the persistence format. Don't extract to make methods short.\n\nIf you share the code, I can point to specific merges."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "deep-modules",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/software-design/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/software-design/cases/deep-modules.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/shallow|deep module|too many|thin|classitis|interface.{0,30}(complex|bigger)/i.test(output)) throw new Error('identifies shallow modules / classitis -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/deep/i.test(output)) throw new Error('uses the deep-module framing -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/software-design/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/software-design/cases/deep-modules.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/define.{0,20}(error|exception).{0,20}out of existence|out of existence|can'?t occur|cannot occur|idempotent|eliminat/i.test(output)) throw new Error('offers define-errors-out-of-existence -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "4538b718-34c0-4b36-8a1b-2b7af2c424fd",
+        "latencyMs": 8276,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: software-design\ndescription: Module- and system-level software design, distilled from John Ousterhout's *A Philosophy of Software Design* — complexity is the enemy; fight it with deep modules (simple interfaces over powerful implementations), information hiding, pulling complexity downward, defining errors out of existence, strategic (not tactical) programming, designing it twice, and comments that capture what the code can't. Use whenever designing or reviewing the structure of a module/class/API/system, deciding how to split or combine components, reducing complexity/coupling/cognitive load, judging an abstraction or interface, choosing what to hide vs expose, or reasoning about whether a change makes the system simpler — i.e. design decisions above the line-by-line level. Sits at the design tier above the clean-code skill (which is line-level) and pairs with design-patterns and domain-driven-design. Language-agnostic with Scala/FP notes; flags where it diverges from Clean Code (comments, function size).\n---\n\n# Software Design (A Philosophy of Software Design)\n\nModule- and system-level design, from John Ousterhout's *A Philosophy of Software Design* (APoSD). One thesis: **complexity is the enemy**, it accumulates incrementally, and the job of design is to keep it manageable so the system stays understandable as it grows. This is the **design tier above [[clean-code]]** (which is more line-level): APoSD is about interfaces, modules, abstractions, and how complexity flows through a system.\n\nLanguage-agnostic principles with Scala/FP notes (the book's examples are Java/C++). Pairs with [[clean-code]], [[design-patterns]], [[domain-driven-design]], [[functional-programming]], [[tdd]]. Where it disagrees with Clean Code, this skill says so.\n\nIf the user's explicit instructions or an existing codebase's conventions conflict with this skill, those win. Otherwise this is a default design lens.\n\n## Complexity is the enemy\n\n**Complexity** = anything about the structure that makes a system hard to understand or modify. It shows up as three **symptoms**:\n- **Change amplification** — a simple change requires edits in many places.\n- **Cognitive load** — how much you must know to make a change.\n- **Unknown unknowns** — it's not obvious *what* you must change or know (the worst, because you can't even see it).\n\nIts two **causes** are **dependencies** (when code can't be understood/changed in isolation) and **obscurity** (when important information isn't obvious). Complexity is **incremental** — it accrues a little at a time, so the discipline is to resist each increment (\"zero-tolerance\"), not to wait for a big cleanup.\n\n## Strategic, not tactical, programming\n\n- **Tactical programming** optimizes for getting *this* feature working now; each shortcut adds a little complexity, and they compound into an unmaintainable mess.\n- **Strategic programming** treats *working code as not enough* — the real goal is a clean design that stays easy to change. Invest a small, continuous amount (Ousterhout suggests ~10–20% of time) in design; it pays for itself quickly. The best designs come from many small investments, not heroics.\n\n## Deep modules — the central idea\n\nA **module** (class, file, service, subsystem) has an **interface** (what a caller must know) and an **implementation** (how it works). Think of each as providing **abstraction** — a simplified view that omits unimportant detail.\n\n> **The best modules are *deep*: a simple interface over a powerful (large) implementation.** Depth = the ratio of functionality to interface complexity. A deep module hides a lot behind a little, so it removes more complexity than it adds.\n\n- **Shallow modules** (lots of interface for little functionality) are a net loss — they add interface complexity without hiding much. **\"Classitis\"** — the belief that classes should be small, leading to many tiny shallow classes — *increases* system complexity (more interfaces, more boilerplate, more interconnections). (This is the book's sharpest disagreement with Clean Code's \"small classes/functions\" emphasis.)\n- The best interface is **simpler than the implementation**; pass-through methods/variables that just forward are a red flag (a layer that adds interface but no abstraction).\n\n## Always-apply design moves\n\n1. **Make modules deep** — hide as much as possible behind a simple interface; the interface should describe *what*, not *how*.\n2. **Information hiding** — each module encapsulates a design decision (a data structure, an algorithm) so it doesn't leak into its interface or other modules. Fight **information leakage** (the same knowledge appearing in multiple modules) and **temporal decomposition** (structuring code by execution order instead of by knowledge).\n3. **Make classes somewhat general-purpose** — a slightly more general interface is usually simpler *and* deeper than a special-purpose one; design the API around what's fundamentally needed, not the first use case.\n4. **Different layer → different abstraction.** Adjacent layers should offer different abstractions; if a method just forwards to another with the same signature (pass-through), or a variable is threaded through many layers unused (pass-through variable), collapse or redesign.\n5. **Pull complexity downward** — it's better for the *module* to absorb complexity (e.g. sensible defaults, handling edge cases internally) than to push it up to many callers. A developer-author suffers complexity once so every caller is spared.\n6. **Define errors out of existence** — the best exception handling is to design the API so the error *can't occur* (e.g. make an operation idempotent, or define semantics so the \"error\" is normal). Failing that, **mask** exceptions low down, **aggregate** handling, or even just crash for unrecoverable cases — anything to reduce the number of places that handle exceptions.\n7. **Design it twice** — consider at least two genuinely different designs for any important interface/module before choosing; comparing alternatives produces far better results than taking the first idea.\n8. **Better together or apart?** Bring pieces together if they share information, simplify the interface, or eliminate duplication; keep them apart to separate general-purpose from special-purpose code. Don't split methods just to make them short.\n\n## The famous divergences from Clean Code (apply judgment)\n\n[[clean-code]] (Martin) and APoSD (Ousterhout) agree on most goals but **clash on two points** — surface both when reviewing:\n- **Comments.** APoSD is strongly **pro-comment**: comments capture design intent and information *not present in the code* (the *why*, cross-module decisions, interface contracts); \"self-documenting code\" is largely a myth for non-trivial design, and you should **write comments first** (Ch. 15) as a design tool. Clean Code treats most comments as a failure to express intent in code. Reconcile: don't comment *what the code already says*, but **do** comment what it can't — and don't treat comments as inherently bad.\n- **Method/class size.** Clean Code pushes toward very small functions/classes; APoSD warns that over-decomposition (**classitis**, splitting that creates shallow modules and entanglement) *adds* complexity. Reconcile: extract to make a module **deeper** (hide complexity) or remove duplication — not to hit a line count.\n\nAPoSD is also mildly skeptical of some industry trends (Ch. 19): it values **information hiding over deep inheritance**, accepts unit testing but is **critical of strict TDD** (it can encourage tactical, design-last coding), and warns against **design-pattern overuse** and reflexive getters/setters. Treat these as \"apply with judgment,\" cross-referencing [[tdd]] and [[design-patterns]].\n\n## Scala / FP notes\n\nSeveral APoSD principles are structural defaults in [[functional-programming]] / [[scala]]: **information hiding** ≈ encapsulation behind a small module/trait with a pure interface; **deep modules** ≈ a small total function/typeclass hiding a rich implementation; **define errors out of existence** ≈ make illegal states unrepresentable (smart constructors, ADTs) and use `Option`/`Either` so the error case is ordinary data, not an exception; **pull complexity downward** ≈ the pure-core/effectful-shell boundary absorbing messiness. \"Different layer, different abstraction\" maps onto ports & adapters.\n\n## Anti-patterns / red flags (a selection; full list in `references/errors-trends-redflags.md`)\n\n- **Shallow module** (interface complexity ≈ implementation) and **classitis** (many tiny classes).\n- **Information leakage** / **temporal decomposition** (structure mirrors execution order, not knowledge).\n- **Pass-through method / variable**; **overexposure** (callers must learn rarely-used features to use common ones).\n- **Conjoined methods** (two pieces only understandable together, far apart); **repetition** (DRY violation).\n- **Hard to describe** — if a comment/interface is hard to write simply, the underlying design is probably too complex.\n- **Non-obvious code** — a reader can't quickly tell what it does or why.\n\n## How to use this skill\n\n- **`references/deep-modules.md`** — Ch. 4–9: deep vs shallow modules & classitis, information hiding & leakage, general-purpose modules, different-layer/different-abstraction (pass-through methods/variables, decorators), pull complexity downward, better-together-or-apart.\n- **`references/comments-names-design.md`** — Ch. 11–18: design it twice, the comments chapters (the four excuses, describe what isn't obvious, write comments first), choosing names, modifying existing code, consistency, code should be obvious.\n- **`references/errors-trends-redflags.md`** — Ch. 2 (complexity in depth), Ch. 10 (define errors out of existence), Ch. 19 (software trends & critiques), Ch. 20 (designing for performance), and the book's **Summary of Design Principles** and **Summary of Red Flags**.\n\n## Related\n\n- [[clean-code]] — the line-level companion; agrees on most goals, diverges on comments and method/class size (see above).\n- [[design-patterns]] — patterns are tools for deepening modules; APoSD warns against applying them for their own sake.\n- [[domain-driven-design]] — bounded contexts/aggregates are deep modules at the domain scale; information hiding ≈ a context boundary.\n- [[functional-programming]], [[scala]] — purity, ADTs, and errors-as-values realize \"define errors out of existence\" and \"pull complexity down.\"\n- [[tdd]] — APoSD accepts unit tests but is critical of strict TDD; balance the two.\n- Source: *A Philosophy of Software Design*, John Ousterhout (2nd ed.). Principles faithful; Scala/FP notes and the Clean Code reconciliation added for this repo.\n</skill>\n\nUser request:\nMy API throws six different exceptions the caller has to handle. How should I clean this up?",
+          "label": "evals/software-design/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "3d91a19c8c8644940488f5288fdf590ddeae140994a670ddd3b4940c445b45e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Don't redesign the exceptions. Reduce how many of them exist, in this order:\n\n1. **Define out of existence.** For each of the six, ask whether the \"error\" can just be normal behavior. Examples: delete of a missing item is a no-op, \"already exists\" on create is idempotent, and an empty result is an empty list instead of NotFound.\n2. **Mask low down.** Handle the ones the API can recover from itself (retry, default, fallback) so callers never see them.\n3. **Aggregate the rest.** Collapse what's left into one exception type, or a sealed result type in Scala, with a reason field. Callers then write one handler, not six.\n4. **Crash on the unrecoverable.** Things callers can't act on (bugs, corrupted state) should propagate as unchecked or fatal errors, not part of the contract.\n\nAim for zero to two exceptions that a caller must handle.\n\nPaste the six exceptions and when each is thrown, and I'll sort them into these buckets."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "errors",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/software-design/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/software-design/cases/errors.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/define.{0,20}(error|exception).{0,20}out of existence|out of existence|can'?t occur|cannot occur|idempotent|eliminat/i.test(output)) throw new Error('offers define-errors-out-of-existence -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/software-design/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/software-design/cases/errors.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/design it twice|two (genuinely )?different|alternative design|second design|more than one design/i.test(output)) throw new Error('prescribes designing it twice -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "b6e18f93-0471-4224-82d6-fd61384b404d",
+        "latencyMs": 10603,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: software-design\ndescription: Module- and system-level software design, distilled from John Ousterhout's *A Philosophy of Software Design* — complexity is the enemy; fight it with deep modules (simple interfaces over powerful implementations), information hiding, pulling complexity downward, defining errors out of existence, strategic (not tactical) programming, designing it twice, and comments that capture what the code can't. Use whenever designing or reviewing the structure of a module/class/API/system, deciding how to split or combine components, reducing complexity/coupling/cognitive load, judging an abstraction or interface, choosing what to hide vs expose, or reasoning about whether a change makes the system simpler — i.e. design decisions above the line-by-line level. Sits at the design tier above the clean-code skill (which is line-level) and pairs with design-patterns and domain-driven-design. Language-agnostic with Scala/FP notes; flags where it diverges from Clean Code (comments, function size).\n---\n\n# Software Design (A Philosophy of Software Design)\n\nModule- and system-level design, from John Ousterhout's *A Philosophy of Software Design* (APoSD). One thesis: **complexity is the enemy**, it accumulates incrementally, and the job of design is to keep it manageable so the system stays understandable as it grows. This is the **design tier above [[clean-code]]** (which is more line-level): APoSD is about interfaces, modules, abstractions, and how complexity flows through a system.\n\nLanguage-agnostic principles with Scala/FP notes (the book's examples are Java/C++). Pairs with [[clean-code]], [[design-patterns]], [[domain-driven-design]], [[functional-programming]], [[tdd]]. Where it disagrees with Clean Code, this skill says so.\n\nIf the user's explicit instructions or an existing codebase's conventions conflict with this skill, those win. Otherwise this is a default design lens.\n\n## Complexity is the enemy\n\n**Complexity** = anything about the structure that makes a system hard to understand or modify. It shows up as three **symptoms**:\n- **Change amplification** — a simple change requires edits in many places.\n- **Cognitive load** — how much you must know to make a change.\n- **Unknown unknowns** — it's not obvious *what* you must change or know (the worst, because you can't even see it).\n\nIts two **causes** are **dependencies** (when code can't be understood/changed in isolation) and **obscurity** (when important information isn't obvious). Complexity is **incremental** — it accrues a little at a time, so the discipline is to resist each increment (\"zero-tolerance\"), not to wait for a big cleanup.\n\n## Strategic, not tactical, programming\n\n- **Tactical programming** optimizes for getting *this* feature working now; each shortcut adds a little complexity, and they compound into an unmaintainable mess.\n- **Strategic programming** treats *working code as not enough* — the real goal is a clean design that stays easy to change. Invest a small, continuous amount (Ousterhout suggests ~10–20% of time) in design; it pays for itself quickly. The best designs come from many small investments, not heroics.\n\n## Deep modules — the central idea\n\nA **module** (class, file, service, subsystem) has an **interface** (what a caller must know) and an **implementation** (how it works). Think of each as providing **abstraction** — a simplified view that omits unimportant detail.\n\n> **The best modules are *deep*: a simple interface over a powerful (large) implementation.** Depth = the ratio of functionality to interface complexity. A deep module hides a lot behind a little, so it removes more complexity than it adds.\n\n- **Shallow modules** (lots of interface for little functionality) are a net loss — they add interface complexity without hiding much. **\"Classitis\"** — the belief that classes should be small, leading to many tiny shallow classes — *increases* system complexity (more interfaces, more boilerplate, more interconnections). (This is the book's sharpest disagreement with Clean Code's \"small classes/functions\" emphasis.)\n- The best interface is **simpler than the implementation**; pass-through methods/variables that just forward are a red flag (a layer that adds interface but no abstraction).\n\n## Always-apply design moves\n\n1. **Make modules deep** — hide as much as possible behind a simple interface; the interface should describe *what*, not *how*.\n2. **Information hiding** — each module encapsulates a design decision (a data structure, an algorithm) so it doesn't leak into its interface or other modules. Fight **information leakage** (the same knowledge appearing in multiple modules) and **temporal decomposition** (structuring code by execution order instead of by knowledge).\n3. **Make classes somewhat general-purpose** — a slightly more general interface is usually simpler *and* deeper than a special-purpose one; design the API around what's fundamentally needed, not the first use case.\n4. **Different layer → different abstraction.** Adjacent layers should offer different abstractions; if a method just forwards to another with the same signature (pass-through), or a variable is threaded through many layers unused (pass-through variable), collapse or redesign.\n5. **Pull complexity downward** — it's better for the *module* to absorb complexity (e.g. sensible defaults, handling edge cases internally) than to push it up to many callers. A developer-author suffers complexity once so every caller is spared.\n6. **Define errors out of existence** — the best exception handling is to design the API so the error *can't occur* (e.g. make an operation idempotent, or define semantics so the \"error\" is normal). Failing that, **mask** exceptions low down, **aggregate** handling, or even just crash for unrecoverable cases — anything to reduce the number of places that handle exceptions.\n7. **Design it twice** — consider at least two genuinely different designs for any important interface/module before choosing; comparing alternatives produces far better results than taking the first idea.\n8. **Better together or apart?** Bring pieces together if they share information, simplify the interface, or eliminate duplication; keep them apart to separate general-purpose from special-purpose code. Don't split methods just to make them short.\n\n## The famous divergences from Clean Code (apply judgment)\n\n[[clean-code]] (Martin) and APoSD (Ousterhout) agree on most goals but **clash on two points** — surface both when reviewing:\n- **Comments.** APoSD is strongly **pro-comment**: comments capture design intent and information *not present in the code* (the *why*, cross-module decisions, interface contracts); \"self-documenting code\" is largely a myth for non-trivial design, and you should **write comments first** (Ch. 15) as a design tool. Clean Code treats most comments as a failure to express intent in code. Reconcile: don't comment *what the code already says*, but **do** comment what it can't — and don't treat comments as inherently bad.\n- **Method/class size.** Clean Code pushes toward very small functions/classes; APoSD warns that over-decomposition (**classitis**, splitting that creates shallow modules and entanglement) *adds* complexity. Reconcile: extract to make a module **deeper** (hide complexity) or remove duplication — not to hit a line count.\n\nAPoSD is also mildly skeptical of some industry trends (Ch. 19): it values **information hiding over deep inheritance**, accepts unit testing but is **critical of strict TDD** (it can encourage tactical, design-last coding), and warns against **design-pattern overuse** and reflexive getters/setters. Treat these as \"apply with judgment,\" cross-referencing [[tdd]] and [[design-patterns]].\n\n## Scala / FP notes\n\nSeveral APoSD principles are structural defaults in [[functional-programming]] / [[scala]]: **information hiding** ≈ encapsulation behind a small module/trait with a pure interface; **deep modules** ≈ a small total function/typeclass hiding a rich implementation; **define errors out of existence** ≈ make illegal states unrepresentable (smart constructors, ADTs) and use `Option`/`Either` so the error case is ordinary data, not an exception; **pull complexity downward** ≈ the pure-core/effectful-shell boundary absorbing messiness. \"Different layer, different abstraction\" maps onto ports & adapters.\n\n## Anti-patterns / red flags (a selection; full list in `references/errors-trends-redflags.md`)\n\n- **Shallow module** (interface complexity ≈ implementation) and **classitis** (many tiny classes).\n- **Information leakage** / **temporal decomposition** (structure mirrors execution order, not knowledge).\n- **Pass-through method / variable**; **overexposure** (callers must learn rarely-used features to use common ones).\n- **Conjoined methods** (two pieces only understandable together, far apart); **repetition** (DRY violation).\n- **Hard to describe** — if a comment/interface is hard to write simply, the underlying design is probably too complex.\n- **Non-obvious code** — a reader can't quickly tell what it does or why.\n\n## How to use this skill\n\n- **`references/deep-modules.md`** — Ch. 4–9: deep vs shallow modules & classitis, information hiding & leakage, general-purpose modules, different-layer/different-abstraction (pass-through methods/variables, decorators), pull complexity downward, better-together-or-apart.\n- **`references/comments-names-design.md`** — Ch. 11–18: design it twice, the comments chapters (the four excuses, describe what isn't obvious, write comments first), choosing names, modifying existing code, consistency, code should be obvious.\n- **`references/errors-trends-redflags.md`** — Ch. 2 (complexity in depth), Ch. 10 (define errors out of existence), Ch. 19 (software trends & critiques), Ch. 20 (designing for performance), and the book's **Summary of Design Principles** and **Summary of Red Flags**.\n\n## Related\n\n- [[clean-code]] — the line-level companion; agrees on most goals, diverges on comments and method/class size (see above).\n- [[design-patterns]] — patterns are tools for deepening modules; APoSD warns against applying them for their own sake.\n- [[domain-driven-design]] — bounded contexts/aggregates are deep modules at the domain scale; information hiding ≈ a context boundary.\n- [[functional-programming]], [[scala]] — purity, ADTs, and errors-as-values realize \"define errors out of existence\" and \"pull complexity down.\"\n- [[tdd]] — APoSD accepts unit tests but is critical of strict TDD; balance the two.\n- Source: *A Philosophy of Software Design*, John Ousterhout (2nd ed.). Principles faithful; Scala/FP notes and the Clean Code reconciliation added for this repo.\n</skill>\n\nUser request:\nI've got an interface design I'm happy with. Anything else before I implement?",
+          "label": "evals/software-design/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "3d91a19c8c8644940488f5288fdf590ddeae140994a670ddd3b4940c445b45e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "Design a second, genuinely different interface for the same module and compare them. Being happy with the first idea is the situation \"design it twice\" is meant for.\n\nBefore you implement, check the current design against these:\n- **Depth:** Is the interface much simpler than the implementation? If not, it's shallow.\n- **Leakage:** Does the same design decision show up in more than one module?\n- **Errors:** Can you change the semantics so an error case becomes normal behavior, for example by making an operation idempotent?\n- **Complexity:** Does the module absorb the messy cases, or does it push them onto callers?\n- **Pass-throughs:** Are there methods or variables that only forward to another layer?\n- **Comments:** Can you write the interface comment simply? If you can't, the design is probably too complex.\n\nPaste or point me to the design and I'll review it against these."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "design-twice",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/software-design/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/software-design/cases/design-twice.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/design it twice|two (genuinely )?different|alternative design|second design|more than one design/i.test(output)) throw new Error('prescribes designing it twice -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/software-design/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/software-design/cases/design-twice.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 3,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 3,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 14930,
+      "evaluationDurationMs": 14930
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "software-design — EDD",
+    "prompts": [
+      "file:///private/tmp/b3/evals/software-design/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "deep-modules",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/software-design/cases/deep-modules.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/shallow|deep module|too many|thin|classitis|interface.{0,30}(complex|bigger)/i.test(output)) throw new Error('identifies shallow modules / classitis -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/deep/i.test(output)) throw new Error('uses the deep-module framing -- not found');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "errors",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/software-design/cases/errors.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/define.{0,20}(error|exception).{0,20}out of existence|out of existence|can'?t occur|cannot occur|idempotent|eliminat/i.test(output)) throw new Error('offers define-errors-out-of-existence -- not found');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "design-twice",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/software-design/cases/design-twice.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/design it twice|two (genuinely )?different|alternative design|second design|more than one design/i.test(output)) throw new Error('prescribes designing it twice -- not found');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/software-design/results/skill_3.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b3/skills/software-design/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b3/evals/software-design"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T17:06:12.974Z",
+    "evaluationCreatedAt": "2026-10-29T17:05:57.986Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

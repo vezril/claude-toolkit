@@ -1,0 +1,457 @@
+{
+  "evalId": "eval-j1D-2026-10-29T17:02:28",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T17:02:28.993Z",
+    "prompts": [
+      {
+        "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "label": "evals/release-app-store-changelog/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+        "id": "ec4b7d933a6768a9fcb24df3600c0e8124866b5d49bf635ebd8172b0ded44e1d",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 5,
+          "assertFailCount": 0,
+          "totalLatencyMs": 14697,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 4,
+            "restraint": 1
+          },
+          "namedScoresCount": {
+            "accuracy": 4,
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 4,
+            "restraint": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1,
+            "restraint": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1,
+            "restraint": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/dark mode/i.test(output)) throw new Error('includes the user-facing feature -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "restraint",
+                "value": "// Negative assert: the non-user-facing commits must NOT appear. The original\n// used a negative lookahead with .*, which cannot cross newlines and so passed\n// trivially on any multi-line reply.\n// Scope to the release-notes BULLETS only. Scanning the whole reply failed a\n// correct answer that listed the notes and then explained which commits it had\n// deliberately left out as internal -- good behaviour, penalised by the regex.\nconst bullets = (output.match(/^\\s*[-*\\u2022]\\s+.*$/gm) || []).join('\\n');\nconst leaked = ['bump deps','refactor NetworkClient','update CI'].filter(x => new RegExp(x,'i').test(bullets));\nif (leaked.length) throw new Error('listed non-user-facing commits as notes: ' + leaked.join(', '));\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "85d5d966-b7e3-4d6e-88cf-a39a319fb64e",
+        "latencyMs": 5676,
+        "namedScores": {
+          "accuracy": 1,
+          "restraint": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: release-app-store-changelog\ndescription: Create user-facing App Store release notes from git history. Use when asked to generate release changelog, App Store \"What's New\" text, or release notes based on git tags.\n---\n\n# App Store Changelog\n\n## Overview\n\nGenerate comprehensive, user-facing changelog from git history since the last tag, then translate commits into clear App Store release notes.\n\n## Workflow\n\n### 1) Collect Changes\n\nGet commits since the last tag:\n\n```bash\n# Find the last tag\ngit describe --tags --abbrev=0\n\n# List commits since last tag\ngit log $(git describe --tags --abbrev=0)..HEAD --oneline\n\n# Or with more detail\ngit log $(git describe --tags --abbrev=0)..HEAD --pretty=format:\"%h %s\" --no-merges\n```\n\nIf comparing specific refs:\n```bash\ngit log v1.2.3..HEAD --oneline --no-merges\n```\n\nIf no tags exist:\n```bash\ngit log --oneline --no-merges -50  # Last 50 commits\n```\n\n### 2) Triage for User Impact\n\nScan commits and identify user-visible changes:\n\n**Include:**\n- New features\n- UI changes\n- Behavior changes\n- Bug fixes users would notice\n- Performance improvements with visible impact\n\n**Exclude:**\n- Refactors\n- Dependency bumps\n- CI changes\n- Developer tooling\n- Internal logging\n- Analytics changes (unless affecting user privacy/behavior)\n\nGroup changes by theme:\n- **New**: New features and capabilities\n- **Improved**: Enhancements to existing features\n- **Fixed**: Bug fixes\n\n### 3) Draft App Store Notes\n\nWrite short, benefit-focused bullets:\n\n- Use clear verbs and plain language\n- Avoid internal jargon, ticket IDs, file paths\n- Prefer 5-10 bullets unless user specifies different length\n- Each bullet: one sentence, starts with a verb\n\n**Language guidance:**\n- Translate technical terms to user-facing descriptions\n- Avoid: \"API\", \"refactor\", \"nil\", \"crash log\", \"dependency\"\n- Use: \"Improved\", \"Added\", \"Fixed\", \"Updated\"\n- Keep tense consistent (present or past)\n\n**Examples:**\n- \"Added account switching from the profile menu.\"\n- \"Improved timeline loading speed on slow connections.\"\n- \"Fixed media attachments not opening in full screen.\"\n\n### 4) Validate\n\n- [ ] Every bullet maps to a real change in the range\n- [ ] No duplicate bullets describing the same change\n- [ ] No internal jargon or file paths\n- [ ] Final list fits App Store text limits (if provided)\n\n## Output Format\n\n```\nWhat's New\n\n• Added [feature description]\n• Improved [enhancement description]\n• Fixed [bug fix description]\n```\n\nOr with sections:\n\n```\nWhat's New in [Version]\n\nNew\n• [Feature 1]\n• [Feature 2]\n\nImproved\n• [Enhancement 1]\n\nFixed\n• [Bug fix 1]\n• [Bug fix 2]\n```\n\n## Quick Commands\n\n```bash\n# Full workflow: commits since last tag with files changed\ngit log $(git describe --tags --abbrev=0)..HEAD --stat --no-merges\n\n# Just commit messages\ngit log $(git describe --tags --abbrev=0)..HEAD --pretty=format:\"- %s\" --no-merges\n\n# List all tags\ngit tag -l --sort=-v:refname\n\n# Compare two specific tags\ngit log v1.1.0..v1.2.0 --oneline --no-merges\n```\n\n## Tips\n\n- If a change is ambiguous, ask for clarification\n- Drop changes that are clearly internal-only\n- When in doubt, describe as \"small improvement\" only if user-visible\n- Respect storefront character limits if provided\n\n## Related\n\n- [[release-macos-spm-packaging]] — build and package the release this changelog describes.\n- [[github-issue-fix-flow]] — fixed issues feed the changelog.\n</skill>\n\nUser request:\nHere are my commits since v1.2.0: 'bump deps', 'refactor NetworkClient', 'fix crash on launch when offline', 'add dark mode', 'update CI', 'improve sync speed'. Write the App Store release notes.",
+          "label": "evals/release-app-store-changelog/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "ec4b7d933a6768a9fcb24df3600c0e8124866b5d49bf635ebd8172b0ded44e1d",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "What's New\n\n• Added dark mode.\n• Improved sync speed.\n• Fixed a crash that happened when launching the app while offline.\n\nLeft out as internal-only: \"bump deps\", \"refactor NetworkClient\", and \"update CI\"."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "triage",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/release-app-store-changelog/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/release-app-store-changelog/cases/triage.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/dark mode/i.test(output)) throw new Error('includes the user-facing feature -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "restraint",
+              "value": "// Negative assert: the non-user-facing commits must NOT appear. The original\n// used a negative lookahead with .*, which cannot cross newlines and so passed\n// trivially on any multi-line reply.\n// Scope to the release-notes BULLETS only. Scanning the whole reply failed a\n// correct answer that listed the notes and then explained which commits it had\n// deliberately left out as internal -- good behaviour, penalised by the regex.\nconst bullets = (output.match(/^\\s*[-*\\u2022]\\s+.*$/gm) || []).join('\\n');\nconst leaked = ['bump deps','refactor NetworkClient','update CI'].filter(x => new RegExp(x,'i').test(bullets));\nif (leaked.length) throw new Error('listed non-user-facing commits as notes: ' + leaked.join(', '));\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/release-app-store-changelog/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/release-app-store-changelog/cases/triage.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 3
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/new/i.test(output)) throw new Error('names the New category -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/improv/i.test(output)) throw new Error('names the Improved category -- not found');\nreturn true;\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/fix/i.test(output)) throw new Error('names the Fixed category -- not found');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "24c8a71a-abc4-4b51-b5a0-b3fe1b557a97",
+        "latencyMs": 9021,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n---\nname: release-app-store-changelog\ndescription: Create user-facing App Store release notes from git history. Use when asked to generate release changelog, App Store \"What's New\" text, or release notes based on git tags.\n---\n\n# App Store Changelog\n\n## Overview\n\nGenerate comprehensive, user-facing changelog from git history since the last tag, then translate commits into clear App Store release notes.\n\n## Workflow\n\n### 1) Collect Changes\n\nGet commits since the last tag:\n\n```bash\n# Find the last tag\ngit describe --tags --abbrev=0\n\n# List commits since last tag\ngit log $(git describe --tags --abbrev=0)..HEAD --oneline\n\n# Or with more detail\ngit log $(git describe --tags --abbrev=0)..HEAD --pretty=format:\"%h %s\" --no-merges\n```\n\nIf comparing specific refs:\n```bash\ngit log v1.2.3..HEAD --oneline --no-merges\n```\n\nIf no tags exist:\n```bash\ngit log --oneline --no-merges -50  # Last 50 commits\n```\n\n### 2) Triage for User Impact\n\nScan commits and identify user-visible changes:\n\n**Include:**\n- New features\n- UI changes\n- Behavior changes\n- Bug fixes users would notice\n- Performance improvements with visible impact\n\n**Exclude:**\n- Refactors\n- Dependency bumps\n- CI changes\n- Developer tooling\n- Internal logging\n- Analytics changes (unless affecting user privacy/behavior)\n\nGroup changes by theme:\n- **New**: New features and capabilities\n- **Improved**: Enhancements to existing features\n- **Fixed**: Bug fixes\n\n### 3) Draft App Store Notes\n\nWrite short, benefit-focused bullets:\n\n- Use clear verbs and plain language\n- Avoid internal jargon, ticket IDs, file paths\n- Prefer 5-10 bullets unless user specifies different length\n- Each bullet: one sentence, starts with a verb\n\n**Language guidance:**\n- Translate technical terms to user-facing descriptions\n- Avoid: \"API\", \"refactor\", \"nil\", \"crash log\", \"dependency\"\n- Use: \"Improved\", \"Added\", \"Fixed\", \"Updated\"\n- Keep tense consistent (present or past)\n\n**Examples:**\n- \"Added account switching from the profile menu.\"\n- \"Improved timeline loading speed on slow connections.\"\n- \"Fixed media attachments not opening in full screen.\"\n\n### 4) Validate\n\n- [ ] Every bullet maps to a real change in the range\n- [ ] No duplicate bullets describing the same change\n- [ ] No internal jargon or file paths\n- [ ] Final list fits App Store text limits (if provided)\n\n## Output Format\n\n```\nWhat's New\n\n• Added [feature description]\n• Improved [enhancement description]\n• Fixed [bug fix description]\n```\n\nOr with sections:\n\n```\nWhat's New in [Version]\n\nNew\n• [Feature 1]\n• [Feature 2]\n\nImproved\n• [Enhancement 1]\n\nFixed\n• [Bug fix 1]\n• [Bug fix 2]\n```\n\n## Quick Commands\n\n```bash\n# Full workflow: commits since last tag with files changed\ngit log $(git describe --tags --abbrev=0)..HEAD --stat --no-merges\n\n# Just commit messages\ngit log $(git describe --tags --abbrev=0)..HEAD --pretty=format:\"- %s\" --no-merges\n\n# List all tags\ngit tag -l --sort=-v:refname\n\n# Compare two specific tags\ngit log v1.1.0..v1.2.0 --oneline --no-merges\n```\n\n## Tips\n\n- If a change is ambiguous, ask for clarification\n- Drop changes that are clearly internal-only\n- When in doubt, describe as \"small improvement\" only if user-visible\n- Respect storefront character limits if provided\n\n## Related\n\n- [[release-macos-spm-packaging]] — build and package the release this changelog describes.\n- [[github-issue-fix-flow]] — fixed issues feed the changelog.\n</skill>\n\nUser request:\nWhat structure should App Store release notes follow?",
+          "label": "evals/release-app-store-changelog/prompt.txt: You are executing the following Claude Code skill. Follow its instructions exactly.\n\n<skill>\n{{skill}}\n</skill>\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "ec4b7d933a6768a9fcb24df3600c0e8124866b5d49bf635ebd8172b0ded44e1d",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "App Store release notes should be a short, benefit-focused list of user-visible changes, grouped by theme.\n\n**Simple format**\n```\nWhat's New\n\n• Added [feature]\n• Improved [enhancement]\n• Fixed [bug]\n```\n\n**Sectioned format**, for longer releases:\n```\nWhat's New in [Version]\n\nNew\n• [feature]\n\nImproved\n• [enhancement]\n\nFixed\n• [bug fix]\n```\n\n**Rules for the bullets**\n- Write one sentence per bullet, and start it with a verb such as Added, Improved, Fixed or Updated.\n- Aim for 5–10 bullets unless you specify a length.\n- Use plain language. Leave out internal jargon, ticket IDs, file paths, and terms like \"API\", \"refactor\" or \"dependency\".\n- Keep the tense consistent.\n- Include only user-visible changes: features, UI changes, behavior changes, bug fixes people would notice, and performance gains they can see.\n- Leave out refactors, dependency bumps, CI changes, developer tooling, and internal logging or analytics.\n- Stay within any App Store character limit you give me.\n\nI can draft the notes from your git history since the last tag if you'd like."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "categories",
+          "vars": {
+            "skill": "file:///private/tmp/b3/skills/release-app-store-changelog/SKILL.md",
+            "request": "file:///private/tmp/b3/evals/release-app-store-changelog/cases/categories.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/new/i.test(output)) throw new Error('names the New category -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/improv/i.test(output)) throw new Error('names the Improved category -- not found');\nreturn true;\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/fix/i.test(output)) throw new Error('names the Fixed category -- not found');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "skill": "file:///private/tmp/b3/skills/release-app-store-changelog/SKILL.md",
+          "request": "file:///private/tmp/b3/evals/release-app-store-changelog/cases/categories.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 9050,
+      "evaluationDurationMs": 9050
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "release-app-store-changelog — EDD",
+    "prompts": [
+      "file:///private/tmp/b3/evals/release-app-store-changelog/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "triage",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/release-app-store-changelog/cases/triage.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/dark mode/i.test(output)) throw new Error('includes the user-facing feature -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "restraint",
+            "value": "// Negative assert: the non-user-facing commits must NOT appear. The original\n// used a negative lookahead with .*, which cannot cross newlines and so passed\n// trivially on any multi-line reply.\n// Scope to the release-notes BULLETS only. Scanning the whole reply failed a\n// correct answer that listed the notes and then explained which commits it had\n// deliberately left out as internal -- good behaviour, penalised by the regex.\nconst bullets = (output.match(/^\\s*[-*\\u2022]\\s+.*$/gm) || []).join('\\n');\nconst leaked = ['bump deps','refactor NetworkClient','update CI'].filter(x => new RegExp(x,'i').test(bullets));\nif (leaked.length) throw new Error('listed non-user-facing commits as notes: ' + leaked.join(', '));\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "categories",
+        "vars": {
+          "request": "file:///private/tmp/b3/evals/release-app-store-changelog/cases/categories.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/new/i.test(output)) throw new Error('names the New category -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/improv/i.test(output)) throw new Error('names the Improved category -- not found');\nreturn true;\n"
+          },
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/fix/i.test(output)) throw new Error('names the Fixed category -- not found');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/release-app-store-changelog/results/skill_1.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "skill": "file:///private/tmp/b3/skills/release-app-store-changelog/SKILL.md"
+      },
+      "assert": [],
+      "options": {},
+      "metadata": {}
+    },
+    "basePath": "/private/tmp/b3/evals/release-app-store-changelog"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T17:02:38.112Z",
+    "evaluationCreatedAt": "2026-10-29T17:02:28.993Z"
+  },
+  "vars": [
+    "skill",
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

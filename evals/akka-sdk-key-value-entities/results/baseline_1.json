@@ -1,0 +1,378 @@
+{
+  "evalId": "eval-QSX-2026-10-29T19:51:29",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-29T19:51:29.990Z",
+    "prompts": [
+      {
+        "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "label": "evals/akka-sdk-key-value-entities/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+        "id": "3e304803a50c8734927e8af6990274b49b4247cea2e2e209cea68d65819ead49",
+        "provider": "sonnet-baseline",
+        "metrics": {
+          "score": 2,
+          "testPassCount": 2,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 0,
+          "totalLatencyMs": 16036,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "accuracy": 2
+          },
+          "namedScoresCount": {
+            "accuracy": 2
+          },
+          "namedScoreWeights": {
+            "accuracy": 2
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/updateState|effects\\(\\)|never mutat|not mutat|lost|reload/i.test(output)) throw new Error('says the only way to change state is effects().updateState');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "d38c66ef-046e-4386-a1c7-1a726aa0bec0",
+        "latencyMs": 8594,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nCan I just set a field on currentState() inside my KV entity handler and return done?",
+          "label": "evals/akka-sdk-key-value-entities/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "3e304803a50c8734927e8af6990274b49b4247cea2e2e209cea68d65819ead49",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "No. Changes you make to `currentState()` aren't persisted. State is only written when you return an effect that says so:\n\n```java\npublic Effect<Done> setName(String name) {\n  var updated = currentState().withName(name);   // new immutable copy\n  return effects().updateState(updated).thenReply(Done.getInstance());\n}\n```\n\nReturning `effects().reply(Done.getInstance())` with a mutated object does nothing durable. The entity stores no state, and the next call sees the old value (or the in-memory object, until the entity passivates, which hides the bug).\n\nUse records or other immutable types for state so mutation isn't possible in the first place. Before the first write, `currentState()` returns what `emptyState()` gives you, which is `null` by default. Override `emptyState()` if you want a usable default."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "mutate",
+          "vars": {
+            "request": "file:///private/tmp/b6/evals/akka-sdk-key-value-entities/cases/mutate.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/updateState|effects\\(\\)|never mutat|not mutat|lost|reload/i.test(output)) throw new Error('says the only way to change state is effects().updateState');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-key-value-entities/cases/mutate.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "accuracy": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "if (!/event.sourc|ESE/i.test(output)) throw new Error('points at event sourced entities');\nreturn true;\n"
+              }
+            }
+          ]
+        },
+        "id": "53b9a640-a131-491b-b8ae-df505f375057",
+        "latencyMs": 7442,
+        "namedScores": {
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\nI need the full history of changes and projections off it. Key-value entity or event sourced?",
+          "label": "evals/akka-sdk-key-value-entities/prompt-baseline.txt: You are a helpful senior engineer. Answer the request directly and concretely.\n\nUser request:\n{{request}}",
+          "config": {}
+        },
+        "promptId": "3e304803a50c8734927e8af6990274b49b4247cea2e2e209cea68d65819ead49",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet-baseline"
+        },
+        "response": {
+          "output": "**Event sourced entity.** Key-value entities store only the latest state, so the history is gone. An event sourced entity persists every event, which gives you the full history. Views can consume those events to build projections.\n\n- **History:** The event journal is the source of truth, so you can replay it or add a new projection later.\n- **Projections:** A View with `@Consume.FromEventSourcedEntity` builds read models from the event stream. Consumers can also react to events.\n- **Cost:** You have to design events and a state-transition handler, and you need to plan for event schema evolution.\n\nA key-value entity can still feed a View, but only from state snapshots. You'd have to build the history yourself by writing audit rows on each update, and that's what event sourcing already does.\n\nPick key-value only if you need just the current state. If so, say so and I'll adjust."
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "vs-ese",
+          "vars": {
+            "request": "file:///private/tmp/b6/evals/akka-sdk-key-value-entities/cases/vs-ese.txt"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "if (!/event.sourc|ESE/i.test(output)) throw new Error('points at event sourced entities');\nreturn true;\n"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-key-value-entities/cases/vs-ese.txt"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 8608,
+      "evaluationDurationMs": 8608
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "akka-sdk-key-value-entities — EDD — NAIVE BASELINE",
+    "prompts": [
+      "file:///private/tmp/b6/evals/akka-sdk-key-value-entities/prompt-baseline.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet-baseline"
+      }
+    ],
+    "tests": [
+      {
+        "description": "mutate",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-key-value-entities/cases/mutate.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/updateState|effects\\(\\)|never mutat|not mutat|lost|reload/i.test(output)) throw new Error('says the only way to change state is effects().updateState');\nreturn true;\n"
+          }
+        ]
+      },
+      {
+        "description": "vs-ese",
+        "vars": {
+          "request": "file:///private/tmp/b6/evals/akka-sdk-key-value-entities/cases/vs-ese.txt"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "if (!/event.sourc|ESE/i.test(output)) throw new Error('points at event sourced entities');\nreturn true;\n"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "evals/akka-sdk-key-value-entities/results/baseline_1.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "basePath": "/private/tmp/b6/evals/akka-sdk-key-value-entities"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-29T19:51:38.647Z",
+    "evaluationCreatedAt": "2026-10-29T19:51:29.990Z"
+  },
+  "vars": [
+    "request"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

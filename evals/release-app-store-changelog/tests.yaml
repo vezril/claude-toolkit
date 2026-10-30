@@ -1,0 +1,43 @@
+# release-app-store-changelog: shared matrix, used verbatim by both arms. Deterministic asserts only.
+
+
+- description: "triage"
+  vars: { request: file://cases/triage.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/dark mode/i.test(output)) throw new Error('includes the user-facing feature -- not found');
+        return true;
+    - type: javascript
+      metric: restraint
+      value: |
+        // Negative assert: the non-user-facing commits must NOT appear. The original
+        // used a negative lookahead with .*, which cannot cross newlines and so passed
+        // trivially on any multi-line reply.
+        // Scope to the release-notes BULLETS only. Scanning the whole reply failed a
+        // correct answer that listed the notes and then explained which commits it had
+        // deliberately left out as internal -- good behaviour, penalised by the regex.
+        const bullets = (output.match(/^\s*[-*\u2022]\s+.*$/gm) || []).join('\n');
+        const leaked = ['bump deps','refactor NetworkClient','update CI'].filter(x => new RegExp(x,'i').test(bullets));
+        if (leaked.length) throw new Error('listed non-user-facing commits as notes: ' + leaked.join(', '));
+        return true;
+
+- description: "categories"
+  vars: { request: file://cases/categories.txt }
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/new/i.test(output)) throw new Error('names the New category -- not found');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/improv/i.test(output)) throw new Error('names the Improved category -- not found');
+        return true;
+    - type: javascript
+      metric: accuracy
+      value: |
+        if (!/fix/i.test(output)) throw new Error('names the Fixed category -- not found');
+        return true;
