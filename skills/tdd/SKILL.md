@@ -75,6 +75,25 @@ Treat a compile-time guarantee as behavior worth a test, just like a runtime res
 
 A smart constructor that returns `Either[Error, T]` has as many behaviors as it has failure cases, plus the success case. Write a Red test for each: each distinct error case, and the "first failure wins" ordering when several inputs are invalid at once.
 
+## Mock only at system boundaries
+
+Mock what you don't control: external APIs (payments, email), time and randomness, sometimes the
+database or file system (prefer a real test instance). Don't mock your own classes or internal
+collaborators: a test that does breaks on every refactor and proves only that the code calls what it
+calls. To make a boundary mockable, inject it rather than constructing it inside, and give it one
+operation per external call rather than one generic `request(...)`, so each fake returns one shape
+with no logic in it:
+
+```scala
+trait Payments { def charge(order: OrderId, amount: Money): Either[PaymentError, Receipt] }
+
+final class Checkout(payments: Payments, clock: Clock):   // injected, so tests pass a fake
+  def complete(cart: Cart): Either[CheckoutError, Order] = ...
+```
+
+Assert through the interface: "a completed checkout is retrievable by its id", not "checkout called
+`payments.charge` once" and not a query against the table behind it.
+
 ## Sequencing work: tasks.md in strict TDD order
 
 When planning a change (e.g. via the OpenSpec workflow), the task list must sequence **test → Red confirmation → implementation → Green confirmation → refactor** for each behavior, grouped by type first (domain ADT, then error, then algorithm). Don't write a task that says "implement and test X" as one step — that collapses the cycle. The archived changes under `openspec/changes/archive/` are the canonical templates.
@@ -87,10 +106,13 @@ When planning a change (e.g. via the OpenSpec workflow), the task list must sequ
 - **Refactoring on a red bar** — only refactor with all tests green.
 - **Over-shooting Green** — implementing untested generality. If no test demands it, don't write it.
 - **One mega-test** — a single `it` asserting five things. Split so each failure points at one behavior.
-- **Testing implementation details** — assert observable outputs/contracts, not private internals.
+- **Testing implementation details** — assert observable outputs/contracts, not private internals. The tells: mocking your own collaborators, asserting call counts or call order, testing private methods, or verifying through a side channel (querying the database instead of reading back through the interface). Such a test breaks when you refactor without changing behavior.
+- **Tautological assertion** — the expected value is recomputed the way the code computes it (`total(items) shouldBe items.map(_.price).sum`, a snapshot built by hand the same way), so the test passes by construction and can never disagree with the code. Expected values come from an independent source: a known literal, a worked example, the spec (`total(Seq(Item(10), Item(5))) shouldBe 15`).
+- **Horizontal slicing** — writing all the tests first, then all the implementation. The bulk tests encode *imagined* behavior and lock in structure before the code has taught you anything. Work in vertical slices: one test, its Red, its Green, then the next behavior.
 
 ## Related
 
 - [[functional-programming]] — pure, total functions are trivially testable: same input → same output, no setup/teardown.
 - [[scala]] — the language idioms (`AnyFunSpec`, `assertDoesNotCompile`, smart constructors) these tests exercise.
 - `scala-bio-framework` — project-specific application of this cycle.
+- The mocking section and the tautological / horizontal-slicing anti-patterns are adapted from Matt Pocock's `tdd` skill (mattpocock/skills, MIT; see `THIRD_PARTY_NOTICES.md`).

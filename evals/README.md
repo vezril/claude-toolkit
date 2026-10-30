@@ -34,6 +34,11 @@ and scans its tool calls for paths outside it. `diagnosing-bugs` lets the agent 
 sandboxed, Edit/Write limited to the copy) and grades the code it leaves; `wizard` runs each
 generated script in a pseudo-terminal (`drive.py`) against stub `gh`/`open`.
 
+`pocock-folds` measures the guidance folded from the same repo into four existing skills
+(software-design, tdd, domain-driven-design, software-architecture): v1 is each skill as it was on
+`main`, v2 with the fold, nine cases graded on the behaviour the fold adds (target) and on what the
+skill already did (guard). It also runs through `run.sh` with a temp world and a tool-call scan.
+
 `finch` is the one suite that ships a **paired naive-baseline arm**
 (`promptfooconfig.local.baseline.yaml`): same model, same asserts, same `tests.yaml`, no
 `SKILL.md` in context. Run both and the difference is the skill's measured value rather than
