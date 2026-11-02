@@ -111,18 +111,14 @@ S.1–S.6, 3.1, 3.2, 3.4, 3.7 are retired rather than done. 3.3, 3.5, 3.6 and 3.
 
 ## 5. Certify the readiness segment
 
-- [ ] 5.1 `prompt-edd` package for `story-planner`: ≥3 distinct criteria, ≥95% of asserts, a
-      load-bearing map covering ≥90% of instructions, a real iteration log
-- [ ] 5.2 Haiku first; escalate only with a committed results file showing haiku below the bar on
-      the same suite (design D7)
-- [ ] 5.3 Decide Open Question 4: reuse `evals/cross-examine/` for the readiness reviewer or
-      build its own suite. If reusing, strengthen the reasoning asserts first — that suite is
-      currently weighted toward output format
-- [ ] 5.4 `prompt-edd` package for the readiness reviewer, same bar, fresh context, refute-framed
-- [ ] 5.5 Three consecutive passing runs per node; record each certified prompt's sha in
-      `steps.yaml` so an edit forces recertification
-- [ ] 5.6 Flip `readiness` to certified; confirm delegation is now permitted and that editing
-      either prompt re-blocks it
+- [x] 5.1 `evals/readiness-stories/`: three changes, four criteria, 11 asserts, gate-clean. The `schema` criterion shells out to `scripts/lint-story.py` — the same script the readiness edge runs — rather than carrying its own copy of the rules, which could pass a set the edge rejects. Asserts mutation-tested both ways before any model run: they accept a hand-written reference answer and each fails on the defect it owns
+- [x] 5.2 Haiku first, and haiku certified both readiness nodes, so no escalation needed. The reviewer's *other* suite (`evals/cross-examine/`) did measure haiku below the bar — 100%, 100%, 83.3%, failing by using endorsement vocabulary on an analysis it was required to refute — and that file is committed as D7 evidence even though the node it would have justified is now certified on its own suite instead
+- [x] 5.3 Open Question 4 answered twice, because the first answer was wrong. **Do not reuse `evals/cross-examine/`.** Its criteria design is reused — contract / accuracy / safety with a sound case as the false-positive test — but it feeds an incident ticket and a timeline and expects markdown, while this node is handed a story set and must emit `readiness-verdict.json`. I first ruled 'reuse' on the strength of its per-criterion breakdown without checking the input and output domains; certifying a node against inputs it never sees in production is the same error as certifying a prompt the suite never saw. Design D5's claim that the suite tests reasoning lightly is separately false: 4 of its 6 asserts are reasoning
+- [x] 5.4 `evals/readiness-review/`: three cases — a set that stands, one with a dropped requirement, and one where the requirement is traced and delivered by nothing observable, which is the defect that looks like coverage and the reason the reviewer is a node rather than a script. `contract` validates against the real `readiness-verdict.schema.json` via `validate-artifact.py`. Fresh context and no tools: the reviewer judges only the material it is given
+- [x] 5.5 Three consecutive passing runs recorded for each node, with the prompt sha in `steps.yaml` and a frozen `certified_version` the gate compares against — so editing either live prompt un-certifies its step. The rule earned its place twice: `readiness` v1 passed two runs then scored 83.3%, and `readiness-review` v3 passed one arm and failed the other on identical input. A single run would have certified both
+- [~] 5.6 Both `readiness` nodes are certified and the gate agrees — `PASS readiness: haiku 11/11, 4 criteria, load-bearing 19/19, 3 iterations, 3 consecutive runs` and `PASS readiness-review: haiku 7/7, 3 criteria, load-bearing 18/18, 4 iterations, 3 consecutive runs`. A test asserts the segment's nodes are all certified and that each live prompt still matches its frozen copy.
+
+      **Still open:** confirming at runtime that delegation is now permitted and that editing a prompt re-blocks it. The gate says so statically; nothing drives the orchestrator through the segment yet, and that needs section 7's harness.
 
 ## 6. Punch-outs and attack evidence
 

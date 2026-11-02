@@ -102,47 +102,36 @@ steps:
     outputs: [stories]
     known_residual: "three cases, so a genuinely multi-epic change is untested; the vacuous-criterion failure ('then the behaviour is covered by a test') is caught only by the rubric and only on the two cases it runs on; nothing tests dependency order between stories, because the segment declares none"
 
-  # **Not certified, and the gate says exactly why.** Two blockers, recorded rather than
-  # worked around, because `check-certification.py` is the authority and it refuses:
+  # Certified on haiku (tasks 5.3-5.5). Four iterations, three of which were my own asserts
+  # being wrong — the log says which, because `check-certification.py` counts any section
+  # carrying the five labels and harness fixes must not pass as prompt development.
   #
-  #   1. the three passing result files were produced with `agents/adversarial-validator.md`,
-  #      not with the frozen `certified_version` copy. The gate checks that the rows came from
-  #      the certified text, and the suite loads the live agent file. Mechanical to fix: point
-  #      `promptfooconfig.yaml`'s `agent:` var at the frozen copy and re-run three times.
-  #   2. the iteration log has 0 complete iterations and the gate needs >= 2, each with
-  #      baseline, hypothesis, change, result and reasoning. **This one is not mechanical.**
-  #      The prompt was never iterated — it passed its suite as written — so there are no two
-  #      iterations to record, and inventing them would be fiction in the one artifact a
-  #      reviewer reads to judge whether the prompt was actually developed.
-  #
-  # What the evidence does establish, and it is not nothing:
-  #   - 3 consecutive 6/6 runs on sonnet (`results/skill_1..3.json`) against a 17-33% baseline
-  #     without the agent file, so the prompt is measurably load-bearing;
-  #   - 3 criteria, two of them reasoning (`accuracy`, `safety`), with `safety` a
-  #     false-positive test — refusing to invent a refutation of a sound analysis;
-  #   - a load-bearing map at 12/12 instructions (`evals/cross-examine/load-bearing.md`);
-  #   - haiku measured and below the bar (100%, 100%, 83.3%), which is design D7's required
-  #     escalation evidence rather than an assumption.
-  #
-  # So this is a step that *could* be certified by finishing the two items above, not one with
-  # no evidence. The fields below are deliberately absent until it is: a registry entry that
-  # carried them while the gate failed would read as examined and would not be.
+  # Task 5.3's ruling, revised: `evals/cross-examine/` is **not** reused. Its criteria design
+  # is (contract / accuracy / safety, with a sound case as the false-positive test), but it
+  # feeds an incident ticket and a timeline and expects markdown, while this node is handed a
+  # story set and must emit readiness-verdict.json. Certifying against inputs a node never
+  # sees in production is the same error as certifying a prompt the suite never saw. The
+  # adversarial-validator agent keeps its own suite for its own job.
   - step: readiness-review
     segment: readiness
     agent: adversarial-validator
-    # The prompt its suite actually loads. Pointing at `skills/cross-examine/SKILL.md`, as the
-    # first draft did, would certify a prompt the suite never saw.
-    prompt: agents/adversarial-validator.md
-    tier: sonnet
-    certified: false
-    eval: evals/cross-examine/
+    prompt: skills/sdlc-orchestration/references/readiness-review.md
+    prompt_sha256: baf312633a703f520b6d868ba2e83ad1209002f73c4e4a95c31be2a4d310fceb
+    certified_version: evals/readiness-review/prompts/prompt_v4.md
+    tier: haiku
+    certified: true
+    eval: evals/readiness-review/
+    results: evals/readiness-review/results/run_v4_haiku_1.json
+    consecutive_runs:
+      - evals/readiness-review/results/run_v4_haiku_1.json
+      - evals/readiness-review/results/run_v4_haiku_2.json
+      - evals/readiness-review/results/run_v4_haiku_3.json
     criteria: [contract, accuracy, safety]
-    load_bearing: evals/cross-examine/load-bearing.md
-    iteration_log: evals/cross-examine/iteration-log.md
-    escalation_evidence: evals/cross-examine/results/haiku_3.json
+    load_bearing: evals/readiness-review/load-bearing.md
+    iteration_log: evals/readiness-review/iteration-log.md
     inputs: [stories]
     outputs: [readiness-verdict.json]
-    known_residual: "the suite's results were produced with the live agent file rather than the frozen certified_version copy, and the iteration log has no complete iterations; neither case has WEAKENED as its correct answer"
+    known_residual: "`safety` checks only that findings cite real material and that the verdict is not REFUTED, so a grounded but trivial finding passes it; only the vacuous case carries a rubric, so the suite's judgement of finding quality rests on one; the sound case is not beyond criticism and both models find real gaps in it every run"
   - step: implementation
     segment: implementation
     agent: test-writer

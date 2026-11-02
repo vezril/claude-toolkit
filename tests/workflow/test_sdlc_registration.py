@@ -356,5 +356,62 @@ class TestTheReadinessVerdictSchema(unittest.TestCase):
         self.assertGreaterEqual(self.schema["properties"]["attacks"]["minItems"], 3)
 
 
+class TestSegmentCertification(unittest.TestCase):
+    """5.6 — a segment is certified only when every node in it is.
+
+    The unit the pipeline delegates to is the segment, so "readiness is certified" has to mean
+    both its nodes carry evidence. A segment with one certified node and one bare entry would
+    read as ready and would hand work to a prompt nobody measured — which is the registry-level
+    form of every inert-gate defect in this change.
+    """
+
+    def setUp(self):
+        self.doc = D.load(SDLC)
+        self.steps = {s["step"]: s for s in
+                      certification().parse_registry(REGISTRY.read_text()).get("steps", [])}
+
+    def certified_segments(self):
+        out = []
+        for seg in self.doc["steps"]:
+            nodes = [self.steps[n] for n in seg["nodes"] if n in self.steps]
+            if nodes and all(n.get("certified") is True for n in nodes):
+                out.append(seg["step"])
+        return out
+
+    def test_readiness_is_fully_certified(self):
+        self.assertIn("readiness", self.certified_segments())
+
+    def test_no_segment_is_half_certified(self):
+        """Either every node in a segment has evidence or the segment is not claimed."""
+        for seg in self.doc["steps"]:
+            nodes = [self.steps[n] for n in seg["nodes"] if n in self.steps]
+            states = {n.get("certified") is True for n in nodes}
+            with self.subTest(segment=seg["step"]):
+                self.assertEqual(len(states), 1,
+                                 f"{seg['step']} mixes certified and uncertified nodes: "
+                                 f"{[(n['step'], n.get('certified')) for n in nodes]}")
+
+    def test_only_readiness_is_certified_so_far(self):
+        """Design D6 certifies readiness first. If another segment appears here, the
+        certification order changed and the plan should say so before the registry does."""
+        self.assertEqual(self.certified_segments(), ["readiness"])
+
+    def test_every_certified_nodes_live_prompt_is_in_a_skill(self):
+        """A certified prompt the orchestrator cannot reach certifies nothing.
+
+        Both readiness prompts live under `skills/sdlc-orchestration/references/`. The eval's
+        copy is the frozen `certified_version`; the live copy is what runs. An earlier draft
+        pointed `prompt` at the eval copy, which left the certified text wired to nothing.
+        """
+        for seg in self.certified_segments():
+            nodes = [self.steps[n] for n in
+                     next(s for s in self.doc["steps"] if s["step"] == seg)["nodes"]]
+            for node in nodes:
+                with self.subTest(node=node["step"]):
+                    self.assertTrue(node["prompt"].startswith("skills/"),
+                                    f"{node['step']}: {node['prompt']} is not in a skill")
+                    self.assertTrue((ROOT / node["prompt"]).is_file(), node["prompt"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
