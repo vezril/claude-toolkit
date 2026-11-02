@@ -48,15 +48,20 @@ and section 3 is exactly that.
 - [ ] 2.5 Confirm a repo with neither descriptor sees no behaviour change at all
 
 ## 3. The story becomes a data contract
-- [x] S.1 `scripts/delivery-flow/render-stories.py` (delivery-flow for now; moves to `scripts/workflow/` with the substrate): render one `story.json` per `breakdown.epics[].stories[]`, carrying id, statement, domains and acceptance criteria across unchanged, plus a `sources` array naming `item.json`, `breakdown.json`, `challenge-breakdown.json` and the OpenSpec change directory where one exists
-- [x] S.2 `stories.py` shared between the renderer and the story validator, as `brief.py` does for the brief, so neither can disagree about what a story is
-- [x] S.3 `invented()` and `missing_from()` in the shared module; no story, criterion or domain may appear that the breakdown does not contain — the renderer invents nothing, and that is enforced rather than reviewed
-- [x] S.4 `ordering.determined: false` on every story, with the basis spelled out. State the sequencing gap in the brief: stories are in breakdown order and dependency ordering is undetermined. Ordering is a judgement, so it belongs to a node or a human, not the renderer
-- [x] S.5 Keep `story-planner` as the entry point for work with no `breakdown.json`, and say so in `skills/sdlc-orchestration/SKILL.md` — the rendered path is for tracker items only. Added "Where stories come from (two entry points)" to `SKILL.md` (the rule keys off whether a `breakdown.json` exists, not preference) plus a `[[delivery-flow]]` line under Related, and "When you are the right entry point" to `agents/story-planner.md` so the agent refuses a breakdown handed to it for re-decomposition instead of relying on the orchestrator to route correctly
-- [x] S.6 18 tests in `tests/delivery-flow/test_stories.py`: exact story/criterion counts from a fixture breakdown, the invented-identifier refusal, and the no-breakdown path still reaching `story-planner`
+
+**Section 3 RETIRED, 2026-10-30.** `render-stories.py` is deleted. It rendered the story set from `breakdown.json` and was forbidden from changing anything, so its stories were frozen *before* the challenge findings were resolved — and `propose` is what resolves them. AN-3631 proved it: propose folded S5 into S1 and dropped S6, while the rendered six still listed both. It was also not a step in any profile, so it wrote into run directories the flow does not route, producing six edge-failing artifacts that halted a live run. The handoff into implementation is the OpenSpec change — `proposal.json` plus `tasks.md` — and there is no second story set.
+
+S.1–S.6, 3.1, 3.2, 3.4, 3.7 are retired rather than done. 3.3, 3.5, 3.6 and 3.8 still apply to the *markdown* story path, which `lint-story.py` owns and which is untouched by this.
+
+- [~] S.1 RETIRED — `scripts/delivery-flow/render-stories.py` (delivery-flow for now; moves to `scripts/workflow/` with the substrate): render one `story.json` per `breakdown.epics[].stories[]`, carrying id, statement, domains and acceptance criteria across unchanged, plus a `sources` array naming `item.json`, `breakdown.json`, `challenge-breakdown.json` and the OpenSpec change directory where one exists
+- [~] S.2 RETIRED — `stories.py` shared between the renderer and the story validator, as `brief.py` does for the brief, so neither can disagree about what a story is
+- [~] S.3 RETIRED — `invented()` and `missing_from()` in the shared module; no story, criterion or domain may appear that the breakdown does not contain — the renderer invents nothing, and that is enforced rather than reviewed
+- [~] S.4 RETIRED — `ordering.determined: false` on every story, with the basis spelled out. State the sequencing gap in the brief: stories are in breakdown order and dependency ordering is undetermined. Ordering is a judgement, so it belongs to a node or a human, not the renderer
+- [~] S.5 RETIRED — Keep `story-planner` as the entry point for work with no `breakdown.json`, and say so in `skills/sdlc-orchestration/SKILL.md` — the rendered path is for tracker items only. Added "Where stories come from (two entry points)" to `SKILL.md` (the rule keys off whether a `breakdown.json` exists, not preference) plus a `[[delivery-flow]]` line under Related, and "When you are the right entry point" to `agents/story-planner.md` so the agent refuses a breakdown handed to it for re-decomposition instead of relying on the orchestrator to route correctly
+- [~] S.6 RETIRED — 18 tests in `tests/delivery-flow/test_stories.py`: exact story/criterion counts from a fixture breakdown, the invented-identifier refusal, and the no-breakdown path still reaching `story-planner`
 
 
-- [x] 3.1 `schemas/story.schema.json`: the normative structure. **Also fixed the bug that made
+- [~] 3.1 RETIRED — `schemas/story.schema.json`: the normative structure. **Also fixed the bug that made
       it unreachable:** its `artifact` was the fixed name `story.json` while rendered files are
       `story-E1-S1.json`, so `schema_for` returned None for every one — the schema existed and
       nothing could find it, leaving the whole handoff unvalidated by both
@@ -64,7 +69,7 @@ and section 3 is exactly that.
       before its checker saw them). `artifact` is now the glob `story-*.json` and `schema_for`
       resolves globs generally, replacing the `*.sentinel.json` special case rather than adding
       a second one
-- [ ] 3.2 `scripts/workflow/story.py`: the shared template + coverage checks, imported by both
+- [~] 3.2 RETIRED — `scripts/workflow/story.py`: the shared template + coverage checks, imported by both
       the renderer and the edge, so they cannot disagree about what a story is (the `brief.py`
       pattern)
 - [ ] 3.3 Rewrite `scripts/lint-story.py` as schema validation plus the semantic checks a schema
@@ -73,7 +78,7 @@ and section 3 is exactly that.
       only.** Rendered stories are not linted by it and must not be — `story-schema.md` now
       says so in a Scope section. The two formats have two laws and one of them is a JSON
       schema already enforced at the edge
-- [ ] 3.4 `render-story.py`: generate `story.md` from `story.json` for human readers; never
+- [~] 3.4 RETIRED — `render-story.py`: generate `story.md` from `story.json` for human readers; never
       parsed. **Deferred and demoted to a convenience.** It was implicitly the plan for making
       the handoff work, and it is not needed for that: the dev pair consumes `story.json`
       directly (3.7), so nothing blocks on a markdown rendering. Worth building only when a
@@ -84,7 +89,7 @@ and section 3 is exactly that.
       could not convert
 - [ ] 3.6 Update `story-schema.md` and `lint-story.py` together — they are a normative pair per
       `CLAUDE.md`
-- [x] 3.7 Update `test-writer` and `implementer` prompts to consume `story.json`. Each gained a
+- [~] 3.7 RETIRED — Update `test-writer` and `implementer` prompts to consume `story.json`. Each gained a
       "When the story is a `story.json`" section: `acceptance_criteria[]` is the spec,
       `sources[]` is context to **open** rather than a summary to trust, there are no tasks and
       no dependency order, and a missing criterion is a gap in the plan to raise rather than

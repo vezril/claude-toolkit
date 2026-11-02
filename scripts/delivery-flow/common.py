@@ -9,7 +9,15 @@ import hashlib
 import json
 import os
 import re
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "workflow"))
+import pricing as _pricing  # noqa: E402
+import registry as _registry  # noqa: E402
+import layout as _layout  # noqa: E402
+import schema as _schema  # noqa: E402
+import trace as _trace  # noqa: E402
 
 CONFIG_NAME = ".delivery-flow.yaml"
 SENTINEL_SUFFIX = ".sentinel.json"
@@ -21,20 +29,16 @@ SCHEMA_DIR = PLUGIN_ROOT / "schemas"
 # repo synced between machines, so the trail is still versioned and still aggregates. The
 # pattern is built per call because the root is per repo.
 ARTIFACT_DIR = "delivery"
-ARTIFACT_RE = re.compile(r"(?:^|/)delivery/([A-Za-z0-9][A-Za-z0-9._-]*)/([A-Za-z0-9][A-Za-z0-9._-]*)$")
 
-
-def repo_root(start: Path) -> Path:
-    start = start.resolve()
-    for p in [start, *start.parents]:
-        if (p / ".git").exists():
-            return p
-    return start
+# Repo detection and artifact layout live in the substrate (`scripts/workflow/layout.py`).
+# What stays here is delivery-flow's two answers: the opt-in file name and the artifact
+# directory. Re-exports below, so no existing call site changes (task 1.3).
+repo_root = _layout.repo_root
 
 
 def is_delivery_repo(path: Path) -> bool:
     """A delivery-flow repo has the config at its root. Everything is inert otherwise."""
-    return (repo_root(path) / CONFIG_NAME).exists()
+    return _layout.opted_in(path, CONFIG_NAME)
 
 
 def sha256(path: Path) -> str:
@@ -42,42 +46,22 @@ def sha256(path: Path) -> str:
 
 
 def parse_artifact_path(path, root: Path = None):
-    """(item_key, filename) for a path inside the artifact root, else (None, None).
-
-    With no `root` this matches the default `delivery/<ITEM>/<file>` anywhere in the path, which
-    is what the hooks relied on before the root was configurable. With a `root` it matches that
-    directory specifically, so a configured vault root is recognised and an unrelated directory
-    that merely happens to be called `delivery` is not.
-    """
-    text = str(path).replace(os.sep, "/")
-    if root is not None:
-        base = str(Path(root)).replace(os.sep, "/").rstrip("/")
-        if text.startswith(base + "/"):
-            rest = text[len(base) + 1:].split("/")
-            if len(rest) == 2 and rest[0] and rest[1]:
-                return rest[0], rest[1]
-        return (None, None)
-    m = ARTIFACT_RE.search(text)
-    return (m.group(1), m.group(2)) if m else (None, None)
+    """(item_key, filename) for a path inside the artifact root, else (None, None)."""
+    return _layout.parse_artifact_path(path, ARTIFACT_DIR, root)
 
 
 def artifact_root(repo: Path, cfg: dict = None) -> Path:
-    """Where this repo's run artifacts live.
+    """Where this repo's run artifacts live. See `scripts/workflow/layout.py`.
 
-    `artifacts.root` in `.delivery-flow.yaml`: absolute to put them outside the repo (the vault),
-    relative to keep them inside it. Defaults to `<repo>/delivery`, so a repo that says nothing
-    behaves exactly as before — the submission under review must not move.
+    Loads the config when the caller has none — the substrate cannot, because which file to
+    read and how to parse it are this workflow's business.
     """
     if cfg is None:
         try:
             cfg = load_config(repo)
         except OSError:
             cfg = {}
-    configured = ((cfg or {}).get("artifacts") or {}).get("root")
-    if not configured:
-        return repo / ARTIFACT_DIR
-    path = Path(str(configured)).expanduser()
-    return path if path.is_absolute() else repo / path
+    return _layout.artifact_root(repo, ARTIFACT_DIR, cfg)
 
 
 # The vault subdirectory runs live in. Underscore-prefixed so Obsidian keeps a few hundred
@@ -156,68 +140,23 @@ def item_dir(repo: Path, item: str, cfg: dict = None) -> Path:
     return artifact_root(repo, cfg) / item
 
 
-def load_schemas(schema_dir: Path = None) -> dict:
-    """Map artifact file name -> schema.
+# Schema loading and resolution live in the substrate (`scripts/workflow/schema.py`).
+# Re-exports, so no existing call site changes (task 1.3). `SCHEMA_DIR` above is the one
+# workflow-specific part — which contracts apply — and the substrate's `load` requires it
+# rather than defaulting, so a second workflow cannot be validated against these.
+for_name = _schema.for_name
+count_expr = _schema.count_expr
+expected_counts = _schema.expected_counts
 
-    Most artifacts are one fixed file name. Two kinds are not, and declare a glob as their
-    `artifact` instead: `*.sentinel.json` (one per artifact) and `story-*.json` (one per story
-    in the breakdown). `schema_for` resolves both.
-    """
-    schema_dir = schema_dir or SCHEMA_DIR
-    out = {}
-    for p in sorted(schema_dir.glob("*.schema.json")):
-        schema = json.loads(p.read_text())
-        schema["_path"] = str(p)
-        out[schema["artifact"]] = schema
-    return out
+
+def load_schemas(schema_dir: Path = None) -> dict:
+    """delivery-flow's artifact schemas. Parser: `scripts/workflow/schema.py`."""
+    return _schema.load(schema_dir or SCHEMA_DIR)
 
 
 def schema_for(filename: str, schemas: dict):
-    """The schema for an artifact file name, by exact name then by glob.
-
-    The glob fallback is what makes a *set* of artifacts checkable. Rendered stories are named
-    `story-<epic>-<story>.json`, one per breakdown story, so an exact-name lookup returned None
-    for every one of them — the schema existed and could never be found, which meant nothing
-    validated the handoff into implementation. Globs are matched longest-first so a specific
-    pattern always beats a broad one.
-    """
-    if filename in schemas:
-        return schemas[filename]
-    for key in sorted((k for k in schemas if "*" in k), key=len, reverse=True):
-        if fnmatch.fnmatch(filename, key):
-            return schemas[key]
-    return None
-
-
-def count_expr(doc, expr: str) -> int:
-    """Evaluate a count expression: 'epics[]' or 'epics[].stories[]'.
-
-    Each '<key>[]' segment descends into a list; the result is the number of items at
-    the deepest level, summed across the branches above it.
-    """
-    parts = [p for p in expr.split(".") if p]
-    nodes = [doc]
-    total = 0
-    for i, part in enumerate(parts):
-        if not part.endswith("[]"):
-            raise ValueError(f"count expression segment must end with []: {part!r}")
-        key = part[:-2]
-        nxt = []
-        for node in nodes:
-            if not isinstance(node, dict):
-                continue
-            value = node.get(key)
-            if isinstance(value, list):
-                if i == len(parts) - 1:
-                    total += len(value)
-                else:
-                    nxt.extend(value)
-        nodes = nxt
-    return total
-
-
-def expected_counts(doc, schema: dict) -> dict:
-    return {name: count_expr(doc, expr) for name, expr in (schema.get("counts") or {}).items()}
+    """The schema for an artifact file name, by exact name then by glob."""
+    return _schema.for_name(filename, schemas)
 
 
 def load_json(path: Path):
@@ -359,107 +298,24 @@ def select_profile(cfg: dict, profiles: list):
     return None, f"unknown profile {name!r}; profiles.yaml defines: {available}"
 
 
+# Pricing and usage live in the substrate now (`scripts/workflow/pricing.py`); nothing about
+# multiplying tokens by rates is specific to delivery. These are thin re-exports so that every
+# existing `from common import ...` and `common.price_for(...)` call site keeps working —
+# certify-sdlc-pipeline task 1.3 requires no import in the submitted tree to change.
+#
+# `PRICING_PATH` is the one delivery-specific part: which table applies. The substrate's
+# `load` requires a path precisely so a second workflow cannot be priced off this one by
+# accident.
+PRICING_PATH = PLUGIN_ROOT / "templates" / "delivery-flow" / "pricing.yaml"
+
+price_for = _pricing.price_for
+cost_usd = _pricing.cost_usd
+usage_from_transcript = _pricing.usage_from_transcript
+
+
 def load_pricing(path: Path = None) -> dict:
-    """Parse `templates/delivery-flow/pricing.yaml` without PyYAML.
-
-    Shape: top-level scalars, then `models:` as a block sequence of flat mappings whose
-    `match` is an inline list of model-id prefixes.
-    """
-    path = path or (PLUGIN_ROOT / "templates" / "delivery-flow" / "pricing.yaml")
-    meta, models, cur = {}, [], None
-    for raw in path.read_text().splitlines():
-        line = "" if raw.lstrip().startswith("#") else raw.split(" #")[0].rstrip()
-        if not line.strip():
-            continue
-        m = re.match(r"^\s*-\s+(\w+):\s*(.*)$", line)
-        if m:
-            cur = {}
-            models.append(cur)
-            cur[m.group(1)] = _price_scalar(m.group(2))
-            continue
-        m = re.match(r"^(\s*)(\w+):\s*(.*)$", line)
-        if not m:
-            continue
-        indent, key, value = len(m.group(1)), m.group(2), m.group(3)
-        if indent == 0:
-            cur = None
-            if value:
-                meta[key] = _price_scalar(value)
-        elif cur is not None:
-            cur[key] = _price_scalar(value)
-    return {"meta": meta, "models": models}
-
-
-def _price_scalar(v: str):
-    v = v.strip()
-    if v.startswith("[") and v.endswith("]"):
-        return [x.strip().strip("'\"") for x in v[1:-1].split(",") if x.strip()]
-    if v and v[0] == v[-1] and v[0] in "'\"":
-        v = v[1:-1]
-    try:
-        return float(v) if "." in v else int(v)
-    except ValueError:
-        return v
-
-
-def price_for(model: str, pricing: dict):
-    """The pricing row whose `match` prefixes the model id, or None."""
-    for row in pricing.get("models", []):
-        for prefix in row.get("match") or []:
-            if model and model.startswith(prefix):
-                return row
-    return None
-
-
-def cost_usd(usage: dict, row: dict):
-    """USD at published list rates for one usage bundle. None when the model is unpriced."""
-    if not row:
-        return None
-    per_m = lambda tokens, rate: (tokens or 0) * (rate or 0) / 1_000_000
-    return round(
-        per_m(usage.get("input_tokens"), row.get("input"))
-        + per_m(usage.get("cache_creation_5m"), row.get("cache_write_5m"))
-        + per_m(usage.get("cache_creation_1h"), row.get("cache_write_1h"))
-        + per_m(usage.get("cache_read"), row.get("cache_read"))
-        + per_m(usage.get("output_tokens"), row.get("output")), 6)
-
-
-def usage_from_transcript(path: Path) -> dict:
-    """Sum a transcript's usage per model, counting each API message once.
-
-    Claude Code repeats the same `usage` object on every content block of one message, so
-    summing lines overcounts several-fold; de-duplicating by `message.id` is the fix.
-    """
-    per_model, seen = {}, set()
-    try:
-        lines = path.read_text().splitlines()
-    except OSError:
-        return {}
-    for line in lines:
-        if not line.strip():
-            continue
-        try:
-            rec = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        msg = rec.get("message")
-        if not isinstance(msg, dict):
-            continue
-        usage, mid, model = msg.get("usage"), msg.get("id"), msg.get("model")
-        if not usage or not mid or mid in seen:
-            continue
-        seen.add(mid)
-        bucket = per_model.setdefault(model, {"input_tokens": 0, "output_tokens": 0,
-                                              "cache_creation_5m": 0, "cache_creation_1h": 0,
-                                              "cache_read": 0, "messages": 0})
-        creation = usage.get("cache_creation") or {}
-        bucket["input_tokens"] += usage.get("input_tokens") or 0
-        bucket["output_tokens"] += usage.get("output_tokens") or 0
-        bucket["cache_creation_5m"] += creation.get("ephemeral_5m_input_tokens") or 0
-        bucket["cache_creation_1h"] += creation.get("ephemeral_1h_input_tokens") or 0
-        bucket["cache_read"] += usage.get("cache_read_input_tokens") or 0
-        bucket["messages"] += 1
-    return per_model
+    """delivery-flow's pricing table. See `scripts/workflow/pricing.py` for the parser."""
+    return _pricing.load(path or PRICING_PATH)
 
 
 SIGN_NAMESPACE = "delivery-flow-decision"
@@ -631,76 +487,39 @@ def outward_refusal(item: str, action: str, start: Path = None):
             "signature — " + "; ".join(reasons))
 
 
+# The opted-in repo registry lives in the substrate (`scripts/workflow/registry.py`). What
+# stays here is the two workflow-specific answers it needs: which file to read, and what
+# counts as opted in. Everything below is a thin re-export so no existing call site changes
+# (task 1.3).
+#
+# The generic rule for the registry path reproduces delivery-flow's existing locations
+# exactly — `~/.config/delivery-flow/repos` and `DELIVERY_FLOW_REPOS` — so this is a move
+# rather than a migration, and no test fixture or shell export changes.
+WORKFLOW_NAME = "delivery-flow"
+
+
 def repo_registry() -> Path:
-    """Where the opted-in repos are listed. Read at call time, not import time, so an
-    override reaches a subprocess started after this module was first imported — tests set
-    it, and reading it once at import meant they wrote to the real registry instead."""
-    return Path(os.environ.get("DELIVERY_FLOW_REPOS",
-                               "~/.config/delivery-flow/repos")).expanduser()
+    """Where the opted-in repos are listed. Resolved per call, not at import.
+
+    An override has to reach a subprocess started after this module was first imported; tests
+    set one, and reading it once at import meant they wrote to the real registry instead.
+    """
+    return _registry.path_for(WORKFLOW_NAME)
 
 
 def known_repos(registry: Path = None) -> list:
-    """Every repo that has opted into delivery-flow, newest last. Missing ones are dropped.
-
-    A hook is handed the *session's* `cwd`, never the directory a command actually wrote to, so
-    it cannot learn the target repo from its payload: a shell command can `cd`, hold the path in
-    a variable, or use an absolute path from an unrelated cwd. Three separate hooks were each
-    guessing, and each missed. This is the registry they consult instead — written by
-    `init-delivery-flow.py` when a repo opts in, so there is nothing to infer.
-    """
-    registry = registry or repo_registry()
-    out = []
-    try:
-        lines = registry.read_text().splitlines()
-    except OSError:
-        return out
-    for line in lines:
-        line = line.split("#", 1)[0].strip()
-        if not line:
-            continue
-        path = Path(line).expanduser()
-        if path not in out and is_delivery_repo(path):
-            out.append(path)
-    return out
+    """Every repo that has opted into delivery-flow, newest last. Missing ones are dropped."""
+    return _registry.known(registry or repo_registry(), is_delivery_repo)
 
 
 def register_repo(repo: Path, registry: Path = None) -> bool:
     """Record a repo in the registry. True if it was added, False if already there."""
-    registry = registry or repo_registry()
-    repo = Path(repo).expanduser().resolve()
-    existing = []
-    try:
-        existing = [l.split("#", 1)[0].strip() for l in registry.read_text().splitlines()]
-    except OSError:
-        pass
-    if str(repo) in existing:
-        return False
-    registry.parent.mkdir(parents=True, exist_ok=True)
-    with registry.open("a") as f:
-        f.write(f"{repo}\n")
-    return True
+    return _registry.register(repo, registry or repo_registry())
 
 
 def candidate_repos(payload: dict, extra=None) -> list:
-    """Every delivery repo a hook should consider for this tool call, cwd-derived ones FIRST.
-
-    Order matters and this order is deliberate. A caller that wants one repo should pick the
-    one that actually holds the thing it is looking for — the item's `.current-step`, its open
-    punch-out — not simply the head of this list. But where a caller must choose blind, the
-    session's own repo is the better guess than an arbitrary registry entry, so it leads.
-    """
-    out = []
-    for base in [Path(payload.get("cwd") or ".")] + list(extra or []):
-        try:
-            repo = repo_root(Path(base))
-        except OSError:
-            continue
-        if repo not in out and is_delivery_repo(repo):
-            out.append(repo)
-    for repo in known_repos():
-        if repo not in out:
-            out.append(repo)
-    return out
+    """Every delivery repo a hook should consider for this tool call, cwd-derived ones FIRST."""
+    return _registry.candidates(payload, is_delivery_repo, repo_registry(), repo_root, extra)
 
 
 def trace_path(repo: Path, item: str, cfg: dict = None) -> Path:
@@ -708,7 +527,10 @@ def trace_path(repo: Path, item: str, cfg: dict = None) -> Path:
 
 
 def append_trace(repo: Path, item: str, record: dict) -> None:
-    p = trace_path(repo, item)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("a") as f:
-        f.write(json.dumps(record, sort_keys=True) + "\n")
+    """Append to this item's trace. Format and damage policy: `scripts/workflow/trace.py`."""
+    _trace.append(trace_path(repo, item), record)
+
+
+def read_trace(repo: Path, item: str) -> list:
+    """This item's trace records, oldest first. Unreadable reads as empty."""
+    return _trace.read(trace_path(repo, item))

@@ -26,6 +26,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 HELPERS = Path(__file__).resolve().parents[1] / "scripts" / "delivery-flow"
+SUBSTRATE = Path(__file__).resolve().parents[1] / "scripts" / "workflow"
+sys.path.insert(0, str(SUBSTRATE))
+import descriptor as workflow_descriptor  # noqa: E402
 
 # Root-agnostic: `<root>/<ITEM>/decisions/` where the root may be anywhere, so the item
 # directory plus `decisions/` is the stable part. Keeps the punch-out files and decide.py.
@@ -69,7 +72,7 @@ def main() -> int:
     # behind. With `artifacts.root` pointing outside the repo, the string never appears at
     # all, so this hook went inert exactly where it was most needed: it is the one that stops
     # an agent writing its own decision.
-    if not common.is_delivery_repo(Path(payload.get("cwd") or ".")):
+    if not workflow_descriptor.any_opted_in([Path(payload.get("cwd") or ".")]):
         return 0
 
     # cwd-based on purpose. A merge, push or deploy command runs *in* the repo it affects, so
@@ -77,7 +80,7 @@ def main() -> int:
     # hook fire on tool calls that touch no delivery repo at all, losing the inertness every
     # part of this plugin depends on.
     repo = common.repo_root(Path(payload.get("cwd") or "."))
-    if not common.is_delivery_repo(repo):
+    if not workflow_descriptor.any_opted_in([repo]):
         return 0
 
     tool = payload.get("tool_name", "")
@@ -110,7 +113,14 @@ def main() -> int:
         root_text = str(common.artifact_root(repo)).replace("\\", "/")
         m = re.search(re.escape(root_text) + r"/([^/\s\"]+)/", text)
         if not m:
-            m = re.search(r"delivery/([^/\s\"]+)/", text)
+            # Then every workflow's default artifact directory. Escaped and tried in turn
+            # rather than spelled out: this hook is the one that stops an agent writing its
+            # own decision, so a pattern that silently stops matching disables the control
+            # that matters most.
+            for d in workflow_descriptor.artifact_dirs():
+                m = re.search(re.escape(d) + r"/([^/\s\"]+)/", text)
+                if m:
+                    break
         item = m.group(1) if m else None
 
     cmd = ti.get("command", "") if tool == "Bash" else ""
