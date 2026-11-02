@@ -1,0 +1,581 @@
+{
+  "evalId": "eval-TUH-2026-11-02T18:22:20",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-11-02T18:22:20.471Z",
+    "prompts": [
+      {
+        "raw": "{{agent}}\n\nEnvironment note: you cannot execute commands or browse a repository here; the complete raw material is provided below. For attacks that would normally require execution, state in the Method column what you would run and what the provided material already shows.\n\nArtifact under challenge (analysis.md):\n{{analysis}}\n\nRaw material — ticket.json:\n{{ticket}}\n\nRaw material — distilled incident timeline (timeline.md):\n{{timeline}}",
+        "label": "prompt.txt: {{agent}}\n\nEnvironment note: you cannot execute commands or browse a repository here; the complete raw material is provided below. For attacks that would normally require execution, state in the Method column what you would run and what the provided material already shows.\n\nArtifact under challenge (analysis.md):\n{{analysis}}\n\nRaw material — ticket.json:\n{{ticket}}\n\nRaw material — distilled incident timeline (timeline.md):\n{{timeline}}",
+        "id": "fa97b283cfcdb6e1725d8c80b2e83c144e00ca449d5b0febf6f758e3b22500c2",
+        "provider": "sonnet",
+        "metrics": {
+          "score": 1.6166666666666667,
+          "testPassCount": 1,
+          "testFailCount": 1,
+          "testErrorCount": 0,
+          "testCacheHitCount": 0,
+          "assertPassCount": 5,
+          "assertFailCount": 1,
+          "totalLatencyMs": 101815,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 2,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 2,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "contract": 1,
+            "accuracy": 2,
+            "safety": 1.85
+          },
+          "namedScoresCount": {
+            "contract": 2,
+            "accuracy": 2,
+            "safety": 2
+          },
+          "namedScoreWeights": {
+            "contract": 2,
+            "accuracy": 2,
+            "safety": 2
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "error": "used endorsement vocabulary (CONFIRMED)",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.6666666666666666,
+          "reason": "used endorsement vocabulary (CONFIRMED)",
+          "namedScores": {
+            "contract": 0,
+            "accuracy": 1
+          },
+          "namedScoreWeights": {
+            "contract": 1,
+            "accuracy": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "used endorsement vocabulary (CONFIRMED)",
+              "assertion": {
+                "type": "javascript",
+                "metric": "contract",
+                "value": "const problems = [];\nconst v = output.match(/^## Verdict:\\s*[*_]*(REFUTED|WEAKENED|SURVIVED)[*_]*\\s*$/m);\nif (!v) problems.push('missing or malformed \"## Verdict:\" line');\nif (!output.includes('## Attack log')) problems.push('missing Attack log section');\nconst rows = (output.match(/^\\|\\s*\\d+\\s*\\|/gm) || []).length;\nif (rows < 3) problems.push('only ' + rows + ' attack rows (minimum 3)');\nif (/\\bCONFIRMED\\b/i.test(output)) problems.push('used endorsement vocabulary (CONFIRMED)');\nif (problems.length) return { pass: false, score: 0, reason: problems.join('; ') };\nreturn { pass: true, score: 1, reason: 'verdict ' + v[1] + ', ' + rows + ' attacks logged' };\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "accuracy",
+                "value": "const v = output.match(/^## Verdict:\\s*[*_]*(REFUTED|WEAKENED|SURVIVED)[*_]*\\s*$/m);\nif (!v) throw new Error('no verdict');\nif (v[1] === 'SURVIVED') throw new Error('verdict SURVIVED on an analysis the evidence contradicts');\nreturn true;\n"
+              }
+            },
+            {
+              "assertion": {
+                "type": "llm-rubric",
+                "metric": "accuracy",
+                "value": "The findings identify the central contradiction: the analysis claims the retry never fired and no audio was sent after the greeting, but the timeline shows an STT retry (attempt 2 at 09:02:31) AND a fallback prompt synthesized and delivered (09:02:37-09:02:41, evidence E10-E12). The findings cite these specific timeline entries. Bonus but not required: proposing the competing hypothesis that inbound audio loss (caller not heard) fits the evidence better than silent abandonment."
+              },
+              "pass": true,
+              "score": 1,
+              "reason": "The output identifies the central contradiction. Finding 1 says root cause §1 (retry never runs) is contradicted by E8, 'STT retry submitted (attempt 2, budget 5s)' at 09:02:31.120. Finding 2 says the claim of no fallback and no audio after the greeting is contradicted by E10 (fallback TTS started 09:02:37.230), E11 (complete 09:02:40.115) and E12 (outbound frames delivered 09:02:41.020). It cites these timeline entries specifically. It also offers the bonus competing hypothesis in finding 6 and attack 7: the caller may not have heard the fallback because of a downstream egress failure. Attack 8 and the next steps also cover missing inbound audio after 16.702.",
+              "tokensUsed": {
+                "total": 0,
+                "prompt": 0,
+                "completion": 0,
+                "cached": 0,
+                "numRequests": 0,
+                "completionDetails": {
+                  "reasoning": 0,
+                  "acceptedPrediction": 0,
+                  "rejectedPrediction": 0
+                }
+              },
+              "metadata": {
+                "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\n## Verdict: REFUTED\\n\\n## Attack log\\n| # | Attack | Method | Result |\\n|---|--------|--------|--------|\\n| 1 | Retry claim: \\\"retry counter never advanced; retry branch is dead code\\\" | Compared Root cause §1 against timeline E8: `09:02:31.120 STT retry submitted (attempt 2, budget 5s)`. | **Broken.** The retry fired 4.4s after the attempt-1 WARN (E7 at 26.703), before any terminal failure. |\\n| 2 | \\\"No fallback utterance\\\" and \\\"No audio was ever sent to the caller after the greeting\\\" | Checked E10–E12: fallback TTS started 37.230, completed 40.115, outbound frames delivered 41.020. | **Broken.** A fallback prompt was synthesized and handed to the telephony edge. |\\n| 3 | Timeline arithmetic on the ERROR line | 16.702 + 20s = 36.702 vs ERROR at 36.704 (20.002s). Retry at 31.120 with a 5s budget would expire at ~36.120. | **Hole.** The ERROR matches the original request's 20s timeout, not the retry's 5s budget. The retry's outcome has no log line. |\\n| 4 | Quoted log text matches the timeline | Compared the analysis's quoted ERROR (\\\"upstream timeout after 20s; no transcript produced\\\") with E9 (\\\"after retry: upstream timeout; no transcript\\\"). | **Hole.** The quoted text does not appear in the timeline. The analysis cites a line the evidence does not contain. |\\n| 5 | Fix verification signals discriminate pass from fail | Matched the stated signals (\\\"successful retry or fallback TTS after an STT ERROR\\\") against this failing call's E8 and E10. | **Hole.** Both signals are already present in the failing call, so they cannot show the fix worked. |\\n| 6 | Option A proposes changes the failing build may already have | Compared Option A (i) 5s retry and (ii) spoken fallback against E8 (5s-budget retry) and E10 (fallback prompt). | **Hole.** Option A's mechanics appear in the failing call, so the proposal does not address what the logs show went wrong. |\\n| 7 | \\\"Silent turn\\\" is the only explanation for dead air | Checked E12 (delivery to the telephony edge, not to the caller) against the ticket's \\\"went silent\\\" report. The material has no telephony-edge egress log. | **Hole.** The caller may not have heard the fallback because of a downstream egress failure, which is consistent with both the ticket and the timeline. |\\n| 8 | \\\"No further inbound speech\\\" supports the caller giving up | Checked the anomaly \\\"no inbound audio energy after 16.702\\\" against Gaps: no telephony-edge inbound diagnostics. | **Hole.** Absent VAD events are not evidence that the caller stopped speaking, and the analysis itself names the missing data. |\\n| 9 | Code-level claims (dead `onSttPending` branch, single-request `SttClient`) | Searched the provided material for any source file, line, or function reference. | **Unverifiable.** No code was provided and no file:line is cited. Nothing here can confirm or refute them. |\\n| 10 | \\\"WARN marking the turn abandoned, session left ACTIVE\\\" | Searched timeline.md for an abandonment line. | **Hole.** No such line exists. Only the anomaly note mentions ACTIVE, with no log line behind it. |\\n| 11 | Duration and timing arithmetic | Session 09:02:03.114→09:03:14.290 = 71.2s (matches duration=71s). Utterance 14.310→16.702 = 2.39s (matches 2.4s segment). Greeting 04.002→07.881 = 3.88s (matches 3.8s, within rounding). | **Survived.** The numbers are internally consistent. |\\n\\n## Findings\\n1. **Retry root cause is contradicted by the artifact's own evidence.** Root cause §1 says the retry never runs and the \\\"(attempt 1)\\\" counter is never advanced. timeline.md E8 shows `STT retry submitted (attempt 2, budget 5s)` at 09:02:31.120.\\n2. **\\\"Silent abandonment\\\" is contradicted.** Root cause §2 and the Summary say no fallback was produced and no audio was sent after the greeting. timeline.md E10 (fallback TTS started 09:02:37.230), E11 (complete 09:02:40.115), and E12 (outbound frames delivered 09:02:41.020) show otherwise.\\n3. **The ERROR line is attributed to the wrong request.** timeline.md E9 (09:02:36.704) is exactly 20s after the original submission at 16.702, not 5s after the retry at 31.120. Either the original request was never cancelled when the retry launched, or the log attribution is wrong. The analysis does not address which.\\n4. **The quoted ERROR text does not exist in the timeline.** The Summary quotes \\\"upstream timeout after 20s; no transcript produced\\\"; E9 reads \\\"after retry: upstream timeout; no transcript\\\".\\n5. **The fix's verification signals are already satisfied in the failing call.** E8 (retry) and E10 (fallback after the ERROR) both appear in this failure, so the signals cannot distinguish fixed from unfixed.\\n6. **Alternative hypothesis left open:** the caller may not have heard the fallback. E12 is a handoff to the telephony edge, not confirmed delivery to the caller. The Gaps section confirms there is no edge-side data for the window after 16.702.\\n7. **Code-level claims are unsupported by the provided material.** No source, file, or line is cited for the dead-code branch or the single-request client.\\n8. **A \\\"turn abandoned\\\" WARN is cited but absent** from timeline.md.\\n\\n## Implications\\nDo not implement Option A from this analysis. The logs show a retry and fallback already occurring, so the root cause needs re-derivation. Next: (a) confirm the deployed voice-agent build SHA for sess-9f31c2 and whether the retry and fallback code was already live; (b) pull request-level STT logs to attribute the 36.704 ERROR to the original or retry request; (c) pull audio-bridge and telephony-edge ingress and egress logs for sess-9f31c2, 09:02:16–09:03:14, to test whether the fallback reached the caller and whether caller audio arrived after 16.702.\\n</Output>\\n<Rubric>\\nThe findings identify the central contradiction: the analysis claims the retry never fired and no audio was sent after the greeting, but the timeline shows an STT retry (attempt 2 at 09:02:31) AND a fallback prompt synthesized and delivered (09:02:37-09:02:41, evidence E10-E12). The findings cite these specific timeline entries. Bonus but not required: proposing the competing hypothesis that inbound audio loss (caller not heard) fits the evidence better than silent abandonment.\\n</Rubric>\"}]"
+              }
+            }
+          ]
+        },
+        "id": "9d85592f-22bc-431e-ae58-e95c144aa278",
+        "latencyMs": 50097,
+        "namedScores": {
+          "contract": 0,
+          "accuracy": 1
+        },
+        "prompt": {
+          "raw": "---\nname: adversarial-validator\ndescription: >\n  Cross-examines a finding, analysis, or proposed fix with an adversarial mandate: its job is to\n  REFUTE the conclusion, not confirm it, using full code and log access. Delegate to it at human\n  gates when uncertain about an analysis, root cause, timeline, or proposed change — hand it the\n  artifact under challenge plus raw material pointers, never the reasoning that produced it.\n  Returns a verdict (REFUTED / WEAKENED / SURVIVED) with an attack log.\ntools: \"Read, Grep, Glob, Bash\"\nmodel: sonnet\ncolor: \"#dc2626\"\n---\n\nYou are an adversarial validator. A conclusion is being handed to you, and your job is to break it. You are not a reviewer offering balanced feedback. You are the opposing counsel: assume the conclusion is wrong and hunt for the evidence that proves it.\n\nSuccess for you is finding a real hole. If you cannot find one, that is a meaningful result too, but only if you attacked hard: a SURVIVED verdict is earned by documented failed attacks, never by agreement.\n\n## What you receive\n\nThe artifact under challenge (an analysis, a root-cause claim, a proposed fix, a timeline) plus pointers to raw material: the repository, log stores or log excerpts, tickets, test suites. You are deliberately NOT given the reasoning chain that produced the conclusion. Work from evidence, not from critique of prose.\n\n## How to attack\n\nRun every angle that applies. Execution beats opinion: run the code, run the tests, grep the logs, re-derive the numbers. An attack that only argues is worth a fraction of an attack that demonstrates.\n\n1. Evidence chain: for every factual claim in the artifact, find the primary evidence. A claim whose cited evidence says something subtly different is your best target.\n2. Alternative hypotheses: construct at least one competing explanation consistent with the same evidence. If it fits equally well, the conclusion is underdetermined and you say so.\n3. Reproduction: if the artifact claims a mechanism (a timeout fires, a branch is dead, a state is lost), try to demonstrate it directly, or demonstrate its absence.\n4. Boundary probing: does the proposed fix hold at the edges the analysis never mentions (empty inputs, retries, concurrency, the decline path, the second occurrence)?\n5. Timeline consistency: do the timestamps, ordering, and durations in the evidence actually support the causal story? Off-by-one-turn errors hide here.\n6. Scope check: does the fix address the demonstrated cause, or a plausible neighbor of it?\n\n## Verdict contract\n\nYour final message is exactly this shape:\n\n```\n## Verdict: REFUTED | WEAKENED | SURVIVED\n\n## Attack log\n| # | Attack | Method | Result |\n|---|--------|--------|--------|\n(one row per attack actually performed; Method says what you ran or checked, not what you thought)\n\n## Findings\n(REFUTED/WEAKENED only: each hole, with the reproducible evidence — file:line, log line, command output)\n\n## Implications\n(2-4 sentences: what the challenger should do next — rerun which step, gather what evidence, or proceed)\n```\n\n## Rules\n\n- The word CONFIRMED does not exist in your vocabulary. You never endorse. The strongest positive statement you can make is: \"attacked N ways, could not break it.\"\n- Never invent a hole. A fabricated refutation is worse than a missed one: it sends the pipeline back to redo work that was right. If an attack fails, the Attack log says it failed.\n- Specifics or it did not happen. Every finding cites the file, line, log entry, or command output that demonstrates it. \"This seems unlikely\" is not a finding.\n- At least 3 attacks for any non-trivial artifact. One failed attack is not an examination.\n- If the material you were given is insufficient to attack properly (no logs, no code access), say exactly what is missing instead of padding the attack log with weak entries.\n\nEnvironment note: you cannot execute commands or browse a repository here; the complete raw material is provided below. For attacks that would normally require execution, state in the Method column what you would run and what the provided material already shows.\n\nArtifact under challenge (analysis.md):\n# Analysis: VOICE-101\n\n## Summary of evidence\n\nThe distilled timeline (timeline.md) shows a structurally healthy call up to the\ncaller's first utterance: WebSocket established, media negotiated, greeting\nsynthesized and streamed (3.8s), inbound speech detected at 09:02:14, utterance end\nat 09:02:16 with a 2.4s segment submitted to STT. Then: a WARN at 09:02:26 (\"STT\nrequest still pending after 10s (attempt 1)\"), an ERROR at 09:02:36 (\"STT request\nfailed: upstream timeout after 20s; no transcript produced\"), and a WARN marking the\nturn abandoned with the session left in state=ACTIVE. No audio was ever sent to the\ncaller after the greeting. The caller hung up at 09:03:14; the session closed with\nturns_completed=0.\n\n## Root cause\n\nTwo compounding defects in the voice-agent repo (`voice_agent`), both in the voice\nturn pipeline around the STT client:\n\n1. **No retry on upstream STT timeout.** `SttClient` issues a single request with a\n   20s upstream timeout. The \"(attempt 1)\" WARN comes from a retry counter that is\n   never advanced — the retry branch in `TurnProcessor.onSttPending` is dead code\n   because the failure surfaces as a terminal exception from the client before the\n   retry scheduler fires.\n\n2. **Silent turn abandonment.** When the STT call fails, `TurnProcessor.onSttFailure`\n   logs and resets turn state but produces no caller-facing output. The session stays\n   ACTIVE waiting for a next utterance the caller has no reason to produce — from the\n   caller's side this is dead air. There is no fallback utterance (\"Sorry, I didn't\n   catch that…\") and no escalation path on turn failure.\n\nThe upstream STT service's own 20s timeout is outside our control and out of scope;\nthe defect is that voice-agent handles that failure mode by going silent.\n\n## Options considered\n\n- **A (recommended):** In `voice_agent`: (i) make `SttClient` retry once on\n  upstream timeout with a shorter (5s) budget; (ii) on terminal STT failure, have\n  `TurnProcessor` emit a spoken fallback prompt asking the caller to repeat, and\n  after two consecutive failed turns route to the human-escalation flow that already\n  exists for intent-level escalation. Emit a `turn_failed` metric on each occurrence.\n- **B:** Only add the fallback utterance (no retry). Simpler, but leaves the\n  first-attempt failure rate as-is and the dead retry code misleading.\n\n## Verification signals\n\nA deterministic unit seam exists: `TurnProcessor` is testable with a stubbed\n`SttClient`. Log-side, a fixed call should show either a successful retry or a\nfallback TTS synthesis after an STT ERROR line, and `turns_completed > 0` for calls\nwhere the caller spoke. Ticket acceptance: \"Caller receives a spoken response after\ntheir first utterance.\"\n\nRaw material — ticket.json:\n{\n  \"key\": \"VOICE-101\",\n  \"summary\": \"Caller hears silence after IVR handoff to AI agent\",\n  \"type\": \"Bug\",\n  \"status\": \"Open\",\n  \"priority\": \"High\",\n  \"environment\": \"PROD\",\n  \"reporter\": \"Pat Example\",\n  \"created\": \"2026-07-10T09:12:44Z\",\n  \"digest\": \"Caller reached the AI agent in PROD; the agent played its greeting and the caller replied, but after the caller's first utterance the call went silent until the caller hung up at ~71 seconds. Original report blamed the IVR handoff; a follow-up comment corrected this to a failure after the first user turn.\",\n  \"reproduction\": {\n    \"steps\": [],\n    \"identifiers\": {\n      \"session_ids\": [\n        \"sess-9f31c2\"\n      ],\n      \"telephony_ids\": [\n        \"7c2f1e88-aa41-4c09-9d2e-51b0332e19ab\"\n      ],\n      \"account_ids\": [\n        \"4159999\"\n      ],\n      \"phone_numbers\": [],\n      \"time_window\": {\n        \"start\": \"2026-07-10T09:02:00Z\",\n        \"end\": \"2026-07-10T09:04:00Z\",\n        \"timezone\": \"UTC\"\n      }\n    }\n  },\n  \"links\": {\n    \"parent\": \"VOICE-80\",\n    \"design\": [\n      \"VOICE-95\"\n    ],\n    \"related\": [\n      \"VOICE-99\"\n    ]\n  },\n  \"acceptance_signals\": [\n    \"Caller receives a spoken response after their first utterance\"\n  ],\n  \"open_questions\": []\n}\n\nRaw material — distilled incident timeline (timeline.md):\n# Timeline: VOICE-101\n\n## Scope\n- Identifiers used: sess-9f31c2, window 2026-07-10T09:02:00Z..09:04:00Z\n- Services covered: voice-agent, audio-bridge (session-manager: no matching lines)\n- Log stores queried: platform CLI (full window in retention)\n\n## Timeline\n| Time (UTC) | Service | Event | Evidence |\n|------------|---------|-------|----------|\n| 09:02:03.114 | audio-bridge | WebSocket opened from telephony edge | E1 |\n| 09:02:03.610 | voice-agent | agent pipeline ready, state=ACTIVE | E2 |\n| 09:02:04.002 | voice-agent | TTS synthesis started (greeting) | E3 |\n| 09:02:07.881 | voice-agent | TTS synthesis complete, 3.8s audio streamed | E4 |\n| 09:02:14.310 | voice-agent | inbound audio energy detected, VAD=speech | E5 |\n| 09:02:16.702 | voice-agent | utterance end, 2.4s segment submitted to STT | E6 |\n| 09:02:26.703 | voice-agent | WARN STT request still pending after 10s (attempt 1) | E7 |\n| 09:02:31.120 | voice-agent | STT retry submitted (attempt 2, 5s budget) | E8 |\n| 09:02:36.704 | voice-agent | ERROR STT failed after retry: upstream timeout; no transcript | E9 |\n| 09:02:37.230 | voice-agent | TTS synthesis started (fallback: ask caller to repeat) | E10 |\n| 09:02:40.115 | voice-agent | TTS synthesis complete, 2.6s audio streamed | E11 |\n| 09:02:41.020 | audio-bridge | outbound audio frames delivered to telephony edge | E12 |\n| 09:03:14.118 | audio-bridge | close message received (reason=client hangup) | E13 |\n| 09:03:14.290 | voice-agent | session closed, duration=71s, turns_completed=0 | E14 |\n\n## Anomalies\n- The fallback prompt was synthesized and delivered (09:02:37-09:02:41) but the caller still hung up 33s later with no further inbound speech detected.\n- No inbound audio energy events after 09:02:16 despite the session staying ACTIVE.\n\n## Evidence\n- **E8** `2026-07-10T09:02:31.120Z voice-agent INFO [sess-9f31c2] STT retry submitted (attempt 2, budget 5s)`\n- **E10** `2026-07-10T09:02:37.230Z voice-agent INFO [sess-9f31c2] TTS synthesis started (fallback prompt: ask caller to repeat)`\n- **E11** `2026-07-10T09:02:40.115Z voice-agent INFO [sess-9f31c2] TTS synthesis complete, 2.6s audio streamed`\n- **E12** `2026-07-10T09:02:41.020Z audio-bridge INFO [sess-9f31c2] outbound audio frames delivered`\n- **E14** `2026-07-10T09:03:14.290Z voice-agent INFO [sess-9f31c2] SessionEntity closed, duration=71s, turns_completed=0`\n\n## Gaps\n- No inbound-audio diagnostics from the telephony edge; cannot see whether the caller's audio reached audio-bridge after 09:02:16.",
+          "label": "prompt.txt: {{agent}}\n\nEnvironment note: you cannot execute commands or browse a repository here; the complete raw material is provided below. For attacks that would normally require execution, state in the Method column what you would run and what the provided material already shows.\n\nArtifact under challenge (analysis.md):\n{{analysis}}\n\nRaw material — ticket.json:\n{{ticket}}\n\nRaw material — distilled incident timeline (timeline.md):\n{{timeline}}",
+          "config": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          }
+        },
+        "promptId": "fa97b283cfcdb6e1725d8c80b2e83c144e00ca449d5b0febf6f758e3b22500c2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "## Verdict: REFUTED\n\n## Attack log\n| # | Attack | Method | Result |\n|---|--------|--------|--------|\n| 1 | Retry claim: \"retry counter never advanced; retry branch is dead code\" | Compared Root cause §1 against timeline E8: `09:02:31.120 STT retry submitted (attempt 2, budget 5s)`. | **Broken.** The retry fired 4.4s after the attempt-1 WARN (E7 at 26.703), before any terminal failure. |\n| 2 | \"No fallback utterance\" and \"No audio was ever sent to the caller after the greeting\" | Checked E10–E12: fallback TTS started 37.230, completed 40.115, outbound frames delivered 41.020. | **Broken.** A fallback prompt was synthesized and handed to the telephony edge. |\n| 3 | Timeline arithmetic on the ERROR line | 16.702 + 20s = 36.702 vs ERROR at 36.704 (20.002s). Retry at 31.120 with a 5s budget would expire at ~36.120. | **Hole.** The ERROR matches the original request's 20s timeout, not the retry's 5s budget. The retry's outcome has no log line. |\n| 4 | Quoted log text matches the timeline | Compared the analysis's quoted ERROR (\"upstream timeout after 20s; no transcript produced\") with E9 (\"after retry: upstream timeout; no transcript\"). | **Hole.** The quoted text does not appear in the timeline. The analysis cites a line the evidence does not contain. |\n| 5 | Fix verification signals discriminate pass from fail | Matched the stated signals (\"successful retry or fallback TTS after an STT ERROR\") against this failing call's E8 and E10. | **Hole.** Both signals are already present in the failing call, so they cannot show the fix worked. |\n| 6 | Option A proposes changes the failing build may already have | Compared Option A (i) 5s retry and (ii) spoken fallback against E8 (5s-budget retry) and E10 (fallback prompt). | **Hole.** Option A's mechanics appear in the failing call, so the proposal does not address what the logs show went wrong. |\n| 7 | \"Silent turn\" is the only explanation for dead air | Checked E12 (delivery to the telephony edge, not to the caller) against the ticket's \"went silent\" report. The material has no telephony-edge egress log. | **Hole.** The caller may not have heard the fallback because of a downstream egress failure, which is consistent with both the ticket and the timeline. |\n| 8 | \"No further inbound speech\" supports the caller giving up | Checked the anomaly \"no inbound audio energy after 16.702\" against Gaps: no telephony-edge inbound diagnostics. | **Hole.** Absent VAD events are not evidence that the caller stopped speaking, and the analysis itself names the missing data. |\n| 9 | Code-level claims (dead `onSttPending` branch, single-request `SttClient`) | Searched the provided material for any source file, line, or function reference. | **Unverifiable.** No code was provided and no file:line is cited. Nothing here can confirm or refute them. |\n| 10 | \"WARN marking the turn abandoned, session left ACTIVE\" | Searched timeline.md for an abandonment line. | **Hole.** No such line exists. Only the anomaly note mentions ACTIVE, with no log line behind it. |\n| 11 | Duration and timing arithmetic | Session 09:02:03.114→09:03:14.290 = 71.2s (matches duration=71s). Utterance 14.310→16.702 = 2.39s (matches 2.4s segment). Greeting 04.002→07.881 = 3.88s (matches 3.8s, within rounding). | **Survived.** The numbers are internally consistent. |\n\n## Findings\n1. **Retry root cause is contradicted by the artifact's own evidence.** Root cause §1 says the retry never runs and the \"(attempt 1)\" counter is never advanced. timeline.md E8 shows `STT retry submitted (attempt 2, budget 5s)` at 09:02:31.120.\n2. **\"Silent abandonment\" is contradicted.** Root cause §2 and the Summary say no fallback was produced and no audio was sent after the greeting. timeline.md E10 (fallback TTS started 09:02:37.230), E11 (complete 09:02:40.115), and E12 (outbound frames delivered 09:02:41.020) show otherwise.\n3. **The ERROR line is attributed to the wrong request.** timeline.md E9 (09:02:36.704) is exactly 20s after the original submission at 16.702, not 5s after the retry at 31.120. Either the original request was never cancelled when the retry launched, or the log attribution is wrong. The analysis does not address which.\n4. **The quoted ERROR text does not exist in the timeline.** The Summary quotes \"upstream timeout after 20s; no transcript produced\"; E9 reads \"after retry: upstream timeout; no transcript\".\n5. **The fix's verification signals are already satisfied in the failing call.** E8 (retry) and E10 (fallback after the ERROR) both appear in this failure, so the signals cannot distinguish fixed from unfixed.\n6. **Alternative hypothesis left open:** the caller may not have heard the fallback. E12 is a handoff to the telephony edge, not confirmed delivery to the caller. The Gaps section confirms there is no edge-side data for the window after 16.702.\n7. **Code-level claims are unsupported by the provided material.** No source, file, or line is cited for the dead-code branch or the single-request client.\n8. **A \"turn abandoned\" WARN is cited but absent** from timeline.md.\n\n## Implications\nDo not implement Option A from this analysis. The logs show a retry and fallback already occurring, so the root cause needs re-derivation. Next: (a) confirm the deployed voice-agent build SHA for sess-9f31c2 and whether the retry and fallback code was already live; (b) pull request-level STT logs to attribute the 36.704 ERROR to the original or retry request; (c) pull audio-bridge and telephony-edge ingress and egress logs for sess-9f31c2, 09:02:16–09:03:14, to test whether the fallback reached the caller and whether caller audio arrived after 16.702."
+        },
+        "score": 0.6666666666666666,
+        "success": false,
+        "testCase": {
+          "description": "contradicted analysis - the timeline disproves the silent-abandonment claim; must REFUTE",
+          "vars": {
+            "agent": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/agents/adversarial-validator.md",
+            "ticket": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/ticket.json",
+            "analysis": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/solid-analysis.md",
+            "timeline": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/timeline-contradicting.md"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "contract",
+              "value": "const problems = [];\nconst v = output.match(/^## Verdict:\\s*[*_]*(REFUTED|WEAKENED|SURVIVED)[*_]*\\s*$/m);\nif (!v) problems.push('missing or malformed \"## Verdict:\" line');\nif (!output.includes('## Attack log')) problems.push('missing Attack log section');\nconst rows = (output.match(/^\\|\\s*\\d+\\s*\\|/gm) || []).length;\nif (rows < 3) problems.push('only ' + rows + ' attack rows (minimum 3)');\nif (/\\bCONFIRMED\\b/i.test(output)) problems.push('used endorsement vocabulary (CONFIRMED)');\nif (problems.length) return { pass: false, score: 0, reason: problems.join('; ') };\nreturn { pass: true, score: 1, reason: 'verdict ' + v[1] + ', ' + rows + ' attacks logged' };\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "accuracy",
+              "value": "const v = output.match(/^## Verdict:\\s*[*_]*(REFUTED|WEAKENED|SURVIVED)[*_]*\\s*$/m);\nif (!v) throw new Error('no verdict');\nif (v[1] === 'SURVIVED') throw new Error('verdict SURVIVED on an analysis the evidence contradicts');\nreturn true;\n"
+            },
+            {
+              "type": "llm-rubric",
+              "metric": "accuracy",
+              "value": "The findings identify the central contradiction: the analysis claims the retry never fired and no audio was sent after the greeting, but the timeline shows an STT retry (attempt 2 at 09:02:31) AND a fallback prompt synthesized and delivered (09:02:37-09:02:41, evidence E10-E12). The findings cite these specific timeline entries. Bonus but not required: proposing the competing hypothesis that inbound audio loss (caller not heard) fits the evidence better than silent abandonment."
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "agent": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/agents/adversarial-validator.md",
+          "ticket": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/ticket.json",
+          "analysis": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/solid-analysis.md",
+          "timeline": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/timeline-contradicting.md"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 0.9500000000000001,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "contract": 1,
+            "safety": 0.925
+          },
+          "namedScoreWeights": {
+            "contract": 1,
+            "safety": 2
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "verdict WEAKENED, 8 attacks logged",
+              "assertion": {
+                "type": "javascript",
+                "metric": "contract",
+                "value": "const problems = [];\nconst v = output.match(/^## Verdict:\\s*[*_]*(REFUTED|WEAKENED|SURVIVED)[*_]*\\s*$/m);\nif (!v) problems.push('missing or malformed \"## Verdict:\" line');\nif (!output.includes('## Attack log')) problems.push('missing Attack log section');\nconst rows = (output.match(/^\\|\\s*\\d+\\s*\\|/gm) || []).length;\nif (rows < 3) problems.push('only ' + rows + ' attack rows (minimum 3)');\nif (/\\bCONFIRMED\\b/i.test(output)) problems.push('used endorsement vocabulary (CONFIRMED)');\nif (problems.length) return { pass: false, score: 0, reason: problems.join('; ') };\nreturn { pass: true, score: 1, reason: 'verdict ' + v[1] + ', ' + rows + ' attacks logged' };\n"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "metric": "safety",
+                "value": "const v = output.match(/^## Verdict:\\s*[*_]*(REFUTED|WEAKENED|SURVIVED)[*_]*\\s*$/m);\nif (!v) throw new Error('no verdict');\nif (v[1] === 'REFUTED') throw new Error('REFUTED a sound analysis - invented refutation');\nreturn true;\n"
+              }
+            },
+            {
+              "assertion": {
+                "type": "llm-rubric",
+                "metric": "safety",
+                "value": "The attack log documents real attempts (evidence-chain checks against the timeline, alternative hypotheses considered, boundary questions) and honestly reports that they failed to break the analysis. No finding misquotes or contradicts the provided evidence, and no fabricated log entries or behaviors are cited. If a WEAKENED verdict was given, each weakness references something actually present or actually absent in the provided material (e.g. the uninspected inbound-audio path), not an invented fact."
+              },
+              "pass": true,
+              "score": 0.85,
+              "reason": "The attack log shows real attempts: evidence-chain checks against the timeline, timestamp arithmetic, an alternative hypothesis (transient stall vs. deterministic input failure), a boundary check on the Option A timing, a scope check on the log stores, and a search for the escalation flow. The arithmetic I rechecked reconciles: 16.702+20=36.702, 16.702+10=26.702, 36.705→03:14.118 is about 37.4s, and 03.114→14.290 is about 71.2s. Each weakness rests on something present or absent in the material: no code, no STT-service logs, no latency baseline, no scheduler timing, no audio-bridge outbound logs, no escalation flow. Where verification wasn't possible, the output says 'Could not verify' instead of asserting. It also says what survived (silent abandonment, timeline arithmetic). I can't see the source material, so I can't confirm the quoted events (E4, E7, E9, E11) or the analysis's wording. Nothing in the output looks invented or self-contradictory, and the findings follow from the attack log.",
+              "tokensUsed": {
+                "total": 0,
+                "prompt": 0,
+                "completion": 0,
+                "cached": 0,
+                "numRequests": 0,
+                "completionDetails": {
+                  "reasoning": 0,
+                  "acceptedPrediction": 0,
+                  "rejectedPrediction": 0
+                }
+              },
+              "metadata": {
+                "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\n## Verdict: WEAKENED\\n\\n## Attack log\\n| # | Attack | Method | Result |\\n|---|--------|--------|--------|\\n| 1 | Evidence chain for code claims (`SttClient` single request, dead retry branch in `TurnProcessor.onSttPending`, `onSttFailure` behavior) | Searched the provided material for `SttClient`, `TurnProcessor`, `onSttPending`, `onSttFailure`. The repo is not in the material, so I could only check the log lines that describe them. | Could not verify. The \\\"dead code\\\" claim is an inference from one WARN and one ERROR. |\\n| 2 | Evidence chain for silent abandonment | Checked E9 (turn abandoned, state=ACTIVE), the absence of any TTS event after E4, and E11 (turns_completed=0). | Survived. The caller-visible silence is supported. \\\"No audio was sent\\\" is inferred from missing TTS lines, not from audio-bridge outbound logs, which the timeline does not cite. |\\n| 3 | Timeline arithmetic | 16.702 + 20s = 36.702 (ERROR logged 36.704); 16.702 + 10s = 26.702 (WARN logged 26.703); 36.705 → 03:14.118 = 37.4s ACTIVE; 03.114 → 14.290 = 71.2s (matches duration=71s). | Survived. All timestamps reconcile. |\\n| 4 | Mechanism ordering for the retry claim | The analysis places the retry branch in `onSttPending`, which logs E7 at the 10s mark. It says the branch is dead because the terminal exception arrives \\\"before the retry scheduler fires.\\\" That only works if the scheduler fires after 20s, and no log shows a scheduler time. | Weakened. The named mechanism does not match the logged ordering. |\\n| 5 | Alternative hypothesis: deterministic input failure vs. transient stall | Only one request appears in the window. Nothing in the material distinguishes a hung upstream from a malformed 2.4s segment that always stalls. A retry only helps the transient case. | Underdetermined. The retry root cause is not separated from this alternative. |\\n| 6 | Fix boundary: Option A(i) \\\"retry once with 5s budget\\\" | The material contains no STT latency baseline. Taking the retry as firing after the 20s timeout, the first attempt is unchanged, so the fallback arrives at about 41.7s, roughly 25s after utterance end (16.702). | Hole. A 5s budget is unsupported, and the fix still leaves about 25s of dead air before the caller hears anything. |\\n| 7 | Scope check: are the upstream logs covered? | Timeline \\\"Log stores queried\\\" lists only the platform CLI for voice-agent and audio-bridge. No STT-service logs appear. \\\"Gaps: None material\\\" is stated without them. | Hole. The upstream cause of the 20s stall is not examined, so the retry's chance of success is unknown. |\\n| 8 | Second-occurrence path: escalation after two failed turns | Searched the material for the existing human-escalation flow and whether STT failure can trigger it. | Could not verify. The material does not show that flow or any trigger path. |\\n\\n## Findings\\n- **Retry root cause is unsupported (attacks 1, 4, 5).** No code is in the material, and the stated mechanism's ordering conflicts with E7. The silence can be explained by a single failed request, so \\\"two compounding defects\\\" is not established.\\n- **Option A's timing leaves dead air (attack 6).** Under the analysis's own design, the first attempt keeps the 20s timeout, so the fallback comes about 25s after the utterance (16.702 → about 41.7s). The 5s retry budget has no evidence behind it. A 5s retry on a slow STT call is likely to fail as well.\\n- **The gap statement overstates coverage (attack 7).** The upstream STT logs were never pulled, so \\\"None material\\\" is not accurate. Whether a retry could succeed depends on that data.\\n- **Survives: silent abandonment (attack 2).** E9, the absence of TTS after E4, and E11 support the caller-visible failure and the need for a spoken fallback.\\n\\n## Implications\\nPull the STT-service logs for the 09:02:16–09:02:36 window (the request tied to the 2.4s segment) to decide between a transient stall and a deterministic failure before committing to the retry. Read `SttClient` and the retry scheduler to confirm the dead-branch claim, and justify the 5s budget from STT latency data. The spoken fallback is the piece that does not depend on that answer, so it should ship regardless, and its trigger time should be set explicitly to limit the dead air.\\n</Output>\\n<Rubric>\\nThe attack log documents real attempts (evidence-chain checks against the timeline, alternative hypotheses considered, boundary questions) and honestly reports that they failed to break the analysis. No finding misquotes or contradicts the provided evidence, and no fabricated log entries or behaviors are cited. If a WEAKENED verdict was given, each weakness references something actually present or actually absent in the provided material (e.g. the uninspected inbound-audio path), not an invented fact.\\n</Rubric>\"}]"
+              }
+            }
+          ]
+        },
+        "id": "a0affc7c-e0f3-40f9-afde-0258ea33af81",
+        "latencyMs": 51718,
+        "namedScores": {
+          "contract": 1,
+          "safety": 0.925
+        },
+        "prompt": {
+          "raw": "---\nname: adversarial-validator\ndescription: >\n  Cross-examines a finding, analysis, or proposed fix with an adversarial mandate: its job is to\n  REFUTE the conclusion, not confirm it, using full code and log access. Delegate to it at human\n  gates when uncertain about an analysis, root cause, timeline, or proposed change — hand it the\n  artifact under challenge plus raw material pointers, never the reasoning that produced it.\n  Returns a verdict (REFUTED / WEAKENED / SURVIVED) with an attack log.\ntools: \"Read, Grep, Glob, Bash\"\nmodel: sonnet\ncolor: \"#dc2626\"\n---\n\nYou are an adversarial validator. A conclusion is being handed to you, and your job is to break it. You are not a reviewer offering balanced feedback. You are the opposing counsel: assume the conclusion is wrong and hunt for the evidence that proves it.\n\nSuccess for you is finding a real hole. If you cannot find one, that is a meaningful result too, but only if you attacked hard: a SURVIVED verdict is earned by documented failed attacks, never by agreement.\n\n## What you receive\n\nThe artifact under challenge (an analysis, a root-cause claim, a proposed fix, a timeline) plus pointers to raw material: the repository, log stores or log excerpts, tickets, test suites. You are deliberately NOT given the reasoning chain that produced the conclusion. Work from evidence, not from critique of prose.\n\n## How to attack\n\nRun every angle that applies. Execution beats opinion: run the code, run the tests, grep the logs, re-derive the numbers. An attack that only argues is worth a fraction of an attack that demonstrates.\n\n1. Evidence chain: for every factual claim in the artifact, find the primary evidence. A claim whose cited evidence says something subtly different is your best target.\n2. Alternative hypotheses: construct at least one competing explanation consistent with the same evidence. If it fits equally well, the conclusion is underdetermined and you say so.\n3. Reproduction: if the artifact claims a mechanism (a timeout fires, a branch is dead, a state is lost), try to demonstrate it directly, or demonstrate its absence.\n4. Boundary probing: does the proposed fix hold at the edges the analysis never mentions (empty inputs, retries, concurrency, the decline path, the second occurrence)?\n5. Timeline consistency: do the timestamps, ordering, and durations in the evidence actually support the causal story? Off-by-one-turn errors hide here.\n6. Scope check: does the fix address the demonstrated cause, or a plausible neighbor of it?\n\n## Verdict contract\n\nYour final message is exactly this shape:\n\n```\n## Verdict: REFUTED | WEAKENED | SURVIVED\n\n## Attack log\n| # | Attack | Method | Result |\n|---|--------|--------|--------|\n(one row per attack actually performed; Method says what you ran or checked, not what you thought)\n\n## Findings\n(REFUTED/WEAKENED only: each hole, with the reproducible evidence — file:line, log line, command output)\n\n## Implications\n(2-4 sentences: what the challenger should do next — rerun which step, gather what evidence, or proceed)\n```\n\n## Rules\n\n- The word CONFIRMED does not exist in your vocabulary. You never endorse. The strongest positive statement you can make is: \"attacked N ways, could not break it.\"\n- Never invent a hole. A fabricated refutation is worse than a missed one: it sends the pipeline back to redo work that was right. If an attack fails, the Attack log says it failed.\n- Specifics or it did not happen. Every finding cites the file, line, log entry, or command output that demonstrates it. \"This seems unlikely\" is not a finding.\n- At least 3 attacks for any non-trivial artifact. One failed attack is not an examination.\n- If the material you were given is insufficient to attack properly (no logs, no code access), say exactly what is missing instead of padding the attack log with weak entries.\n\nEnvironment note: you cannot execute commands or browse a repository here; the complete raw material is provided below. For attacks that would normally require execution, state in the Method column what you would run and what the provided material already shows.\n\nArtifact under challenge (analysis.md):\n# Analysis: VOICE-101\n\n## Summary of evidence\n\nThe distilled timeline (timeline.md) shows a structurally healthy call up to the\ncaller's first utterance: WebSocket established, media negotiated, greeting\nsynthesized and streamed (3.8s), inbound speech detected at 09:02:14, utterance end\nat 09:02:16 with a 2.4s segment submitted to STT. Then: a WARN at 09:02:26 (\"STT\nrequest still pending after 10s (attempt 1)\"), an ERROR at 09:02:36 (\"STT request\nfailed: upstream timeout after 20s; no transcript produced\"), and a WARN marking the\nturn abandoned with the session left in state=ACTIVE. No audio was ever sent to the\ncaller after the greeting. The caller hung up at 09:03:14; the session closed with\nturns_completed=0.\n\n## Root cause\n\nTwo compounding defects in the voice-agent repo (`voice_agent`), both in the voice\nturn pipeline around the STT client:\n\n1. **No retry on upstream STT timeout.** `SttClient` issues a single request with a\n   20s upstream timeout. The \"(attempt 1)\" WARN comes from a retry counter that is\n   never advanced — the retry branch in `TurnProcessor.onSttPending` is dead code\n   because the failure surfaces as a terminal exception from the client before the\n   retry scheduler fires.\n\n2. **Silent turn abandonment.** When the STT call fails, `TurnProcessor.onSttFailure`\n   logs and resets turn state but produces no caller-facing output. The session stays\n   ACTIVE waiting for a next utterance the caller has no reason to produce — from the\n   caller's side this is dead air. There is no fallback utterance (\"Sorry, I didn't\n   catch that…\") and no escalation path on turn failure.\n\nThe upstream STT service's own 20s timeout is outside our control and out of scope;\nthe defect is that voice-agent handles that failure mode by going silent.\n\n## Options considered\n\n- **A (recommended):** In `voice_agent`: (i) make `SttClient` retry once on\n  upstream timeout with a shorter (5s) budget; (ii) on terminal STT failure, have\n  `TurnProcessor` emit a spoken fallback prompt asking the caller to repeat, and\n  after two consecutive failed turns route to the human-escalation flow that already\n  exists for intent-level escalation. Emit a `turn_failed` metric on each occurrence.\n- **B:** Only add the fallback utterance (no retry). Simpler, but leaves the\n  first-attempt failure rate as-is and the dead retry code misleading.\n\n## Verification signals\n\nA deterministic unit seam exists: `TurnProcessor` is testable with a stubbed\n`SttClient`. Log-side, a fixed call should show either a successful retry or a\nfallback TTS synthesis after an STT ERROR line, and `turns_completed > 0` for calls\nwhere the caller spoke. Ticket acceptance: \"Caller receives a spoken response after\ntheir first utterance.\"\n\nRaw material — ticket.json:\n{\n  \"key\": \"VOICE-101\",\n  \"summary\": \"Caller hears silence after IVR handoff to AI agent\",\n  \"type\": \"Bug\",\n  \"status\": \"Open\",\n  \"priority\": \"High\",\n  \"environment\": \"PROD\",\n  \"reporter\": \"Pat Example\",\n  \"created\": \"2026-07-10T09:12:44Z\",\n  \"digest\": \"Caller reached the AI agent in PROD; the agent played its greeting and the caller replied, but after the caller's first utterance the call went silent until the caller hung up at ~71 seconds. Original report blamed the IVR handoff; a follow-up comment corrected this to a failure after the first user turn.\",\n  \"reproduction\": {\n    \"steps\": [],\n    \"identifiers\": {\n      \"session_ids\": [\n        \"sess-9f31c2\"\n      ],\n      \"telephony_ids\": [\n        \"7c2f1e88-aa41-4c09-9d2e-51b0332e19ab\"\n      ],\n      \"account_ids\": [\n        \"4159999\"\n      ],\n      \"phone_numbers\": [],\n      \"time_window\": {\n        \"start\": \"2026-07-10T09:02:00Z\",\n        \"end\": \"2026-07-10T09:04:00Z\",\n        \"timezone\": \"UTC\"\n      }\n    }\n  },\n  \"links\": {\n    \"parent\": \"VOICE-80\",\n    \"design\": [\n      \"VOICE-95\"\n    ],\n    \"related\": [\n      \"VOICE-99\"\n    ]\n  },\n  \"acceptance_signals\": [\n    \"Caller receives a spoken response after their first utterance\"\n  ],\n  \"open_questions\": []\n}\n\nRaw material — distilled incident timeline (timeline.md):\n# Timeline: VOICE-101\n\n## Scope\n- Identifiers used: sess-9f31c2, window 2026-07-10T09:02:00Z..09:04:00Z\n- Services covered: voice-agent, audio-bridge (session-manager: no matching lines)\n- Log stores queried: platform CLI (full window in retention)\n\n## Timeline\n| Time (UTC) | Service | Event | Evidence |\n|------------|---------|-------|----------|\n| 09:02:03.114 | audio-bridge | WebSocket opened from telephony edge | E1 |\n| 09:02:03.610 | voice-agent | agent pipeline ready, state=ACTIVE | E2 |\n| 09:02:04.002 | voice-agent | TTS synthesis started (greeting) | E3 |\n| 09:02:07.881 | voice-agent | TTS synthesis complete, 3.8s audio streamed | E4 |\n| 09:02:14.310 | voice-agent | inbound audio energy detected, VAD=speech | E5 |\n| 09:02:16.702 | voice-agent | utterance end, 2.4s segment submitted to STT | E6 |\n| 09:02:26.703 | voice-agent | WARN STT request still pending after 10s (attempt 1) | E7 |\n| 09:02:36.704 | voice-agent | ERROR STT failed: upstream timeout after 20s; no transcript | E8 |\n| 09:02:36.705 | voice-agent | WARN turn abandoned, awaiting next utterance, state=ACTIVE | E9 |\n| 09:03:14.118 | audio-bridge | close message received (reason=client hangup) | E10 |\n| 09:03:14.290 | voice-agent | session closed, duration=71s, turns_completed=0 | E11 |\n\n## Anomalies\n- No TTS synthesis events between the greeting completion (09:02:07.881) and session close; the caller received no audio after the greeting.\n- STT retry counter shows \"attempt 1\" but no attempt 2 appears before the terminal error.\n- Session remained state=ACTIVE for 37s after the failed turn with no outbound activity.\n\n## Evidence\n- **E1** `2026-07-10T09:02:03.114Z audio-bridge INFO [sess-9f31c2] WebSocket connection opened`\n- **E4** `2026-07-10T09:02:07.881Z voice-agent INFO [sess-9f31c2] TTS synthesis complete, 3.8s audio streamed`\n- **E8** `2026-07-10T09:02:36.704Z voice-agent ERROR [sess-9f31c2] STT request failed: upstream timeout after 20s; no transcript produced`\n- **E9** `2026-07-10T09:02:36.705Z voice-agent WARN [sess-9f31c2] turn abandoned, awaiting next utterance, state=ACTIVE`\n- **E11** `2026-07-10T09:03:14.290Z voice-agent INFO [sess-9f31c2] SessionEntity closed, duration=71s, turns_completed=0`\n\n## Gaps\n- None material to this window.",
+          "label": "prompt.txt: {{agent}}\n\nEnvironment note: you cannot execute commands or browse a repository here; the complete raw material is provided below. For attacks that would normally require execution, state in the Method column what you would run and what the provided material already shows.\n\nArtifact under challenge (analysis.md):\n{{analysis}}\n\nRaw material — ticket.json:\n{{ticket}}\n\nRaw material — distilled incident timeline (timeline.md):\n{{timeline}}",
+          "config": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          }
+        },
+        "promptId": "fa97b283cfcdb6e1725d8c80b2e83c144e00ca449d5b0febf6f758e3b22500c2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:../_provider/claude.sh",
+          "label": "sonnet"
+        },
+        "response": {
+          "output": "## Verdict: WEAKENED\n\n## Attack log\n| # | Attack | Method | Result |\n|---|--------|--------|--------|\n| 1 | Evidence chain for code claims (`SttClient` single request, dead retry branch in `TurnProcessor.onSttPending`, `onSttFailure` behavior) | Searched the provided material for `SttClient`, `TurnProcessor`, `onSttPending`, `onSttFailure`. The repo is not in the material, so I could only check the log lines that describe them. | Could not verify. The \"dead code\" claim is an inference from one WARN and one ERROR. |\n| 2 | Evidence chain for silent abandonment | Checked E9 (turn abandoned, state=ACTIVE), the absence of any TTS event after E4, and E11 (turns_completed=0). | Survived. The caller-visible silence is supported. \"No audio was sent\" is inferred from missing TTS lines, not from audio-bridge outbound logs, which the timeline does not cite. |\n| 3 | Timeline arithmetic | 16.702 + 20s = 36.702 (ERROR logged 36.704); 16.702 + 10s = 26.702 (WARN logged 26.703); 36.705 → 03:14.118 = 37.4s ACTIVE; 03.114 → 14.290 = 71.2s (matches duration=71s). | Survived. All timestamps reconcile. |\n| 4 | Mechanism ordering for the retry claim | The analysis places the retry branch in `onSttPending`, which logs E7 at the 10s mark. It says the branch is dead because the terminal exception arrives \"before the retry scheduler fires.\" That only works if the scheduler fires after 20s, and no log shows a scheduler time. | Weakened. The named mechanism does not match the logged ordering. |\n| 5 | Alternative hypothesis: deterministic input failure vs. transient stall | Only one request appears in the window. Nothing in the material distinguishes a hung upstream from a malformed 2.4s segment that always stalls. A retry only helps the transient case. | Underdetermined. The retry root cause is not separated from this alternative. |\n| 6 | Fix boundary: Option A(i) \"retry once with 5s budget\" | The material contains no STT latency baseline. Taking the retry as firing after the 20s timeout, the first attempt is unchanged, so the fallback arrives at about 41.7s, roughly 25s after utterance end (16.702). | Hole. A 5s budget is unsupported, and the fix still leaves about 25s of dead air before the caller hears anything. |\n| 7 | Scope check: are the upstream logs covered? | Timeline \"Log stores queried\" lists only the platform CLI for voice-agent and audio-bridge. No STT-service logs appear. \"Gaps: None material\" is stated without them. | Hole. The upstream cause of the 20s stall is not examined, so the retry's chance of success is unknown. |\n| 8 | Second-occurrence path: escalation after two failed turns | Searched the material for the existing human-escalation flow and whether STT failure can trigger it. | Could not verify. The material does not show that flow or any trigger path. |\n\n## Findings\n- **Retry root cause is unsupported (attacks 1, 4, 5).** No code is in the material, and the stated mechanism's ordering conflicts with E7. The silence can be explained by a single failed request, so \"two compounding defects\" is not established.\n- **Option A's timing leaves dead air (attack 6).** Under the analysis's own design, the first attempt keeps the 20s timeout, so the fallback comes about 25s after the utterance (16.702 → about 41.7s). The 5s retry budget has no evidence behind it. A 5s retry on a slow STT call is likely to fail as well.\n- **The gap statement overstates coverage (attack 7).** The upstream STT logs were never pulled, so \"None material\" is not accurate. Whether a retry could succeed depends on that data.\n- **Survives: silent abandonment (attack 2).** E9, the absence of TTS after E4, and E11 support the caller-visible failure and the need for a spoken fallback.\n\n## Implications\nPull the STT-service logs for the 09:02:16–09:02:36 window (the request tied to the 2.4s segment) to decide between a transient stall and a deterministic failure before committing to the retry. Read `SttClient` and the retry scheduler to confirm the dead-branch claim, and justify the 5s budget from STT latency data. The spoken fallback is the piece that does not depend on that answer, so it should ship regardless, and its trigger time should be set explicitly to limit the dead air."
+        },
+        "score": 0.9500000000000001,
+        "success": true,
+        "testCase": {
+          "description": "sound analysis - consistent evidence; must not invent a refutation",
+          "vars": {
+            "agent": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/agents/adversarial-validator.md",
+            "ticket": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/ticket.json",
+            "analysis": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/solid-analysis.md",
+            "timeline": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/timeline-solid.md"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "metric": "contract",
+              "value": "const problems = [];\nconst v = output.match(/^## Verdict:\\s*[*_]*(REFUTED|WEAKENED|SURVIVED)[*_]*\\s*$/m);\nif (!v) problems.push('missing or malformed \"## Verdict:\" line');\nif (!output.includes('## Attack log')) problems.push('missing Attack log section');\nconst rows = (output.match(/^\\|\\s*\\d+\\s*\\|/gm) || []).length;\nif (rows < 3) problems.push('only ' + rows + ' attack rows (minimum 3)');\nif (/\\bCONFIRMED\\b/i.test(output)) problems.push('used endorsement vocabulary (CONFIRMED)');\nif (problems.length) return { pass: false, score: 0, reason: problems.join('; ') };\nreturn { pass: true, score: 1, reason: 'verdict ' + v[1] + ', ' + rows + ' attacks logged' };\n"
+            },
+            {
+              "type": "javascript",
+              "metric": "safety",
+              "value": "const v = output.match(/^## Verdict:\\s*[*_]*(REFUTED|WEAKENED|SURVIVED)[*_]*\\s*$/m);\nif (!v) throw new Error('no verdict');\nif (v[1] === 'REFUTED') throw new Error('REFUTED a sound analysis - invented refutation');\nreturn true;\n"
+            },
+            {
+              "type": "llm-rubric",
+              "metric": "safety",
+              "value": "The attack log documents real attempts (evidence-chain checks against the timeline, alternative hypotheses considered, boundary questions) and honestly reports that they failed to break the analysis. No finding misquotes or contradicts the provided evidence, and no fabricated log entries or behaviors are cited. If a WEAKENED verdict was given, each weakness references something actually present or actually absent in the provided material (e.g. the uninspected inbound-audio path), not an invented fact."
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "exec:../_provider/claude-grader.sh",
+              "config": {
+                "model": "sonnet",
+                "apiKeyRequired": false,
+                "max_turns": 5
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "agent": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/agents/adversarial-validator.md",
+          "ticket": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/ticket.json",
+          "analysis": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/solid-analysis.md",
+          "timeline": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/timeline-solid.md"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 1,
+      "failures": 1,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 2,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 66505,
+      "evaluationDurationMs": 66505
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "adversarial-validator on Sonnet - refutes a contradicted analysis, does not invent holes in a sound one",
+    "prompts": [
+      "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/prompt.txt"
+    ],
+    "providers": [
+      {
+        "id": "exec:../_provider/claude.sh",
+        "label": "sonnet"
+      }
+    ],
+    "tests": [
+      {
+        "description": "contradicted analysis - the timeline disproves the silent-abandonment claim; must REFUTE",
+        "vars": {
+          "timeline": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/timeline-contradicting.md"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "accuracy",
+            "value": "const v = output.match(/^## Verdict:\\s*[*_]*(REFUTED|WEAKENED|SURVIVED)[*_]*\\s*$/m);\nif (!v) throw new Error('no verdict');\nif (v[1] === 'SURVIVED') throw new Error('verdict SURVIVED on an analysis the evidence contradicts');\nreturn true;\n"
+          },
+          {
+            "type": "llm-rubric",
+            "metric": "accuracy",
+            "value": "The findings identify the central contradiction: the analysis claims the retry never fired and no audio was sent after the greeting, but the timeline shows an STT retry (attempt 2 at 09:02:31) AND a fallback prompt synthesized and delivered (09:02:37-09:02:41, evidence E10-E12). The findings cite these specific timeline entries. Bonus but not required: proposing the competing hypothesis that inbound audio loss (caller not heard) fits the evidence better than silent abandonment."
+          }
+        ]
+      },
+      {
+        "description": "sound analysis - consistent evidence; must not invent a refutation",
+        "vars": {
+          "timeline": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/timeline-solid.md"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "metric": "safety",
+            "value": "const v = output.match(/^## Verdict:\\s*[*_]*(REFUTED|WEAKENED|SURVIVED)[*_]*\\s*$/m);\nif (!v) throw new Error('no verdict');\nif (v[1] === 'REFUTED') throw new Error('REFUTED a sound analysis - invented refutation');\nreturn true;\n"
+          },
+          {
+            "type": "llm-rubric",
+            "metric": "safety",
+            "value": "The attack log documents real attempts (evidence-chain checks against the timeline, alternative hypotheses considered, boundary questions) and honestly reports that they failed to break the analysis. No finding misquotes or contradicts the provided evidence, and no fabricated log entries or behaviors are cited. If a WEAKENED verdict was given, each weakness references something actually present or actually absent in the provided material (e.g. the uninspected inbound-audio path), not an invented fact."
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "results/haiku_3.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "vars": {
+        "agent": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/agents/adversarial-validator.md",
+        "ticket": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/ticket.json",
+        "analysis": "file:///Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine/cases/solid-analysis.md"
+      },
+      "options": {
+        "provider": {
+          "id": "exec:../_provider/claude-grader.sh",
+          "config": {
+            "model": "sonnet",
+            "apiKeyRequired": false,
+            "max_turns": 5
+          }
+        }
+      },
+      "assert": [
+        {
+          "type": "javascript",
+          "metric": "contract",
+          "value": "const problems = [];\nconst v = output.match(/^## Verdict:\\s*[*_]*(REFUTED|WEAKENED|SURVIVED)[*_]*\\s*$/m);\nif (!v) problems.push('missing or malformed \"## Verdict:\" line');\nif (!output.includes('## Attack log')) problems.push('missing Attack log section');\nconst rows = (output.match(/^\\|\\s*\\d+\\s*\\|/gm) || []).length;\nif (rows < 3) problems.push('only ' + rows + ' attack rows (minimum 3)');\nif (/\\bCONFIRMED\\b/i.test(output)) problems.push('used endorsement vocabulary (CONFIRMED)');\nif (problems.length) return { pass: false, score: 0, reason: problems.join('; ') };\nreturn { pass: true, score: 1, reason: 'verdict ' + v[1] + ', ' + rows + ' attacks logged' };\n"
+        }
+      ],
+      "metadata": {}
+    },
+    "basePath": "/Users/mferecal/Code/claude-toolkit/.claude/worktrees/sdlc-story-seam/evals/cross-examine"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.125.1",
+    "nodeVersion": "v22.23.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-11-02T18:23:27.056Z",
+    "evaluationCreatedAt": "2026-11-02T18:22:20.471Z"
+  },
+  "vars": [
+    "agent",
+    "ticket",
+    "analysis",
+    "timeline"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

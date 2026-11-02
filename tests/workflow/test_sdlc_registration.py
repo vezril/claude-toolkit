@@ -134,33 +134,141 @@ class TestTheRegistry(unittest.TestCase):
                                 step["agent"])
 
 
-class TestNothingIsCertified(unittest.TestCase):
-    """4.3. Declaring the pipeline must not make it runnable."""
+class TestCertificationMatchesItsEvidence(unittest.TestCase):
+    """4.3, restated once a step actually became certified.
+
+    The first version of this class asserted that *every* step was uncertified. That was true
+    when the registry was written and stopped being true the moment `readiness-review` earned
+    its evidence — so it was a snapshot, not an invariant, and it failed for the right reason.
+
+    The invariant worth holding is **certified if and only if the evidence is on disk**: an
+    uncertified step must claim nothing, and a certified one must carry every field a reviewer
+    would look for. A step with `certified: true` and no results is the inert-gate shape in
+    registry form — it reads as examined and is not.
+    """
+
+    # Read from `check-certification.py` rather than written out here. The first version of
+    # this class listed the fields by hand and omitted `certified_version`, so the test passed
+    # while the real gate failed the step — a check weaker than the authority it stands in
+    # for, which is this project's recurring defect in miniature.
+    EVIDENCE = tuple(sorted(set(certification().REQUIRED_FIELDS) - {"prompt", "tier"}
+                            | {"consecutive_runs"}))
+
+    # Of those, the fields that assert a *passing bar was met*. An uncertified step must not
+    # carry these — a sha or a results file alongside `certified: false` reads as examined and
+    # passed. The rest (`criteria`, `load_bearing`, `iteration_log`) record work done toward
+    # certification, which a step legitimately accumulates before it clears: forbidding them
+    # would mean the registry could not show progress, only its absence.
+    PASSING_CLAIM = ("prompt_sha256", "certified_version", "results", "consecutive_runs")
 
     def setUp(self):
         self.registry = certification().parse_registry(REGISTRY.read_text())
         self.steps = {s["step"]: s for s in self.registry.get("steps", [])}
+        self.certified = {n: s for n, s in self.steps.items() if s.get("certified") is True}
+        self.uncertified = {n: s for n, s in self.steps.items() if s.get("certified") is not True}
 
-    def test_every_step_is_marked_uncertified(self):
+    def test_every_step_declares_certified_explicitly(self):
+        """Absent is not the same as false, and a reader must not have to infer it."""
         for name, step in self.steps.items():
             with self.subTest(step=name):
-                self.assertIs(step.get("certified"), False)
+                self.assertIn("certified", step)
+                self.assertIsInstance(step["certified"], bool)
 
-    def test_no_step_claims_evidence_it_does_not_have(self):
-        """The fields that would make a step look certified must be absent.
+    def test_an_uncertified_step_claims_no_passing_bar(self):
+        for name, step in self.uncertified.items():
+            for field in self.PASSING_CLAIM:
+                with self.subTest(step=name, field=field):
+                    self.assertNotIn(field, step,
+                                     f"{name} is uncertified and claims {field}")
 
-        A `prompt_sha256` with no `results` behind it is the shape of a step that looks
-        examined and is not.
+    def test_an_uncertified_step_with_partial_evidence_says_what_is_missing(self):
+        """Progress is allowed; silent progress is not.
+
+        A step carrying a load-bearing map and criteria but not certified is mid-flight, and
+        its `known_residual` has to say what still blocks it. Otherwise the registry shows
+        evidence accumulating with no record of why it is not enough — which is how a reader
+        concludes the gate is being lenient rather than that the work is unfinished.
         """
-        for name, step in self.steps.items():
+        for name, step in self.uncertified.items():
+            partial = [f for f in self.EVIDENCE if step.get(f)]
+            if not partial:
+                continue
             with self.subTest(step=name):
-                for field in ("prompt_sha256", "results", "consecutive_runs",
-                              "certified_version"):
-                    self.assertNotIn(field, step, f"{name} claims {field}")
+                self.assertTrue(step.get("known_residual"),
+                                f"{name} has {partial} and no stated residual")
+
+    def test_a_certified_step_carries_all_of_it(self):
+        for name, step in self.certified.items():
+            for field in self.EVIDENCE:
+                with self.subTest(step=name, field=field):
+                    self.assertTrue(step.get(field), f"{name} is certified without {field}")
+
+    def test_a_certified_steps_evidence_files_exist(self):
+        """A path that does not resolve certifies nothing, which is the whole failure mode."""
+        for name, step in self.certified.items():
+            for field in ("results", "load_bearing", "iteration_log"):
+                with self.subTest(step=name, field=field):
+                    self.assertTrue((ROOT / step[field]).exists(),
+                                    f"{name}.{field} -> {step[field]} is absent")
+            for i, run in enumerate(step["consecutive_runs"]):
+                with self.subTest(step=name, run=i):
+                    self.assertTrue((ROOT / run).is_file(), run)
+
+    def test_three_consecutive_runs_are_recorded(self):
+        for name, step in self.certified.items():
+            with self.subTest(step=name):
+                self.assertGreaterEqual(len(step["consecutive_runs"]), 3)
+
+    def test_at_least_three_criteria(self):
+        """Task 5.1's bar. Fewer than three and a single weak metric carries the score."""
+        for name, step in self.certified.items():
+            with self.subTest(step=name):
+                self.assertGreaterEqual(len(step["criteria"]), 3)
+
+    def test_the_recorded_sha_matches_the_prompt_on_disk(self):
+        """Editing a certified prompt must un-certify the step, and this is what notices.
+
+        A sha recorded against a file that has since changed is worse than no sha: it asserts
+        that *this text* was examined, about text nobody examined.
+        """
+        import hashlib
+        for name, step in self.certified.items():
+            with self.subTest(step=name):
+                actual = hashlib.sha256((ROOT / step["prompt"]).read_bytes()).hexdigest()
+                self.assertEqual(step["prompt_sha256"], actual,
+                                 f"{name}: {step['prompt']} has changed since certification")
+
+    def test_a_certified_step_names_the_prompt_its_suite_tests(self):
+        """The prompt under test, not a plausible neighbour.
+
+        `readiness-review` first named `skills/cross-examine/SKILL.md` while the suite loads
+        `agents/adversarial-validator.md`. Certifying a prompt the suite never saw is the same
+        error as a gate checking the wrong input — which is most of what went wrong this week.
+        """
+        for name, step in self.certified.items():
+            with self.subTest(step=name):
+                config = ROOT / step["eval"] / "promptfooconfig.yaml"
+                self.assertTrue(config.is_file(), f"{name}: no config at {config}")
+                self.assertIn(Path(step["prompt"]).name, config.read_text(),
+                              f"{name}: the suite does not load {step['prompt']}")
 
     def test_every_step_states_its_residual(self):
         for name, step in self.steps.items():
             self.assertTrue(step.get("known_residual"), name)
+
+    def test_escalation_is_evidenced_when_a_step_is_not_on_the_cheapest_tier(self):
+        """Design D7: haiku first, escalate only with a committed results file.
+
+        A step on sonnet with no haiku result behind it is an unjustified cost, and the
+        registry is where that would hide.
+        """
+        for name, step in self.certified.items():
+            if step.get("tier") == "haiku":
+                continue
+            with self.subTest(step=name):
+                evidence = step.get("escalation_evidence")
+                self.assertTrue(evidence, f"{name} is on {step.get('tier')} with no evidence")
+                self.assertTrue((ROOT / evidence).is_file(), evidence)
 
 
 class TestProfiles(unittest.TestCase):
