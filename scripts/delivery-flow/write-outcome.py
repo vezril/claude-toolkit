@@ -37,6 +37,21 @@ from common import (CONFIG_NAME, artifact_root, is_delivery_repo, load_config, l
 HERE = Path(__file__).resolve().parent
 OUTCOME = "outcome.json"
 
+# A run that has reached one of these has been reported. Writing a second outcome over it
+# destroys the first, which on AN-3702 was the completion that was the run's whole evidence.
+TERMINAL_STATUSES = ("completed", "failed", "punched-out", "abandoned")
+
+
+def all_profile_artifacts(profiles, flow) -> set:
+    """Every artifact any profile declares, so an off-profile one can be named."""
+    out = set()
+    for p in profiles or []:
+        for step in p.get("steps") or []:
+            entry = flow.BY_STEP.get(step)
+            if entry and entry[0]:
+                out.add(entry[0])
+    return out
+
 # Kept in step with flow-status.py: a bug or a task gets no breakdown and no challenge of it.
 QUICK_PATH_SKIPS = {"breakdown", "challenge-breakdown"}
 
@@ -124,6 +139,8 @@ def main(argv=None) -> int:
     ap.add_argument("--reason", default=None)
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--force", action="store_true",
+                    help="replace an existing terminal outcome (destroys the first record)")
     args = ap.parse_args(argv)
 
     repo = repo_root(Path(args.repo))
@@ -175,10 +192,23 @@ def main(argv=None) -> int:
     unverifiable = sorted(a for a, _step, _kind, _opt in rows
                           if a != OUTCOME and (item_dir / a).exists() and a not in shas)
 
+    # The profile the run *executed*, not the one configured when the report happened. The
+    # config is a live file: AN-3702 and AN-3631 both carry `profile: triage` while their
+    # directories hold `proposal.json` — a `full`-only artifact — because the setting changed
+    # between the run and the report. The certified-only rate is computed per profile, so a
+    # run credited to a profile it did not follow corrupts the one number Stage 4 asks for,
+    # and in AN-3702's case it did so in the flattering direction.
+    off_profile = sorted(a for a in all_profile_artifacts(profiles, flow)
+                         if (item_dir / a).exists() and a not in {r[0] for r in rows})
+
     doc = {"item": args.item, "profile": profile.get("profile"), "status": status,
            "reason": reason, "step": step,
            "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
            "manual_corrections": corrections}
+    if off_profile:
+        # Recorded rather than refused: the artifacts are real and the run did what it did.
+        # What must not happen is the outcome implying a profile the run did not follow.
+        doc["off_profile_artifacts"] = off_profile
 
     if args.json:
         print(json.dumps({**doc, "unverifiable": unverifiable}, indent=2))
@@ -186,6 +216,20 @@ def main(argv=None) -> int:
         return 0
 
     path = item_dir / OUTCOME
+    # A terminal outcome is written once. AN-3702 was reported `completed` on the `triage`
+    # profile at 16:08, and a second report at 16:16 overwrote it — so the clean completion
+    # that was the run's whole evidence became unrecoverable, and the file that replaced it
+    # claimed the same profile while the item had since run `propose` and `implementation`.
+    # An outcome a later run can quietly replace is not a record of anything.
+    existing, err = load_json(path)
+    if not err and (existing or {}).get("status") in TERMINAL_STATUSES and not args.force:
+        print(f"refusing: {args.item} already reported "
+              f"{existing['status']} on profile {existing.get('profile')!r} at "
+              f"{existing.get('ts')}. A terminal outcome is written once — rerunning the "
+              f"report would overwrite the evidence. Use --force to replace it deliberately, "
+              f"or discard the run (rename to DISCARDED-{args.item}) and start a new one.",
+              file=sys.stderr)
+        return 1
     path.write_text(json.dumps(doc, indent=2, sort_keys=True) + "\n")
     out = subprocess.run([sys.executable, "-I", str(HERE / "write-sentinel.py"),
                           str(path), "--step", "report"], capture_output=True)

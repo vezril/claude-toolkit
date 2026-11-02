@@ -190,6 +190,106 @@ class TestProfileCoverage(unittest.TestCase):
         self.assertIn("invented-step", err)
 
 
+class TestTheOutcomeIsWrittenOnce(unittest.TestCase):
+    """A terminal outcome is a record, and a record a later run can replace is not one.
+
+    AN-3702 was reported `completed` on the `triage` profile at 16:08 — the first certified
+    data point criterion 4 had ever had. A second report at 16:16 overwrote it. The clean
+    completion became unrecoverable, and the file that replaced it still claimed
+    `profile: triage` while the item had since run `propose` and `implementation`.
+    """
+
+    def test_a_second_report_is_refused(self):
+        r = Repo(profile="triage")
+        r.chain()
+        self.assertEqual(0, r.run(OUTCOME).returncode)
+        first = (r.item_dir / "outcome.json").read_text()
+        out = r.run(OUTCOME)
+        self.assertEqual(1, out.returncode)
+        self.assertIn("already reported", out.stderr)
+        self.assertEqual(first, (r.item_dir / "outcome.json").read_text(),
+                         "the first outcome was overwritten")
+
+    def test_the_refusal_says_how_to_proceed_deliberately(self):
+        r = Repo(profile="triage")
+        r.chain()
+        r.run(OUTCOME)
+        err = r.run(OUTCOME).stderr
+        self.assertIn("--force", err)
+        self.assertIn("DISCARDED-", err)
+
+    def test_force_replaces_it(self):
+        r = Repo(profile="triage")
+        r.chain()
+        r.run(OUTCOME)
+        self.assertEqual(0, r.run(OUTCOME, "--force").returncode)
+
+    def test_a_dry_run_never_refuses(self):
+        """It writes nothing, so there is nothing to protect."""
+        r = Repo(profile="triage")
+        r.chain()
+        r.run(OUTCOME)
+        self.assertEqual(0, r.run(OUTCOME, "--dry-run").returncode)
+
+
+class TestOffProfileArtifactsAreNamed(unittest.TestCase):
+    """The outcome must not imply a profile the run did not follow.
+
+    `profile:` is a live config file, so the setting at report time is not evidence of what
+    ran. Both AN-3702 and AN-3631 carry `profile: triage` while their directories hold
+    `proposal.json`, a `full`-only artifact. The certified-only rate is computed per profile,
+    so a run credited to a profile it did not follow corrupts the one number Stage 4 asks for
+    — and on AN-3702 it did so in the flattering direction.
+    """
+
+    def test_an_artifact_outside_the_profile_is_recorded(self):
+        r = Repo(profile="triage")
+        r.chain()
+        # A `full`-only artifact in a `triage`-profile run: the shape both real runs have.
+        r.artifact("proposal.json", {
+            "item": r.item, "change_id": "add-thing",
+            "change_path": "openspec/changes/add-thing", "specs_touched": [],
+            "tasks": [{"id": "T1", "description": "d", "files": ["a.py"]}],
+            "dependencies_added": [], "scope": False, "architecture": False,
+            "breaking": False})
+        self.assertEqual(0, r.run(OUTCOME).returncode)
+        doc = json.loads((r.item_dir / "outcome.json").read_text())
+        self.assertEqual(["proposal.json"], doc["off_profile_artifacts"])
+        self.assertEqual("triage", doc["profile"])
+
+    def test_a_clean_run_has_no_such_field(self):
+        """Absent rather than empty: a run that stayed in its profile makes no claim."""
+        r = Repo(profile="triage")
+        r.chain()
+        r.run(OUTCOME)
+        doc = json.loads((r.item_dir / "outcome.json").read_text())
+        self.assertNotIn("off_profile_artifacts", doc)
+
+    def test_the_outcome_still_passes_its_own_edge(self):
+        """`outcome.schema.json` is `additionalProperties: false`, so a new field fails the
+        edge unless the schema admits it. Written because the first version of this change
+        added the field and not the schema, and every test still passed — none of them put
+        `outcome.json` through the hook that governs it."""
+        r = Repo(profile="triage")
+        r.chain()
+        # `implementation.json` rather than `proposal.json`: it is equally off-profile for
+        # `triage`, and it has no schema, so the hook records it as `no-schema` instead of
+        # failing it. A bare proposal would fail its own edge first and this test would be
+        # measuring that failure rather than the outcome's.
+        r.artifact("implementation.json", {"item": r.item, "done": True})
+        self.assertEqual(0, r.run(OUTCOME).returncode)
+        doc = json.loads((r.item_dir / "outcome.json").read_text())
+        self.assertEqual(["implementation.json"], doc["off_profile_artifacts"])
+        # The hook directly: `write-outcome.py` already wrote the sentinel, with `--step
+        # report`, and rewriting it here would claim a different step than the run made.
+        payload = json.dumps({"tool_name": "Write",
+                              "tool_input": {"file_path": str(r.item_dir / "outcome.json")},
+                              "cwd": str(r.dir)})
+        out = subprocess.run([sys.executable, str(EDGE)], input=payload.encode(),
+                             capture_output=True)
+        self.assertEqual(0, out.returncode, out.stderr.decode())
+
+
 class TestTerminus(unittest.TestCase):
     def test_terminus_produces_a_terminal_artifact(self):
         r = Repo(profile="triage")
