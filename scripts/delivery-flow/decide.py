@@ -3,7 +3,12 @@
 
 Usage:
     decide.py <ITEM-KEY> <punch-out-N|deploy> --choose proceed|stop|redirect
-              [--note "..."] [--repo <path>] [--key ~/.ssh/id_ed25519_sk]
+              [--note "..."] [--repo <path>] [--key <signing key>]
+
+The key and the agent socket come from `~/.config/delivery-flow/signing.env` when it exists
+(`DELIVERY_FLOW_SIGNING_KEY`, `DELIVERY_FLOW_SIGNER`, `SSH_AUTH_SOCK`), which is read rather
+than sourced; anything already in the environment wins. There is no default key path — being
+told "no signing key configured" beats being told a file you have never owned is missing.
 
 The decision is signed with a key whose every use requires your presence — a hardware key's
 touch, or Touch ID through a Secure Enclave agent. That signature, not a terminal check, is
@@ -26,7 +31,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import (SIGN_NAMESPACE, _payload_for_signing, artifact_root, is_delivery_repo, load_config,  # noqa: E402
+from common import (SIGN_NAMESPACE, SIGNING_ENV, _payload_for_signing,  # noqa: E402
+                    apply_signing_env, artifact_root, is_delivery_repo, load_config,
                     load_json, repo_root, sha256, verify_decision)
 
 
@@ -48,10 +54,23 @@ def main(argv=None) -> int:
     ap.add_argument("--choose", required=True, choices=["proceed", "stop", "redirect"])
     ap.add_argument("--note", default="")
     ap.add_argument("--repo", default=".")
-    ap.add_argument("--key", default=os.environ.get("DELIVERY_FLOW_SIGNING_KEY", "~/.ssh/id_ed25519_sk"))
+    # Before the defaults are read: the key path and the Secure Enclave agent socket live in
+    # `~/.config/delivery-flow/signing.env`, and nothing used to read it. Values already in
+    # the environment win, so an explicit override on the command line still does.
+    apply_signing_env()
+    ap.add_argument("--key", default=os.environ.get("DELIVERY_FLOW_SIGNING_KEY"))
     ap.add_argument("--decider", default=os.environ.get("DELIVERY_FLOW_SIGNER", ""))
     ap.add_argument("--yes", action="store_true", help="skip the typed confirmation (scripted setup only)")
     args = ap.parse_args(argv)
+
+    # No invented default. It used to fall back to `~/.ssh/id_ed25519_sk`, so a machine that
+    # had never had that file failed with "No such file or directory" naming a key the user
+    # does not own — pointing at the wrong problem every time.
+    if not args.key:
+        print("refusing: no signing key configured. Set DELIVERY_FLOW_SIGNING_KEY, pass "
+              f"--key, or create {SIGNING_ENV} with DELIVERY_FLOW_SIGNING_KEY and "
+              "SSH_AUTH_SOCK (the Secure Enclave agent socket).", file=sys.stderr)
+        return 1
 
     repo = repo_root(Path(args.repo))
     if not is_delivery_repo(repo):

@@ -9,6 +9,7 @@ Run: python3 tests/delivery-flow/test_punch_outs.py
 """
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -20,6 +21,9 @@ SCRIPTS = ROOT / "scripts" / "delivery-flow"
 CHECK = SCRIPTS / "check-punch-out.py"
 DECIDE = SCRIPTS / "decide.py"
 HOOK = ROOT / "hooks" / "enforce-punch-outs.py"
+sys.path.insert(0, str(SCRIPTS))
+
+import common  # noqa: E402
 
 TRIAGE = {"item": "DEM-12", "type": "feature", "path": "standard", "domains": ["backend"],
           "summary": "s", "rationale": "r", "handoff": False, "handoff_reason": None,
@@ -168,6 +172,96 @@ class TestDeciding(unittest.TestCase):
         self.assertEqual(res.returncode, 1)
         self.assertIn("does not verify", res.stderr)
         self.assertFalse((r.item_dir / "decisions").exists())
+
+
+class TestSigningEnv(unittest.TestCase):
+    """The key path and the agent socket are read, not remembered.
+
+    `decide.py` defaulted `--key` to `~/.ssh/id_ed25519_sk`, a path that has never existed on
+    this machine, while the real settings sat in `~/.config/delivery-flow/signing.env` that
+    nothing read. So signing worked only in a shell where that file had been sourced by hand,
+    and failed everywhere else with "No such file or directory" naming a key the user does not
+    own — pointing at the wrong problem every time it came up, which was twice.
+    """
+
+    def env_file(self, **kw):
+        d = Path(tempfile.mkdtemp())
+        p = d / "signing.env"
+        p.write_text("# a comment\n\n" + "".join(f"{k}={v}\n" for k, v in kw.items()))
+        return p
+
+    def test_the_file_is_read(self):
+        p = self.env_file(DELIVERY_FLOW_SIGNING_KEY="/k.pub", DELIVERY_FLOW_SIGNER="calvin")
+        got = common.load_signing_env(p)
+        self.assertEqual("/k.pub", got["DELIVERY_FLOW_SIGNING_KEY"])
+        self.assertEqual("calvin", got["DELIVERY_FLOW_SIGNER"])
+
+    def test_comments_and_blank_lines_are_ignored(self):
+        p = self.env_file(DELIVERY_FLOW_SIGNER="calvin")
+        self.assertEqual({"DELIVERY_FLOW_SIGNER": "calvin"}, common.load_signing_env(p))
+
+    def test_an_absent_file_is_not_an_error(self):
+        self.assertEqual({}, common.load_signing_env(Path("/nonexistent/signing.env")))
+
+    def test_an_explicit_delivery_flow_var_wins(self):
+        """Nothing but a person sets these, so an explicit one is a deliberate override."""
+        p = self.env_file(DELIVERY_FLOW_SIGNING_KEY="/from-file.pub")
+        old = os.environ.get("DELIVERY_FLOW_SIGNING_KEY")
+        os.environ["DELIVERY_FLOW_SIGNING_KEY"] = "/from-env.pub"
+        try:
+            self.assertNotIn("DELIVERY_FLOW_SIGNING_KEY", common.load_signing_env(p))
+        finally:
+            os.environ.pop("DELIVERY_FLOW_SIGNING_KEY", None)
+            if old is not None:
+                os.environ["DELIVERY_FLOW_SIGNING_KEY"] = old
+
+    def test_ssh_auth_sock_from_the_file_overrides_the_environment(self):
+        """The asymmetry, and the one that makes this work at all.
+
+        macOS always has `SSH_AUTH_SOCK` pointing at its own launchd agent, so a plain
+        "already set wins" rule means the file's value never applies and signing quietly
+        reaches an agent that does not hold the key. Naming it in the file is the deliberate
+        choice; the ambient value is just the default.
+        """
+        p = self.env_file(SSH_AUTH_SOCK="/secretive/socket.ssh")
+        old = os.environ.get("SSH_AUTH_SOCK")
+        os.environ["SSH_AUTH_SOCK"] = "/var/run/launchd/Listeners"
+        try:
+            self.assertEqual("/secretive/socket.ssh",
+                             common.load_signing_env(p)["SSH_AUTH_SOCK"])
+        finally:
+            os.environ.pop("SSH_AUTH_SOCK", None)
+            if old is not None:
+                os.environ["SSH_AUTH_SOCK"] = old
+
+    def test_decide_refuses_with_no_key_configured_and_says_what_to_set(self):
+        """Not "no such file": a path the user never owned is the wrong thing to name."""
+        r = Repo(); r.triage(handoff=True); r.check()
+        env = {k: v for k, v in os.environ.items() if k != "DELIVERY_FLOW_SIGNING_KEY"}
+        env["DELIVERY_FLOW_SIGNING_ENV"] = "/nonexistent/signing.env"
+        res = subprocess.run([sys.executable, str(DECIDE), r.item, "punch-out-1",
+                              "--choose", "proceed", "--yes", "--repo", str(r.dir)],
+                             capture_output=True, text=True, env=env)
+        self.assertEqual(1, res.returncode)
+        self.assertIn("no signing key configured", res.stderr)
+        self.assertIn("DELIVERY_FLOW_SIGNING_KEY", res.stderr)
+        self.assertNotIn("id_ed25519_sk", res.stderr)
+        self.assertFalse((r.item_dir / "decisions").exists())
+
+    def test_the_env_file_supplies_the_key(self):
+        """End to end: no --key, no exported vars, and the decision still signs."""
+        r = Repo(); r.triage(handoff=True); r.check()
+        p = self.env_file(DELIVERY_FLOW_SIGNING_KEY=str(r.key),
+                          DELIVERY_FLOW_SIGNER="calvin")
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("DELIVERY_FLOW_SIGNING_KEY", "DELIVERY_FLOW_SIGNER")}
+        env["DELIVERY_FLOW_SIGNING_ENV"] = str(p)
+        res = subprocess.run([sys.executable, str(DECIDE), r.item, "punch-out-1",
+                              "--choose", "proceed", "--yes", "--repo", str(r.dir)],
+                             capture_output=True, text=True, env=env)
+        self.assertEqual(0, res.returncode, res.stderr)
+        d = json.loads((r.item_dir / "decisions" / "punch-out-1.json").read_text())
+        self.assertTrue(d["signature"].startswith("-----BEGIN SSH SIGNATURE-----"))
 
 
 class TestHookBlocks(unittest.TestCase):
