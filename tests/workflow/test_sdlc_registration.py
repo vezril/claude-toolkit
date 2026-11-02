@@ -238,19 +238,37 @@ class TestCertificationMatchesItsEvidence(unittest.TestCase):
                 self.assertEqual(step["prompt_sha256"], actual,
                                  f"{name}: {step['prompt']} has changed since certification")
 
-    def test_a_certified_step_names_the_prompt_its_suite_tests(self):
-        """The prompt under test, not a plausible neighbour.
+    def test_a_certified_steps_frozen_copy_lives_in_its_eval(self):
+        """The frozen copy must be inside the suite that ran it.
 
-        `readiness-review` first named `skills/cross-examine/SKILL.md` while the suite loads
-        `agents/adversarial-validator.md`. Certifying a prompt the suite never saw is the same
-        error as a gate checking the wrong input — which is most of what went wrong this week.
+        The first version of this test grepped the promptfoo config for the prompt's file
+        name, which fails for the house pattern: these configs load `prompts/current.md` and
+        `run.sh` copies the versioned file over it, exactly as delivery-triage does. So the
+        config never names the prompt and the test was asserting the wrong thing.
+
+        What is worth asserting is that `certified_version` sits under the eval directory —
+        that is what makes it demonstrably the text the suite was run against — while `prompt`
+        points at the live copy the node actually reads. The gate separately requires the two
+        to be byte-identical, which is the link between "measured" and "in use".
         """
         for name, step in self.certified.items():
             with self.subTest(step=name):
                 config = ROOT / step["eval"] / "promptfooconfig.yaml"
                 self.assertTrue(config.is_file(), f"{name}: no config at {config}")
-                self.assertIn(Path(step["prompt"]).name, config.read_text(),
-                              f"{name}: the suite does not load {step['prompt']}")
+                frozen = step["certified_version"]
+                self.assertTrue(frozen.startswith(step["eval"].rstrip("/")),
+                                f"{name}: {frozen} is outside its suite {step['eval']}")
+                self.assertTrue((ROOT / frozen).is_file(), frozen)
+
+    def test_the_live_prompt_and_the_frozen_copy_agree(self):
+        """Certified text must be the text that runs, or the certification describes nothing."""
+        import hashlib
+        for name, step in self.certified.items():
+            with self.subTest(step=name):
+                live = hashlib.sha256((ROOT / step["prompt"]).read_bytes()).hexdigest()
+                frozen = hashlib.sha256((ROOT / step["certified_version"]).read_bytes()).hexdigest()
+                self.assertEqual(live, frozen,
+                                 f"{name}: {step['prompt']} differs from its certified copy")
 
     def test_every_step_states_its_residual(self):
         for name, step in self.steps.items():

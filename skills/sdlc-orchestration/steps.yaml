@@ -74,15 +74,33 @@ steps:
   # attacks the result. The deterministic gates that used to be the orchestrator's
   # responsibility — lint-story.py and `openspec validate` — are edges now (task 4.5), so
   # neither node is asked to run them and neither can claim they passed.
+  # Certified on haiku (task 5.1-5.2, 5.5). Design D7 is haiku-first and haiku cleared three
+  # consecutive runs on v2, so there is no escalation to justify.
+  #
+  # The prompt under test is the eval's own `prompts/prompt_v2.md`, not
+  # `skills/spec-driven-development/SKILL.md`. The skill is reference material the planner
+  # reads; the node prompt is the thing measured, and certifying the skill instead would
+  # certify text the suite never saw.
   - step: readiness
     segment: readiness
     agent: story-planner
-    prompt: skills/spec-driven-development/SKILL.md
+    prompt: skills/sdlc-orchestration/references/readiness.md
+    prompt_sha256: 075c02c7cff179eda7aaa5578e3fc32c8283bb08348c3398eb872aa3323b03d1
+    certified_version: evals/readiness-stories/prompts/prompt_v2.md
     tier: haiku
-    certified: false
+    certified: true
+    eval: evals/readiness-stories/
+    results: evals/readiness-stories/results/run_v2_haiku_1.json
+    consecutive_runs:
+      - evals/readiness-stories/results/run_v2_haiku_1.json
+      - evals/readiness-stories/results/run_v2_haiku_2.json
+      - evals/readiness-stories/results/run_v2_haiku_3.json
+    criteria: [schema, coverage, grounding, decomposition]
+    load_bearing: evals/readiness-stories/load-bearing.md
+    iteration_log: evals/readiness-stories/iteration-log.md
     inputs: [design.json]
     outputs: [stories]
-    known_residual: "no eval suite exists for this step"
+    known_residual: "three cases, so a genuinely multi-epic change is untested; the vacuous-criterion failure ('then the behaviour is covered by a test') is caught only by the rubric and only on the two cases it runs on; nothing tests dependency order between stories, because the segment declares none"
 
   # **Not certified, and the gate says exactly why.** Two blockers, recorded rather than
   # worked around, because `check-certification.py` is the authority and it refuses:
