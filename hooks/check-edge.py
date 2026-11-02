@@ -164,7 +164,7 @@ def artifact_roots() -> list:
     return roots
 
 
-def rooted_paths(command: str, roots: list) -> list:
+def rooted_paths(command: str, roots: list, helpers=None) -> list:
     """Artifact paths a Bash command names under a configured artifacts root.
 
     `BASH_PATH_RE` cannot find these, and widening it is the wrong repair. It requires a
@@ -183,6 +183,11 @@ def rooted_paths(command: str, roots: list) -> list:
       match it against. Only directories that exist are considered, so this cannot invent an
       item, and `main` discards any candidate that is not a file on disk.
     """
+    if helpers is None:
+        try:
+            helpers = _helpers()[0]
+        except Exception:
+            return []
     out = []
     for root in roots:
         spelled = str(root)
@@ -195,10 +200,10 @@ def rooted_paths(command: str, roots: list) -> list:
             m = ROOTED_TAIL_RE.match(command[start:].lstrip("/"))
             if m:
                 out.append(root / m.group(1) / m.group(2))
-        try:
-            item_dirs = sorted(p for p in root.glob("*") if p.is_dir())
-        except OSError:
-            continue
+        # Discarded runs excluded: a parked run's item key appearing in a command is not a
+        # reason to go looking at its artifacts. `live_item_dirs` is the one definition of
+        # which runs still count — repeating the prefix here is how the two drift apart.
+        item_dirs = helpers.live_item_dirs(root)
         for item_dir in item_dirs:
             for m in re.finditer(rf"{re.escape(item_dir.name)}/([A-Za-z0-9][A-Za-z0-9._-]+)",
                                  command):
@@ -496,6 +501,11 @@ def changed_artifacts(payload: dict, common, schemas: dict, governed: set = froz
             continue
         for path in sorted(root.glob("*/*")):
             if not path.is_file():
+                continue
+            # A discarded run is parked evidence. Re-checking its artifacts cannot teach
+            # anyone anything, and a stale failure on one of them rejected tool calls for
+            # work on a different item — see `common.is_discarded`.
+            if common.is_discarded(path.parent):
                 continue
             # Parsed against *this* root. Without it the match falls through to the default
             # `delivery/<ITEM>/<file>` pattern, returns (None, None) for a configured root,

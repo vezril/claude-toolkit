@@ -77,7 +77,10 @@ def tier_of(model: str) -> str:
 
 def current_step(repo: Path, common):
     """The step the orchestrator said it was running, and for which item."""
-    for path in sorted(common.artifact_root(repo).glob("*/.current-step")) if common.artifact_root(repo).exists() else []:
+    # Live runs only: a discarded run's leftover `.current-step` would attribute this
+    # session's tokens to a run that has been parked as untrustworthy evidence.
+    for path in [d / ".current-step" for d in common.live_item_dirs(common.artifact_root(repo))
+                 if (d / ".current-step").exists()]:
         doc, err = common.load_json(path)
         if not err and doc.get("step"):
             return doc.get("item") or path.parent.name, doc["step"]
