@@ -103,7 +103,10 @@ def main() -> int:
 
     # 2–4 need to know which item is in flight.
     item, _ = None, None
-    current = sorted(common.artifact_root(repo).glob("*/.current-step")) if common.artifact_root(repo).exists() else []
+    # Live runs only. A discarded run's `.current-step` is a leftover, and treating it as the
+    # item in flight would gate outward actions on a run nobody is working any more.
+    current = [d / ".current-step" for d in common.live_item_dirs(common.artifact_root(repo))
+               if (d / ".current-step").exists()]
     if current:
         doc, err = common.load_json(current[0])
         item = (doc or {}).get("item") or current[0].parent.name if not err else current[0].parent.name

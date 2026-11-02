@@ -403,6 +403,71 @@ class TestProposalResolvesAgainstTheCodeRepo(unittest.TestCase):
         self.assertIn("no change directory", out.stderr)
 
 
+class TestDiscardedRunsAreInert(unittest.TestCase):
+    """Parking a run has to stop the hooks looking at it, not just the report.
+
+    `delivery-report.py` and `package-evidence.py` honoured the `DISCARDED-` convention; the
+    hooks did not. So a parked run's artifacts were re-scanned on every tool call, and a stale
+    failure on one of them rejected tool calls for work on a *different* item. That is what
+    blocked the AN-3702 re-run: the edge kept failing over AN-3631's and DISCARDED-AN-3702's
+    `proposal.json`, neither of which anyone was working on.
+
+    Discarding a run is the project's way of saying "stop drawing conclusions from this". The
+    hooks have to mean it too, or parking a run fixes the number and leaves the flow jammed.
+    """
+
+    def discard(self, r, name="AN-OLD"):
+        """A parked run holding an artifact that fails its edge."""
+        d = r.runs / f"DISCARDED-{name}"
+        d.mkdir()
+        (d / "proposal.json").write_text(json.dumps({
+            "item": name, "change_id": "gone", "change_path": "openspec/changes/gone",
+            "specs_touched": [], "tasks": [{"id": "T1", "description": "d", "files": ["a.py"]}],
+            "dependencies_added": [], "scope": False, "architecture": False, "breaking": False}))
+        return d
+
+    def test_a_discarded_runs_artifact_does_not_block_other_work(self):
+        r = ExternalRoot()
+        self.discard(r)
+        r.write("breakdown.json", breakdown())
+        self.assertEqual(0, r.sentinel("breakdown.json", "breakdown").returncode)
+        out = r.edge("breakdown.json")
+        self.assertEqual(0, out.returncode,
+                         f"a parked run's artifact rejected unrelated work: {out.stderr}")
+
+    def test_a_discarded_runs_artifact_is_not_traced(self):
+        r = ExternalRoot()
+        d = self.discard(r)
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                   "cwd": str(r.repo), "tool_input": {"command": "ls -la"}}
+        subprocess.run([sys.executable, str(EDGE)], input=json.dumps(payload),
+                       capture_output=True, text=True)
+        self.assertFalse((d / "trace.jsonl").exists(),
+                         "the hook wrote a trace record into a discarded run")
+
+    def test_a_live_runs_artifact_is_still_checked(self):
+        """The exclusion must be the prefix and nothing broader."""
+        r = ExternalRoot()
+        r.write("triage.json", {**TRIAGE, "type": "enhancement"})
+        r.sentinel("triage.json", "triage")
+        self.assertEqual(2, r.edge("triage.json").returncode,
+                         "a live run's bad artifact stopped being checked")
+
+    def test_a_discarded_runs_item_key_in_a_command_is_not_followed(self):
+        r = ExternalRoot()
+        d = self.discard(r)
+        found = _edge_module().rooted_paths(
+            f"cat x > {d.name}/proposal.json", [r.runs], common)
+        self.assertEqual([], found)
+
+    def test_live_item_dirs_excludes_only_discarded(self):
+        r = ExternalRoot()
+        self.discard(r)
+        names = [p.name for p in common.live_item_dirs(r.runs)]
+        self.assertIn(r.item, names)
+        self.assertNotIn("DISCARDED-AN-OLD", names)
+
+
 class TestBashPathsResolveAgainstTheRoot(unittest.TestCase):
     """Seam 1: find the artifact from the real roots, not from the command's spelling."""
 

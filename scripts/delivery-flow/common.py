@@ -68,6 +68,32 @@ def artifact_root(repo: Path, cfg: dict = None) -> Path:
 # JSON files out of search and the graph view, the same convention `_templates` uses.
 VAULT_RUNS_DIR = "_runs"
 
+# The project's convention for a run whose evidence cannot be trusted: rename its directory
+# `DISCARDED-<KEY>` and write down why.
+DISCARDED_PREFIX = "DISCARDED-"
+
+
+def is_discarded(item_dir: Path) -> bool:
+    """Whether this run has been parked as unusable evidence.
+
+    `delivery-report.py` and `package-evidence.py` honoured the convention; the hooks did not.
+    So a parked run's artifacts were still scanned on every tool call, and a stale failure on
+    one of them could reject tool calls for work on a different item entirely — which is what
+    blocked a re-run of AN-3702 over AN-3631's and DISCARDED-AN-3702's proposals.
+
+    Discarding a run is the project's way of saying "stop drawing conclusions from this". The
+    hooks have to mean it too, or parking a run fixes the report and leaves the flow jammed.
+    """
+    return Path(item_dir).name.startswith(DISCARDED_PREFIX)
+
+
+def live_item_dirs(root: Path) -> list:
+    """Every run directory under this root that has not been discarded."""
+    try:
+        return sorted(p for p in Path(root).glob("*") if p.is_dir() and not is_discarded(p))
+    except OSError:
+        return []
+
 
 def vault_artifact_root(cfg: dict):
     """Where a bound vault's runs belong, derived rather than hand-written. None if unbound."""
