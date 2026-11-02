@@ -222,18 +222,49 @@ class TestItStaysInert(unittest.TestCase):
 
 
 class TestTheRealDescriptorStillDrivesDeliveryFlow(unittest.TestCase):
-    """The regression guard: the shipped workflow must behave as before."""
+    """The regression guard: the shipped workflow must behave as before.
+
+    Two of these asserted that delivery-flow was the *only* workflow, which was true when
+    they were written and stopped being true the moment `skills/sdlc-orchestration/` gained a
+    descriptor. They are rewritten rather than deleted, because the property worth keeping is
+    not "there is one workflow" — it is "adding a second changes nothing about the first".
+    That the 532 delivery-flow tests passed unaltered the first time two descriptors existed
+    is the real evidence; these pin the specific facts behind it.
+    """
 
     def setUp(self):
         self._ctx = HookUnder(ROOT)
         self.hook = self._ctx.__enter__()
         self.addCleanup(self._ctx.__exit__, None, None, None)
 
-    def test_delivery_flow_is_the_only_workflow(self):
-        self.assertEqual([d["workflow"] for d in self.hook.workflows()], ["delivery-flow"])
+    def test_delivery_flow_is_among_the_workflows(self):
+        self.assertIn("delivery-flow", [d["workflow"] for d in self.hook.workflows()])
 
-    def test_the_artifact_dir_is_delivery(self):
-        self.assertEqual(self.hook.artifact_dirs(), ["delivery"])
+    def test_the_second_workflow_is_registered_too(self):
+        """If this fails, the sdlc descriptor stopped parsing and nothing else would say so."""
+        self.assertIn("sdlc", [d["workflow"] for d in self.hook.workflows()])
+
+    def test_deliverys_artifact_dir_is_still_scanned(self):
+        self.assertIn("delivery", self.hook.artifact_dirs())
+
+    def test_the_two_workflows_do_not_share_a_layout(self):
+        """Distinct opt-in files and distinct artifact directories, or they collide.
+
+        Sharing an artifact directory would make `parse_artifact_path` ambiguous — an item key
+        under it could belong to either workflow — and sharing a config name would make every
+        repo opt into both at once.
+        """
+        descriptors = {d["workflow"]: d for d in self.hook.workflows()}
+        dirs = [d["artifact_dir"] for d in descriptors.values()]
+        names = [d["config_name"] for d in descriptors.values()]
+        self.assertEqual(len(dirs), len(set(dirs)), f"artifact dirs collide: {dirs}")
+        self.assertEqual(len(names), len(set(names)), f"config names collide: {names}")
+
+    def test_the_signing_namespaces_differ(self):
+        """A decision signed for one workflow must not verify for another."""
+        spaces = [d.get("sign_namespace") for d in self.hook.workflows()]
+        self.assertTrue(all(spaces), f"a workflow has no signing namespace: {spaces}")
+        self.assertEqual(len(spaces), len(set(spaces)), f"namespaces collide: {spaces}")
 
     def test_the_pattern_is_what_it_was_before_the_generalisation(self):
         """One workflow in, character-for-character the original behaviour out."""

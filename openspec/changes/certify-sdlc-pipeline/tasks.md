@@ -102,17 +102,13 @@ S.1–S.6, 3.1, 3.2, 3.4, 3.7 are retired rather than done. 3.3, 3.5, 3.6 and 3.
 
 ## 4. Register the pipeline as segments
 
-- [ ] 4.1 `skills/sdlc-orchestration/steps.yaml`: six segments per design D1, each declaring
-      nodes, terminus, hand-off artifact and schema, and a certification state
-- [ ] 4.2 `sdlc/workflow.yaml` descriptor pointing at that registry
-- [ ] 4.3 Mark every segment except `readiness` **uncertified**; verify
-      `check-certification.py` blocks delegation to each one
-- [ ] 4.4 Profiles for the segments so a run can be scoped to `readiness` alone and stop at its
-      terminus with an `outcome.json`
+- [x] 4.1 `skills/sdlc-orchestration/steps.yaml`: eleven nodes across six segments, each naming its segment, agent, prompt, tier and inputs/outputs. Every one `certified: false` with a stated residual. Design D1 names `analyst`, `requirements-reviewer` and `readiness-reviewer`; none exists as an agent, so the analysis/planning seats are `requirements-analyst` and every refute-framed reviewer seat is `adversarial-validator` — the same agent in a different chair, which is why task 5.3 asks about reusing `evals/cross-examine/`. Each seat still needs its own certification
+- [x] 4.2 `skills/sdlc-orchestration/workflow.yaml`: the six segments as the routing table, each with nodes, terminus and handoff. Parsed by the shared `descriptor.py` with **no parser change**, which is the real test that sections 1-2 generalised something. Distinct `config_name` and `artifact_dir` from delivery-flow, or `parse_artifact_path` would be ambiguous and every repo would opt into both
+- [x] 4.3 Every node marked uncertified, with tests asserting none claims `prompt_sha256`, `results`, `consecutive_runs` or `certified_version`. Declaring the pipeline does not make it runnable — a registry that declared six segments and let an orchestrator drive them would read as evidence of a pipeline that has none
+- [x] 4.4 `templates/sdlc/profiles.yaml`: `readiness` alone (the slice section 5 certifies first), `implementation`, and `full`. Same parser and same orphan/terminus rules as delivery-flow's
 - [ ] 4.5 Move the readiness gate's `lint-story.py` + `openspec validate` into the edge
       dispatch; delete the orchestrator's instruction to invoke them (design D4)
-- [ ] 4.6 `schemas/readiness-verdict.schema.json`: `REFUTED` / `WEAKENED` / `SURVIVED` plus
-      findings
+- [x] 4.6 `schemas/readiness-verdict.schema.json`: the fixed three verdicts, findings with evidence, and an attacks floor of 3 — a verdict reached without attacking anything is not a review. The first draft carried a `gates` field recording lint-story and openspec results; that is a node witnessing its own guardrail, which D4 and D5 put on the edge, so it was removed before commit
 - [ ] 4.7 Harness applying the fixed verdict rules — `REFUTED` reruns the producer, `WEAKENED`
       requires each finding addressed, `SURVIVED` proceeds — in the substrate, not the
       orchestrator (design D5)

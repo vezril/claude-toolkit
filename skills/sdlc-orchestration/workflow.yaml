@@ -1,0 +1,88 @@
+# The SDLC pipeline's workflow descriptor — the second workflow, and the reason the substrate
+# exists.
+#
+# Read by `scripts/workflow/descriptor.py`, the same parser and the same stdlib subset as
+# `skills/delivery-flow/workflow.yaml`. If this file needed a parser change, the substrate
+# would have been shaped around one workflow and the generalisation would not have been real.
+#
+# **Nothing here is certified.** `skills/sdlc-orchestration/steps.yaml` marks every node
+# `certified: false`, and `check-certification.py` blocks delegation to an uncertified step, so
+# declaring this pipeline does not make it runnable. That is deliberate: the declaration is
+# what section 5 certifies against, segment by segment, starting with `readiness` (design D6).
+
+workflow: sdlc
+
+# A distinct opt-in file, so a repo can run the delivery flow, this pipeline, both, or neither.
+# A repo holding only `.delivery-flow.yaml` is not an sdlc repo and its hooks must not fire
+# here — which is what `registry.known` enforces by consulting each workflow's own predicate.
+config_name: .sdlc.yaml
+
+# A distinct artifact directory for the same reason. Two workflows writing into one directory
+# would make `parse_artifact_path` ambiguous and an item key could belong to either.
+artifact_dir: sdlc
+
+sign_namespace: sdlc-decision
+
+schemas: schemas
+registry: skills/sdlc-orchestration/steps.yaml
+profiles: templates/sdlc/profiles.yaml
+
+# The routing table, one row per **segment** (design D1). A segment is a 2–3 node chain with
+# schema-backed artifacts between its nodes, a deterministic edge after each write, a declared
+# terminus, and a hand-off that is either data the next segment consumes or prose a human reads
+# at a gate.
+#
+#   artifact   what must exist for routing to advance past this segment
+#   step       the segment name, used by the trace, the registry and the profiles
+#   kind       `segment` — a chain of nodes, not a single step
+#   nodes      the registry steps inside it, in order
+#   terminus   the node the segment ends on
+#   handoff    `data` (consumed by the next segment) or `prose` (read by a human)
+#
+# `readiness` hands off markdown stories plus a verdict rather than the `story.json[]` D1's
+# table names. That changed when `render-stories.py` was retired: the schema-backed story set
+# went with it, and the markdown path that `lint-story.py` owns is what survived. The verdict
+# is the schema-backed artifact routing keys on, and the stories are what it is a verdict
+# about.
+steps:
+  - artifact: brief.json
+    step: analysis
+    kind: segment
+    nodes: [analysis]
+    terminus: analysis
+    handoff: data
+
+  - artifact: prd-verdict.json
+    step: planning
+    kind: segment
+    nodes: [planning, planning-review]
+    terminus: planning-review
+    handoff: data
+
+  - artifact: design-verdict.json
+    step: solutioning
+    kind: segment
+    nodes: [solutioning, solutioning-review]
+    terminus: solutioning-review
+    handoff: data
+
+  - artifact: readiness-verdict.json
+    step: readiness
+    kind: segment
+    nodes: [readiness, readiness-review]
+    terminus: readiness-review
+    handoff: data
+
+  - artifact: implementation.json
+    step: implementation
+    kind: segment
+    nodes: [implementation, implementation-green]
+    terminus: implementation-green
+    handoff: data
+
+  - artifact: outcome.json
+    step: verification
+    kind: segment
+    nodes: [verification, verification-ci]
+    terminus: verification-ci
+    handoff: data

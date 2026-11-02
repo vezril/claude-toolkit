@@ -1,0 +1,135 @@
+# Step registry for the SDLC pipeline: every LLM task prompt it can run, with its Stage 3
+# certification evidence. Checked by scripts/delivery-flow/check-certification.py (which moves
+# to scripts/workflow/ with the rest of the substrate).
+#
+# Same format and same parser as skills/delivery-flow/steps.yaml. Paths are relative to the
+# repository root. Editing a prompt changes its sha256 and un-certifies the step until the
+# suite is re-run and prompt_sha256 is updated.
+#
+# **Everything here is uncertified.** No eval suite has been run against any of these prompts,
+# so none of them carries `prompt_sha256`, `results` or `consecutive_runs`. That is the honest
+# state and it is load-bearing: `check-certification.py` blocks delegation to an uncertified
+# step, so this file is what stops the pipeline being driven before its nodes have evidence.
+# Section 5 certifies `readiness` first (design D6); the rest follow or stay blocked.
+#
+# A note on who the reviewers are. Design D1 names `analyst`, `requirements-reviewer` and
+# `readiness-reviewer` as nodes. None exists as an agent. The analysis and planning seats are
+# the `requirements-analyst`, and every refute-framed reviewer seat is the
+# `adversarial-validator` — the same agent in a different chair, which is why task 5.3 asks
+# whether to reuse `evals/cross-examine/` for the readiness reviewer. Each seat still needs its
+# own certification: the agent is shared, the prompt and its evidence are not.
+
+steps:
+  - step: analysis
+    segment: analysis
+    agent: requirements-analyst
+    prompt: skills/requirements-engineering/SKILL.md
+    tier: sonnet
+    certified: false
+    inputs: [item.json]
+    outputs: [brief.json]
+    known_residual: "no eval suite exists for this step"
+
+  - step: planning
+    segment: planning
+    agent: requirements-analyst
+    prompt: skills/requirements-engineering/SKILL.md
+    tier: sonnet
+    certified: false
+    inputs: [brief.json]
+    outputs: [prd.json]
+    known_residual: "no eval suite exists for this step"
+
+  - step: planning-review
+    segment: planning
+    agent: adversarial-validator
+    prompt: skills/cross-examine/SKILL.md
+    tier: sonnet
+    certified: false
+    inputs: [prd.json]
+    outputs: [prd-verdict.json]
+    known_residual: "no eval suite exists for this step"
+
+  - step: solutioning
+    segment: solutioning
+    agent: solution-architect
+    prompt: skills/software-architecture/SKILL.md
+    tier: sonnet
+    certified: false
+    inputs: [prd.json]
+    outputs: [design.json]
+    known_residual: "no eval suite exists for this step"
+
+  - step: solutioning-review
+    segment: solutioning
+    agent: adversarial-validator
+    prompt: skills/cross-examine/SKILL.md
+    tier: sonnet
+    certified: false
+    inputs: [design.json]
+    outputs: [design-verdict.json]
+    known_residual: "no eval suite exists for this step"
+
+  # The first segment to be certified (design D6). story-planner decomposes; the reviewer
+  # attacks the result. The deterministic gates that used to be the orchestrator's
+  # responsibility — lint-story.py and `openspec validate` — are edges now (task 4.5), so
+  # neither node is asked to run them and neither can claim they passed.
+  - step: readiness
+    segment: readiness
+    agent: story-planner
+    prompt: skills/spec-driven-development/SKILL.md
+    tier: haiku
+    certified: false
+    inputs: [design.json]
+    outputs: [stories]
+    known_residual: "no eval suite exists for this step"
+
+  - step: readiness-review
+    segment: readiness
+    agent: adversarial-validator
+    prompt: skills/cross-examine/SKILL.md
+    tier: haiku
+    certified: false
+    inputs: [stories]
+    outputs: [readiness-verdict.json]
+    known_residual: "no eval suite exists for this step"
+
+  - step: implementation
+    segment: implementation
+    agent: test-writer
+    prompt: agents/test-writer.md
+    tier: sonnet
+    certified: false
+    inputs: [stories]
+    outputs: [tests]
+    known_residual: "no eval suite exists for this step"
+
+  - step: implementation-green
+    segment: implementation
+    agent: implementer
+    prompt: agents/implementer.md
+    tier: sonnet
+    certified: false
+    inputs: [tests]
+    outputs: [diff]
+    known_residual: "no eval suite exists for this step"
+
+  - step: verification
+    segment: verification
+    agent: qa-test-architect
+    prompt: skills/test-strategy/SKILL.md
+    tier: sonnet
+    certified: false
+    inputs: [diff]
+    outputs: [review.json]
+    known_residual: "no eval suite exists for this step"
+
+  - step: verification-ci
+    segment: verification
+    agent: ci-watcher
+    prompt: agents/ci-watcher.md
+    tier: haiku
+    certified: false
+    inputs: [review.json]
+    outputs: [outcome.json]
+    known_residual: "no eval suite exists for this step"

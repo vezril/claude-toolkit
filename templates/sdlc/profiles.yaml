@@ -1,0 +1,43 @@
+# Named slices of the SDLC pipeline's routing table.
+#
+# A profile is a window onto the one routing table in `skills/sdlc-orchestration/workflow.yaml`,
+# not a second pipeline: it lists the segments it runs, in order, and declares the one it ends
+# on. `.sdlc.yaml` selects one with `profile:`; a repo that names none gets `full`.
+#
+# Same format and same parser as `templates/delivery-flow/profiles.yaml`
+# (`common.load_profiles`). Keep each `steps:` list on one line — a bracket that does not close
+# on its own line is an error rather than a silently truncated profile, because dropping a
+# segment would still look like a successful run.
+#
+# Rules the test suite enforces, mirroring the delivery-flow ones:
+#   - every segment named here exists in the routing table;
+#   - the union of all profiles' segments equals the routing table, so none is orphaned;
+#   - `terminus` is the last entry in `steps`;
+#   - `next` names another profile or is null.
+
+profiles:
+  # Task 4.4: a run scoped to readiness alone, stopping at its terminus with an outcome.
+  # This is the slice section 5 certifies first (design D6), and the only one that will be
+  # runnable before the others have evidence. It assumes a design already exists — readiness
+  # decomposes it into stories and attacks the result; it does not produce the design.
+  - profile: readiness
+    steps: [readiness]
+    terminus: readiness
+    next: implementation
+
+  # Readiness through to a merged, verified change. Available once implementation and
+  # verification carry certification evidence; declared now so the chain after readiness is
+  # written down rather than implied.
+  - profile: implementation
+    steps: [implementation, verification]
+    terminus: verification
+    next: null
+
+  # The whole pipeline, analysis to verification. The default for a repo that names no
+  # profile, and uncertified end to end — declaring it does not make it runnable, because
+  # every node in `steps.yaml` is `certified: false` and `check-certification.py` blocks
+  # delegation to an uncertified step.
+  - profile: full
+    steps: [analysis, planning, solutioning, readiness, implementation, verification]
+    terminus: verification
+    next: null
