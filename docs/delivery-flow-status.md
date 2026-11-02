@@ -3,15 +3,39 @@
 Short, current, and overwritten each session. The full picture is in
 `docs/delivery-flow-handoff.md`; this is just where things stand right now.
 
-Last updated 2026-10-30.
+Last updated 2026-10-30 (second pass).
 
 ## The one thing blocking submission
 
-**Criterion 4 needs completed runs on the `triage` profile, and there are none.**
+**The installed plugin is two versions behind, so none of today's fixes are live.** The cache
+is at 0.13.0 (`c0a5e04`); `main` is 0.14.1. 0.13.0 is the version that carries the retry
+regression below, so a run made right now makes the audit trail *worse*. Nothing else can be
+measured until `claude plugin update claude-toolkit@vezril-toolkit` has run.
 
-Everything else is either built and evidenced or is a question for the reviewer. The two
-structural reasons criterion 4 could not produce a number are both fixed as of today, so the
-remaining work is to run the thing.
+After that: **criterion 4 needs completed runs on the `triage` profile, and there are none.**
+
+## The regression I shipped, and what it cost
+
+PR #105 made a failed edge re-check on every subsequent hook invocation, on the reasoning that
+only a failure can be stale. The premise is true; the conclusion that every failure becomes
+*fresh* does not follow. A failure whose cause is neither the artifact nor its sentinel never
+changes, so it re-checked forever and appended a record each time.
+
+Measured on the live runs: `proposal.json` on AN-3702 reached **44 identical failure records**,
+and AN-3631 went from 8 failed edges to 65. Criterion 4's numbers were being computed over
+that.
+
+Fixed in 0.14.1 (`415d45e`): the gate now compares the edge's *whole* input — the artifact's
+sha and its sentinel's — and re-checks when either moved, which keeps #105's real fix and
+gives it the termination condition it never had.
+
+**The existing traces keep the junk records.** The trail is append-only, so AN-3702's and
+AN-3631's failed-edge counts stay wrong until those runs are re-run or discarded. That is a
+prerequisite for any criterion 4 number, not a cosmetic issue.
+
+The suite missed it because it tested that a *passing* record suppresses re-checking and never
+asked what a failing one does. That is the third time this week a test asserted the right thing
+about the wrong half of a condition.
 
 ## The five criteria
 
@@ -74,8 +98,21 @@ Certified-only: still 0/0, now for an honest reason rather than a structural one
 finishes. AN-3631 is the proof. Switch to `full` when there is implementation work to drive;
 certifying `propose` is what would remove the choice.
 
+## Also landed since the last pass
+
+- **Run artifacts belong in the vault, enforced** (0.14.0, `e471e2e`). `flow-status.py` exits 2
+  before computing a position when the root is inside the code repo, or when a vault is bound
+  and the root sits outside it. `artifacts.in_repo_ack` is the only exception and it is a
+  sentence, not a boolean. `init` refuses to guess: `--vault-path` or
+  `--artifacts-in-repo "<reason>"`. `artifacts.commit` is deleted — it was written into every
+  generated config and read by no code.
+- **The proposal edge resolves against the code repo** (`f5cbf86`), not the artifact's own
+  directory, which under an external root was the vault.
+
 ## What is left
 
+0. **Update the plugin, then clear the two polluted traces.** Both are prerequisites; see the
+   top of this page.
 1. **Run AN-3702 to completion on the `triage` profile.** This is the only thing that produces
    a certified data point, and it is also the first live test of the PR #105 fix — the fixture
    reproduces the sequence, but every real run this week has found something a fixture did not.
@@ -89,9 +126,11 @@ certifying `propose` is what would remove the choice.
 4. **Re-run the bypass suite.** 23/23 stands, but it was measured before today's changes to
    `check-edge.py`, and the 24th attack (`write-decision-absolute-variable`) has never run.
    The suite spends API credits per attack, so this is a deliberate choice, not an oversight.
-5. **Self-test #7 has no answer in the report.** "Can you state the number of
-   manually-corrected runs?" — `write-outcome.py` detects them and marks the run `failed`, but
-   `report.md` carries no count. A reviewer asking that question gets nothing.
+5. ~~Self-test #7 has no answer in the report.~~ **Done.** `outcome.json` had carried the
+   evidence all along — artifact, traced sha, actual sha — and nothing read it, so the honest
+   answer to a reviewer was "no". `report.md` now has a *Manually-corrected runs* section
+   stating runs corrected over terminal runs, with the artifacts named. No terminal runs
+   reports "no rate", which is not the same claim as zero.
 
 ## Open decisions
 
@@ -137,7 +176,7 @@ Two second-order lessons, both earned the hard way:
 
 ## Housekeeping
 
-- 505 tests pass, 1 skipped. Neither `pytest` nor `uv` is on PATH and mise has no global
+- 526 tests pass, 1 skipped. Neither `pytest` nor `uv` is on PATH and mise has no global
   python pinned, so the suite needs a venv built from
   `~/.local/share/mise/installs/python/3.12.15/bin/python3`. Worth making permanent.
 - Three sessions share this checkout; each should work in its own git worktree. `main` moved

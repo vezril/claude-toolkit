@@ -68,6 +68,85 @@ def artifact_root(repo: Path, cfg: dict = None) -> Path:
 # JSON files out of search and the graph view, the same convention `_templates` uses.
 VAULT_RUNS_DIR = "_runs"
 
+# The project's convention for a run whose evidence cannot be trusted: rename its directory
+# `DISCARDED-<KEY>` and write down why.
+DISCARDED_PREFIX = "DISCARDED-"
+
+
+SIGNING_ENV = "~/.config/delivery-flow/signing.env"
+
+
+def load_signing_env(path=None) -> dict:
+    """Signing settings from `~/.config/delivery-flow/signing.env`, without clobbering the env.
+
+    Signing needs two things that cannot live in `.delivery-flow.yaml`: the key path, which is
+    per-machine, and `SSH_AUTH_SOCK`, which has to point at the Secure Enclave agent rather
+    than the default one. They were in this file already — and nothing read it. So signing
+    worked only in a shell where it had been sourced by hand, and failed everywhere else
+    naming `~/.ssh/id_ed25519_sk`, a path that has never existed on this machine.
+
+    `decisions.allowed_signers` already defaults into the same directory, so a config file
+    sitting unread beside it was the inconsistency.
+
+    **`SSH_AUTH_SOCK` from the file always wins; the `DELIVERY_FLOW_*` vars yield to the
+    environment.** The asymmetry is the whole point and getting it backwards makes this
+    useless: macOS always has `SSH_AUTH_SOCK` pointing at its own launchd agent, so a plain
+    "already set wins" rule means the file's value never applies and signing quietly reaches
+    an agent that does not hold the key. Naming `SSH_AUTH_SOCK` in this file *is* the
+    deliberate choice; the ambient value is just the default. The `DELIVERY_FLOW_*` vars are
+    the opposite — nothing sets them but a person, so an explicit
+    `DELIVERY_FLOW_SIGNING_KEY=... decide.py` must still override.
+
+    Parsed rather than sourced. Sourcing would execute whatever the file contains, and a file
+    that silently runs shell is the wrong shape for something the punch-out guarantee rests on.
+    """
+    p = Path(path or os.environ.get("DELIVERY_FLOW_SIGNING_ENV") or SIGNING_ENV).expanduser()
+    out = {}
+    try:
+        lines = p.read_text().splitlines()
+    except OSError:
+        return out
+    for raw in lines:
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip().strip("'\"")
+        if not key or not value:
+            continue
+        if key == "SSH_AUTH_SOCK" or key not in os.environ:
+            out[key] = value
+    return out
+
+
+def apply_signing_env(path=None) -> dict:
+    """Load the signing settings into `os.environ`, returning what was applied."""
+    applied = load_signing_env(path)
+    os.environ.update(applied)
+    return applied
+
+
+def is_discarded(item_dir: Path) -> bool:
+    """Whether this run has been parked as unusable evidence.
+
+    `delivery-report.py` and `package-evidence.py` honoured the convention; the hooks did not.
+    So a parked run's artifacts were still scanned on every tool call, and a stale failure on
+    one of them could reject tool calls for work on a different item entirely — which is what
+    blocked a re-run of AN-3702 over AN-3631's and DISCARDED-AN-3702's proposals.
+
+    Discarding a run is the project's way of saying "stop drawing conclusions from this". The
+    hooks have to mean it too, or parking a run fixes the report and leaves the flow jammed.
+    """
+    return Path(item_dir).name.startswith(DISCARDED_PREFIX)
+
+
+def live_item_dirs(root: Path) -> list:
+    """Every run directory under this root that has not been discarded."""
+    try:
+        return sorted(p for p in Path(root).glob("*") if p.is_dir() and not is_discarded(p))
+    except OSError:
+        return []
+
 
 def vault_artifact_root(cfg: dict):
     """Where a bound vault's runs belong, derived rather than hand-written. None if unbound."""

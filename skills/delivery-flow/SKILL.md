@@ -284,6 +284,18 @@ and the flow stopped), `failed` (retries exhausted, or an artifact was hand-corr
 `abandoned`. The report script writes it; `delivery-report.py` rolls outcomes up into the
 end-to-end rate and the per-step model, token and cost tables.
 
+**It is written once.** A second report over a terminal outcome is refused: the first record is
+the run's evidence, and one a later invocation can replace is not a record of anything. If a
+run genuinely needs reporting again, discard it (`DISCARDED-<KEY>` with the reason) and start a
+new one; `--force` exists for deliberate replacement and destroys the first.
+
+**Continuing into the next profile is a separate invocation.** When a profile reaches its
+terminus, `flow-status.py` names the next one and stops — because `profile:` is a live config
+file, so changing it mid-item makes the outcome's `profile` field describe the setting at report
+time rather than the steps that ran. An outcome whose profile disagrees with the artifacts on
+disk now records `off_profile_artifacts`, which is how a run credited to a profile it did not
+follow becomes visible instead of quietly improving the certified-only rate.
+
 ## References
 
 - [references/config.md](references/config.md) — `.delivery-flow.yaml`, every key

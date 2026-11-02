@@ -201,6 +201,13 @@ def summarize(items: dict) -> dict:
         rows.append({"item": key, "status": status, "profile": profile,
                      "step": outcome.get("step") or "",
                      "reason": outcome.get("reason") or "", **tokens,
+                     # Self-test #7: "can you state the number of manually-corrected runs?"
+                     # `outcome.json` has carried the evidence all along — artifact, traced
+                     # sha, actual sha — and nothing read it, so the honest answer to a
+                     # reviewer asking was "no". Counted per run and totalled below.
+                     "manual_corrections": len(outcome.get("manual_corrections") or []),
+                     "corrected_artifacts": sorted(
+                         c.get("artifact", "?") for c in (outcome.get("manual_corrections") or [])),
                      "cost_usd": round(cost, 4), "priced": priced,
                      "certified": certified_all, "failed_edges": failed_edges,
                      "unchecked_edges": unchecked_edges,
@@ -225,9 +232,23 @@ def summarize(items: dict) -> dict:
     # works" when it means "nobody has run it", and those are opposite conclusions.
     profiles = {p: {"all": rate(c), "certified_only": rate(c, "certified:")}
                 for p, c in sorted(per_profile.items())}
+    # Self-test #7's answer as one number, over terminal runs only: an in-flight run has not
+    # finished being corrected yet, so counting it would understate the rate.
+    terminal = [r for r in rows if r["status"] in ("completed", "failed", "punched-out",
+                                                   "abandoned")]
+    corrected = [r for r in terminal if r["manual_corrections"]]
+    corrections = {
+        "terminal_runs": len(terminal),
+        "runs_corrected": len(corrected),
+        "artifacts_corrected": sum(r["manual_corrections"] for r in terminal),
+        "rate": round(len(corrected) / len(terminal) * 100, 1) if terminal else None,
+        "items": [{"item": r["item"], "artifacts": r["corrected_artifacts"]} for r in corrected],
+    }
+
     return {"items": rows, "per_step": {k: dict(v) for k, v in per_step.items()},
             "per_model": {k: dict(v) for k, v in per_model.items()},
             "weekly": weeks, "per_profile": profiles, "non_conformant": nonconformant,
+            "manual_corrections": corrections,
             "missing_pricing": sorted(missing_pricing)}
 
 
@@ -244,6 +265,21 @@ def markdown(s: dict, pricing_as_of: str) -> str:
                  f"{r['input_tokens']:,} | {r['output_tokens']:,} | "
                  f"{'$' + format(r['cost_usd'], '.4f') if r['priced'] else 'unpriced'} | "
                  f"{'yes' if r['certified'] else 'no'} | {r['failed_edges']} | {r['unchecked_edges']} |")
+
+    mc = s["manual_corrections"]
+    L += ["", "## Manually-corrected runs", "",
+          "The certification's own wording: *hand-editing a validated artifact to get a step to "
+          "pass is not a repair, it is a failed run.* Detected by comparing each artifact "
+          "against the sha the trace recorded, so this is a measurement and not an attestation.",
+          ""]
+    if mc["terminal_runs"]:
+        L.append(f"**{mc['runs_corrected']} of {mc['terminal_runs']} terminal runs** were "
+                 f"corrected by hand ({mc['rate']}%), touching "
+                 f"{mc['artifacts_corrected']} artifact(s).")
+        for row in mc["items"]:
+            L.append(f"- `{row['item']}` — {', '.join(row['artifacts'])}")
+    else:
+        L.append("No terminal runs yet, so there is no rate — which is not the same as zero.")
 
     uncert = sorted({n for r in s["items"] for n in r["uncertified_nodes"]})
     excl = sorted({e for r in s["items"] for e in r["excluded_from_certification"]})

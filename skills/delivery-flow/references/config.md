@@ -76,6 +76,8 @@ deploy:
 
 decisions:
   allowed_signers: ~/.config/delivery-flow/allowed_signers
+  # The key itself is NOT configured here — see "Signing" below. It is per-machine, and so is
+  # the agent socket, so both live in ~/.config/delivery-flow/signing.env.
 
 models:                      # per step; the registry's certified tier is the default
   triage: sonnet
@@ -123,6 +125,32 @@ allow_uncertified: [propose, vault-update]   # steps that may run without certif
   network that may not be there, so it waits for a human on the right network.
 - **The proposal ceilings gate the `full` profile.** They are the decision gate for real work:
   under them, a change goes from ticket to PR without stopping. Lower them to be asked more.
+### Signing
+
+The key path and the agent socket are per-machine, so they are not in `.delivery-flow.yaml`.
+`decide.py` reads them from `~/.config/delivery-flow/signing.env`:
+
+```
+SSH_AUTH_SOCK=~/Library/Containers/com.maxgoedjen.Secretive.SecretAgent/Data/socket.ssh
+DELIVERY_FLOW_SIGNING_KEY=~/.ssh/delivery-flow.pub
+DELIVERY_FLOW_SIGNER=calvin
+```
+
+The file is **parsed, not sourced** — a config file that silently executes shell is the wrong
+shape for the thing the punch-out guarantee rests on.
+
+**`SSH_AUTH_SOCK` from the file wins over the environment; the `DELIVERY_FLOW_*` vars yield to
+it.** The asymmetry matters: macOS always has `SSH_AUTH_SOCK` pointing at its own launchd
+agent, so treating "already set" as authoritative means the file's value never applies and
+signing quietly reaches an agent that does not hold the key. Naming the socket in this file is
+the deliberate choice; the ambient value is just the default. Nothing but a person sets the
+`DELIVERY_FLOW_*` vars, so an explicit one on the command line is an override and is honoured.
+
+**There is no default key path.** `decide.py` used to fall back to `~/.ssh/id_ed25519_sk`, so
+a machine that had never had that file refused with "No such file or directory" naming a key
+its owner does not own — which points at the wrong problem. It now says "no signing key
+configured" and names what to set.
+
 ### Where artifacts live
 
 **A run's artifacts go in the vault.** `delivery/<KEY>/` holds the ticket body, the triage
