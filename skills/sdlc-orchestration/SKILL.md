@@ -54,7 +54,7 @@ It loops, bounded, until the reviewer is satisfied or a max-iteration cap is hit
 - **Human-in-the-loop at every gate.** The human approves phase transitions; agents propose, humans dispose.
 - **Lock the *what* before the *how*.** Requirements and the SPEC kernel come before architecture and code ([[spec-driven-development]]).
 - **Execute, don't opine.** A review that doesn't run the code/tests/plan is a guess. Ground every checker in real tool output. (The biggest weakness of the source frameworks.)
-- **Gate mechanically before you gate with judgment.** Where an artifact's *form* is checkable by a script, check it with a script — deterministic, reproducible, cheap — and let the LLM/human reviewer spend judgment only on *substance*. The readiness gate has **two deterministic layers with one rule**: `scripts/lint-story.py` enforces the story schema from [[spec-driven-development]] (structure, Given/When/Then grammar, task↔AC closure, resolvable references, FR/CAP traceability), and `openspec validate <feature>` enforces the change-artifact form. **Either failing short-circuits the gate** straight back to the story-planner for rewrite (bounded, ~3 iterations, then escalate) — the LLM review never runs on a malformed set. A missing openspec CLI blocks the gate with a clear report; it never passes by absence.
+- **Gate mechanically before you gate with judgment — and do not run those gates yourself.** Where an artifact's *form* is checkable by a script, a script checks it, so the reviewer spends judgment only on *substance*. The readiness gate's two deterministic layers — `scripts/lint-story.py` for the story schema and `openspec validate` for the change-artifact form — are **edge checks on a hook**, declared in `skills/sdlc-orchestration/workflow.yaml` under `edge_checks` and run by `hooks/check-edge.py` when `readiness-verdict.json` is written. You do not invoke them and you cannot skip them. This used to be an instruction here, which made it no guardrail at all: a model that skipped it produced no failure. A `PostToolUse` hook cannot un-write a file, so the honest claim is narrower than it looks — the verdict is recorded in the trace either way, and **you refuse to advance past a failed edge**. A missing `openspec` CLI blocks the gate; it never passes by absence.
 
 ## Tracks (match process weight to the work)
 
@@ -77,7 +77,7 @@ An opt-in variant for fire-and-forget work — typically triggered by a labeled 
 | Worth planning? | Trigger policy: opt-in label + author allowlist + quick-track triage (anything larger → escalate) |
 | PRD approval | Quick track: lightweight spec derived from the issue, sanity-checked by the validator model |
 | Architecture approval | **Not replaced** — out of scope, escalate |
-| Readiness | `lint-story.py` + `openspec validate` (hard exits) + separate-model review where **CONCERNS = FAIL** |
+| Readiness | edge checks on `readiness-verdict.json` (`lint-story.py` + `openspec validate`, run by the hook, not by you) + separate-model review where **CONCERNS = FAIL** |
 | Per-story merge | Full suite green + coverage vs the P0/P1 map + refuting reviewer PASS → **PR opened, not merged** |
 
 **Safety rules (non-negotiable):**

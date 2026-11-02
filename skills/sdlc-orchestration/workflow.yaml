@@ -27,6 +27,17 @@ schemas: schemas
 registry: skills/sdlc-orchestration/steps.yaml
 profiles: templates/sdlc/profiles.yaml
 
+# Extra edge checks, keyed by the artifact written (design D4). The edge hook runs these after
+# a node's write, in addition to schema and sentinel. This is how the readiness gate stopped
+# being an instruction: `lint-story.py` and `openspec validate` are deterministic and neither
+# was a guardrail while a model had to choose to run them.
+#
+# Declared here rather than hard-coded in the hook. `check-edge.py` had
+# `if path.name == "proposal.json"` written into it, which is one workflow's checker inside
+# the shared machinery; a second workflow could not add one without editing the hook.
+edge_checks:
+  readiness-verdict.json: scripts/sdlc/readiness-gate.py
+
 # The routing table, one row per **segment** (design D1). A segment is a 2–3 node chain with
 # schema-backed artifacts between its nodes, a deterministic edge after each write, a declared
 # terminus, and a hand-off that is either data the next segment consumes or prose a human reads

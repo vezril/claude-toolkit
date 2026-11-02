@@ -37,8 +37,13 @@ DESCRIPTOR_NAME = "workflow.yaml"
 # repo or route a step, so it is a hard error rather than a partially-working workflow.
 REQUIRED = ("workflow", "config_name", "artifact_dir", "steps")
 
-_SEQ_RE = re.compile(r"^(\s*)-\s+([A-Za-z0-9_-]+):\s*(.*)$")
-_MAP_RE = re.compile(r"^(\s*)([A-Za-z0-9_-]+):\s*(.*)$")
+# Dots are allowed in a key because `edge_checks` is keyed by artifact *file name*
+# (`readiness-verdict.json`). Without them the parser refused the line outright — which is the
+# right failure, but it meant the one place a descriptor needs a nested mapping could not be
+# written at all.
+_KEY = r"[A-Za-z0-9_.-]+"
+_SEQ_RE = re.compile(rf"^(\s*)-\s+({_KEY}):\s*(.*)$")
+_MAP_RE = re.compile(rf"^(\s*)({_KEY}):\s*(.*)$")
 
 
 def _scalar(value: str):
@@ -67,19 +72,19 @@ def parse(text: str, source: str = "<descriptor>") -> dict:
     missing and still look like a successful run — the same failure the profiles parser
     guards against by rejecting an unclosed inline list.
     """
-    doc, steps, cur = {}, [], None
+    doc, steps, cur, pending_map = {}, [], None, None
     for lineno, raw in enumerate(text.splitlines(), 1):
         line = "" if raw.lstrip().startswith("#") else raw.split(" #")[0].rstrip()
         if not line.strip():
             continue
 
         if line.rstrip() == "steps:":
-            cur = None
+            cur, pending_map = None, None
             continue
 
         seq = _SEQ_RE.match(line)
         if seq:
-            cur = {}
+            cur, pending_map = {}, None
             steps.append(cur)
             cur[seq.group(2)] = _scalar(seq.group(3))
             continue
@@ -92,11 +97,23 @@ def parse(text: str, source: str = "<descriptor>") -> dict:
             raise ValueError(
                 f"{source}:{lineno}: `{key}:` opens an inline list that does not close on the "
                 "same line; keep each list on one line so none is silently truncated")
-        if indent and cur is not None:
+
+        if indent and pending_map is not None:
+            pending_map[key] = _scalar(value)
+        elif indent and cur is not None:
             cur[key] = _scalar(value)
         else:
+            # A top-level key with no value opens a nested mapping — the one nesting a
+            # descriptor needs, for `edge_checks`. Collecting into a dict here rather than
+            # supporting arbitrary YAML keeps the refusal above meaningful: anything deeper
+            # than this still raises instead of being half-read.
             cur = None
-            doc[key] = _scalar(value)
+            if value.strip() == "":
+                pending_map = {}
+                doc[key] = pending_map
+            else:
+                pending_map = None
+                doc[key] = _scalar(value)
 
     doc["steps"] = steps
     missing = [k for k in REQUIRED if not doc.get(k)]

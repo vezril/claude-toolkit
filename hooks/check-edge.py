@@ -313,6 +313,44 @@ def unschemad(flow_status, common, schemas: dict) -> set:
             if a not in TERMINAL_PROSE and common.schema_for(a, schemas) is None}
 
 
+def declared_checks(path: Path, repo: Path, common) -> list:
+    """[(check_name, problems)] from every workflow that declares a check for this artifact.
+
+    A declared check is a script exposing `problems(path, repo) -> (problems, info)`, the same
+    contract `validate-proposal.py` has. It is loaded only when its artifact is written, so a
+    workflow's checker costs nothing to the workflows that do not use it.
+
+    A checker that cannot be loaded, or that raises, becomes a *problem* rather than being
+    skipped. The alternative is a gate reporting success because its own script was broken —
+    the inert-guardrail failure this project has now found five times, and the one place it
+    must not be reintroduced is the code that runs the gates.
+    """
+    import importlib.util
+
+    out = []
+    for d in workflows():
+        script = (d.get("edge_checks") or {}).get(path.name)
+        if not script:
+            continue
+        name = Path(script).stem
+        target = Path(workflow_descriptor.PLUGIN_ROOT) / script
+        if not target.is_file():
+            out.append((name, [f"{d['workflow']} declares {script} for {path.name}, "
+                               f"and it is not on disk"]))
+            continue
+        try:
+            spec = importlib.util.spec_from_file_location(name.replace("-", "_"), target)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            found, _info = mod.problems(path, repo)
+        except Exception as e:            # a broken gate must say so, not pass by silence
+            out.append((name, [f"{script} could not run over {path.name}: "
+                               f"{type(e).__name__}: {e}"]))
+            continue
+        out.append((name, list(found)))
+    return out
+
+
 def check_artifact(path: Path, schemas: dict, common, validator, trigger_rules, proposal_rules,
                    repo: Path = None) -> tuple:
     """Return (ok, problems, checks_run) for one artifact.
@@ -376,6 +414,17 @@ def check_artifact(path: Path, schemas: dict, common, validator, trigger_rules, 
             problems += found
             if info.get("openspec_validate"):
                 ran.append("openspec-validate")
+
+        # Extra checks a workflow declares for this artifact (design D4, task 4.5). This is
+        # how the readiness gate stopped being an instruction: `lint-story.py` and
+        # `openspec validate` are deterministic, and neither was a guardrail while a model had
+        # to choose to run them. Declared in the descriptor rather than written in here, so a
+        # second workflow adds one without editing the shared machinery — which the
+        # `proposal.json` branch above still requires, and is why that branch is the older
+        # shape rather than the pattern to copy.
+        for check_name, found in declared_checks(path, repo, common):
+            ran.append(check_name)
+            problems += found
 
         # Named in the trace even when it finds nothing: a check nobody can see ran is not
         # evidence that it ran.
