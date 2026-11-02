@@ -177,6 +177,66 @@ class TestReport(unittest.TestCase):
         self.assertAlmostEqual(week["rate_excluding_punch_outs"], 80.0)
         self.assertAlmostEqual(week["rate_counting_punch_outs"], 4 / 7 * 100, places=1)
 
+    def test_a_single_rate_over_all_runs_with_its_denominator(self):
+        """Criterion 4 reads either as a weekly trend or as one rate, and the decision was to
+        give both rather than pick. While there are only a week or two of data the single rate
+        is the more honest: two points are not a curve."""
+        base = Path(tempfile.mkdtemp())
+        (base / ".git").mkdir()
+        (base / ".delivery-flow.yaml").write_text(
+            "tracker:\n  kind: local-markdown\n"
+            "artifacts:\n  in_repo_ack: test fixture, no real ticket text\n")
+        # Two weeks, so the aggregate is not just one week restated.
+        for i, (ts, status) in enumerate([("2026-10-20T10:00:00+00:00", "completed"),
+                                          ("2026-10-20T11:00:00+00:00", "failed"),
+                                          ("2026-10-27T10:00:00+00:00", "completed"),
+                                          ("2026-10-27T11:00:00+00:00", "punched-out")]):
+            d = base / "delivery" / f"I-{i}"
+            d.mkdir(parents=True)
+            (d / "trace.jsonl").write_text(json.dumps({
+                "ts": ts, "item": f"I-{i}", "step": "triage", "model": "claude-sonnet-5",
+                "input_tokens": 1, "output_tokens": 1,
+                "api_equivalent_cost_usd": 0.0, "certified": True}) + "\n")
+            (d / "outcome.json").write_text(json.dumps(
+                {"item": f"I-{i}", "profile": "triage", "status": status, "step": "report",
+                 "ts": ts, "manual_corrections": []}))
+        r = subprocess.run([sys.executable, str(REPORT), str(base), "--json"],
+                           capture_output=True, text=True)
+        self.assertEqual(0, r.returncode, r.stderr)
+        o = json.loads(r.stdout)["overall"]
+        self.assertEqual(2, o["weeks_observed"])
+        self.assertEqual("2026-W43", o["first_week"])
+        self.assertEqual("2026-W44", o["last_week"])
+        a = o["all"]
+        self.assertEqual((2, 1, 1), (a["completed"], a["failed"], a["punched_out"]))
+        # 2 of 3 excluding the punch-out; 2 of 4 counting it.
+        self.assertAlmostEqual(66.7, a["rate_excluding_punch_outs"], places=1)
+        self.assertAlmostEqual(50.0, a["rate_counting_punch_outs"], places=1)
+
+    def test_the_markdown_states_the_denominator(self):
+        """A rate without its n is the thing a reviewer takes apart first."""
+        r = Repo(); r.current_step("triage")
+        (r.item_dir / "trace.jsonl").write_text(json.dumps({
+            "ts": "2026-10-20T10:00:00+00:00", "item": r.item, "step": "triage",
+            "model": "claude-sonnet-5", "input_tokens": 1, "output_tokens": 1,
+            "api_equivalent_cost_usd": 0.0, "certified": True}) + "\n")
+        r.outcome("completed")
+        out = subprocess.run([sys.executable, str(REPORT), str(r.dir)],
+                             capture_output=True, text=True)
+        self.assertIn("End-to-end rate, all runs", out.stdout)
+        self.assertIn("n = 1", out.stdout)
+        self.assertIn("Certified-only", out.stdout)
+
+    def test_no_terminal_runs_gives_no_overall_rate(self):
+        r = Repo(); r.current_step("triage")
+        (r.item_dir / "trace.jsonl").write_text(json.dumps({
+            "ts": "2026-10-20T10:00:00+00:00", "item": r.item, "step": "triage",
+            "model": "claude-sonnet-5", "input_tokens": 1, "output_tokens": 1,
+            "api_equivalent_cost_usd": 0.0, "certified": True}) + "\n")
+        o = r.report()["overall"]
+        self.assertIsNone(o["all"]["rate_excluding_punch_outs"])
+        self.assertEqual(0, o["weeks_observed"])
+
     def test_uncertified_run_excluded_from_the_stage4_rate(self):
         r = Repo(); r.current_step("triage")
         (r.item_dir / "trace.jsonl").write_text(json.dumps({

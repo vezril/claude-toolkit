@@ -228,6 +228,19 @@ def summarize(items: dict) -> dict:
                 "rate_excluding_punch_outs": excl, "rate_counting_punch_outs": incl}
 
     weeks = {w: {"all": rate(c), "certified_only": rate(c, "certified:")} for w, c in sorted(weekly.items())}
+
+    # The same rate over every terminal run, with the denominator stated. Criterion 4 can be
+    # read either as a weekly trend or as one rate, and which one the certification wants is
+    # still an open question with the reviewer — so both are emitted rather than one being
+    # chosen. A single rate is also the only honest reading while there are too few weeks to
+    # have a trend: two points are not a curve.
+    totals = defaultdict(int)
+    for counts in weekly.values():
+        for key, n in counts.items():
+            totals[key] += n
+    overall = {"all": rate(totals), "certified_only": rate(totals, "certified:"),
+               "weeks_observed": len(weeks),
+               "first_week": min(weeks, default=None), "last_week": max(weeks, default=None)}
     # A profile with no terminal runs has no rate. Reporting it as 0% would read as "it never
     # works" when it means "nobody has run it", and those are opposite conclusions.
     profiles = {p: {"all": rate(c), "certified_only": rate(c, "certified:")}
@@ -247,7 +260,8 @@ def summarize(items: dict) -> dict:
 
     return {"items": rows, "per_step": {k: dict(v) for k, v in per_step.items()},
             "per_model": {k: dict(v) for k, v in per_model.items()},
-            "weekly": weeks, "per_profile": profiles, "non_conformant": nonconformant,
+            "weekly": weeks, "overall": overall,
+            "per_profile": profiles, "non_conformant": nonconformant,
             "manual_corrections": corrections,
             "missing_pricing": sorted(missing_pricing)}
 
@@ -295,6 +309,25 @@ def markdown(s: dict, pricing_as_of: str) -> str:
         L += [f"- Uncertified **nodes**, which do disqualify their run: `{'`, `'.join(uncert)}`"]
     if not excl and not uncert:
         L += ["", "- Nothing was set aside, and no node was uncertified."]
+
+    o, pc = s["overall"], (lambda x: "—" if x is None else f"{x:.1f}%")
+    oa, oc = o["all"], o["certified_only"]
+    den = oa["completed"] + oa["failed"] + oa["punched_out"]
+    cden = oc["completed"] + oc["failed"] + oc["punched_out"]
+    L += ["", "## End-to-end rate, all runs", "",
+          "Criterion 4 can be read as a weekly trend or as one rate over every run. Which the "
+          "certification wants is an open question with the reviewer, so both are given rather "
+          "than one being chosen — and while there are only a handful of weeks, the single rate "
+          "is the more honest of the two, because two points are not a curve.", "",
+          f"- **All runs: {pc(oa['rate_excluding_punch_outs'])}** excluding punch-outs, "
+          f"{pc(oa['rate_counting_punch_outs'])} counting them "
+          f"(**n = {den}** terminal runs: {oa['completed']} completed, {oa['failed']} failed, "
+          f"{oa['punched_out']} punched out)",
+          f"- **Certified-only, the Stage 4 figure: {pc(oc['rate_excluding_punch_outs'])}** "
+          f"excluding punch-outs, {pc(oc['rate_counting_punch_outs'])} counting them "
+          f"(**n = {cden}**)",
+          f"- Observed over {o['weeks_observed']} week(s)"
+          + (f", {o['first_week']} to {o['last_week']}" if o["weeks_observed"] else "")]
 
     L += ["", "## Weekly end-to-end rate", "",
           "| Week | Completed | Failed | Punched out | Excluding punch-outs | Counting them | Certified-only (Stage 4) |",
