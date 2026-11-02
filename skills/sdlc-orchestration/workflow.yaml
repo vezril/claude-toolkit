@@ -38,6 +38,18 @@ profiles: templates/sdlc/profiles.yaml
 edge_checks:
   readiness-verdict.json: scripts/sdlc/readiness-gate.py
 
+# What a review verdict means for the flow (design D5). The rules live in
+# `scripts/workflow/verdict.py`; only the WEAKENED policy is a choice, and it differs between
+# the two workflows — which is why it is declared rather than decided in the substrate.
+#
+# `require-addressed`: WEAKENED blocks until the reviewed artifact has been rewritten, and then
+# the reviewer runs again. There is deliberately no path from WEAKENED to advance that skips a
+# fresh verdict, because "the findings are addressed" is exactly the claim an edge exists to
+# not take on trust. These stories feed a build; delivery-flow's breakdown feeds a brief a
+# human reads, which is why its answer is different and equally correct.
+verdict_policy:
+  weakened: require-addressed
+
 # The routing table, one row per **segment** (design D1). A segment is a 2–3 node chain with
 # schema-backed artifacts between its nodes, a deterministic edge after each write, a declared
 # terminus, and a hand-off that is either data the next segment consumes or prose a human reads

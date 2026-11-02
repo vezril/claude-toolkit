@@ -25,27 +25,19 @@ and section 3 is exactly that.
 
 ## 1. Substrate extraction (behaviour-preserving)
 
-- [ ] 1.1 Create `scripts/workflow/` with the workflow-agnostic core moved out of
-      `scripts/delivery-flow/`: registry loader, profile-aware router, trace append, edge
-      dispatch, outcome writer, `check-certification.py`, signature/pricing helpers
-- [ ] 1.2 Define the workflow **descriptor** (`workflow.yaml`): step table, schema dir, artifact
-      root, profiles, punch-out triggers, model policy
-- [ ] 1.3 Reduce `scripts/delivery-flow/` to delivery-specific steps; leave the existing module
-      paths as thin re-export shims so no import in the submitted tree changes
-- [ ] 1.4 `pytest tests/delivery-flow/` green with **zero behavioural diff**; bypass suite still
-      15/15 blocked. If either moves, the extraction is wrong, not the test
-- [ ] 1.5 Descriptor resolution helper: given a repo, find the active workflow(s) or return none
+- [x] 1.1 Done in five slices, each its own commit and each leaving the existing suite green and unchanged: `pricing.py`, `trace.py`, `registry.py`, `schema.py`, `layout.py`. `common.py` 640 -> 464 lines. Nothing in the substrate defaults — every path is required, because a default is how a second workflow gets priced off this one's rates or validated against contracts it was never written for
+- [x] 1.2 `skills/*/workflow.yaml`, parsed by `scripts/workflow/descriptor.py`. Carries the opt-in file name, artifact directory, signing namespace, pointers and the routing table. The table was Python literals in `flow-status.py`; a test compares the descriptor's against `STEPS` directly so a YAML typo cannot drop or reorder a step
+- [x] 1.3 Thin re-export shims in `common.py`. The shim tests assert **identity**, not equality: `common.price_for` must *be* `pricing.price_for`. Equality would pass against two diverging copies that happen to agree on the cases tested, which is the whole failure shims exist to prevent
+- [x] 1.4 532 delivery-flow tests green and unchanged across every slice, and the bypass suite 24/24 blocked, 0 breached, 0 inconclusive against the generalised hooks — including `write-decision-absolute-variable`, which had been in the table but never executed, so the count had stood at 23/23 for want of a run
+- [x] 1.5 `descriptor.resolve(repo)`. No workflow is `(None, None)` rather than an error — the common case, on the path of every hook invocation in every unrelated session, so inertness is a tested property. Two active workflows is an error, not a choice: picking one silently routes a step by the wrong table and the run looks successful
 
 ## 2. Generalise the hooks
 
-- [ ] 2.1 `hooks/check-edge.py`: resolve the descriptor instead of keying on
-      `delivery/<ITEM-KEY>/` and `.delivery-flow.yaml`; stay inert with no descriptor present
-- [ ] 2.2 `hooks/trace-step.py`: same, and keep recording the model a step *actually ran on*
-      plus drift from the declared tier (design D7)
-- [ ] 2.3 `hooks/enforce-punch-outs.py`: same, reading triggers from the descriptor
-- [ ] 2.4 Both workflows' hooks exercised in one repo without interfering; add a test for a repo
-      holding both descriptors
-- [ ] 2.5 Confirm a repo with neither descriptor sees no behaviour change at all
+- [x] 2.1 `check-edge.py` builds its Bash pattern from every descriptor's artifact directory as an escaped, longest-first alternation; `_registered_bases` unions every workflow's registry, each consulted with *its own* predicate. A broken descriptor degrades to "no workflows" rather than failing every tool call. Also fixed: `descriptor.py` did not honour `CLAUDE_PLUGIN_ROOT` while `common.py` does, so with it set the descriptors and the schemas they point at came from different trees
+- [x] 2.2 `trace-step.py` resolves the descriptor, and stopped hard-coding `skills/delivery-flow/steps.yaml` — it takes the registry from the workflow. Reading another workflow's registry would report model drift against tiers never declared for those steps. No descriptor yields `{}`, the same answer as a missing registry, which the caller already handles
+- [x] 2.3 `enforce-punch-outs.py` resolves the descriptor, and its item-key regex tries every workflow's artifact directory, escaped. This is the hook that stops an agent writing its own decision, so a pattern that silently stops matching disables the control that matters most
+- [x] 2.4 `tests/workflow/test_hook_generalisation.py`: a fixture plugin root with two descriptors, both artifact directories scanned, a repo opted into either or both, the variable-base shape that defeated earlier versions, and the metacharacter case. Proven for real when the sdlc descriptor landed — all 532 delivery-flow tests passed unaltered the first time two descriptors existed
+- [x] 2.5 A repo with no descriptor produces no output and exits 0, for all three hooks; a malformed payload never fails a tool call. The four answers the hooks ask live in `descriptor.py` and all three delegate, rather than each deriving its own — which is how the artifact directory ended up in one regex in `check-edge.py` and a different one in `enforce-punch-outs.py`
 
 ## 3. The story becomes a data contract
 
@@ -108,9 +100,14 @@ S.1–S.6, 3.1, 3.2, 3.4, 3.7 are retired rather than done. 3.3, 3.5, 3.6 and 3.
 - [x] 4.4 `templates/sdlc/profiles.yaml`: `readiness` alone (the slice section 5 certifies first), `implementation`, and `full`. Same parser and same orphan/terminus rules as delivery-flow's
 - [x] 4.5 Move the readiness gate's `lint-story.py` + `openspec validate` into the edge dispatch; delete the orchestrator's instruction to invoke them (design D4). `scripts/sdlc/readiness-gate.py` exposes the same `problems(path, repo)` contract as `validate-proposal.py`, and the sdlc descriptor declares it under `edge_checks` keyed by `readiness-verdict.json`. `check-edge.declared_checks` dispatches from the descriptor rather than from `if path.name == ...`, so a workflow adds a checker without editing the shared hook. A declared script that is missing or that raises becomes a *problem*, never a skip — the code that runs the gates is the one place the inert-gate failure must not return. A missing `openspec` CLI blocks instead of passing by absence. SKILL.md now states that the hook runs them and the orchestrator does not.
 - [x] 4.6 `schemas/readiness-verdict.schema.json`: the fixed three verdicts, findings with evidence, and an attacks floor of 3 — a verdict reached without attacking anything is not a review. The first draft carried a `gates` field recording lint-story and openspec results; that is a node witnessing its own guardrail, which D4 and D5 put on the edge, so it was removed before commit
-- [ ] 4.7 Harness applying the fixed verdict rules — `REFUTED` reruns the producer, `WEAKENED`
-      requires each finding addressed, `SURVIVED` proceeds — in the substrate, not the
-      orchestrator (design D5)
+- [x] 4.7 Harness applying the fixed verdict rules in the substrate, not the orchestrator (design D5). `scripts/workflow/verdict.py`: SURVIVED advances, REFUTED reruns the producing node and twice on one target is a punch-out (REFUTE_LIMIT = 2, the same number as delivery-flow's loop bound rather than a second one meaning the same thing).
+
+      **WEAKENED differs between the two workflows, so the policy is declared not decided.** delivery-flow documents "a verdict of WEAKENED never blocks"; D5 says WEAKENED requires every finding addressed. Both are right for their own pipeline — one feeds a brief a human reads, the other feeds a build — and a shared harness imposing either would have silently changed one. Each descriptor now declares `verdict_policy.weakened`, delivery-flow explicitly `advance` so a default change cannot move it, and the default itself is `advance` because the workflow that predates this module must not change by its arrival.
+
+      "Every finding addressed" is tested without inventing an artifact for it: the target must have been rewritten since the verdict, which is the staleness rule delivery-flow already applies to challenges. Unchanged stories mean nothing was addressed, whatever anyone claims; rewritten ones mean the verdict no longer describes what is on disk, so the reviewer runs again. There is deliberately no path from WEAKENED to advance that skips a fresh verdict — self-reported resolution is the claim an edge exists to not take on trust.
+
+      Two cases that block rather than guess: an unreadable or unrecognised verdict (treating it as SURVIVED would advance a build on a malformed artifact; as REFUTED would rerun a node that may have been right), and SURVIVED carrying findings, which is a reviewer saying the artifact both stands and has defects.
+
 
 ## 5. Certify the readiness segment
 
