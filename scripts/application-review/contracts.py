@@ -67,7 +67,6 @@ PARSE_SIGNALS = {
     "contact_in_footer": ("risk", "An email or phone number appears only in the page footer."),
     "hidden_white_text": ("risk", "Text is set in white or near-white on white."),
     "hidden_tiny_text": ("risk", "Text is rendered below a legible size."),
-    "hidden_offpage_text": ("risk", "Text is positioned outside the page box."),
     "text_box": ("risk", "Content sits in a text box or frame, which many parsers skip."),
     "table_layout": ("risk", "Content sits in a table, which can be read in an unexpected order."),
     "no_experience_heading": ("risk", "No recognisable experience or work-history heading was found."),
@@ -83,6 +82,14 @@ RANK_SIGNAL_CODES = [
     "preferred_unmet", "preferred_met", "title_below_posting", "title_above_posting",
     "acronym_only", "full_form_only", "years_near_miss", "skill_listed_not_evidenced",
     "equivalents_allowed", "language_mismatch",
+]
+
+#: Why a verdict component reads the way it does. The code is what lets the
+#: renderer phrase the reason in the user's language; ``why`` carries the
+#: English prose for logs and for anyone reading verdict.json directly.
+REASON_CODES = [
+    "knockout_at_risk", "knockout_unknown", "tier_gap", "parse_signal",
+    "years_unreadable",
 ]
 
 REFUSAL_CODES = [
@@ -218,6 +225,11 @@ CONTRACTS: dict[str, dict] = {
                 "knockout_exposure": _f("string", enum=KNOCKOUT_EXPOSURE),
                 "likely_ai_tier": _f("string", enum=AI_TIERS),
                 "parse_health": _f("string", enum=PARSE_HEALTH),
+                "statuses": _f("object", free_form=True, doc=(
+                    "Requirement id to its FINAL status, after the quote edge and the years "
+                    "arithmetic. This is what the report prints; evidence.json holds what the "
+                    "model originally said."
+                )),
                 "rank_signals": _f("array", items={
                     "type": "object",
                     "fields": {
@@ -230,8 +242,11 @@ CONTRACTS: dict[str, dict] = {
                     "type": "object",
                     "fields": {
                         "component": _f("string", enum=["knockout_exposure", "likely_ai_tier", "parse_health"]),
+                        "code": _f("string", enum=REASON_CODES, doc="Lets the renderer phrase this in the user's language."),
                         "requirement_id": _f("string", pattern=_ID_PATTERN, nullable=True),
-                        "why": _f("string"),
+                        "signal": _f("string", enum=list(PARSE_SIGNALS), required=False, nullable=True,
+                                     doc="Set on parse_signal reasons, naming the signal."),
+                        "why": _f("string", doc="English prose, for logs and for reading verdict.json directly."),
                     },
                 }),
                 "years": _f("object", free_form=True, doc="Merged ranges, total months, and the per-requirement sums."),
