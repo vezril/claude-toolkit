@@ -51,6 +51,13 @@ def _scalar(value: str):
 
     `null`/empty become None so an absent `optional_when` reads the same as the Python literal
     it replaces. Quotes are stripped; nothing is eval'd.
+
+    **Numbers are parsed as numbers.** Nothing in the delivery-flow descriptor is numeric, so
+    this gap stayed invisible until `punch_out.retry_limit: 3` came back as the string `"3"` —
+    which compares wrongly against an int and raises on arithmetic. A ceiling that silently
+    stops being a number is a ceiling that stops holding, and it would have failed at the point
+    of use rather than at the point of parse. A quoted `"3"` still reads as a string, because
+    quoting it is how a descriptor says it means the text.
     """
     v = (value or "").strip()
     if not v or v in ("null", "~"):
@@ -59,6 +66,10 @@ def _scalar(value: str):
         return v.lower() == "true"
     if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
         return v[1:-1]
+    if re.fullmatch(r"-?\d+", v):
+        return int(v)
+    if re.fullmatch(r"-?\d+\.\d+", v):
+        return float(v)
     if v.startswith("[") and v.endswith("]"):
         inner = v[1:-1].strip()
         return [_scalar(p) for p in inner.split(",")] if inner else []

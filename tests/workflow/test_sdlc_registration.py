@@ -413,5 +413,98 @@ class TestSegmentCertification(unittest.TestCase):
                     self.assertTrue((ROOT / node["prompt"]).is_file(), node["prompt"])
 
 
+class TestPunchOutDeclaration(unittest.TestCase):
+    """6.1 — the punch-out triggers this workflow raises, declared rather than remembered.
+
+    The human gates are the four approvals `docs/using-the-sdlc-dev-team.md` documents. Moving
+    them out of prose matters because prose is what a model has to remember: a gate that exists
+    only as an instruction is one a model can skip without producing a failure, which is the
+    same reasoning that put the readiness gate on a hook in task 4.5.
+    """
+
+    def setUp(self):
+        self.doc = D.load(SDLC)
+        self.policy = self.doc.get("punch_out") or {}
+        self.segments = [s["step"] for s in self.doc["steps"]]
+
+    def test_the_policy_block_exists(self):
+        self.assertTrue(self.policy, "the descriptor declares no punch_out policy")
+
+    def test_every_human_gate_is_a_real_segment(self):
+        """A gate on a segment that does not exist would never fire and never be noticed."""
+        for gate in self.policy["human_gates"]:
+            with self.subTest(gate=gate):
+                self.assertIn(gate, self.segments)
+
+    def test_the_documented_gates_are_the_declared_ones(self):
+        """If the playbook and the descriptor disagree, one of them is lying to a reader."""
+        self.assertEqual(sorted(self.policy["human_gates"]),
+                         ["analysis", "planning", "readiness", "verification"])
+
+    def test_readiness_is_gated(self):
+        """The segment that is actually certified must still stop for a human.
+
+        Certifying a segment makes it runnable, not autonomous — and readiness is the gate the
+        playbook is most emphatic about, because it is the last point before code.
+        """
+        self.assertIn("readiness", self.policy["human_gates"])
+
+    def test_the_declared_triggers_are_named(self):
+        self.assertIn("phase-gate", self.policy["triggers"])
+        self.assertIn("protected-path", self.policy["triggers"])
+
+    def test_the_ceilings_are_numbers(self):
+        """`retry_limit: 3` parsed as the string "3" until the parser learned numbers.
+
+        A ceiling that is quietly a string compares wrongly against an int and raises on
+        arithmetic — and it would have failed at the point of use, far from the parse.
+        """
+        for key in ("retry_limit", "max_rewrite_iterations", "max_turns_per_phase",
+                    "max_minutes_per_job", "consecutive_escalations"):
+            with self.subTest(key=key):
+                self.assertIsInstance(self.policy[key], int)
+                self.assertGreater(self.policy[key], 0)
+
+    def test_the_retry_limit_matches_the_unattended_policy(self):
+        """Two files naming the same ceiling must name the same number."""
+        policy = (ROOT / "templates" / "unattended" / "unattended-policy.yml").read_text()
+        import re
+        m = re.search(r"max_rewrite_iterations:\s*(\d+)", policy)
+        self.assertIsNotNone(m, "the unattended policy declares no max_rewrite_iterations")
+        self.assertEqual(int(m.group(1)), self.policy["max_rewrite_iterations"])
+
+
+class TestTheRepoConfigTemplate(unittest.TestCase):
+    """`templates/sdlc/sdlc.yaml` — the per-repo half of the policy."""
+
+    def setUp(self):
+        self.path = ROOT / "templates" / "sdlc" / "sdlc.yaml"
+        self.text = self.path.read_text()
+
+    def test_it_exists_and_names_the_opt_in_file(self):
+        self.assertTrue(self.path.is_file())
+        self.assertIn(".sdlc.yaml", self.text)
+
+    def test_its_profile_is_one_the_workflow_defines(self):
+        import re
+        m = re.search(r"^profile:\s*(\S+)", self.text, re.M)
+        self.assertIsNotNone(m)
+        names = {p["profile"] for p in common.load_profiles(PROFILES)}
+        self.assertIn(m.group(1), names)
+
+    def test_protected_paths_is_not_empty_by_default(self):
+        """A run that can edit its own guardrails has none.
+
+        The template ships with the pipeline's own configuration protected, rather than an
+        empty list a reader has to notice is empty.
+        """
+        block = self.text.split("protected_paths:")[1]
+        globs = [l.strip().lstrip("- ").strip() for l in block.splitlines()[1:]
+                 if l.strip().startswith("- ")]
+        self.assertTrue(globs, "protected_paths ships empty")
+        self.assertTrue(any(".sdlc.yaml" in g or ".claude" in g for g in globs),
+                        f"the pipeline's own config is not protected: {globs}")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

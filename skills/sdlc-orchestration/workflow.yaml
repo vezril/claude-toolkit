@@ -50,6 +50,34 @@ edge_checks:
 verdict_policy:
   weakened: require-addressed
 
+# Punch-out triggers for this workflow (task 6.1). A punch-out is a point where the flow stops
+# and a human decides; `hooks/enforce-punch-outs.py` refuses outward actions while one is open.
+#
+# `gate: human` on a segment means advancing past its terminus needs a signed decision. These
+# four are not invented here — they are the approvals
+# `docs/using-the-sdlc-dev-team.md` already documents, moved from prose a model has to remember
+# into data the machinery reads. Everything between them runs unattended.
+#
+# The other triggers are policy, so the *kinds* are declared here and the *values* live in each
+# repo's `.sdlc.yaml`: which paths are protected and what the ceilings are depend on the repo,
+# and a plugin-level default would either be wrong everywhere or quietly permissive.
+punch_out:
+  # Segment boundaries that require a human decision before the flow advances.
+  human_gates: [analysis, planning, readiness, verification]
+
+  # Trigger kinds this workflow raises. Named so a bypass run can enumerate them rather than
+  # being handed a list by hand — a gate nobody attacked is a gate nobody tested.
+  triggers: [phase-gate, protected-path, budget, retry-limit, refuted-twice, external-post]
+
+  # Ceilings. Defaults here, overridable per repo; these match
+  # `templates/unattended/unattended-policy.yml` so the attended and unattended pipelines do
+  # not disagree about the same number.
+  retry_limit: 3
+  max_rewrite_iterations: 3
+  max_turns_per_phase: 60
+  max_minutes_per_job: 30
+  consecutive_escalations: 3
+
 # The routing table, one row per **segment** (design D1). A segment is a 2–3 node chain with
 # schema-backed artifacts between its nodes, a deterministic edge after each write, a declared
 # terminus, and a hand-off that is either data the next segment consumes or prose a human reads

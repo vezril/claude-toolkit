@@ -122,15 +122,19 @@ S.1–S.6, 3.1, 3.2, 3.4, 3.7 are retired rather than done. 3.3, 3.5, 3.6 and 3.
 
 ## 6. Punch-outs and attack evidence
 
-- [ ] 6.1 Define sdlc's punch-out triggers in its descriptor: phase gates, protected paths,
-      unattended-mode ceilings
+- [x] 6.1 Declared in `skills/sdlc-orchestration/workflow.yaml` under `punch_out`: four `human_gates` (analysis, planning, readiness, verification), the trigger kinds this workflow raises, and the ceilings. The gates are not invented — they are the approvals `docs/using-the-sdlc-dev-team.md` already documents, moved from prose a model has to remember into data the machinery reads, for the same reason task 4.5 moved the readiness gate onto a hook. Per-repo values live in `templates/sdlc/sdlc.yaml`, whose `protected_paths` ships non-empty with the pipeline's own config in it: a run that can edit its own guardrails has none.
+
+      Found by doing this: the descriptor parser returned `retry_limit` as the string `"3"`. Nothing in the delivery-flow descriptor is numeric so the gap had stayed invisible, and a ceiling that is quietly a string compares wrongly against an int and raises on arithmetic — failing at the point of use, far from the parse. `_scalar` now parses numbers, and a quoted `"3"` still reads as text
 - [ ] 6.2 Generalise `tests/delivery-flow/bypass/run-bypass.py` to run against any registered
       workflow's gates
 - [ ] 6.3 Run it against sdlc's gates. Record every hole it finds and fix them — the delivery-flow
       run found 3 real holes in 15 attacks, so expect holes rather than a clean sheet
 - [ ] 6.4 Commit the bypass report as the punch-out evidence artifact
-- [ ] 6.5 Verify `check-protected-paths.py` is reachable from the generalised substrate and still
-      fails a run on violation
+- [x] 6.5 `scripts/check-protected-paths.py` was **not** reachable from a punch_out-nested config, which is exactly what this task existed to find. It matched `protected_paths:` only at column 0 — the shape `templates/unattended/unattended-policy.yml` uses — while `.delivery-flow.yaml` and `templates/sdlc/sdlc.yaml` nest the same key under `punch_out:`. On either of those it found no block.
+
+      It was caught only because an empty list exits 2, "refusing to pass by absence", rather than permitting everything. That line is the reason this was a finding instead of a silent hole, and it is what the new tests defend hardest.
+
+      The parser now matches the key at any indentation and ends the block at the next sibling key; both config shapes read, and both still fail a run on violation. 10 tests in `tests/workflow/test_protected_paths.py`, including that the sdlc policy protects its own `.sdlc.yaml`, that ordinary edits still pass, and that a policy with no block is an error rather than a pass
 
 ## 7. Audit trail and success rate
 
