@@ -1,7 +1,10 @@
 # delivery-flow: running status
 
 Short, current, and overwritten each session. The full picture is in
-`docs/delivery-flow-handoff.md`; this is just where things stand right now.
+`docs/delivery-flow-handoff.md`; what comes *after* the submission is in
+`docs/delivery-flow-next-workflows.md` (AWS testing, ready-to-PR, PR review — assessed, not
+started, and deliberately not started until Stage 4 has its runs). This is just where things
+stand right now.
 
 Last updated 2026-11-02.
 
