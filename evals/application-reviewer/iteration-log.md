@@ -164,9 +164,72 @@ the hypothesis v2 tests.
 
 ## v1b (REPEAT=3, both models) — the same prompt, corrected harness
 
-Running. `prompts/prompt_v1b.md` is byte-identical to `prompt_v1.md`; only the
-graders and the recommendation contract changed. Re-running rather than
-re-scoring, because the recorded v1 outputs predate the `suggested_text` field
-and could not satisfy a contract they were never shown.
+`prompts/prompt_v1b.md` is byte-identical to `prompt_v1.md`; only the graders
+and the recommendation contract changed. I re-ran rather than re-scored,
+because the recorded v1 outputs predate the `suggested_text` field and could
+not satisfy a contract they were never shown.
+
+The first attempt died part-way through when the AWS session behind Bedrock
+expired, and 21 of the 34 cases came back with no output at all. Kept as
+`results/run_v1b_all.DISCARDED-aws-credentials-expired-partial.json`. It was
+tracking honesty at 12/13 on the cases it finished, which would have flattered
+the fix, so reporting it would have been worse than useless. (I also wasted a
+cycle reading a stale log after a `cd` in the relaunch failed silently and the
+old failure output was still on disk. Second lesson, same shape as the first:
+check that the thing you are reading is the thing you just produced.)
+
+`results/run_v1b_all.json`:
+
+| | contract | accuracy | honesty | no_score |
+|---|---|---|---|---|
+| haiku | 101/102 | 35/102 | 98/102 | 101/102 |
+| sonnet | 94/102 | 71/102 | 95/102 | 102/102 |
+
+Honesty went from 35/102 to 95/102 on sonnet and 36/102 to 98/102 on haiku,
+with the prompt unchanged. That is the measurement of my two bugs, and it is
+why the v1 run could not be allowed to stand as the baseline for v2: the
+v1-to-v2 honesty delta would have been almost entirely my own fix.
+
+Accuracy barely moved (77 to 71 on sonnet, 31 to 35 on haiku) which is what I
+expected, since neither bug touched that criterion. The difference is sampling.
+
+Two things in v1b I had not seen before:
+
+- **Sonnet's contract score dropped to 94/102**, and seven of the eight
+  failures are the same thing: `condition: missing`. The contract requires
+  every field to be present with `null` where it does not apply, and the model
+  omitted the key entirely on `format` and `gap` recommendations where a
+  condition is meaningless. The strictness is deliberate — prompt-edd's line is
+  that null is the only legal "absent" — but nothing in v1 told the model, and
+  v2's field table lists "required fields" per kind, which if anything invites
+  the omission. Worth watching in v2.
+- One sonnet run on `case-28-fr-accents-pdf` emitted trailing content after the
+  JSON ("Extra data at line 3"). One out of three on one case, so I am not
+  treating it as a pattern yet.
+
+## v2 (REPEAT=3, both models) — the first real skill
+
+Running. `prompts/prompt_v2.md`.
+
+**Hypothesis.** Every systematic accuracy failure in v1b is a missing *rule*
+rather than missing capability, so stating the rules explicitly will move
+accuracy substantially without touching contract or honesty. Specifically I
+predict these flip:
+
+| Case | v1b | Rule added |
+|---|---|---|
+| `case-05`, `case-06`, `case-19`, `case-20` | `knockout_likely` true on plain skills | knockout_likely is a property of the *type*, from a closed list |
+| `case-13` | `knockout_likely` false on a preferred cert | `strength` is what records that it cannot filter anyone; the two fields do different jobs |
+| `case-12`, `case-14` | `unknown_ask` for a missing licence | `unknown_ask` is only work auth, relocation, clearance |
+| `case-27` | `unknown_ask` for a missing language | same rule, with the Languages-section worked example |
+| `case-22` | `unmet` on an unreadable file | an unreadable file makes everything unknown, not missing |
+| `case-32` | believed the CV's "15 years" | years come from dates; ignore self-declared totals |
+| `case-07` | `unmet` for a cert in progress | in-progress is `partial` |
+| `case-16` | `unmet` for a listed-but-unevidenced skill | weak evidence is `partial` |
+| `case-24` | refused the whole review | only third-party/multiple/recruiter refuses the whole run |
+
+I am *not* predicting a contract improvement. v2 says nothing new about the
+envelope, and the `condition: missing` problem above is untouched by it, so if
+contract stays near 94/102 on sonnet that is the next version's job.
 
 <!-- numbers to follow -->
