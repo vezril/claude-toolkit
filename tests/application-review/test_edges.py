@@ -125,13 +125,14 @@ def recommendations_doc(**over):
             {
                 "id": "C1", "kind": "reframe", "requirement_id": "R2",
                 "text": "Put Kubernetes in your skills line; the Northwind bullet already evidences it.",
+                "suggested_text": "Kubernetes",
                 "evidence_quote": "Operated production Kubernetes clusters across three regions.",
                 "condition": None,
             },
             {
                 "id": "C2", "kind": "gap", "requirement_id": "R3",
                 "text": "You have no AWS Certified Solutions Architect credential. That is a real gap.",
-                "evidence_quote": None, "condition": None,
+                "suggested_text": None, "evidence_quote": None, "condition": None,
             },
         ],
         "refusals": [],
@@ -397,7 +398,7 @@ class HonestyEdge(unittest.TestCase):
 
     def test_a_reframe_that_adds_a_skill_the_cv_lacks_fails(self):
         doc = recommendations_doc()
-        doc["recommendations"][0]["text"] = "Add 'AWS Certified Solutions Architect' to your skills line."
+        doc["recommendations"][0]["suggested_text"] = "AWS Certified Solutions Architect"
         problems = edges.check_honesty(doc, CV_TEXT, requirements_doc())
         # The term is reported in whichever case it was matched in, so the
         # assertion is on the term, not its capitalisation.
@@ -478,22 +479,89 @@ class HonestyEdge(unittest.TestCase):
 
     def test_an_invented_year_in_a_reframe_fails(self):
         doc = recommendations_doc()
-        doc["recommendations"][0]["text"] = "Say you have worked with Kubernetes since 2015."
+        doc["recommendations"][0]["suggested_text"] = "Kubernetes (since 2015)"
         problems = edges.check_honesty(doc, CV_TEXT, requirements_doc())
         self.assertTrue(any("C1" in p and "2015" in p for p in problems), problems)
 
     def test_a_year_that_is_on_the_cv_is_allowed_in_a_reframe(self):
         doc = recommendations_doc()
-        doc["recommendations"][0]["text"] = (
-            "Your Kubernetes work starts in 2021-03; say so on the skills line."
-        )
+        doc["recommendations"][0]["suggested_text"] = "Kubernetes (2021-03 to present)"
         self.assertEqual(edges.check_honesty(doc, CV_TEXT, requirements_doc()), [])
 
     def test_an_invented_employer_in_a_reframe_fails(self):
         doc = recommendations_doc()
-        doc["recommendations"][0]["text"] = "Mention the Kubernetes work you did at Shopify."
+        doc["recommendations"][0]["suggested_text"] = "Kubernetes work at Shopify"
         problems = edges.check_honesty(doc, CV_TEXT, requirements_doc())
         self.assertTrue(any("C1" in p and "Shopify" in p for p in problems), problems)
+
+    def test_a_reframe_must_carry_the_words_it_wants_on_the_cv(self):
+        doc = recommendations_doc()
+        doc["recommendations"][0]["suggested_text"] = None
+        problems = edges.check_honesty(doc, CV_TEXT, requirements_doc())
+        self.assertTrue(any("C1" in p and "suggested_text" in p for p in problems), problems)
+
+    def test_the_explanation_may_name_a_requirement_the_cv_does_not_meet(self):
+        # The bug that running v1 exposed. The claim check was reading `text`,
+        # so every well-written explanation that named the missing thing was
+        # reported as a fabrication. Discussing a gap is not claiming to fill
+        # one; D7 is about the suggested text.
+        doc = recommendations_doc()
+        doc["recommendations"][0]["text"] = (
+            "The posting asks for an AWS Certified Solutions Architect credential and your CV "
+            "does not show one. What it does show is the Kubernetes work, so put that where a "
+            "keyword match will find it."
+        )
+        doc["recommendations"][0]["suggested_text"] = "Kubernetes"
+        self.assertEqual(edges.check_honesty(doc, CV_TEXT, requirements_doc()), [])
+
+    def test_an_ask_need_not_repeat_its_condition_word_for_word(self):
+        # The other v1 bug. Requiring the condition verbatim inside the text
+        # failed advice that was perfectly conditional, just differently worded.
+        doc = recommendations_doc()
+        doc["recommendations"][1] = {
+            "id": "C2", "kind": "ask", "requirement_id": "R3",
+            "text": "Do you hold that AWS certification? If so, it belongs under a "
+                    "Certifications heading.",
+            "suggested_text": None, "evidence_quote": None,
+            "condition": "if the candidate holds the AWS Certified Solutions Architect credential",
+        }
+        self.assertEqual(edges.check_honesty(doc, CV_TEXT, requirements_doc()), [])
+
+    def test_a_french_ask_reads_conditionally_too(self):
+        doc = recommendations_doc()
+        doc["recommendations"][1] = {
+            "id": "C2", "kind": "ask", "requirement_id": "R3",
+            "text": "Avez-vous la certification demandée? Si c'est le cas, ajoutez-la.",
+            "suggested_text": None, "evidence_quote": None,
+            "condition": "si vous détenez la certification",
+        }
+        self.assertEqual(edges.check_honesty(doc, CV_TEXT, requirements_doc()), [])
+
+    def test_an_ask_phrased_as_a_flat_instruction_still_fails(self):
+        doc = recommendations_doc()
+        doc["recommendations"][1] = {
+            "id": "C2", "kind": "ask", "requirement_id": "R3",
+            "text": "Add the AWS certification under a Certifications heading.",
+            "suggested_text": None, "evidence_quote": None,
+            "condition": "if you hold the AWS certification",
+        }
+        problems = edges.check_honesty(doc, CV_TEXT, requirements_doc())
+        self.assertTrue(any("C2" in p and "conditional" in p for p in problems), problems)
+
+    def test_in_progress_is_allowed_when_the_cv_already_says_it(self):
+        cv = CV_TEXT + "\nCERTIFICATIONS\nAWS Certified Solutions Architect (in progress)\n"
+        doc = recommendations_doc()
+        doc["recommendations"][1]["text"] = (
+            "Your AWS certification is in progress, which a held-certification requirement "
+            "will not count. Leave the wording as it is rather than rounding it up."
+        )
+        self.assertEqual(edges.check_honesty(doc, cv, requirements_doc()), [])
+
+    def test_in_progress_is_rejected_when_the_cv_does_not_say_it(self):
+        doc = recommendations_doc()
+        doc["recommendations"][1]["text"] = "List the AWS certification as in progress."
+        problems = edges.check_honesty(doc, CV_TEXT, requirements_doc())
+        self.assertTrue(any("C2" in p and "in progress" in p for p in problems), problems)
 
     def test_pairing_an_acronym_with_its_full_form_is_allowed(self):
         # D7's one permitted keyword change. The CV says K8s; telling the
@@ -508,6 +576,7 @@ class HonestyEdge(unittest.TestCase):
         doc = {"refusals": [], "recommendations": [{
             "id": "C1", "kind": "reframe", "requirement_id": "R1",
             "text": "Write Kubernetes once alongside K8s, so a literal keyword match finds it.",
+            "suggested_text": "Kubernetes (K8s)",
             "evidence_quote": "Ran K8s clusters for twelve services.",
             "condition": None,
         }]}
@@ -525,6 +594,7 @@ class HonestyEdge(unittest.TestCase):
         doc = {"refusals": [], "recommendations": [{
             "id": "C1", "kind": "reframe", "requirement_id": "R1",
             "text": "Put Java on your skills line.",
+            "suggested_text": "Java",
             "evidence_quote": "Built the dashboard in JavaScript.",
             "condition": None,
         }]}
@@ -638,7 +708,7 @@ class Cli(unittest.TestCase):
 
     def test_honesty_failure_exits_nonzero(self):
         doc = recommendations_doc()
-        doc["recommendations"][0]["text"] = "Add AWS Certified Solutions Architect to your skills."
+        doc["recommendations"][0]["suggested_text"] = "AWS Certified Solutions Architect"
         self.write("recommendations.json", doc)
         r = run_cli(
             "honesty",

@@ -276,9 +276,23 @@ CONTRACTS: dict[str, dict] = {
                         "id": _f("string", pattern=_ID_PATTERN, doc="C1, C2, …"),
                         "kind": _f("string", enum=RECOMMENDATION_KINDS),
                         "requirement_id": _f("string", pattern=_ID_PATTERN, nullable=True, doc="Required for every kind except format."),
-                        "text": _f("string", doc="What to do, addressed to the candidate."),
+                        "text": _f("string", doc=(
+                            "The explanation, addressed to the candidate. Free prose: it may "
+                            "discuss a requirement the CV does not meet, because naming a gap "
+                            "is not claiming to fill it."
+                        )),
+                        "suggested_text": _f("string", nullable=True, doc=(
+                            "Required for reframe: the literal words to put on the CV, and "
+                            "nothing else. This is the field the honesty check reads, so every "
+                            "skill, credential, employer, title and date in it must already be "
+                            "in the CV. Put your reasoning in `text`, not here."
+                        )),
                         "evidence_quote": _f("string", nullable=True, doc="Required for reframe: the CV text the reframing rests on."),
-                        "condition": _f("string", nullable=True, doc="Required for ask: the 'if you have X' the question is conditioned on."),
+                        "condition": _f("string", nullable=True, doc=(
+                            "Required for ask: the 'if you have X' the question is conditioned "
+                            "on. `text` must read conditionally too, though not in these exact "
+                            "words."
+                        )),
                     },
                 }),
                 "refusals": _f("array", items={

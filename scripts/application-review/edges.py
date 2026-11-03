@@ -297,15 +297,17 @@ _DECEPTIVE = [
 
 _DECEPTIVE_RE = [(re.compile(p, re.IGNORECASE), why) for p, why in _DECEPTIVE]
 
-#: Only legitimate inside a conditional ``ask``: a credential that does not
-#: exist yet cannot be listed as in progress on the strength of our guess.
-_CONDITIONAL_ONLY = [
+#: Ways of presenting a credential as nearly held. Checked against the CV
+#: rather than banned outright: naming a gap is allowed, inventing a status is
+#: not.
+_IN_PROGRESS = [
     (r"\bin\s+progress\b", "describes a credential as in progress"),
-    (r"\bexpected\s+(completion|20\d\d)\b", "gives an expected completion"),
+    (r"\bexpected\s+(completion|20\d\d)\b", "gives an expected completion date"),
     (r"\ben\s+cours\b", "describes a credential as in progress"),
+    (r"\bpursuing\b", "describes a credential as being pursued"),
 ]
 
-_CONDITIONAL_ONLY_RE = [(re.compile(p, re.IGNORECASE), why) for p, why in _CONDITIONAL_ONLY]
+_IN_PROGRESS_RE = [(re.compile(p, re.IGNORECASE), why) for p, why in _IN_PROGRESS]
 
 #: Words that are capitalised for reasons other than being a proper noun, so
 #: they are not evidence of an invented employer or product.
@@ -450,6 +452,28 @@ def _unsupported_claims(text: str, cv_text: str, terms: list[str]) -> list[str]:
     return found
 
 
+#: Markers that a sentence leaves the candidate room to say no. An `ask` has to
+#: read like one of these; the exact wording is the model's business.
+_CONDITIONAL = re.compile(
+    r"(\bif\b|\bwhether\b|\bunless\b|\bshould you\b|\bdo you\b|\bare you\b|\bhave you\b"
+    r"|\bcan you\b|\bwere you\b|\bassuming\b|\bin case\b|\bprovided\b|\bwhen you\b"
+    r"|\bsi \b|\bsi j|\bsi v|\best-ce que\b|\bavez-vous\b|\betes-vous\b|\bdans le cas\b"
+    r"|\ble cas echeant\b|\bsi c'est le cas\b|\?)",
+    re.IGNORECASE,
+)
+
+
+def _reads_conditionally(text: str) -> bool:
+    """Does this sentence let the candidate answer no?
+
+    An `ask` exists to put a question to the person, and the failure mode it
+    guards against is a question that has quietly become an instruction:
+    "if you hold X, add it" turning into "add X". Checking for a conditional
+    marker catches that without dictating the phrasing.
+    """
+    return bool(_CONDITIONAL.search(_fold_accents(str(text))))
+
+
 def check_honesty(recommendations: dict, cv_text: str, requirements: dict) -> list[str]:
     """The deterministic form of "never advise adding what the CV cannot show".
 
@@ -481,30 +505,59 @@ def check_honesty(recommendations: dict, cv_text: str, requirements: dict) -> li
             elif rid not in req_ids:
                 problems.append(f"{where}: refers to unknown requirement {rid}")
 
+        # Deceptive advice is checked in both fields: it is just as bad in the
+        # words destined for the CV as in the explanation of them.
+        both = text + "\n" + str(rec.get("suggested_text") or "")
         for rx, why in _DECEPTIVE_RE:
-            if rx.search(text):
+            if rx.search(both):
                 problems.append(f"{where}: {why}")
 
-        if kind != "ask":
-            for rx, why in _CONDITIONAL_ONLY_RE:
-                if rx.search(text):
-                    problems.append(f"{where}: {why}, which only a conditional ask may do")
+        # "In progress" is the softest way to claim a credential nobody holds.
+        # But a `gap` has to be able to *say* that an in-progress certification
+        # is not a held one, so the rule is about the CV rather than the kind:
+        # the words are fine if the CV already uses them, and a fabrication if
+        # it does not.
+        for rx, why in _IN_PROGRESS_RE:
+            if rx.search(both) and not rx.search(cv_text):
+                problems.append(
+                    f"{where}: {why}, and the CV does not say so, so this would be a new claim"
+                )
 
         if kind == "reframe":
             quote = rec.get("evidence_quote")
+            suggested = str(rec.get("suggested_text") or "")
             if not quote:
                 problems.append(f"{where}: a reframe must cite an evidence_quote")
             elif not contains(cv_text, quote):
                 problems.append(f"{where}: evidence_quote is not in the CV text")
-            for claim in _unsupported_claims(text, cv_text, terms):
-                problems.append(f"{where}: mentions {claim!r}, which is not in the CV")
+            if not suggested.strip():
+                problems.append(
+                    f"{where}: a reframe must carry suggested_text, the literal words to put "
+                    f"on the CV"
+                )
+            else:
+                # D7's wording is "the *suggested text*", and it matters: the
+                # explanation is allowed to name a requirement the CV does not
+                # meet, because discussing a gap is not claiming to fill it.
+                # Only the words destined for the CV are held to the CV.
+                for claim in _unsupported_claims(suggested, cv_text, terms):
+                    problems.append(
+                        f"{where}: the suggested text says {claim!r}, which is not in the CV"
+                    )
 
         if kind == "ask":
             condition = rec.get("condition")
             if not condition:
                 problems.append(f"{where}: an ask must carry a condition")
-            elif not _ci_contains(text, condition):
-                problems.append(f"{where}: the condition is missing from the text the user reads")
+            elif not _reads_conditionally(text):
+                # The property that matters is that the sentence the user reads
+                # is a question or a conditional, not that it repeats the
+                # condition field word for word. Demanding the latter made the
+                # check fail well-written advice, which is how it was found.
+                problems.append(
+                    f"{where}: the text reads as an instruction rather than a conditional; "
+                    f"an ask must be phrased so the candidate can answer no"
+                )
 
     return problems
 

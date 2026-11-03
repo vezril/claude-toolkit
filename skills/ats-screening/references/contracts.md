@@ -134,9 +134,10 @@ What the candidate can honestly do about the verdict.
 | `recommendations[].id` | string | yes | C1, C2, … matches `^[A-Z][0-9]+$` |
 | `recommendations[].kind` | string | yes | one of `reframe`, `ask`, `format`, `gap` |
 | `recommendations[].requirement_id` | string / nullable | yes | Required for every kind except format. matches `^[A-Z][0-9]+$` |
-| `recommendations[].text` | string | yes | What to do, addressed to the candidate. |
+| `recommendations[].text` | string | yes | The explanation, addressed to the candidate. Free prose: it may discuss a requirement the CV does not meet, because naming a gap is not claiming to fill it. |
+| `recommendations[].suggested_text` | string / nullable | yes | Required for reframe: the literal words to put on the CV, and nothing else. This is the field the honesty check reads, so every skill, credential, employer, title and date in it must already be in the CV. Put your reasoning in `text`, not here. |
 | `recommendations[].evidence_quote` | string / nullable | yes | Required for reframe: the CV text the reframing rests on. |
-| `recommendations[].condition` | string / nullable | yes | Required for ask: the 'if you have X' the question is conditioned on. |
+| `recommendations[].condition` | string / nullable | yes | Required for ask: the 'if you have X' the question is conditioned on. `text` must read conditionally too, though not in these exact words. |
 | `refusals` | array of object | yes |  |
 | `refusals[].code` | string | yes | one of `hidden_text_request`, `fabrication_request`, `protected_trait_inference`, `discrimination_framing`, `name_change_request`, `multiple_cvs`, `third_party_cv`, `recruiter_framing`, `url_fetch_request` |
 | `refusals[].detail` | string | yes | One line, to the user, saying what was declined and why. |
