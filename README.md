@@ -565,6 +565,7 @@ In `agents/` (see [`agents/README.md`](agents/README.md) for the frontmatter spe
 - **webkit-developer** — builds and debugs WKWebView-based browsers/web views end to end (delegates, JS bridges, content blocking, data stores, downloads, Inspector debugging) and prepares WebKit-style patches for upstreaming.
 - **gcp-developer** — builds scalable, secure cloud-native apps on Google Cloud (the Professional Cloud Developer role): platform choice, containers, event-driven flows, data access, app security, and observability — competencies mirror the certification, bound to the `gcp-*` skills plus the toolkit's dev-craft skills. Active: writes code and runs gcloud.
 - **calvin-voice-writer** — drafts prose in Calvin's own writing voice (notes, emails, messages, posts) using the calvin-voice skill; for prose he'll send as his own, never code.
+- **application-reviewer** — assesses **your own** CV against **one** job posting and says, with quoted evidence, whether it would clear that posting's likely filters: a four-part verdict (knockout exposure, likely AI tier, parse health, ranking signals) and **never a match percentage**. The LLM extracts requirements and quotes evidence; stdlib Python does the years arithmetic, verifies every quote verbatim, composes the verdict and rejects any advice the CV can't support. Self-assessment only — it refuses to screen, compare or rank other people's CVs, to fabricate anything, to add hidden text, or to infer protected traits.
 
 (See [`agents/README.md`](agents/README.md) for the full list.)
 

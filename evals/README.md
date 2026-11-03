@@ -21,8 +21,9 @@ evals/<skill>/
 Every config points `defaultTest.vars.skill` at `file://../../skills/<skill>/SKILL.md` and runs
 the shared `prompt.txt`, which injects the skill and the test's `{{request}}`.
 
-Suites currently in the repo: **akka**, **calvin-voice**, **cross-examine**, **detect-ai**,
-**diagnosing-bugs**, **finch**, **grilling**, **handoff**, **humanize**, **intentional**
+Suites currently in the repo: **akka**, **application-reviewer**, **calvin-voice**,
+**cross-examine**, **detect-ai**, **diagnosing-bugs**, **finch**, **grilling**, **handoff**,
+**humanize**, **intentional**
 (intentional-daily, intentional-weekly, aversion-breaker), **outreach**, **phq-9**, **pr-description**,
 **wizard**, **writing-for-agents**. `intentional` uses its own provider (`provider.js`): each case runs in a
 fresh copy of a synthetic Obsidian vault and the asserts grade the file diff as well as the reply.
@@ -33,6 +34,19 @@ writing-for-agents) run through their own `run.sh`, which gives the agent a temp
 and scans its tool calls for paths outside it. `diagnosing-bugs` lets the agent edit (Bash
 sandboxed, Edit/Write limited to the copy) and grades the code it leaves; `wizard` runs each
 generated script in a pseudo-terminal (`drive.py`) against stub `gh`/`open`.
+
+`application-reviewer` is the only suite whose cases, gold labels and `tests.yaml` are all
+**generated**: `fixtures/cases.py` holds the hand-written CVs, postings and per-requirement gold,
+and `fixtures/build.py` writes the real PDFs and DOCX (`docgen.py`, standard library only), runs
+the real `extract.py` for each case's `parse.json`, and derives the gold verdict by pushing the
+hand-written statuses through the real `verdict.py` — so a label that contradicts the code fails
+at build time instead of being scored. `run.sh` refuses to run against a stale tree
+(`build.py --check`) or an uncalibrated grader (`calibration/run.py`). All grading lives in one
+Python script (`grade.py`) that imports the pipeline's own `contracts.py`, `edges.py` and
+`verdict.py`; the JS asserts are three-line adapters, so the suite cannot drift from what the
+skill actually enforces. It also carries a naive-baseline arm with two extra prose-capable
+measurements (`coverage`, `no_score`), because the naive prompt scores a flat zero on all three
+certified criteria and that comparison on its own says nothing.
 
 `finch` is the one suite that ships a **paired naive-baseline arm**
 (`promptfooconfig.local.baseline.yaml`): same model, same asserts, same `tests.yaml`, no

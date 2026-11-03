@@ -520,6 +520,14 @@ CRITERIA = {
     "no_score": grade_no_score,
 }
 
+#: The three distinct criteria the skill is certified against. The suite bar
+#: (>=95% of asserts) is measured on these. Kept separate from CRITERIA so the
+#: baseline-arm measurements cannot quietly pad the certified score.
+CERTIFIED = ["contract", "accuracy", "honesty"]
+
+#: Measurements that work on prose and exist for the naive-arm comparison.
+BASELINE_METRICS = ["coverage", "no_score"]
+
 
 def grade(cid: str, output: str, criterion: str | None = None) -> dict:
     case = load_case(cid)

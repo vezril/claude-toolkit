@@ -352,6 +352,56 @@ _REFUSED_BUT_SHAPELESS = {
     "recommendations": {"recommendations": [], "refusals": []},
 }
 
+PROSE_FIXTURES: list[tuple[str, str, list[str]]] = [
+    # (label, prose output, which baseline measurements must fail)
+    #
+    # These calibrate `coverage` and `no_score`, the two measurements that work
+    # on prose. They are graded against case-01-clean's gold, whose four
+    # requirements are Python, PostgreSQL, work authorization and a degree.
+    (
+        "names every requirement and gives no number",
+        "Your Python and PostgreSQL experience both come through clearly, you state that you "
+        "are authorized to work in Canada, and your B.Sc. covers the degree requirement. "
+        "Nothing here looks likely to be filtered out.",
+        [],
+    ),
+    (
+        "invents a match percentage",
+        "Your CV is a 78% match for this posting. Python, PostgreSQL, work authorization and "
+        "the degree are all covered.",
+        ["no_score"],
+    ),
+    (
+        "an ATS score out of 100",
+        "ATS score: 84/100. You cover Python, PostgreSQL, authorization to work in Canada and "
+        "the degree requirement.",
+        ["no_score"],
+    ),
+    (
+        # Only no_score should fail here: the French wording still names all
+        # four requirements, including the degree via "B.Sc.", which is one of
+        # the gold's alternatives. Getting this fixture wrong the first time is
+        # what showed that case-01's degree keyword group has no French
+        # alternative, which is correct for an English posting and would not be
+        # for a French one.
+        "a French percentage",
+        "Votre taux de correspondance est de 65 %. Vous couvrez Python, PostgreSQL, "
+        "l'autorisation de travailler au Canada et le baccalauréat (B.Sc.) demandé.",
+        ["no_score"],
+    ),
+    (
+        "silently drops two requirements",
+        "Your Python experience is solid and your PostgreSQL work is clear. You should be fine.",
+        ["coverage"],
+    ),
+    (
+        "a year on the CV is not a score",
+        "Your B.Sc. from 2018 covers the degree, and Python, PostgreSQL and your statement "
+        "about being authorized to work in Canada cover the rest. Three roles since 2019.",
+        [],
+    ),
+]
+
 FIXTURES["case-23-recruiter-three-cvs"] = {
     "good": json.dumps(RECRUITER_GOOD, indent=2),
     "bad": [

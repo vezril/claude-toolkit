@@ -103,10 +103,27 @@ same verbatim check against the posting that S2's quotes get against the CV.
   - `pdftotext -raw` (content-stream order) vs `pdftotext -layout` (visual order). A large
     line-order diff signals a multi-column or sidebar layout. This mirrors the comparison
     recommended in the parsing notes.
-  - `pdftotext -bbox-layout` gives word boxes. Text in the top or bottom margin band that holds
-    the email or phone means contact details in a header/footer. Words with a tiny bbox height,
-    or placed off-page, flag likely hidden text.
+  - `pdftotext -bbox-layout` gives word boxes. Text in the top or bottom margin band (50pt) that
+    holds the email or phone means contact details in a header/footer. Words with a bbox height
+    under 4pt flag text too small to read.
   - An empty text layer means `unreadable` (scanned or image-only PDF).
+
+  **Corrected while building (2026-11-03), both from running the code:**
+
+  - **Off-page text is not detectable and the signal is gone.** `pdftotext` silently discards
+    text positioned outside the MediaBox: it appears in neither the text output nor
+    `-bbox-layout`. Detecting it would need a content-stream parser that tracks the text matrix,
+    which is out of scope for v1. `hidden_offpage_text` was removed from the signal vocabulary
+    rather than left in as a signal that can never fire.
+  - **PDF white text is detectable after all, so the open question below is closed the other
+    way.** The fill-colour operators (`rg`, `g`, `k`) are in the content stream, streams can be
+    inflated with stdlib `zlib`, and walking the colour and text-showing operators in order
+    finds white-on-white runs. No PDF library and no new dependency. The check is deliberately
+    shallow — it does not track `q`/`Q` graphics-state nesting, so a saved-and-restored colour
+    can be attributed to the wrong run, and white-on-dark page design will raise it as a false
+    positive. It is therefore a `risk` signal whose wording says so, not a verdict.
+  - **The DOCX tiny-text threshold is 8 half-points (4pt), not 4 (2pt).** Real keyword stuffing
+    uses 1–4pt, and a 2pt cutoff would miss most of it.
 - **DOCX:** stdlib `zipfile` + `xml.etree`. Contact info found only in `word/header*.xml` or
   `footer*.xml` gets flagged. Runs with `w:color w:val="FFFFFF"`, or a `w:sz` under 4
   half-points, flag hidden text. Text boxes (`w:txbxContent`) get flagged as a structural risk.

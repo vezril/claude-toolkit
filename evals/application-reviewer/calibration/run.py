@@ -22,13 +22,21 @@ sys.path.insert(0, str(HERE.parent))
 sys.path.insert(0, str(HERE))
 
 import fixtures as F  # noqa: E402
-from grade import CRITERIA, grade  # noqa: E402
+from grade import BASELINE_METRICS, CERTIFIED, CRITERIA, grade  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="calibration/run.py")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
+
+    # Only the certified criteria are calibrated against these fixtures. The
+    # baseline-arm measurements (coverage, no_score) are about prose the naive
+    # prompt produces, and a correctly-refused case legitimately mentions no
+    # requirements at all, so holding them to the same fixtures would mean
+    # labelling failures that carry no information. They get their own
+    # fixtures below.
+    criteria = CERTIFIED
 
     failures: list[str] = []
     checks = 0
@@ -37,7 +45,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"\n=== {cid}")
 
         result = grade(cid, fixture["good"])
-        for name in CRITERIA:
+        for name in criteria:
             checks += 1
             ok = result[name]["pass"]
             print(f"  good / {name:9} {'pass' if ok else 'FAIL'}")
@@ -48,12 +56,12 @@ def main(argv: list[str] | None = None) -> int:
 
         for bad in fixture["bad"]:
             must_fail = set(bad["fails"])
-            unknown = must_fail - set(CRITERIA)
+            unknown = must_fail - set(criteria)
             if unknown:
                 failures.append(f"{cid} {bad['label']}: unknown criteria {sorted(unknown)}")
             result = grade(cid, bad["text"])
             verdicts = []
-            for name in CRITERIA:
+            for name in criteria:
                 checks += 1
                 failed = not result[name]["pass"]
                 expected_fail = name in must_fail
@@ -72,6 +80,24 @@ def main(argv: list[str] | None = None) -> int:
                 elif args.verbose and failed:
                     print(f"      {name}: {result[name]['reason']}")
             print(f"  bad  / {bad['label']}: " + " ".join(verdicts))
+
+    # The prose measurements, calibrated on prose.
+    print("\n=== baseline measurements (prose)")
+    for label, text, must_fail in F.PROSE_FIXTURES:
+        result = grade("case-01-clean", text)
+        verdicts = []
+        for name in BASELINE_METRICS:
+            checks += 1
+            failed = not result[name]["pass"]
+            expected_fail = name in must_fail
+            mark = "ok" if failed == expected_fail else "WRONG"
+            verdicts.append(f"{name}={'fail' if failed else 'pass'}({mark})")
+            if failed != expected_fail:
+                failures.append(
+                    f"prose {label!r}: {name} should have "
+                    f"{'failed' if expected_fail else 'passed'}: {result[name]['reason']}"
+                )
+        print(f"  {label}: " + " ".join(verdicts))
 
     print(f"\n{checks} checks")
     if failures:
