@@ -26,6 +26,31 @@ blocked, stop and tell the human what the block is; do not route around it.
 `--status` means: print that and stop. `--step <name>` forces one step, which is for redoing
 a distillation after new input arrives, not for skipping a block.
 
+## One ticket, one worktree
+
+**Before the first step of a ticket, give it its own worktree in the code repo:**
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}"/scripts/delivery-flow/ensure-worktree.py <ITEM-KEY>
+```
+
+Then work the ticket there, not in the main checkout. Run it again on every resumption — it is
+idempotent, so the second call reports the worktree the first made. `git worktree list` is the
+record; there is no artifact for this, because git already knows and a second source of truth
+would be a second thing to get wrong.
+
+Three sessions sharing one checkout once spent an afternoon stepping on each other: a branch
+switch with uncommitted work in it, a merge left half-resolved, and one `git add -A` that swept
+another session's files into a commit describing something else. A ticket that owns its
+worktree cannot do that to another ticket.
+
+**Never work around a refusal from this script.** It refuses when the worktree would not be a
+delivery-flow repo — and the reason that matters is `.delivery-flow.yaml` is often untracked
+(it carries a client's tracker and local paths, so a public checkout excludes it). A worktree
+without it is not a delivery repo, which means **every hook is inert there**: no edge checks,
+no punch-out enforcement, no trace, and nothing saying so. The script copies the config in and
+then asserts the result; a run in a worktree it refused would look like it was working.
+
 ## Artifacts live in the vault, never in the repo
 
 A run's artifacts are the ticket body, the triage rationale, the breakdown and the brief —
