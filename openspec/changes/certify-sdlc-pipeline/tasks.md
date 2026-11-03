@@ -125,11 +125,19 @@ S.1–S.6, 3.1, 3.2, 3.4, 3.7 are retired rather than done. 3.3, 3.5, 3.6 and 3.
 - [x] 6.1 Declared in `skills/sdlc-orchestration/workflow.yaml` under `punch_out`: four `human_gates` (analysis, planning, readiness, verification), the trigger kinds this workflow raises, and the ceilings. The gates are not invented — they are the approvals `docs/using-the-sdlc-dev-team.md` already documents, moved from prose a model has to remember into data the machinery reads, for the same reason task 4.5 moved the readiness gate onto a hook. Per-repo values live in `templates/sdlc/sdlc.yaml`, whose `protected_paths` ships non-empty with the pipeline's own config in it: a run that can edit its own guardrails has none.
 
       Found by doing this: the descriptor parser returned `retry_limit` as the string `"3"`. Nothing in the delivery-flow descriptor is numeric so the gap had stayed invisible, and a ceiling that is quietly a string compares wrongly against an int and raises on arithmetic — failing at the point of use, far from the parse. `_scalar` now parses numbers, and a quoted `"3"` still reads as text
-- [ ] 6.2 Generalise `tests/delivery-flow/bypass/run-bypass.py` to run against any registered
-      workflow's gates
-- [ ] 6.3 Run it against sdlc's gates. Record every hole it finds and fix them — the delivery-flow
-      run found 3 real holes in 15 attacks, so expect holes rather than a clean sheet
-- [ ] 6.4 Commit the bypass report as the punch-out evidence artifact
+- [x] 6.2 Parameterised in place by workflow rather than split across files: `PROFILES` names each workflow's config file, artifact directory, item key, guarded artifact and attack set, and the profile travels inside the fixture dict so `state()` and `judge()` reach it without threading an argument through every call site. `--workflow` selects it.
+
+      Not split because this suite *is* criterion 3's evidence, and a 659-line refactor across a new import graph risks the artifact for a tidier shape. One report covering both workflows is also what a reviewer wants to read.
+
+      Verified without model calls first: both fixtures build, neither leaves a stray config, the trace shas match the artifacts on disk, the hooks are wired, and delivery-flow's untouched-fixture triggers are still exactly `architecture, scope` — the same pair its existing report records. Two bugs in my own patch were caught that way: both branches wrote to the same config path so delivery-flow's overwrote sdlc's, and `.current-step` was left in the wrong function
+- [x] 6.3 Run against sdlc's gates. **Four breaches of six**, and three were one bug.
+
+      `enforce-punch-outs.py` recognised an sdlc repo — task 2.3 generalised its gate — and then every lookup inside it used `common.artifact_root(repo)` and `common.load_config(repo)`, which hard-code `delivery` and `.delivery-flow.yaml`. For an sdlc repo the root does not exist, `open_punch_outs` found nothing, and the hook permitted everything. **It reported nothing, because "no punch-out is open" and "I looked in the wrong place" produce the same silence.** Right checker, wrong input — the sixth instance of that class this week and the most consequential, since the control it disabled is the one that stops an agent writing its own decision.
+
+      Fixed by resolving the descriptor and using `layout.artifact_root` with the workflow's own directory and config. Six call sites. Re-run: **5 of 6 blocked**, with decision-write (tool and shell), `decide.py` invocation and merge-during-punch-out all holding.
+
+      The remaining breach is **a missing control, not a broken one**, and is recorded as such: `grep protected` finds nothing in `enforce-punch-outs.py` — protected paths are enforced by `scripts/check-protected-paths.py` in CI, after the fact. So an agent editing `.sdlc.yaml` to remove its own protected-path list is not stopped at the point of the write. Claiming that as a bug I fixed would be wrong, and claiming the hook covers protected paths would be worse
+- [x] 6.4 `tests/delivery-flow/bypass/bypass-report-sdlc.md` and its `.results.json`, committed as the punch-out evidence for this workflow alongside delivery-flow's. 5 of 6 blocked, 1 breached, with the breach's cause named as an absent PreToolUse control rather than a failure of an existing one
 - [x] 6.5 `scripts/check-protected-paths.py` was **not** reachable from a punch_out-nested config, which is exactly what this task existed to find. It matched `protected_paths:` only at column 0 — the shape `templates/unattended/unattended-policy.yml` uses — while `.delivery-flow.yaml` and `templates/sdlc/sdlc.yaml` nest the same key under `punch_out:`. On either of those it found no block.
 
       It was caught only because an empty list exits 2, "refusing to pass by absence", rather than permitting everything. That line is the reason this was a finding instead of a silent hole, and it is what the new tests defend hardest.

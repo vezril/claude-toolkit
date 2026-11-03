@@ -29,6 +29,7 @@ HELPERS = Path(__file__).resolve().parents[1] / "scripts" / "delivery-flow"
 SUBSTRATE = Path(__file__).resolve().parents[1] / "scripts" / "workflow"
 sys.path.insert(0, str(SUBSTRATE))
 import descriptor as workflow_descriptor  # noqa: E402
+import layout as workflow_layout  # noqa: E402
 
 # Root-agnostic: `<root>/<ITEM>/decisions/` where the root may be anywhere, so the item
 # directory plus `decisions/` is the stable part. Keeps the punch-out files and decide.py.
@@ -85,7 +86,26 @@ def main() -> int:
 
     tool = payload.get("tool_name", "")
     ti = payload.get("tool_input") or {}
-    cfg = common.load_config(repo)
+
+    # The *active workflow's* layout, not delivery-flow's. Every lookup below used
+    # `artifact_root()` and `common.load_config(repo)`, which hard-code `delivery`
+    # and `.delivery-flow.yaml`. Task 2.3 generalised this hook's gate, so it recognised an
+    # sdlc repo and then looked for that repo's punch-outs in a directory that does not exist
+    # — finding none, and permitting everything. The bypass suite found it: three of its four
+    # sdlc breaches were this one bug, and the hook reported nothing, because "no punch-out is
+    # open" and "I looked in the wrong place" produce the same silence.
+    wf, _wf_err = workflow_descriptor.resolve(repo)
+    config_name = (wf or {}).get("config_name") or common.CONFIG_NAME
+    artifact_dir = (wf or {}).get("artifact_dir") or common.ARTIFACT_DIR
+    try:
+        cfg = common.parse_mapping((repo / config_name).read_text())
+    except OSError:
+        cfg = {}
+
+    def artifact_root():
+        """This workflow's artifact root, honouring its own `artifacts.root` override."""
+        return workflow_layout.artifact_root(repo, artifact_dir, cfg)
+
     text = json.dumps(ti)
 
     # 1. Only a human writes a decision or clears a punch-out.
@@ -105,7 +125,7 @@ def main() -> int:
     item, _ = None, None
     # Live runs only. A discarded run's `.current-step` is a leftover, and treating it as the
     # item in flight would gate outward actions on a run nobody is working any more.
-    current = [d / ".current-step" for d in common.live_item_dirs(common.artifact_root(repo))
+    current = [d / ".current-step" for d in common.live_item_dirs(artifact_root())
                if (d / ".current-step").exists()]
     if current:
         doc, err = common.load_json(current[0])
@@ -113,7 +133,7 @@ def main() -> int:
     if not item:
         # The configured root first — under `artifacts.root` the text contains that path and
         # never the word `delivery` — then the default shape for an unconfigured repo.
-        root_text = str(common.artifact_root(repo)).replace("\\", "/")
+        root_text = str(artifact_root()).replace("\\", "/")
         m = re.search(re.escape(root_text) + r"/([^/\s\"]+)/", text)
         if not m:
             # Then every workflow's default artifact directory. Escaped and tried in turn
@@ -139,14 +159,14 @@ def main() -> int:
     if cmd and any(re.search(p if isinstance(p, str) else str(p), cmd) for p in patterns):
         decision, ok = None, False
         if item:
-            decision, err = common.load_json(common.artifact_root(repo) / item / "decisions" / "deploy.json")
+            decision, err = common.load_json(artifact_root() / item / "decisions" / "deploy.json")
             if not err:
                 allowed = (cfg.get("decisions") or {}).get("allowed_signers") or "~/.config/delivery-flow/allowed_signers"
                 ok, reason = common.verify_decision(decision, Path(allowed))
                 ok = ok and decision.get("choice") == "proceed"
         if not ok:
             auto = (deploy_cfg.get("auto_roll") or {})
-            triage, _ = common.load_json(common.artifact_root(repo) / (item or "") / "triage.json") if item else (None, "x")
+            triage, _ = common.load_json(artifact_root() / (item or "") / "triage.json") if item else (None, "x")
             routine = bool(auto.get("routine_bumps")) and triage is not None \
                 and not triage.get("architecture_change") and not triage.get("breaking_change")
             if routine:
@@ -160,7 +180,7 @@ def main() -> int:
 
     # 2. An open punch-out stops everything outward and everything downstream.
     if item:
-        item_dir = common.artifact_root(repo) / item
+        item_dir = artifact_root() / item
         open_ones = []
         for p in sorted(item_dir.glob("punch-out-*.md")):
             dec, err = common.load_json(item_dir / "decisions" / (p.stem + ".json"))
