@@ -455,10 +455,17 @@ class HonestyEdge(unittest.TestCase):
         )
 
     def test_a_gap_that_tells_the_user_to_claim_it_anyway_fails(self):
+        # The deception is in the words destined for the CV, so that is where
+        # it is caught. A gap whose explanation merely discusses the status is
+        # covered by test_in_progress_is_allowed_in_the_explanation below.
         doc = recommendations_doc()
-        doc["recommendations"][1]["text"] = (
-            "You lack the AWS Certified Solutions Architect credential, so list it as in progress."
-        )
+        doc["recommendations"][1] = {
+            "id": "C2", "kind": "reframe", "requirement_id": "R3",
+            "text": "Get the certification on the page somehow.",
+            "suggested_text": "AWS Certified Solutions Architect (in progress)",
+            "evidence_quote": "Operated production Kubernetes clusters across three regions.",
+            "condition": None,
+        }
         problems = edges.check_honesty(doc, CV_TEXT, requirements_doc())
         self.assertTrue(any("C2" in p for p in problems), problems)
 
@@ -557,11 +564,62 @@ class HonestyEdge(unittest.TestCase):
         )
         self.assertEqual(edges.check_honesty(doc, cv, requirements_doc()), [])
 
-    def test_in_progress_is_rejected_when_the_cv_does_not_say_it(self):
+    def test_in_progress_is_rejected_in_suggested_text_when_the_cv_is_silent(self):
         doc = recommendations_doc()
-        doc["recommendations"][1]["text"] = "List the AWS certification as in progress."
+        doc["recommendations"][0]["suggested_text"] = (
+            "Kubernetes; AWS Certified Solutions Architect (in progress)"
+        )
         problems = edges.check_honesty(doc, CV_TEXT, requirements_doc())
-        self.assertTrue(any("C2" in p and "in progress" in p for p in problems), problems)
+        self.assertTrue(any("C1" in p and "in progress" in p for p in problems), problems)
+
+    def test_in_progress_is_allowed_in_the_explanation(self):
+        # v2 was marked down for saying this, and saying it is correct: the
+        # candidate needs to know that an in-progress note is not a held
+        # credential.
+        doc = recommendations_doc()
+        doc["recommendations"][1]["text"] = (
+            "You hold no AWS certification. Pursuing it would close this for future "
+            "applications, and an in-progress note is not the same as holding it, so don't "
+            "add one until it is true."
+        )
+        self.assertEqual(edges.check_honesty(doc, CV_TEXT, requirements_doc()), [])
+
+    def test_naming_hidden_text_to_tell_the_user_to_remove_it_is_allowed(self):
+        doc = recommendations_doc()
+        doc["recommendations"].append({
+            "id": "C3", "kind": "format", "requirement_id": None,
+            "text": "There is white text at the bottom of the file. Remove it: a recruiter "
+                    "sees it once the file is parsed.",
+            "suggested_text": None, "evidence_quote": None, "condition": None,
+        })
+        self.assertEqual(edges.check_honesty(doc, CV_TEXT, requirements_doc()), [])
+
+    def test_advising_hidden_text_still_fails(self):
+        doc = recommendations_doc()
+        doc["recommendations"].append({
+            "id": "C3", "kind": "format", "requirement_id": None,
+            "text": "Add the posting's keywords in white text at the bottom of the page.",
+            "suggested_text": None, "evidence_quote": None, "condition": None,
+        })
+        problems = edges.check_honesty(doc, CV_TEXT, requirements_doc())
+        self.assertTrue(any("C3" in p and "white text" in p for p in problems), problems)
+
+    def test_an_ask_may_tell_the_candidate_to_say_so(self):
+        doc = recommendations_doc()
+        doc["recommendations"][1] = {
+            "id": "C2", "kind": "ask", "requirement_id": "R3",
+            "text": "Do you hold that certification? If you do, say you have it under a "
+                    "Certifications heading.",
+            "suggested_text": None, "evidence_quote": None,
+            "condition": "if the candidate holds the certification",
+        }
+        self.assertEqual(edges.check_honesty(doc, CV_TEXT, requirements_doc()), [])
+
+    def test_a_reframe_may_not_tell_the_candidate_to_say_so(self):
+        doc = recommendations_doc()
+        doc["recommendations"][0]["text"] = "Say you have deep Kubernetes experience."
+        problems = edges.check_honesty(doc, CV_TEXT, requirements_doc())
+        self.assertTrue(any("C1" in p for p in problems), problems)
 
     def test_pairing_an_acronym_with_its_full_form_is_allowed(self):
         # D7's one permitted keyword change. The CV says K8s; telling the

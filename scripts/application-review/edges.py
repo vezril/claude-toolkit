@@ -282,8 +282,11 @@ def apply_quote_edge(evidence: dict, cv_text: str) -> tuple[dict, list[dict]]:
 # The honesty edge (design D7)
 # ---------------------------------------------------------------------------
 
-#: Advice that is deceptive however it is framed. These are refusals in the
-#: skill; the edge is the backstop that catches them if the prose slips.
+#: Techniques that are deceptive to *add*. Naming one is not advocating it:
+#: the injection case cannot be handled without telling the user there is
+#: hidden text in their file, and the hidden-text refusal cannot be given
+#: without saying what is being refused. So a match is only a problem when the
+#: surrounding clause advocates it — see ``_advises``.
 _DECEPTIVE = [
     (r"\bwhite\s+(text|font|lettering)\b", "advises white text"),
     (r"\bhidden\s+(text|keywords?)\b", "advises hidden text"),
@@ -291,20 +294,69 @@ _DECEPTIVE = [
     (r"\bfont\s+colou?r\s+to\s+white\b", "advises white text"),
     (r"\b(tiny|1\s*pt|one\s*point)\s+(font|text)\b", "advises unreadably small text"),
     (r"\bkeyword\s+stuff", "advises keyword stuffing"),
-    (r"\bsay\s+you\s+(have|hold|are|were)\b", "tells the candidate to say something unconditionally"),
     (r"\bclaim\s+(you|to\s+have)\b", "tells the candidate to claim something"),
 ]
 
 _DECEPTIVE_RE = [(re.compile(p, re.IGNORECASE), why) for p, why in _DECEPTIVE]
 
-#: Ways of presenting a credential as nearly held. Checked against the CV
-#: rather than banned outright: naming a gap is allowed, inventing a status is
-#: not.
+#: Only a problem outside a conditional ``ask``. Inside one, "if you hold the
+#: licence, say so" is the entire point of the kind.
+_UNCONDITIONAL = [
+    (r"\bsay\s+you\s+(have|hold|are|were)\b",
+     "tells the candidate to say something unconditionally"),
+]
+
+_UNCONDITIONAL_RE = [(re.compile(p, re.IGNORECASE), why) for p, why in _UNCONDITIONAL]
+
+#: Verbs that mean "put this on the page". A deceptive technique next to one of
+#: these is advice to use it.
+_ADVOCATING = re.compile(
+    r"\b(add|adds|adding|insert|inserting|paste|pasting|put|putting|include|"
+    r"including|set|setting|use|using|place|placing|append|hide|hiding|embed|"
+    r"embedding|write|writing|drop in|slip in|ajouter|ajoutez|inserer|mettre|"
+    r"mettez|utiliser|utilisez|cacher|cachez)\b",
+    re.IGNORECASE,
+)
+
+#: Cues that the clause is warning against the technique, refusing it, or
+#: telling the candidate to take it out.
+_AGAINST = re.compile(
+    r"(\bremove|\bremoving|\bdelete|\bdeleting|\bstrip|\btake (it|them) out|"
+    r"\bget rid of|\bavoid|\bavoids|\bnever\b|\bdon'?t\b|\bdo not\b|\bwon'?t\b|"
+    r"\bwill not\b|\bcannot\b|\bcan'?t\b|\bno need\b|\binstead of\b|"
+    r"\brather than\b|\bnot\s+\w+\s+any\b|\bi refuse\b|\bdeclin|\bflagged\b|"
+    r"\bvisible to\b|\bsupprim|\benlev|\bretir|\bevitez|\bne pas\b|\bplutot que\b)",
+    re.IGNORECASE,
+)
+
+
+def _advises(text: str, pattern: re.Pattern) -> bool:
+    """Does ``text`` advocate the thing ``pattern`` matches?
+
+    Looks at the clause around each match. A removal or refusal cue means no, an
+    advocating verb means yes, and a bare mention means no — describing a
+    technique is not recommending it, and the cases that matter most here (the
+    injection finding, the hidden-text refusal) are exactly the ones that have
+    to describe it.
+    """
+    body = _fold_accents(str(text))
+    for m in pattern.finditer(body):
+        start = max(0, m.start() - 90)
+        clause = body[start:m.end() + 60]
+        if _AGAINST.search(clause):
+            continue
+        if _ADVOCATING.search(clause):
+            return True
+    return False
+
+#: Ways of presenting a credential as nearly held. Checked against the CV, and
+#: only in `suggested_text`: naming a gap is allowed and so is advising someone
+#: to go and get the certification, which is why "pursuing" is not on this list.
 _IN_PROGRESS = [
     (r"\bin\s+progress\b", "describes a credential as in progress"),
     (r"\bexpected\s+(completion|20\d\d)\b", "gives an expected completion date"),
     (r"\ben\s+cours\b", "describes a credential as in progress"),
-    (r"\bpursuing\b", "describes a credential as being pursued"),
+    (r"\b(studying|sitting)\s+for\b", "describes a credential as being studied for"),
 ]
 
 _IN_PROGRESS_RE = [(re.compile(p, re.IGNORECASE), why) for p, why in _IN_PROGRESS]
@@ -505,22 +557,30 @@ def check_honesty(recommendations: dict, cv_text: str, requirements: dict) -> li
             elif rid not in req_ids:
                 problems.append(f"{where}: refers to unknown requirement {rid}")
 
-        # Deceptive advice is checked in both fields: it is just as bad in the
-        # words destined for the CV as in the explanation of them.
-        both = text + "\n" + str(rec.get("suggested_text") or "")
+        suggested = str(rec.get("suggested_text") or "")
+        both = text + "\n" + suggested
+
+        # Deceptive advice, in either field, but only where the clause actually
+        # advocates the technique rather than naming it.
         for rx, why in _DECEPTIVE_RE:
-            if rx.search(both):
+            if _advises(both, rx):
                 problems.append(f"{where}: {why}")
 
-        # "In progress" is the softest way to claim a credential nobody holds.
-        # But a `gap` has to be able to *say* that an in-progress certification
-        # is not a held one, so the rule is about the CV rather than the kind:
-        # the words are fine if the CV already uses them, and a fabrication if
-        # it does not.
+        if kind != "ask":
+            for rx, why in _UNCONDITIONAL_RE:
+                if rx.search(both):
+                    problems.append(f"{where}: {why}")
+
+        # "In progress" is the softest way to claim a credential nobody holds,
+        # and it is only a claim if it goes on the CV. The explanation has to
+        # stay free to discuss it: a `gap` should be able to say that an
+        # in-progress certification is not a held one, and to suggest pursuing
+        # one is honest advice about the future rather than a claim about now.
         for rx, why in _IN_PROGRESS_RE:
-            if rx.search(both) and not rx.search(cv_text):
+            if rx.search(suggested) and not rx.search(cv_text):
                 problems.append(
-                    f"{where}: {why}, and the CV does not say so, so this would be a new claim"
+                    f"{where}: the suggested text {why}, and the CV does not say so, "
+                    f"so this would be a new claim"
                 )
 
         if kind == "reframe":

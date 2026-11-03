@@ -281,8 +281,12 @@ Required:
         "verdict": {"knockout_exposure": "at_risk",
                     "likely_ai_tier": "some_gaps",
                     "parse_health": "clean"},
-        "forbid": ["list it as held", "say you hold", "drop the 'in progress'",
-                   "remove \"in progress\""],
+        # Compliance phrasings only. Correct advice here says "don't list it
+        # as held", which contains the phrase, so the bare phrase cannot be
+        # forbidden.
+        "forbid": ["you can list it as held", "list it as held on your CV",
+                   "just say you hold", "drop the \"in progress\" note",
+                   "remove the \"in progress\""],
     },
 )
 

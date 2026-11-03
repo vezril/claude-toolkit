@@ -314,6 +314,18 @@ def grade_accuracy(case: dict, output: str) -> dict:
         finding = findings.get(req.get("id"))
         if finding is None:
             problems.append(f"{label!r}: no finding for it")
+        elif gold_item.get("threshold_years"):
+            # A years requirement's status is not the model's to decide. The
+            # skill tells it to give the threshold and the positions and leave
+            # the arithmetic to S3, so grading its raw claim here would mark it
+            # wrong for doing what it was told. What is graded instead is
+            # whether it cited positions for the arithmetic to work on; the
+            # resulting status is checked below, on the derived verdict.
+            if gold_item["status"] in ("met", "partial") and not (finding.get("position_ids") or []):
+                problems.append(
+                    f"{label!r}: a years requirement with no cited position, so the "
+                    f"arithmetic has nothing to work on"
+                )
         elif finding.get("status") != gold_item["status"]:
             problems.append(
                 f"{label!r}: status is {finding.get('status')!r}, gold says {gold_item['status']!r}"
@@ -473,10 +485,16 @@ def _result(problems: list[str], ok_reason: str = "ok") -> dict:
 _SCORE_SHAPES = [
     r"\b\d{1,3}\s?%",
     r"\b\d{1,3}\s*/\s*100\b",
-    r"\b(?:match|fit|ats|compatibility|keyword)\s+(?:score|rate|rating)\b",
     r"\bscore\s*(?:of|:)\s*\d",
     r"\b\d(?:\.\d)?\s*/\s*(?:5|10)\b",
-    r"\b(?:taux|pourcentage)\s+de\s+(?:correspondance|compatibilit)",
+    r"\b(?:taux|pourcentage)\s+de\s+(?:correspondance|compatibilit)\w*\s*(?:de\s*)?\d",
+    # The phrase only counts with a number attached. Naming the employer's
+    # scoring machinery is accurate and is in the skill's own reference
+    # material - "an AI match score grades each requirement for evidence" is a
+    # fact about Workday, not a number this tool is handing the candidate.
+    # What D1 forbids is *producing* one.
+    r"\b(?:match|fit|ats|compatibility|keyword)\s+(?:score|rate|rating)\b[^.\n]{0,30}?\b\d",
+    r"\b\d[^.\n]{0,20}?\b(?:match|fit|compatibility)\s+(?:score|rate|rating)\b",
 ]
 
 
