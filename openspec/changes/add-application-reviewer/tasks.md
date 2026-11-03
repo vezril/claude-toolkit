@@ -98,7 +98,7 @@
 
 - [x] 5.1 `README.md` agent and skill rows; `agents/README.md` entry; `evals/README.md` suite list
 - [x] 5.2 Bump `.claude-plugin/plugin.json` (minor)
-- [ ] 5.3 `openspec validate add-application-reviewer`, PR with the eval numbers in the description. Merge
-      only on Calvin's word
+- [x] 5.3 `openspec validate add-application-reviewer`, PR with the eval numbers in the description. Merge
+      only on Calvin's word — **PR #123 open, not merged**
 - [ ] 5.4 Dogfood: Calvin runs it on his own CV against one real posting and says whether the
       verdict matched his read. Log it as an anecdote in the iteration log, not as a score
