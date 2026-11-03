@@ -123,3 +123,28 @@ rank candidates, to assess CVs on behalf of an employer or agency, or to take mo
 - **WHEN** the user supplies three CVs and asks which applicant best fits the posting
 - **THEN** the agent declines, explains it is a self-assessment tool for the CV's owner, and does
   not produce any verdict
+
+### Requirement: French and bilingual inputs are supported
+
+The agent SHALL handle French and English CVs and postings, including a CV and a posting in
+different languages. Section-heading detection SHALL recognise the French equivalents. Evidence
+and source quotes SHALL be stored verbatim in the source language, never translated, because the
+quote check is a substring match against the extracted text.
+
+#### Scenario: French CV against an English posting
+
+- **GIVEN** a CV whose experience section is headed "Expérience professionnelle" and an
+  English-language posting
+- **WHEN** the agent runs
+- **THEN** parse health does not report a missing experience section, requirements are matched
+  across the language boundary, and each evidence quote appears verbatim in the French CV text
+
+### Requirement: The posting is supplied as text or a file
+
+The agent SHALL accept a posting as pasted text or a local file. It SHALL NOT fetch a posting
+from a URL in this version.
+
+#### Scenario: User supplies a posting URL
+
+- **WHEN** the user gives a link to a job posting instead of its text
+- **THEN** the agent asks for the posting text or a file and explains it does not fetch pages

@@ -1,6 +1,9 @@
-# cv-reviewer ("HR agent"): handoff
+# application-reviewer ("HR agent"): handoff
 
 For a Claude instance picking this up cold. Written 2026-11-03; nothing is built yet.
+
+The agent is named **`application-reviewer`** and the skill **`ats-screening`** (open question 1,
+answered 2026-11-03). Earlier drafts of these docs called it `cv-reviewer`.
 
 ## What Calvin asked for
 
@@ -12,8 +15,8 @@ For a Claude instance picking this up cold. Written 2026-11-03; nothing is built
 1. **This file.**
 2. `reports/ATS screening agent research.md`: the synthesis, about 5,400 words with inline
    citations. It's the reason for every design decision.
-3. `../../openspec/changes/add-cv-reviewer/`: `proposal.md`, then `design.md` (decisions D1–D11,
-   open questions), then `specs/cv-reviewer/spec.md`, then `tasks.md` (the work, in order).
+3. `../../openspec/changes/add-application-reviewer/`: `proposal.md`, then `design.md` (decisions D1–D11,
+   open questions), then `specs/application-reviewer/spec.md`, then `tasks.md` (the work, in order).
 4. `research_notes/ATS screening agent research/*.md` only when you need a source. They're split
    into ATS vendor mechanics, parsing and LLM screening, tools/taxonomies/datasets, and
    legal/fairness, and each claim is tagged by evidence strength.
@@ -47,9 +50,11 @@ For a Claude instance picking this up cold. Written 2026-11-03; nothing is built
 
 ## Before you build
 
-**Ask Calvin the five open questions** at the end of `design.md`: name, personal vs public, FR
-support, URL input, prompt certification. The plan has a recommended default for each. Don't
-start on `agents/` or `skills/` until he's answered.
+The five open questions are **answered** (2026-11-03) and recorded inline at the end of
+`design.md`. In short: name `application-reviewer` + `ats-screening`; public feature, so the eval
+set stays generic and is not shaped around Calvin's own CV; FR/EN both supported in v1; posting
+by pasted text or file only, no URL fetching; and the prompts go through `prompt-edd`
+certification. Nothing is blocked on him any more.
 
 House rules that apply here:
 

@@ -2,18 +2,20 @@
 
 - [ ] 0.1 Read `docs/hr-agent/handoff.md`, then `docs/hr-agent/reports/ATS screening agent research.md`,
       then `design.md` here
-- [ ] 0.2 Ask Calvin the five open questions in `design.md` (name, personal vs public, FR, URL
+- [x] 0.2 Ask Calvin the five open questions in `design.md` (name, personal vs public, FR, URL
       input, certification) before writing any file under `agents/` or `skills/`. Record the
-      answers in `design.md` under each question
-- [ ] 0.3 Branch off `main` (PR-protected) and check `pdftotext -v` works. Note the poppler version
-      in the iteration log, since layout output varies by version
+      answers in `design.md` under each question — **done 2026-11-03**, answers inline in
+      `design.md` §Open Questions
+- [x] 0.3 Branch off `main` (PR-protected) and check `pdftotext -v` works. Note the poppler version
+      in the iteration log, since layout output varies by version — branch
+      `worktree-application-reviewer`, **poppler 26.10.0**
 - [ ] 0.4 Read `lessons/` in the vault-graphrag graph if it exists (prompt-edd Step 5, read side)
       and `evals/pocock-folds/` and `evals/pr-description/` as the house pattern for run.sh,
       rescore.js and calibration
 
 ## 1. Eval suite first (prompt-edd Step 1)
 
-- [ ] 1.1 Write `evals/cv-reviewer/cases/`: 30–40 synthetic CV + posting pairs. Each pair plants
+- [ ] 1.1 Write `evals/application-reviewer/cases/`: 30–40 synthetic CV + posting pairs. Each pair plants
       one trap from the report's list:
   - acronym equivalents that should count as met: K8s/Kubernetes, Postgres/PostgreSQL
   - false friends that should not: Java/JavaScript, SQL Server/MySQL
@@ -30,10 +32,12 @@
   - a two-column PDF; contact details only in a DOCX header; an image-only PDF
   - a recruiter-framing request with three CVs (refusal)
   - a white-text request (refusal)
-  - FR or mixed cases if 0.2 says yes
+  - 4–6 FR or mixed cases (0.2 said yes): at least one FR CV vs an FR posting, one FR CV vs an
+    EN posting, and one bilingual posting. Quotes stay verbatim in the source language
+  - keep the set generic (0.2: public feature) — no case shaped around Calvin's own profile
   - **one case where the right verdict is clean on all four parts.** It's the empty case
     models hate.
-- [ ] 1.2 Write `evals/cv-reviewer/expected/`: per-requirement gold (id, strength, status, evidence
+- [ ] 1.2 Write `evals/application-reviewer/expected/`: per-requirement gold (id, strength, status, evidence
       line, knockout_likely) and the derived four-part verdict. Label in one session, re-check
       cold in a later one, and log disagreements
 - [ ] 1.3 Build the PDFs/DOCX fixtures reproducibly from source (a `fixtures/build.py` that writes
@@ -54,7 +58,7 @@
 
 ## 2. Deterministic scripts (TDD; tests before code)
 
-- [ ] 2.1 `tests/cv-review/test_extract.py` then `scripts/cv-review/extract.py`: PDF (raw vs
+- [ ] 2.1 `tests/application-review/test_extract.py` then `scripts/application-review/extract.py`: PDF (raw vs
       layout diff, bbox margins, tiny/off-page text, empty text layer), DOCX (header/footer
       contact, white/tiny runs, text boxes), MD/TXT passthrough, section headings
 - [ ] 2.2 `test_years.py` then `years.py`: merge overlaps, Present = run date (injectable for
@@ -76,9 +80,9 @@
       and the checker can't disagree. Note this pairing in CLAUDE.md's consistency rules
 - [ ] 3.3 `skills/ats-screening/references/how-ats-filtering-works.md`: a distilled, cited
       version of the report's first three sections, for the agent's explanations
-- [ ] 3.4 `agents/cv-reviewer.md`: description stating the intended purpose (own CV,
+- [ ] 3.4 `agents/application-reviewer.md`: description stating the intended purpose (own CV,
       self-assessment), tools `Read, Bash, Write` (Write only into the run temp dir), `model:
-      sonnet`, `skills: [claude-toolkit:ats-screening]`
+      sonnet`, `skills: [claude-toolkit:ats-screening]`. No `WebFetch` — 0.2 ruled out URL input
 - [ ] 3.5 v1 prompt = the naive one-liner (Red). Run the suite, save `results/run_v1_all.json`
 
 ## 4. Iterate (prompt-edd Steps 2–3)
@@ -94,7 +98,7 @@
 
 - [ ] 5.1 `README.md` agent and skill rows; `agents/README.md` entry; `evals/README.md` suite list
 - [ ] 5.2 Bump `.claude-plugin/plugin.json` (minor)
-- [ ] 5.3 `openspec validate add-cv-reviewer`, PR with the eval numbers in the description. Merge
+- [ ] 5.3 `openspec validate add-application-reviewer`, PR with the eval numbers in the description. Merge
       only on Calvin's word
 - [ ] 5.4 Dogfood: Calvin runs it on his own CV against one real posting and says whether the
       verdict matched his read. Log it as an anecdote in the iteration log, not as a score

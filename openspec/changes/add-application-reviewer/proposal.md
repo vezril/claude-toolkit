@@ -25,19 +25,19 @@ also the only design whose output can be regression-tested against hand-labelled
 
 ## What Changes
 
-- **New agent `cv-reviewer`** (`agents/cv-reviewer.md`): candidate-side only. Takes the user's
+- **New agent `application-reviewer`** (`agents/application-reviewer.md`): candidate-side only. Takes the user's
   own CV (PDF, DOCX, MD or text) and one job posting (pasted text, or a file), and returns a
   four-part verdict (knockout exposure, likely AI tier, parse health, rank signals) plus
   recommendations that are either truthful reframings of evidence already in the CV or
   questions to the candidate. It never outputs a match percentage.
 - **New skill `ats-screening`** (`skills/ats-screening/`): the procedure, the JSON contracts for
   every step, and a reference on how ATS filtering actually works (distilled from the report).
-- **New deterministic scripts** (`scripts/cv-review/`, stdlib + `pdftotext`): file extraction and
+- **New deterministic scripts** (`scripts/application-review/`, stdlib + `pdftotext`): file extraction and
   parse-health checks, years-of-experience arithmetic, evidence-quote verification, verdict
   composition, report rendering. The LLM extracts and matches; code decides.
-- **New eval suite** `evals/cv-reviewer/` built the `prompt-edd` way: ~30–40 synthetic CV/posting
+- **New eval suite** `evals/application-reviewer/` built the `prompt-edd` way: ~30–40 synthetic CV/posting
   pairs with per-requirement gold labels and planted traps, a naive baseline arm, haiku + sonnet,
-  N=3. Plus `tests/cv-review/` pytest for the scripts.
+  N=3. Plus `tests/application-review/` pytest for the scripts.
 - **Hard refusals:** fabricating skills/credentials/dates, hidden or white text, prompt injection
   in the CV, inferring protected traits, "hide X because employers discriminate" framing, and
   anyone else's CV (no bulk, no ranking). The last one is what keeps the tool outside NYC LL144,
@@ -46,7 +46,7 @@ also the only design whose output can be regression-tested against hand-labelled
 ## Capabilities
 
 ### New Capabilities
-- `cv-reviewer`: the agent's inputs, the four-part verdict, the step contracts
+- `application-reviewer`: the agent's inputs, the four-part verdict, the step contracts
   (`parse.json`, `requirements.json`, `evidence.json`, `verdict.json`, `recommendations.json`),
   the deterministic checks between steps, the refusal set, and the intended-purpose boundary.
 
@@ -56,8 +56,8 @@ also the only design whose output can be regression-tested against hand-labelled
 
 ## Impact
 
-- New files only: `agents/cv-reviewer.md`, `skills/ats-screening/**`, `scripts/cv-review/**`,
-  `evals/cv-reviewer/**`, `tests/cv-review/**`.
+- New files only: `agents/application-reviewer.md`, `skills/ats-screening/**`, `scripts/application-review/**`,
+  `evals/application-reviewer/**`, `tests/application-review/**`.
 - Listings: `README.md` (skills and agents tables), `agents/README.md`, `evals/README.md`.
 - `.claude-plugin/plugin.json` version bump on release (installs are cached by version).
 - Not an SDLC workflow change, so the CLAUDE.md doc-sync rule for the SDLC playbook and figures

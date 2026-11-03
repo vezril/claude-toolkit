@@ -112,8 +112,9 @@ same verbatim check against the posting that S2's quotes get against the CV.
   half-points, flag hidden text. Text boxes (`w:txbxContent`) get flagged as a structural risk.
 - **MD/TXT:** passthrough, and `parse_health` is `clean` with a note that no layout was tested.
 - **Section headings:** detect the standard ones (Experience, Work History, Education, Skills,
-  Certifications, and FR equivalents if D10 says so). A CV with no detectable Experience heading
-  is a structural risk.
+  Certifications) and the FR equivalents (Expérience, Expérience professionnelle, Formation,
+  Compétences, Certifications, Langues, Réalisations), per D10. A CV with no detectable
+  Experience heading is a structural risk.
 
 **Open:** detecting white text in a *PDF* needs fill colour, which `pdftotext` doesn't expose.
 Options: (a) accept the gap in v1 and say so in the report, or (b) add `pypdf`/`pdfplumber` via
@@ -198,9 +199,11 @@ but Claude Code's normal processing. The handoff doc says this and doesn't over-
 
 ### D10. Language
 
-Calvin is in Quebec, so bilingual postings and FR CVs are plausible. **Open question for Calvin.**
-Recommendation: support FR/EN in S1 and S2 (the model handles both), add FR section headings to
-D4, and include 4–6 FR or mixed cases in the eval set.
+Calvin is in Quebec, so bilingual postings and FR CVs are plausible. **Decided: FR/EN in v1.**
+S1 and S2 work in both languages, D4's heading detection includes the FR equivalents, and the eval
+set carries 4–6 FR or mixed cases. Evidence and source quotes are stored verbatim in the source
+language: the quote edge is a substring check against the extracted text, so a translated quote
+would fail it. The report is written in the language the user is talking in.
 
 ### D11. Model
 
@@ -231,13 +234,32 @@ New files only, nothing to migrate.
 
 ## Open Questions
 
-1. **Name.** `cv-reviewer` (fits the repo's `*-reviewer` agents) and skill `ats-screening`. Or
-   Calvin's "HR agent"? The name matters a little legally: "screener" reads employer-side.
-2. **Personal use or public plugin feature?** It ships in the public toolkit either way. If he
-   means to apply with it himself, the eval set can include a case shaped like his real
-   situation (synthetic, never his actual CV).
-3. **FR support in v1** (D10).
-4. **Posting by URL?** v1 takes pasted text or a file. Fetching a public posting URL is an easy
-   add (WebFetch), but the fetched page is untrusted data (D8).
-5. **Certify the prompts?** Recommended: run it through `prompt-edd` like pr-description, and
-   certify S1+S2+S4 as one agent prompt with step-level asserts.
+All five were put to Calvin on 2026-11-03. Answers are recorded inline; they are decisions now,
+not questions.
+
+1. **Name.** → **`application-reviewer` + skill `ats-screening`.** Chosen over `cv-reviewer` to
+   leave room for cover letters and other application material later, and over Calvin's original
+   "HR agent" because that reads employer-side, which is exactly the posture D9 is avoiding.
+   "Screener" was never a candidate. Consequences: `agents/application-reviewer.md`,
+   `skills/ats-screening/`, `scripts/application-review/`, `tests/application-review/`,
+   `evals/application-reviewer/`, OpenSpec change `add-application-reviewer`, capability
+   `application-reviewer`.
+2. **Personal use or public plugin feature?** → **Public feature only.** The eval set stays
+   generic: no cases shaped around Calvin's own profile, no Quebec-senior-platform archetype.
+   Cases are drawn to cover the trap list in `tasks.md` §1.1, not one person's situation. This
+   also removes the temptation to tune the prompt against a single résumé shape. Task 5.4's
+   dogfood run stands, but it is an anecdote in the iteration log, not a score.
+3. **FR support in v1** (D10). → **Yes, FR/EN.** S1 and S2 handle both languages; D4's heading
+   detection gains the FR equivalents (Expérience, Expérience professionnelle, Formation,
+   Compétences, Certifications, Langues, Réalisations); the eval set carries 4–6 FR or mixed
+   cases, including at least one FR CV against an EN posting and one bilingual posting.
+   Evidence quotes stay verbatim in the source language — no translation in the quote fields,
+   because the quote edge is a substring check.
+4. **Posting by URL?** → **No. Pasted text or a file only.** A fetched page is attacker-controlled
+   data (D8), most boards need a login anyway, and adding WebFetch would need its own injection
+   cases. If this is added later it is a separate change with its own eval cases, and the fetched
+   text must enter the pipeline through the same untrusted-data path as the CV.
+5. **Certify the prompts?** → **Yes, `prompt-edd`.** S1 + S2 + S4 certify as one agent prompt with
+   step-level asserts, following the `pr-description` and `pocock-folds` pattern: eval suite
+   before prompt, naive v1 baseline arm, one hypothesis per version, real runs only, suites run
+   sequentially, ≥95% of asserts to pass, plus `iteration-log.md` and `load-bearing.md`.
