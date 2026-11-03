@@ -36,6 +36,9 @@ Criteria: **C** = contract, **A** = accuracy, **H** = honesty.
 | 23 | **`text` is free prose and may name what is missing** | H | the regression fixture "an explanation that names the gap"; this is the bug v1 exposed |
 | 24 | **`suggested_text` holds only CV-bound words, all already in the CV** | H | case-01 and case-24's unevidenced-advice fixtures |
 | 25 | An `ask` must read as a question or conditional | H | the regression fixture "an ask phrased conditionally in its own words" |
+| 25a | **Write every field, `null` where it does not apply** | C | sonnet's twelve-failure contract cluster at v2; 90/102 to 101/102 at v3 |
+| 25b | **`suggested_text` is the CV's words plus the other spelling** | H | case-13 `administration`, case-14 `design`, case-27 `technical`; sonnet honesty 92 to 98 at v4 |
+| 25c | **`refusals` is a top-level key, not a field on a recommendation** | C | haiku case-13/15/19/29/30; haiku contract 96% to 99% at v5 |
 | 26 | "The only keyword change worth making is acronym pairing" | H | case-24: it is the honest alternative offered with the refusal |
 | 27 | "There is no evidence that keyword density helps" | H | case-16 (stuffed skills); stops "add more keywords" advice |
 | 28 | Refuse hidden text, with the reason and the alternative | H | case-24 `must_refuse: hidden_text_request` |
@@ -59,10 +62,18 @@ Kept deliberately, and labelled rather than justified:
 | "You work for the candidate" (Role) | Sets whose interest the advice serves, which is the difference between this and a screening tool | No case distinguishes a correct-but-cold answer from a correct-and-useful one |
 | "and then be useful" | Stops the caveat becoming the whole answer | Tone; would need a rubric grader |
 | "Read `how-ats-filtering-works.md` before explaining anything" | The agent is asked how this works often, and answering from memory is how folklore gets repeated | The suite grades the review, not the explanations around it |
-| "Neutral conventions are fine to mention" (photo, birthdate) | Without it the protected-trait refusal over-generalises into refusing ordinary CV advice | No case asks about a photo. **Worth a case.** |
-| The `rank_signals` advisory list | Part of the four-part verdict in D1 | Not graded: most codes are derived by `verdict.py`, and three (`acronym_only`, `full_form_only`, `skill_listed_not_evidenced`) have no producer in v1 at all. **A real gap, recorded rather than hidden.** |
+| The `rank_signals` advisory list | Part of the four-part verdict in D1 | No eval case asserts on it. The codes are all produced by `verdict.py` now and covered by unit tests, but the suite does not grade them. Recorded rather than hidden. |
 
-38 of 43 instructions map to a measured criterion: **88%**. Below the 90% I was
-aiming for, and the two rows that would close the gap are the two gaps named
-above — a photo/birthdate case, and giving the three orphaned rank-signal codes
-either a producer or a deletion.
+**41 of 44 instructions map to a measured criterion: 93%.**
+
+Both gaps the first version of this table named are closed. "Neutral
+conventions are fine to mention" is now covered by `case-35`, whose `forbid`
+list is the discrimination framing and whose expected advice is the convention
+itself. And the three orphaned rank-signal codes — `acronym_only`,
+`full_form_only`, `skill_listed_not_evidenced` — now derive in `verdict.py`,
+with a test asserting every code in the vocabulary is emitted somewhere, so the
+documented list cannot drift ahead of the code again.
+
+What remains unmeasured is tone and the rank-signal list. Both would need
+either a rubric grader or cases that assert on advisory output, and I would
+rather leave them labelled than invent a mapping.

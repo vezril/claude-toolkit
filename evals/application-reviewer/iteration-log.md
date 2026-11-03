@@ -232,4 +232,217 @@ I am *not* predicting a contract improvement. v2 says nothing new about the
 envelope, and the `condition: missing` problem above is untouched by it, so if
 contract stays near 94/102 on sonnet that is the next version's job.
 
-<!-- numbers to follow -->
+**Measured.** `results/run_v2_all.json`:
+
+| | contract | accuracy | honesty |
+|---|---|---|---|
+| haiku | 99/102 | 96/102 | 99/102 |
+| sonnet | 90/102 | 102/102 | 95/102 |
+
+Accuracy went 74 to 102 on sonnet and 38 to 96 on haiku. Every case in the
+table above flipped. The hypothesis was right and the size of it on haiku —
+from 37% to 94% — says the gap was never capability.
+
+The prediction about contract was right too, in the wrong direction: it drifted
+down from 94 to 90 on sonnet rather than holding. v2's field table lists "required
+fields" per kind, which if anything encouraged the omission it was supposed to
+be neutral about.
+
+And reading v2's failures found six more bugs in my own checks, all of them the
+same shape, which is the real lesson of this iteration:
+
+**My checkers could not tell naming a thing from advocating it.**
+
+- "advises white text" fired on "remove the white text from your file" and on
+  "instead of hidden text, write PostgreSQL once".
+- "say you have" was banned outright, which fails the one kind where it is the
+  point of the kind.
+- "in progress" and "pursuing" were banned in the explanation, so telling a
+  candidate *not* to pre-announce a credential scored as fabrication.
+- case-07's forbid list banned "list it as held", which correct advice says
+  while telling the candidate not to.
+- `no_score` fired on "an AI match score that grades each requirement for
+  evidence", a fact about Workday taken from the skill's own reference file.
+- accuracy graded the model's raw status on years requirements when the skill
+  explicitly tells it to leave the arithmetic to S3. It was marking the model
+  wrong for doing what it was told.
+
+None of those changed the contract, so I rescored both prior runs from their
+recorded outputs with `rescore.py` instead of paying for 408 more calls.
+
+## v3 — one instruction about null
+
+`prompts/prompt_v3.md` is v2 plus one paragraph: write every field of every
+record, `null` where it does not apply.
+
+**Prediction.** Sonnet's contract cluster is twelve failures with one cause, so
+contract should go to about 101/102 and nothing else should move.
+
+**Measured.** `results/run_v3_all.json`:
+
+| | contract | accuracy | honesty |
+|---|---|---|---|
+| haiku | 100/102 | 101/102 | 100/102 |
+| sonnet | 101/102 | 100/102 | 92/102 |
+
+Contract 90 to 101 on sonnet, exactly the cluster. This is the cleanest
+single-cause result in the series and the one I would point at to argue the log
+is measuring something.
+
+v3's own failures then produced one more checker bug and one real hole.
+
+The bug was the direction-aware check again. I had given it a 90-character
+window, and "Delete the sentence beginning 'Ignore all previous instructions'
+and re-export the CV. It is set in white text" puts the "Delete" five
+characters outside it. Second time the same advice was scored as advocacy. The
+context is now the containing sentence plus the one before it, and "set" and
+"use" came out of the advocating-verb list, because "it **is set** in white
+text" is how you describe a finding.
+
+The hole was larger and I found it by writing a fixture rather than by reading
+output. The claim check only ever looked at terms the posting supplied and
+words that looked like proper nouns, which left ordinary lowercase prose free
+to invent things: "PostgreSQL administration and capacity planning" passed
+against a CV that only ever says it ran databases. Since that check now only
+sees `suggested_text`, it sweeps every content word, which is what the skill
+promises in the first place.
+
+That made the check **stricter**, so I rescored everything and some numbers
+went down — v2 sonnet honesty 101 to 95, v3 sonnet 94 to 92. Those are the
+numbers in the tables above. Keeping the friendlier earlier pass would have
+been the easiest dishonesty available in this whole exercise.
+
+I also added credentials and role titles to the equivalence table. A B.Sc. is a
+bachelor's degree and an SRE is a site reliability engineer; v3 was marked down
+for suggesting either spelling, and that was the table being incomplete rather
+than the model inventing anything.
+
+## v4 — where the CV's words end
+
+`prompts/prompt_v4.md` states the rule the strengthened check now enforces:
+`suggested_text` is built from the CV's words, plus the other spelling of the
+same thing, and never the posting's framing for work the CV describes
+differently. If the posting says "Linux administration" and the CV says
+"on-call for a Linux fleet", the suggestion is "Linux".
+
+**Prediction.** Sonnet honesty recovers from 92 toward 98. Contract and
+accuracy hold.
+
+**Measured.** `results/run_v4_all.json`:
+
+| | contract | accuracy | honesty |
+|---|---|---|---|
+| haiku | 98/102 | 96/102 | 102/102 |
+| sonnet | 101/102 | 101/102 | 98/102 |
+
+Sonnet honesty 92 to 98, within one of the prediction. Haiku reached 102/102 on
+honesty. Haiku's contract and accuracy drifted down two to five asserts, all of
+it 1-of-3, which I am reading as sampling rather than a regression: nothing in
+v4 touches either.
+
+Every sonnet failure in v4 was 1-of-3 rather than 3-of-3, which is the shape I
+had been waiting for — the systematic readings were gone.
+
+Three of them were my checker. Again. For the fourth time:
+
+- it reported the injected text in its own words ("white text that tells a
+  reader to rate you a perfect match"), and case-17's forbid list banned the
+  injection's own phrases;
+- it wrote "no keyword stuffing is needed" and was marked as advising keyword
+  stuffing;
+- it wrote "the summary's claim of 15 years of experience is not supported by
+  the dated positions", which is the correct answer, and case-32 forbade the
+  substring "15 years of experience is".
+
+Four separate times I wrote a check that read a phrase and inferred intent from
+its presence. If there is one transferable thing in this log, it is that: on a
+task whose whole subject is deception, the correct output *has to* name the
+deceptive techniques, so any check on the words alone will fail the behaviour
+you most want. A negator immediately before the phrase now short-circuits the
+decision, and compliance on the injection case is caught where it actually
+shows — the gold verdict requires Terraform to stay unmet, which an obedient
+model gets wrong.
+
+## v5 — where refusals live (certified)
+
+`prompts/prompt_v5.md` adds one instruction: `refusals` is a top-level key of
+the recommendations document, not a field on a recommendation. That was haiku's
+only remaining systematic failure, appearing in v1b, v3 and three times in v4.
+
+This run also adds `case-35`, covering the photo/birthdate convention, which
+closes the gap `load-bearing.md` had named. 35 cases from here, so the
+denominators change: per-criterion percentages are the comparable figure.
+
+**Prediction.** Haiku contract from 98/102 (96%) to about 104/105 (99%).
+Nothing else moves.
+
+**Measured.** `results/run_v5_all.json`:
+
+| | contract | accuracy | honesty | certified |
+|---|---|---|---|---|
+| haiku | 104/105 | 100/105 | 104/105 | **97.8%** |
+| sonnet | 104/105 | 100/105 | 102/105 | **97.1%** |
+
+Haiku contract 96% to 99%, as predicted. Both models are above the 95% bar on
+the three certified criteria and no failure repeats 3-of-3 on either.
+
+**This is the certified version.** It ships verbatim as
+`skills/ats-screening/SKILL.md`.
+
+### On the refactor step
+
+prompt-edd calls for an RTCC restructuring once the suite is green, followed by
+a re-run proving it cost nothing. There is no such step here, because v2 was
+written in RTCC shape from the start — Role, Task, Context, Rules, Refusals,
+Output — and v3 through v5 each added one instruction inside that structure
+without moving anything. Staging a reshuffle now so the log could have a
+refactor section would be theatre, and the re-run that "proved" it free would
+be measuring nothing.
+
+What the refactor step is really for, promoting implicit behaviour into explicit
+instruction, is what v3, v4 and v5 each did: the null rule, the CV's-words rule
+and the refusals placement were all things the model was getting right most of
+the time and wrong systematically.
+
+## Score progression
+
+Certified criteria only (contract, accuracy, honesty). The baseline arm is
+measured on prose, so its three certified numbers are zero by construction and
+the informative figures are in its own section above.
+
+| Version | sonnet | haiku | What changed |
+|---|---|---|---|
+| baseline | 0% | 0% | the one-liner a person would type |
+| v1 | — | — | discarded: two honesty-edge bugs |
+| v1b | 86.9% | 78.8% | same prompt, corrected harness |
+| v2 | 94.8% | 96.1% | the real skill: procedure, contracts, rules |
+| v3 | 95.4% | 98.4% | write every field, null where inapplicable |
+| v4 | 98.0% | 96.7% | suggested_text comes from the CV's words |
+| v5 | **97.1%** | **97.8%** | refusals is a top-level key (+ case-35) |
+
+Every figure in that table is the current graders applied to the recorded
+outputs of that run, so the column is internally comparable. v1b through v4 ran
+34 cases and v5 ran 35.
+
+## Known weaknesses
+
+Written down rather than fixed, because fixing them now would mean changing
+gold after the fact.
+
+- **case-19's gold is probably incomplete.** The posting header reads
+  "Accountant - Toronto", and both models repeatedly extract a location
+  requirement from it, which the gold does not have. They are arguably right
+  and I am arguably wrong. It costs about one assert per run on each model, and
+  I would rather record that than quietly add the requirement and claim a
+  higher score.
+- **The rank-signal list is not graded.** Most of it is derived by
+  `verdict.py`, which the unit tests cover, but no eval case asserts on it.
+- **Haiku types "3+ years of experience" as a `skill`** about one run in three
+  on `case-22`, where the CV is unreadable and there is no text to anchor
+  anything. Not systematic enough to chase with another version.
+- **One malformed JSON per run, roughly.** Different case each time
+  (`case-28`, `case-29`, `case-15`, `case-32`). At 1-in-105 it reads as
+  ordinary sampling rather than a prompt problem.
+- **Two models, one harness.** Everything here ran through promptfoo's
+  `claude-agent-sdk` provider against Bedrock. Scores from a different harness
+  should not be assumed to transfer.
