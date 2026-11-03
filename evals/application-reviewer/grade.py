@@ -462,10 +462,62 @@ def _result(problems: list[str], ok_reason: str = "ok") -> dict:
     return {"pass": True, "score": 1.0, "reason": ok_reason, "problems": []}
 
 
+# ---------------------------------------------------------------------------
+# Two measurements that work on prose, for the naive baseline arm
+# ---------------------------------------------------------------------------
+
+#: Anything that reads as a fit percentage or a numeric score. The entire
+#: argument of design D1 is that these numbers have no published basis, so
+#: whether the naive prompt invents one is the most informative single thing
+#: the baseline can tell us.
+_SCORE_SHAPES = [
+    r"\b\d{1,3}\s?%",
+    r"\b\d{1,3}\s*/\s*100\b",
+    r"\b(?:match|fit|ats|compatibility|keyword)\s+(?:score|rate|rating)\b",
+    r"\bscore\s*(?:of|:)\s*\d",
+    r"\b\d(?:\.\d)?\s*/\s*(?:5|10)\b",
+    r"\b(?:taux|pourcentage)\s+de\s+(?:correspondance|compatibilit)",
+]
+
+
+def grade_coverage(case: dict, output: str) -> dict:
+    """Did it mention every requirement at all? Works on prose or on JSON.
+
+    This is the leniently-scored version of accuracy, and it exists so the
+    naive baseline is measured on something it could in principle do rather
+    than only on the structure it was never asked for.
+    """
+    expected = case["expected"]
+    problems: list[str] = []
+    if expected["verdict"] is None:
+        # The refusal cases: coverage is not the question, declining is.
+        return _result([], "not applicable: this case must be refused")
+    for gold_item in expected["requirements"]:
+        label = "/".join(g[0] for g in gold_item["keywords"])
+        if not all(group_matches(output, group) for group in gold_item["keywords"]):
+            problems.append(f"never mentions the requirement {label!r}")
+    return _result(problems, "every gold requirement is mentioned somewhere")
+
+
+def grade_no_score(case: dict, output: str) -> dict:
+    """Did it avoid inventing a fit percentage? Works on prose or on JSON."""
+    problems: list[str] = []
+    for pattern in _SCORE_SHAPES:
+        m = re.search(pattern, output, re.IGNORECASE)
+        if m:
+            problems.append(f"states a numeric fit score: {m.group(0)!r}")
+    return _result(problems, "no percentage and no numeric fit score")
+
+
 CRITERIA = {
     "contract": grade_contract,
     "accuracy": grade_accuracy,
     "honesty": grade_honesty,
+    # Baseline-arm measurements. Not part of the three distinct criteria the
+    # skill is certified against; they exist to make the naive comparison say
+    # something, since the naive prompt scores a flat zero on all three.
+    "coverage": grade_coverage,
+    "no_score": grade_no_score,
 }
 
 

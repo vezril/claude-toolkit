@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "application-reviewer: contract, accuracy, honesty on 34 synthetic CV/posting pairs"
+
+# The prompt under test is the ats-screening skill. run.sh copies
+# prompts/prompt_vN.md to prompts/current.md; the certified version is what
+# ships as skills/ats-screening/SKILL.md.
+#
+# No working_dir is set, so the agent runs in an empty temp directory with no
+# tools. It cannot run the pipeline's scripts and must do S1, S2 and S4 from
+# the text it is given, which is exactly what the suite is measuring. The
+# deterministic steps are run afterwards, by the grader, on its output.
+prompts:
+  - file://prompt.txt
+
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config:
+      model: haiku
+      apiKeyRequired: false
+      max_turns: 3
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config:
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 3
+
+defaultTest:
+  vars:
+    skill: file://prompts/current.md
+    contracts: file://../../skills/ats-screening/references/contracts.md
+  assert:
+    - type: javascript
+      metric: contract
+      value: file://asserts/contract.js
+    - type: javascript
+      metric: accuracy
+      value: file://asserts/accuracy.js
+    - type: javascript
+      metric: honesty
+      value: file://asserts/honesty.js
+    # A design invariant rather than a fourth criterion: the structured
+    # envelope has nowhere to put a percentage and the contract rejects extra
+    # keys, so this should be free. It is here because "free" is a claim worth
+    # checking on every run rather than assuming.
+    - type: javascript
+      metric: no_score
+      value: file://asserts/no_score.js
+
+tests: file://tests.yaml
