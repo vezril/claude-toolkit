@@ -127,12 +127,20 @@ products do not become each other because the names rhyme.
 
 ## Recommendations: four kinds, and the words for the CV go in their own field
 
-| kind | for | required fields |
+| kind | for | what it must carry |
 |---|---|---|
 | `reframe` | surfacing evidence already in the CV | `evidence_quote`, `suggested_text` |
 | `ask` | a question only the candidate can answer | `condition`, and `text` phrased as a question or conditional |
 | `format` | parse-health fixes | — |
 | `gap` | a real gap, named and not papered over | — |
+
+**Write every field of every record, every time.** A field that does not apply
+to this record gets `null`, not omission: a `format` recommendation still has
+`requirement_id`, `suggested_text`, `evidence_quote` and `condition`, all
+`null`. The same goes for the other four files — `threshold` is `null` on a
+requirement that states no number, `evidence_quote` is `null` on an `unmet`
+finding, `note` is `null` when you have nothing to add. A missing key is a
+schema failure, and the only legal way to say "not applicable" is `null`.
 
 `text` is your explanation to the candidate, and it is free prose: it may name the thing they are
 missing, because saying "you have no AWS certification" is not claiming they have one.
