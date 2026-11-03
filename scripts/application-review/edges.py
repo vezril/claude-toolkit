@@ -337,6 +337,60 @@ _TERM_STOP = {
 }
 
 
+#: Spellings of the same thing. Pairing an acronym with its full form is the
+#: one keyword change design D7 allows, because it adds no claim: if the CV
+#: says "K8s", telling the candidate to also write "Kubernetes" is truthful.
+#: Without this table the honesty edge rejects exactly the advice the design
+#: says to give.
+#:
+#: The list is curated on purpose and stays short. A general initials rule
+#: would quietly admit the false friends the eval set exists to catch, so
+#: Java/JavaScript and MySQL/SQL Server are deliberately absent: those are
+#: different products, not two spellings.
+_EQUIVALENTS: list[set[str]] = [
+    {"kubernetes", "k8s"},
+    {"postgresql", "postgres", "psql"},
+    {"javascript", "js", "ecmascript"},
+    {"typescript", "ts"},
+    {"aws", "amazon web services"},
+    {"gcp", "google cloud platform", "google cloud"},
+    {"azure", "microsoft azure"},
+    {"ci", "continuous integration"},
+    {"cd", "continuous delivery", "continuous deployment"},
+    {"iac", "infrastructure as code"},
+    {"ml", "machine learning"},
+    {"nlp", "natural language processing"},
+    {"node", "nodejs", "node.js"},
+    {"golang", "go"},
+    {"csharp", "c#", "c sharp"},
+    {"sql", "structured query language"},
+    {"gha", "github actions"},
+    {"cka", "certified kubernetes administrator"},
+    {"oiq", "ordre des ingenieurs du quebec", "ordre des ingénieurs du québec"},
+    {"k8s cluster", "kubernetes cluster"},
+]
+
+
+def _equivalent_forms(term: str) -> set[str]:
+    """Every spelling of ``term`` that means the same thing, including itself."""
+    key = term.strip().lower()
+    forms = {key}
+    for group in _EQUIVALENTS:
+        if key in group:
+            forms |= group
+    return forms
+
+
+def _mentioned(text: str, term: str) -> bool:
+    """Is ``term``, or any equivalent spelling of it, in ``text``?"""
+    folded = _fold_accents(normalise(text)).lower()
+    for form in _equivalent_forms(term):
+        pattern = r"\b" + re.escape(_fold_accents(form).lower()) + r"\b"
+        if re.search(pattern, folded):
+            return True
+    return False
+
+
 def _claim_terms(requirements: dict) -> list[str]:
     """The distinctive terms a posting asks for, as lowercase tokens.
 
@@ -375,12 +429,12 @@ def _unsupported_claims(text: str, cv_text: str, terms: list[str]) -> list[str]:
         if token not in norm_cv and m.group(1) not in norm_cv and token not in found:
             found.append(token)
 
-    # Terms the posting asks for but the CV never evidences.
+    # Terms the posting asks for but the CV never evidences. An equivalent
+    # spelling counts: "Kubernetes" is supported by a CV that says "K8s".
     for term in terms:
         if re.search(rf"\b{re.escape(term)}\b", text, re.IGNORECASE):
-            if not re.search(rf"\b{re.escape(term)}\b", lower_cv):
-                if term not in found:
-                    found.append(term)
+            if not _mentioned(cv_text, term) and term not in found:
+                found.append(term)
 
     # Proper nouns: an employer, product or school we were never told about.
     starts = set(_sentence_initial_spans(text))
@@ -388,7 +442,9 @@ def _unsupported_claims(text: str, cv_text: str, terms: list[str]) -> list[str]:
         word = m.group(0)
         if m.start() in starts or word in _CAP_STOP:
             continue
-        if not re.search(rf"\b{re.escape(word.lower())}\b", lower_cv) and word not in found:
+        if word.lower() in found:
+            continue
+        if not _mentioned(cv_text, word) and word not in found:
             found.append(word)
 
     return found

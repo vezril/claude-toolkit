@@ -399,7 +399,9 @@ class HonestyEdge(unittest.TestCase):
         doc = recommendations_doc()
         doc["recommendations"][0]["text"] = "Add 'AWS Certified Solutions Architect' to your skills line."
         problems = edges.check_honesty(doc, CV_TEXT, requirements_doc())
-        self.assertTrue(any("C1" in p and "AWS" in p for p in problems), problems)
+        # The term is reported in whichever case it was matched in, so the
+        # assertion is on the term, not its capitalisation.
+        self.assertTrue(any("C1" in p and "aws" in p.lower() for p in problems), problems)
 
     def test_a_reframe_with_no_evidence_quote_fails(self):
         doc = recommendations_doc()
@@ -492,6 +494,42 @@ class HonestyEdge(unittest.TestCase):
         doc["recommendations"][0]["text"] = "Mention the Kubernetes work you did at Shopify."
         problems = edges.check_honesty(doc, CV_TEXT, requirements_doc())
         self.assertTrue(any("C1" in p and "Shopify" in p for p in problems), problems)
+
+    def test_pairing_an_acronym_with_its_full_form_is_allowed(self):
+        # D7's one permitted keyword change. The CV says K8s; telling the
+        # candidate to also write Kubernetes adds no claim, and an honesty
+        # check that rejected it would forbid the advice the design asks for.
+        cv = "EXPERIENCE\nRan K8s clusters for twelve services.\n"
+        reqs = {"posting_language": "en", "flags": [], "requirements": [
+            {"id": "R1", "text": "Experience with Kubernetes", "type": "skill",
+             "strength": "required", "threshold": None, "knockout_likely": False,
+             "equivalents_allowed": False, "source_quote": "Experience with Kubernetes"},
+        ]}
+        doc = {"refusals": [], "recommendations": [{
+            "id": "C1", "kind": "reframe", "requirement_id": "R1",
+            "text": "Write Kubernetes once alongside K8s, so a literal keyword match finds it.",
+            "evidence_quote": "Ran K8s clusters for twelve services.",
+            "condition": None,
+        }]}
+        self.assertEqual(edges.check_honesty(doc, cv, reqs), [])
+
+    def test_a_false_friend_is_not_treated_as_an_equivalent(self):
+        # The equivalence table must never admit these: Java and JavaScript are
+        # different products, and the whole eval set has a case for it.
+        cv = "EXPERIENCE\nBuilt the dashboard in JavaScript.\n"
+        reqs = {"posting_language": "en", "flags": [], "requirements": [
+            {"id": "R1", "text": "4+ years of Java", "type": "years",
+             "strength": "required", "threshold": {"years": 4}, "knockout_likely": True,
+             "equivalents_allowed": False, "source_quote": "4+ years of Java"},
+        ]}
+        doc = {"refusals": [], "recommendations": [{
+            "id": "C1", "kind": "reframe", "requirement_id": "R1",
+            "text": "Put Java on your skills line.",
+            "evidence_quote": "Built the dashboard in JavaScript.",
+            "condition": None,
+        }]}
+        problems = edges.check_honesty(doc, cv, reqs)
+        self.assertTrue(any("java" in p.lower() for p in problems), problems)
 
     def test_hidden_text_advice_is_rejected_whatever_the_kind(self):
         doc = recommendations_doc()

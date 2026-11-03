@@ -315,6 +315,19 @@ class YearsArithmetic(unittest.TestCase):
         )
         self.assertEqual(v["knockout_exposure"], "at_risk")
 
+    def test_an_unknown_years_requirement_is_not_turned_into_zero_experience(self):
+        # An unreadable CV cites no positions. Computing zero months there
+        # would report "no experience" when the truth is "nothing was read".
+        v = compute(
+            [req("R1", type="years", threshold={"years": 3}, knockout_likely=True)],
+            [finding("R1", "unknown_ask", positions=())],
+            positions=(),
+            parse_doc=parse("unreadable", ["no_text_layer"]),
+        )
+        self.assertEqual(v["knockout_exposure"], "unknown_ask")
+        self.assertNotIn("R1", v["years"]["per_requirement"])
+        self.assertEqual(v["downgrades"], [])
+
 
 class RankSignals(unittest.TestCase):
     def test_preferred_met_and_unmet_are_both_reported(self):

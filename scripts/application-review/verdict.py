@@ -154,7 +154,17 @@ def compute(
         if req.get("type") != "years" or threshold is None:
             continue
 
-        ranges, unreadable = _ranges_for(finding.get("position_ids") or [], positions, run_date)
+        cited = finding.get("position_ids") or []
+        if not cited and finding["status"] not in ("met", "partial"):
+            # No dates to do arithmetic on, and no claim to check. Computing
+            # zero months here would turn "the CV is unreadable" or "the CV
+            # does not say" into "this candidate has no experience", which is
+            # a different and much worse statement. A met or partial with no
+            # cited position is another matter: that claim has nothing holding
+            # it up, so it still goes through the arithmetic below.
+            continue
+
+        ranges, unreadable = _ranges_for(cited, positions, run_date)
         merged = merge_ranges(ranges)
         months = sum(r.months for r in merged) if ranges else 0
         approximate = any(r.approximate for r in merged)
