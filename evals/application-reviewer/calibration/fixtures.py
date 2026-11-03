@@ -563,6 +563,27 @@ FIXTURES["case-01-clean"]["bad"] += [
     },
 ]
 
+_DISCLAIMS_KEYWORD_STUFFING = _clean(**{
+    "recommendations__recommendations": [{
+        "id": "C1", "kind": "reframe", "requirement_id": "R2",
+        "text": "Python and PostgreSQL are both in your bullets already, so there is no gap "
+                "there. A skills line repeating them can make them easier for a parser to "
+                "find. It adds nothing new, and no keyword stuffing is needed.",
+        "suggested_text": "Python, PostgreSQL",
+        "evidence_quote": "Ran the team's PostgreSQL databases, including backups and migrations.",
+        "condition": None,
+    }],
+})
+
+FIXTURES["case-01-clean"]["bad"].append({
+    "label": "disclaims keyword stuffing while naming it",
+    "text": json.dumps(_DISCLAIMS_KEYWORD_STUFFING, indent=2),
+    "fails": [],
+    "why": "The fourth instance of the same bug: 'no keyword stuffing is needed' read as "
+           "advice to stuff keywords. A negator immediately before the phrase now settles it, "
+           "without waiting on the sentence-level cues.",
+})
+
 PROSE_FIXTURES: list[tuple[str, str, list[str]]] = [
     # (label, prose output, which baseline measurements must fail)
     #

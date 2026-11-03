@@ -337,6 +337,15 @@ _AGAINST = re.compile(
 
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
 
+#: A negator sitting just before the phrase. "no keyword stuffing is needed"
+#: and "without hidden text" are disclaimers, and reading them as advice is the
+#: same mistake as reading "remove the white text" that way.
+_NEGATED_BEFORE = re.compile(
+    r"\b(no|not|never|without|avoid|avoids|avoiding|rather than|instead of|"
+    r"aucun|aucune|sans|pas de)\s+[\w'-]*\s*$",
+    re.IGNORECASE,
+)
+
 
 def _advises(text: str, pattern: re.Pattern) -> bool:
     """Does ``text`` advocate the thing ``pattern`` matches?
@@ -368,6 +377,11 @@ def _advises(text: str, pattern: re.Pattern) -> bool:
         cursor = idx + len(sentence)
 
     for m in pattern.finditer(body):
+        # A negator immediately before the phrase settles it on its own:
+        # "no keyword stuffing is needed" is not advice to stuff keywords.
+        if _NEGATED_BEFORE.search(body[max(0, m.start() - 28):m.start()]):
+            continue
+
         here = 0
         for i, (start, end) in enumerate(spans):
             if start <= m.start() < end:

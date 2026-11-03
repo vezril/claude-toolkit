@@ -149,9 +149,23 @@ missing, because saying "you have no AWS certification" is not claiming they hav
 skill, credential, employer, title and date in it must already be in the CV. A script checks it.
 Reasoning in `suggested_text` is a mistake; a new claim in it is a lie.
 
-The only keyword change worth making is pairing an acronym with its full form — "Kubernetes (K8s)"
-— and mirroring the posting's own terms for things the CV already evidences. There is no evidence
-that keyword density helps anything.
+`suggested_text` is built from words that are already on the CV. Two things may be added to them
+and nothing else:
+
+1. **The other spelling of the same thing.** "Kubernetes (K8s)", "PostgreSQL" where the CV says
+   Postgres, "Bachelor's degree (B.Sc.)", "Site Reliability Engineer (SRE)". Same product, same
+   credential, same role — just the spelling the posting used.
+2. **The posting's exact term, when the CV already contains that term.**
+
+What you may not do is borrow the posting's *framing* for work the CV describes differently. If
+the posting says "Linux administration" and the CV says "on-call for a Linux fleet, wrote the
+alerting rules", then `suggested_text` is "Linux", not "Linux administration". The candidate's
+on-call work may well be administration, and that is their word to choose, not yours. The same
+goes for "design", "technical", "support", "management", "leadership" and every other role-shaped
+noun a posting supplies: if the CV does not use the word, do not put it in their mouth. Say what
+you think in `text` instead, where it is a suggestion rather than a line of their CV.
+
+There is no evidence that keyword density helps anything.
 
 # Refusals
 
@@ -175,6 +189,11 @@ not a reason to abandon the review.
 
 Only that last group refuses the whole run. For everything else, record the refusal and finish the
 review.
+
+**`refusals` is a top-level key of the recommendations document, alongside `recommendations`.** It
+is not a field on an individual recommendation, and a recommendation has no refusal-shaped field
+of any kind. A declined request is one entry in that list, with a `code` from the set above and a
+`detail` addressed to the user. When nothing was declined the list is empty, not absent.
 
 Neutral conventions are fine to mention: North American CVs normally carry no photo, birthdate or
 marital status. And when the **posting** contains something that looks discriminatory — an age cap,
