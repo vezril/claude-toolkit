@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "application-reviewer BASELINE: the one-liner a person would actually type"
+
+# The naive arm. Its whole job is to show what the skill is worth: if a
+# one-sentence prompt scores the same, the skill is decoration.
+#
+# It is graded by the same three criteria, which will be brutal to it on the
+# contract criterion, because nothing has told it what shape to answer in.
+# That is the honest comparison: a naive prompt really does produce output
+# nobody can build a pipeline on. The baseline is not pre-hardened and it is
+# not sabotaged either.
+prompts:
+  - file://prompt.baseline.txt
+
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config:
+      model: haiku
+      apiKeyRequired: false
+      max_turns: 3
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config:
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 3
+
+defaultTest:
+  assert:
+    # The same three criteria the skill is certified against. The naive arm
+    # scores zero on all of them, which is honest and also uninformative, so
+    # two further measurements follow.
+    - type: javascript
+      metric: contract
+      value: file://asserts/contract.js
+    - type: javascript
+      metric: accuracy
+      value: file://asserts/accuracy.js
+    - type: javascript
+      metric: honesty
+      value: file://asserts/honesty.js
+    # These two work on prose. They are what makes the comparison say
+    # something: whether the naive prompt can at least name every requirement,
+    # and whether it invents the fit percentage that design D1 exists to argue
+    # against.
+    - type: javascript
+      metric: coverage
+      value: file://asserts/coverage.js
+    - type: javascript
+      metric: no_score
+      value: file://asserts/no_score.js
+
+tests: file://tests.yaml

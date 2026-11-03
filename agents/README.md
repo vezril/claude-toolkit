@@ -92,6 +92,7 @@ Active coding / operations:
 - **`ios-app-debugger.md`** — builds/runs/debugs iOS/macOS apps on the simulator; reproduces, profiles, and fixes runtime issues.
 - **`apple-release-manager.md`** — packages/signs/notarizes SwiftPM macOS apps and generates App Store release notes.
 - **`issue-fixer.md`** — takes a GitHub issue end to end (gh → fix → build/test → commit & push); domain-neutral.
+- **`application-reviewer.md`** — assesses the user's **own** CV against **one** job posting: a four-part verdict (knockout exposure, likely AI tier, parse health, ranking signals) with verbatim evidence, and no match percentage. Binds `ats-screening`; the deterministic half lives in `scripts/application-review/` (extraction + parse health, merged-range years arithmetic, verbatim-quote and honesty edges, verdict composition, report rendering). Refuses third-party/bulk CVs, fabrication, hidden text and protected-trait inference. `Write` is scoped to the run's temp directory.
 
 Communications & writing:
 
