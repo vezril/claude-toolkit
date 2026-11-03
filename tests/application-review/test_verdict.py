@@ -201,6 +201,23 @@ class LikelyAiTier(unittest.TestCase):
         )
         self.assertEqual(v["likely_ai_tier"], "some_gaps")
 
+    def test_a_single_required_item_flatly_unmet_is_major_not_some(self):
+        # The 25% allowance has a floor of one, which on a one-requirement
+        # posting would report "some gaps" for a CV that evidences nothing.
+        v = compute([req("R1")], [finding("R1", "unmet")])
+        self.assertEqual(v["likely_ai_tier"], "major_gaps")
+
+    def test_nothing_met_but_nothing_refuted_either_is_some_gaps(self):
+        # Silence is not a gap in the same sense. unknown_ask means we could
+        # not determine it, so it must not be reported as a missing
+        # qualification.
+        v = compute([req("R1")], [finding("R1", "unknown_ask")])
+        self.assertEqual(v["likely_ai_tier"], "some_gaps")
+
+    def test_two_required_one_met_one_unmet_is_some_gaps(self):
+        v = compute([req("R1"), req("R2")], [finding("R1", "met"), finding("R2", "unmet")])
+        self.assertEqual(v["likely_ai_tier"], "some_gaps")
+
     def test_a_posting_with_no_required_items_is_vacuously_evidenced(self):
         v = compute([req("R1", strength="preferred")], [finding("R1", "unmet")])
         self.assertEqual(v["likely_ai_tier"], "all_required_evidenced")

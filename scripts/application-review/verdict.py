@@ -243,7 +243,18 @@ def compute(
         tier = "all_required_evidenced"
     else:
         allowance = max(1, math.ceil(0.25 * len(required_ids)))
-        tier = "major_gaps" if len(hard) > allowance else "some_gaps"
+        # The allowance has a floor of one, which on a one-requirement posting
+        # would call "nothing met" a mere some_gaps. So a CV that evidences
+        # none of the required items and plainly fails at least one is
+        # major_gaps regardless of how short the posting is. An `unknown_ask`
+        # or `ambiguous` does not trigger that: those are things we could not
+        # determine, not things the CV lacks.
+        nothing_met = not any(statuses.get(rid) in _EVIDENCED for rid in required_ids)
+        flatly_unmet = any(statuses.get(rid) == "unmet" for rid in required_ids)
+        if len(hard) > allowance or (nothing_met and flatly_unmet):
+            tier = "major_gaps"
+        else:
+            tier = "some_gaps"
         knocked = {r["requirement_id"] for r in reasons if r["component"] == "knockout_exposure"}
         for rid in sorted(missing, key=_id_key):
             # Said once. If the requirement already appears under knockout
