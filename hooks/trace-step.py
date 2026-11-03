@@ -130,7 +130,7 @@ def main() -> int:
     if not transcript or not transcript.exists():
         common.append_trace(repo, item, {
             "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "item": item, "step": step_name, "agent": agent,
+            "item": item, "step": step_name, "agent": agent, "hook": "trace-step",
             "session_id": payload.get("session_id"), "agent_id": payload.get("agent_id"),
             "trace_error": f"transcript not found: {transcript or '(no path in payload)'}",
         })
@@ -182,6 +182,10 @@ def main() -> int:
         declared_tier = declared.get("tier")
         record = {
             "ts": now, "item": item, "step": step_name, "agent": agent,
+            # Names its author, as check-edge's records do. Without it every step record
+            # landed in an unlabelled bucket and a reader could not tell which hook wrote
+            # what — 93 of AN-3702's 127 records were anonymous.
+            "hook": "trace-step",
             "session_id": payload.get("session_id"), "agent_id": payload.get("agent_id"),
             "model": model, "messages": usage["messages"],
             "input_tokens": usage["input_tokens"], "output_tokens": usage["output_tokens"],

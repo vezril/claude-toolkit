@@ -146,8 +146,15 @@ S.1–S.6, 3.1, 3.2, 3.4, 3.7 are retired rather than done. 3.3, 3.5, 3.6 and 3.
 
 ## 7. Audit trail and success rate
 
-- [ ] 7.1 Confirm the trace records, per step: model actually used, tokens, cost, artifact sha,
-      edge verdict
+- [x] 7.1 Confirmed against real traces on disk rather than from the hooks' source, because the question is what ended up recorded. Four of the five facts are there; two defects were not.
+
+      **`trace-step` records carried no `hook` field** while `check-edge`'s did, so 93 of AN-3702's 127 records were anonymous and anything grouping by author dropped every step record into an unlabelled bucket — including the first version of my own audit script, which reported "model: NO" for every step while the data sat right there. Both of the hook's record shapes now name it, the error shape included: an anonymous error record is a failure nobody can attribute.
+
+      **`claude-haiku-5-5` is not in the pricing table** (it covers `claude-haiku-4-5`), so every haiku step records `api_equivalent_cost_usd: null` with `pricing_missing: true`. The flag is the right behaviour — a guessed price is worse than none — but this is the tier design D7 pushes work toward, and both readiness nodes are certified on it, so criterion 4's cost figures currently omit the cheapest and most-used tier. **Needs a published price, which I will not invent.** A test asserts the gap exists so it cannot be forgotten, and says to delete itself once a real price is added.
+
+      11 tests in `tests/workflow/test_audit_trail.py`, including that `cost_usd` returns None rather than 0 for a row it could not price: zero and unknown are different claims, and a report adding them together under-reports while looking complete.
+
+      Also observed while auditing, not fixed here: AN-3702 carries a `step: "orchestrator"` record at $9.91 with `certified: false` — the orchestrating session's own usage attributed as a pipeline step. That is the attribution problem the status doc already records, and it inflates any per-step cost built from these traces.
 - [ ] 7.2 `write-outcome.py` distinguishing `completed` / `punched-out` / `failed` / `abandoned`
       for sdlc runs, emitting both punch-out denominator readings (design D8)
 - [ ] 7.3 Manual-correction detection: artifact sha vs trace sha, run marked `failed` with reason
