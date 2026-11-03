@@ -105,6 +105,36 @@ def seniority(title: str) -> int | None:
     return best
 
 
+def _equivalent_only(requirement_text: str, cv_text: str) -> list[tuple[str, str]]:
+    """Terms the posting spells one way and the CV spells another.
+
+    Returns ``(posting_form, cv_form)`` pairs. This is the one keyword change
+    the research supports: a taxonomy may map "SEO" to its expansion, a Boolean
+    recruiter search will not, so writing both once costs nothing and covers
+    both. It only looks at the curated equivalence table in ``edges``, which
+    deliberately excludes false friends.
+    """
+    import edges
+
+    out: list[tuple[str, str]] = []
+    folded_cv = edges._fold_accents(edges.normalise(cv_text)).lower()
+    for raw in re.findall(r"[A-Za-z][A-Za-z0-9+#.]*", str(requirement_text)):
+        term = raw.lower()
+        forms = edges._equivalent_forms(term)
+        if len(forms) < 2:
+            continue
+        here = re.search(rf"\b{re.escape(term)}\b", folded_cv) is not None
+        if here:
+            continue
+        for other in sorted(forms - {term}):
+            if re.search(rf"\b{re.escape(other)}\b", folded_cv):
+                pair = (raw, other)
+                if pair not in out:
+                    out.append(pair)
+                break
+    return out
+
+
 def _ranges_for(position_ids: list[str], positions: dict[str, dict], run_date: str) -> tuple[list[Range], bool]:
     """Date ranges for the named positions. The bool says whether any failed to parse."""
     ranges: list[Range] = []
@@ -294,6 +324,28 @@ def compute(
                 signal("preferred_met", f"the CV evidences the preferred {req['text']!r}", rid)
             else:
                 signal("preferred_unmet", f"the preferred {req['text']!r} is not evidenced", rid)
+
+    # Three signals that need the CV text to derive. They were in the
+    # vocabulary with nothing producing them, which is worse than not having
+    # them: a documented code that never fires reads as a feature.
+    cv_text = parse.get("text") or ""
+    for rid, req in sorted(reqs.items(), key=lambda kv: _id_key(kv[0])):
+        finding = findings.get(rid) or {}
+        status = finding.get("status")
+
+        if status == "partial" and not (finding.get("position_ids") or []):
+            # The word is somewhere in the CV and no dated position backs it.
+            # That is the skills-list-without-experience shape, and both an LLM
+            # grader and per-skill duration logic will come up empty on it.
+            signal("skill_listed_not_evidenced",
+                   f"{req['text']!r} appears in the CV but no dated position evidences it", rid)
+
+        if status in _EVIDENCED and cv_text:
+            for term, used in _equivalent_only(req.get("text", ""), cv_text):
+                code = "acronym_only" if len(used) < len(term) else "full_form_only"
+                signal(code,
+                       f"the posting says {term!r} and the CV says {used!r}; writing both once "
+                       f"covers a literal keyword match as well as a taxonomy lookup", rid)
 
     posting_language = requirements.get("posting_language", "unknown")
     cv_language = evidence.get("cv_language", "unknown")

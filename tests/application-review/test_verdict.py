@@ -383,6 +383,77 @@ class RankSignals(unittest.TestCase):
         self.assertNotIn("title_below_posting", codes)
         self.assertNotIn("title_above_posting", codes)
 
+    def test_the_cv_using_only_the_acronym_is_a_rank_signal(self):
+        # The posting says Kubernetes, the CV says K8s. The requirement is met
+        # and a literal keyword search would still miss it, which is the one
+        # keyword change the research supports.
+        v = compute(
+            [req("R1", text="Experience with Kubernetes")],
+            [finding("R1", "met")],
+            parse_doc=dict(parse(), text="Ran K8s clusters for twelve services."),
+        )
+        codes = [s["code"] for s in v["rank_signals"]]
+        self.assertIn("acronym_only", codes)
+
+    def test_the_cv_using_only_the_full_form_is_the_mirror_signal(self):
+        v = compute(
+            [req("R1", text="Experience with K8s")],
+            [finding("R1", "met")],
+            parse_doc=dict(parse(), text="Ran Kubernetes clusters for twelve services."),
+        )
+        codes = [s["code"] for s in v["rank_signals"]]
+        self.assertIn("full_form_only", codes)
+
+    def test_matching_spellings_produce_no_signal(self):
+        v = compute(
+            [req("R1", text="Experience with Kubernetes")],
+            [finding("R1", "met")],
+            parse_doc=dict(parse(), text="Ran Kubernetes clusters for twelve services."),
+        )
+        codes = [s["code"] for s in v["rank_signals"]]
+        self.assertNotIn("acronym_only", codes)
+        self.assertNotIn("full_form_only", codes)
+
+    def test_a_false_friend_never_produces_an_equivalence_signal(self):
+        v = compute(
+            [req("R1", text="4+ years of Java")],
+            [finding("R1", "met")],
+            parse_doc=dict(parse(), text="Built the dashboard in JavaScript."),
+        )
+        codes = [s["code"] for s in v["rank_signals"]]
+        self.assertNotIn("acronym_only", codes)
+        self.assertNotIn("full_form_only", codes)
+
+    def test_a_skill_listed_but_never_evidenced_is_a_rank_signal(self):
+        # The stuffed-skills shape: the word is in the CV, no dated position
+        # backs it, so per-skill duration logic comes up empty.
+        v = compute(
+            [req("R1", text="Production Spark experience")],
+            [finding("R1", "partial", positions=())],
+        )
+        codes = [s["code"] for s in v["rank_signals"]]
+        self.assertIn("skill_listed_not_evidenced", codes)
+
+    def test_a_partial_backed_by_a_position_is_not_that_signal(self):
+        v = compute(
+            [req("R1", text="Production Spark experience")],
+            [finding("R1", "partial", positions=("P1",))],
+        )
+        codes = [s["code"] for s in v["rank_signals"]]
+        self.assertNotIn("skill_listed_not_evidenced", codes)
+
+    def test_every_rank_signal_code_has_a_producer_or_is_not_in_the_vocabulary(self):
+        # The check that caught three documented codes nothing could emit.
+        # Codes are produced either by verdict.py or by nothing, and "nothing"
+        # means the vocabulary is advertising a feature that does not exist.
+        import pathlib
+
+        source = (pathlib.Path(V.__file__)).read_text(encoding="utf-8")
+        for code in contracts.RANK_SIGNAL_CODES:
+            with self.subTest(code=code):
+                self.assertIn(f'"{code}"', source,
+                              f"{code} is in the vocabulary and nothing emits it")
+
     def test_rank_signals_never_change_the_first_two_components(self):
         v = compute(
             [req("R1"), req("R2", strength="preferred")],
