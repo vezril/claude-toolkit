@@ -209,6 +209,12 @@ class TestTheDispatchCannotGoInert(unittest.TestCase):
         fake = [{"workflow": "ghost", "config_name": ".ghost",
                  "edge_checks": {"readiness-verdict.json": str(rel)}}]
         self.hook.workflows = lambda: fake
+        # Restored afterwards. Without the cleanup this repointed the *shared* descriptor
+        # module's plugin root at a temp directory for the rest of the process, so every later
+        # test in the same run saw a plugin with no workflows in it — and the ones that noticed
+        # were the ones resolving an artifact root from a descriptor, two modules away.
+        original = self.hook.workflow_descriptor.PLUGIN_ROOT
+        self.addCleanup(setattr, self.hook.workflow_descriptor, "PLUGIN_ROOT", original)
         self.hook.workflow_descriptor.PLUGIN_ROOT = broken.parents[1]
         out = self.hook.declared_checks(f.verdict, f.repo, common)
         _name, found = out[0]

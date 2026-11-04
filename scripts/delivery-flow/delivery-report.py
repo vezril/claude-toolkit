@@ -31,52 +31,169 @@ from datetime import date, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import artifact_root, is_delivery_repo, load_json, repo_root  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "workflow"))
+from common import load_json, parse_mapping, repo_root  # noqa: E402
+import descriptor as workflow_descriptor  # noqa: E402
+import layout as workflow_layout  # noqa: E402
 
 
-def _routing_kinds() -> dict:
-    """step -> its kind in the routing table, read from `flow-status.py` rather than repeated."""
+# Kinds whose step runs a model with a prompt, and so the only kinds a certification claim can
+# be made about. `script`, `adapter` and `build` steps are deterministic producers with no
+# prompt to certify. A `segment` is a container of nodes rather than a prompt of its own, but
+# its certification is exactly its nodes' — so it answers the same way.
+CERTIFIABLE_KINDS = {"node", "sdlc", "segment"}
+
+
+def _step_roles() -> dict:
+    """name -> `"node"` or `"deterministic"`, across *every* workflow the plugin declares.
+
+    Read from the descriptors rather than from `flow-status.py`, which only ever knew
+    delivery-flow's sixteen steps. With one workflow those are the same set; with two they are
+    not, and the difference is not cosmetic — see `certification_role`, where an unrecognised
+    step used to be waved through the certification claim.
+
+    Two kinds of name go in, because a trace does not record what the routing table is keyed
+    by. The sdlc table is keyed by *segment* (`readiness`), while `trace-step.py` records the
+    *node* that ran (`readiness-review`); keying on the table alone left all eleven sdlc nodes
+    unrecognised. Each segment's declared `nodes` are therefore mapped too.
+
+    A name two workflows disagree about is dropped rather than arbitrated, so it falls to the
+    unknown branch and refuses the claim. Guessing which workflow's table applies would be a
+    coin flip inside the Stage 4 number. Note this is about disagreement on the *role*, not on
+    the kind: delivery-flow calls its `implementation` step `sdlc` and the sdlc workflow calls
+    its own `segment`, and since both are certifiable there is nothing to arbitrate.
+    """
+    roles, conflicting = {}, set()
+
+    def put(name, role):
+        if name in roles and roles[name] != role:
+            conflicting.add(name)
+        roles[name] = role
+
+    for d in workflow_descriptor.active():
+        for step in d.get("steps") or []:
+            name, kind = step.get("step"), step.get("kind")
+            if not name:
+                continue
+            put(name, "node" if kind in CERTIFIABLE_KINDS else "deterministic")
+            # A segment's nodes are what the trace will actually name.
+            for node in step.get("nodes") or []:
+                put(node, "node")
+    for name in conflicting:
+        roles.pop(name, None)
+    return roles
+
+
+STEP_ROLES = _step_roles()
+
+
+def _parse_registry(text: str) -> dict:
+    """The registry format, parsed by `check-certification.py`'s own parser.
+
+    Imported rather than reimplemented: two parsers for one file is how the gate and the report
+    come to disagree about which steps are certified.
+    """
     import importlib.util
     spec = importlib.util.spec_from_file_location(
-        "flow_status_for_report", Path(__file__).resolve().parent / "flow-status.py")
+        "check_certification_for_report",
+        Path(__file__).resolve().parent / "check-certification.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    return {step: kind for _artifact, step, kind, _opt in mod.STEPS}
+    return mod.parse_registry(text)
 
 
-ROUTING_KINDS = _routing_kinds()
+def segment_certification() -> dict:
+    """`workflow -> {segment: {"nodes": [...], "certified": bool, "uncertified": [...]}}`.
 
-# Kinds whose step is a model with a prompt, and so the only kinds a certification claim can
-# be made about. `script`, `adapter` and `build` steps are deterministic producers with no
-# prompt to certify, and `orchestrator` is not in the routing table at all.
-CERTIFIABLE_KINDS = {"node", "sdlc"}
+    A segment is certified when *every* node in it is, because a chain is only as certified as
+    its weakest link and a half-certified segment makes no claim at all.
+
+    This is what keeps the report from promising a rate it has no evidence for. The sdlc
+    pipeline is six segments and eleven nodes, of which section 5 certified two (`readiness` and
+    `readiness-review`); the remaining nine are `certified: false` in the registry on purpose.
+    An "end-to-end rate" over that pipeline would be a number about a chain whose links were
+    never measured, so the report states the rate per *certified* segment and says plainly which
+    segments are outside the claim.
+    """
+    out = {}
+    for d in workflow_descriptor.active():
+        registry_rel = d.get("registry")
+        segments = {s.get("step"): list(s.get("nodes") or [])
+                    for s in (d.get("steps") or []) if s.get("kind") == "segment"}
+        if not registry_rel or not segments:
+            continue
+        path = workflow_descriptor.PLUGIN_ROOT / registry_rel
+        try:
+            entries = _parse_registry(path.read_text()).get("steps") or []
+        except (OSError, ValueError, AttributeError):
+            # Unreadable means unknown, and unknown is reported as such. Defaulting to
+            # "certified" would manufacture the claim; defaulting to "uncertified" would
+            # silently erase a real one.
+            out[d["workflow"]] = {seg: {"nodes": nodes, "certified": None, "uncertified": []}
+                                  for seg, nodes in segments.items()}
+            continue
+        flags = {e.get("step"): bool(e.get("certified")) for e in entries}
+        out[d["workflow"]] = {}
+        for seg, nodes in segments.items():
+            uncertified = [n for n in nodes if not flags.get(n)]
+            out[d["workflow"]][seg] = {"nodes": nodes, "certified": not uncertified,
+                                       "uncertified": uncertified}
+    return out
+
+# Steps that legitimately have no routing-table entry and never will. Named one by one, because
+# the whole point of the `unknown` branch below is that *not* being in the table is normally a
+# reason to refuse the certification claim, not to grant it.
+#
+# `orchestrator` is the only member: `trace-step.py` records the conductor's own turns under
+# that step — deliberately, because its cost is real — and they carry `certified: false`, since
+# there is no registry entry for a conductor. It produces no artifact; `flow-status.py` computes
+# the routing, so the conductor executes a decision rather than making one.
+NOT_CERTIFIABLE_BY_DESIGN = {"orchestrator"}
+
+
+def certification_role(step) -> str:
+    """`"node"`, `"deterministic"` or `"unknown"` — what a `certified: false` here means.
+
+    Three answers rather than two, because the two-answer version was wrong in the direction
+    that inflates the number. It asked `ROUTING_KINDS.get(step) in CERTIFIABLE_KINDS`, and a
+    step absent from the table answered `False` — identical to a deterministic producer — so an
+    uncertified step the report had simply never heard of was *excluded* from the claim and the
+    run still counted as certified. That was invisible while delivery-flow was the only
+    workflow and its sixteen steps were the whole table. The moment a second workflow existed,
+    every one of its nodes was an unknown step, and a `certified: false` on any of them would
+    have been silently set aside — the certified-only rate asserting a certification nobody
+    had made.
+
+    So:
+
+    - `node` — a model with a prompt (or a segment of them). `certified: false` disqualifies
+      the run.
+    - `deterministic` — a `script`, `adapter` or `build` step, or a member of
+      `NOT_CERTIFIABLE_BY_DESIGN`. Nothing to certify; set aside, and named in the report as
+      `excluded_from_certification`.
+    - `unknown` — in no routing table, not a declared node of any segment, and not named as an
+      exception. The report cannot say whether this needed certifying, so it does not claim the
+      run was certified. Named separately as `unknown_steps`, because "set aside deliberately"
+      and "not recognised" are different facts and reporting them in one bucket is how the
+      first version hid this.
+
+    **The deterministic exclusion is a claim a reviewer may reject**, so the report states it
+    rather than applying it silently: the certified-only rate asserts every *node* in the chain
+    was Stage 3 certified. If a reviewer wants the orchestrator inside the claim, the fix is to
+    certify it, not to widen the denominator.
+    """
+    role = STEP_ROLES.get(step)
+    if role:
+        return role
+    return "deterministic" if step in NOT_CERTIFIABLE_BY_DESIGN else "unknown"
 
 
 def certifiable(step) -> bool:
-    """Whether a `certified: false` on this step should disqualify the run.
+    """Whether a `certified: false` on this step disqualifies the run. See `certification_role`.
 
-    This is the fix for a number that could never exist. `trace-step.py` records the
-    orchestrator's own turns as `step: "orchestrator"` — deliberately, because its cost is
-    real — and those records carry `certified: false`, since there is no registry entry for a
-    conductor and never will be. The run-level judgement was "every record certified", so
-    every orchestrated run was disqualified, and the certified-only rate could only ever be
-    0/0. DISCARDED-AN-3704 is the proof: a clean `triage`-profile run whose *only* uncertified
-    step was the orchestrator.
-
-    Deterministic steps fail it the same way. `report`, `verify`, `brief`, `intake` and the
-    adapters have no prompt, which is exactly why `.delivery-flow.yaml` does not list them
-    under `allow_uncertified` — and they were still recording `certified: false` and still
-    disqualifying the run.
-
-    **This is a claim a reviewer may reject**, so the report states it rather than applying it
-    silently: the certified-only rate asserts that every *node* in the chain was Stage 3
-    certified. A deterministic producer has no prompt to certify, and the orchestrator
-    produces no artifact — `flow-status.py` computes the routing, so the conductor executes a
-    decision rather than making one. If a reviewer wants the orchestrator inside the claim,
-    the fix is to certify it, not to widen the denominator; `excluded_from_certification` in
-    the report names exactly what was set aside.
+    An unknown step disqualifies: the report will not grant a certification it cannot check.
     """
-    return ROUTING_KINDS.get(step) in CERTIFIABLE_KINDS
+    return certification_role(step) != "deterministic"
 
 TOKEN_FIELDS = ("input_tokens", "output_tokens", "cache_creation_tokens", "cache_read_tokens")
 
@@ -93,17 +210,37 @@ def iso_week(ts: str) -> str:
 def trace_files(root: Path) -> list:
     """Every run's trace under this root, wherever its artifacts live.
 
-    A root may be a delivery repo (whose `artifacts.root` says where its runs are, possibly
-    outside itself) or an artifact root given directly. Both are accepted, because a report
-    that only understood `<repo>/delivery/` stopped finding anything the moment the artifacts
-    moved to the vault — and criterion 4's number comes from here.
+    A root may be a repo opted into any workflow (whose `artifacts.root` says where its runs
+    are, possibly outside itself) or an artifact root given directly. Both are accepted,
+    because a report that only understood `<repo>/delivery/` stopped finding anything the
+    moment the artifacts moved to the vault — and criterion 4's number comes from here.
+
+    Every workflow, not just delivery-flow: this gated on `is_delivery_repo` and globbed a
+    hard-coded `delivery/`, so pointed at an sdlc repo it found nothing. That failure is at
+    least loud — `main` exits non-zero on no items rather than printing a 0% rate — but "no
+    runs exist" and "this report cannot see the runs that exist" are different facts, and only
+    one of them is true here.
     """
     root = Path(root)
     found = []
-    if is_delivery_repo(root):
-        found += sorted(artifact_root(root).glob("*/trace.jsonl"))
-    found += sorted(root.glob("delivery/*/trace.jsonl"))   # the default layout
-    found += sorted(root.glob("*/trace.jsonl"))            # an artifact root given directly
+    for d in workflow_descriptor.for_repo(root):
+        cfg = {}
+        try:
+            # `parse_mapping`, not `descriptor.parse`: this is a *repo* config, and only the
+            # former reads the nested `artifacts: root:` the next line depends on. The
+            # descriptor parser returned a flat mapping, so every absolute artifact root
+            # silently fell back to `<repo>/<artifact_dir>` — which exists for no one who
+            # configured a root outside the repo.
+            cfg = parse_mapping((root / d["config_name"]).read_text())
+        except (OSError, ValueError):
+            pass
+        base = workflow_layout.artifact_root(root, d["artifact_dir"], cfg)
+        found += sorted(Path(base).glob("*/trace.jsonl"))
+    # The in-repo default layout of each declared workflow, and the root given as an artifact
+    # root directly. Kept as a fallback so a trace tree detached from its repo still reports.
+    for artifact_dir in workflow_descriptor.artifact_dirs():
+        found += sorted(root.glob(f"{artifact_dir}/*/trace.jsonl"))
+    found += sorted(root.glob("*/trace.jsonl"))
     seen, out = set(), []
     for f in found:
         key = str(f.resolve())
@@ -151,7 +288,7 @@ def summarize(items: dict) -> dict:
     for key, entry in sorted(items.items()):
         tokens = {f: 0 for f in TOKEN_FIELDS}
         cost, priced, certified_all = 0.0, True, True
-        uncertified_nodes, excluded = set(), set()
+        uncertified_nodes, excluded, unknown_steps = set(), set(), set()
         for rec in entry["records"]:
             for f in TOKEN_FIELDS:
                 tokens[f] += rec.get(f) or 0
@@ -162,12 +299,15 @@ def summarize(items: dict) -> dict:
             else:
                 cost += rec["api_equivalent_cost_usd"]
             if rec.get("certified") is False:
-                # Only a node's certification is a claim about the chain. See `certifiable`.
-                if certifiable(rec.get("step")):
-                    certified_all = False
-                    uncertified_nodes.add(rec.get("step") or "?")
+                # Only a node's certification is a claim about the chain, and only a
+                # *recognised* deterministic step may be set aside. See `certification_role`.
+                role = certification_role(rec.get("step"))
+                name = rec.get("step") or "?"
+                if role == "deterministic":
+                    excluded.add(name)
                 else:
-                    excluded.add(rec.get("step") or "?")
+                    certified_all = False
+                    (uncertified_nodes if role == "node" else unknown_steps).add(name)
             step = rec.get("step") or "?"
             per_step[step]["cost"] += rec.get("api_equivalent_cost_usd") or 0
             per_step[step]["input"] += rec.get("input_tokens") or 0
@@ -211,11 +351,14 @@ def summarize(items: dict) -> dict:
                      "cost_usd": round(cost, 4), "priced": priced,
                      "certified": certified_all, "failed_edges": failed_edges,
                      "unchecked_edges": unchecked_edges,
-                     # Both named, so the certification claim is auditable rather than
-                     # asserted: which nodes broke it, and what was set aside as having no
-                     # prompt to certify in the first place.
+                     # All three named, so the certification claim is auditable rather than
+                     # asserted: which nodes broke it, what was set aside as having no prompt
+                     # to certify, and what the report did not recognise at all. The third is
+                     # separate because folding it into the second is how an unrecognised
+                     # uncertified step came to look deliberately excluded.
                      "uncertified_nodes": sorted(uncertified_nodes),
                      "excluded_from_certification": sorted(excluded),
+                     "unknown_steps": sorted(unknown_steps),
                      "steps": len(entry["records"])})
 
     def rate(counts, prefix=""):
@@ -249,6 +392,10 @@ def summarize(items: dict) -> dict:
             "per_model": {k: dict(v) for k, v in per_model.items()},
             "weekly": weeks, "per_profile": profiles, "non_conformant": nonconformant,
             "manual_corrections": corrections,
+            # Which segments the rates above may be claimed for. Without this the per-profile
+            # table reads as an end-to-end number for a pipeline whose segments are mostly
+            # uncertified.
+            "segment_certification": segment_certification(),
             "missing_pricing": sorted(missing_pricing)}
 
 
@@ -283,6 +430,7 @@ def markdown(s: dict, pricing_as_of: str) -> str:
 
     uncert = sorted({n for r in s["items"] for n in r["uncertified_nodes"]})
     excl = sorted({e for r in s["items"] for e in r["excluded_from_certification"]})
+    unknown = sorted({u for r in s["items"] for u in r["unknown_steps"]})
     L += ["", "### What the certified-only rate claims", "",
           "It asserts that every **node** in the chain was Stage 3 certified. A deterministic "
           "producer has no prompt to certify, and the orchestrator produces no artifact — "
@@ -293,8 +441,40 @@ def markdown(s: dict, pricing_as_of: str) -> str:
         L += ["", f"- Set aside as having no prompt to certify: `{'`, `'.join(excl)}`"]
     if uncert:
         L += [f"- Uncertified **nodes**, which do disqualify their run: `{'`, `'.join(uncert)}`"]
-    if not excl and not uncert:
+    if unknown:
+        # Reported here and not folded into the line above, because the reader's question is
+        # different: an unknown step is a hole in the report's own knowledge, and the fix is to
+        # declare the step, not to argue about whether it needed certifying.
+        L += [f"- **Uncertified steps this report does not recognise**, which also disqualify "
+              f"their run: `{'`, `'.join(unknown)}`. Not in any workflow's routing table and "
+              f"not a declared node of any segment, so the report cannot say whether they "
+              f"needed certifying — and will not claim they did not."]
+    if not excl and not uncert and not unknown:
         L += ["", "- Nothing was set aside, and no node was uncertified."]
+
+    segs = s.get("segment_certification") or {}
+    if segs:
+        L += ["", "### Which segments these rates may be claimed for", "",
+              "A segment is certified only when **every** node in it is: a chain is as "
+              "certified as its weakest link. The rates below belong to the certified "
+              "segments. **No end-to-end rate is asserted for a pipeline containing an "
+              "uncertified segment** — that would be a number about links nobody measured."]
+        for workflow, by_segment in sorted(segs.items()):
+            done = sorted(k for k, v in by_segment.items() if v["certified"] is True)
+            todo = sorted(k for k, v in by_segment.items() if v["certified"] is False)
+            unknown_seg = sorted(k for k, v in by_segment.items() if v["certified"] is None)
+            L += ["", f"**{workflow}**", ""]
+            L += [f"- Certified segments: `{'`, `'.join(done)}`" if done
+                  else "- Certified segments: none yet."]
+            if todo:
+                L += [f"- Not certified, and so outside any rate claimed here: "
+                      f"`{'`, `'.join(todo)}`"]
+            if unknown_seg:
+                L += [f"- Certification **unknown** (its registry could not be read): "
+                      f"`{'`, `'.join(unknown_seg)}`"]
+            if done and todo:
+                L += [f"- Therefore: a rate for `{'`, `'.join(done)}` is evidence; an "
+                      f"end-to-end rate for {workflow} is not."]
 
     L += ["", "## Weekly end-to-end rate", "",
           "| Week | Completed | Failed | Punched out | Excluding punch-outs | Counting them | Certified-only (Stage 4) |",

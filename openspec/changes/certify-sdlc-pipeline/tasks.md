@@ -155,11 +155,65 @@ S.1–S.6, 3.1, 3.2, 3.4, 3.7 are retired rather than done. 3.3, 3.5, 3.6 and 3.
       11 tests in `tests/workflow/test_audit_trail.py`, including that `cost_usd` returns None rather than 0 for a row it could not price: zero and unknown are different claims, and a report adding them together under-reports while looking complete.
 
       Also observed while auditing, not fixed here: AN-3702 carries a `step: "orchestrator"` record at $9.91 with `certified: false` — the orchestrating session's own usage attributed as a pipeline step. That is the attribution problem the status doc already records, and it inflates any per-step cost built from these traces.
-- [ ] 7.2 `write-outcome.py` distinguishing `completed` / `punched-out` / `failed` / `abandoned`
-      for sdlc runs, emitting both punch-out denominator readings (design D8)
-- [ ] 7.3 Manual-correction detection: artifact sha vs trace sha, run marked `failed` with reason
-      `manual-correction`. Verify by deliberately hand-editing a story to force a gate pass
-- [ ] 7.4 A per-segment report; **do not** promise a thirteen-node pipeline rate (design risks)
+- [x] 7.2 All four statuses already worked — for delivery-flow. On an sdlc repo `write-outcome.py`
+      gated on `is_delivery_repo` and exited 2, so an sdlc run could never be closed out at all,
+      and a profile that cannot write a terminal artifact is indistinguishable from one that
+      stalled. It failed *honestly*, unlike the enforcement hook in 6.3, which recognised the
+      repo and then looked in the wrong directory.
+
+      Now resolves the active workflow from the descriptor and reads its own config, item dir
+      and profiles through it. `flow-status.by_step(table)` was added so a profile can be
+      resolved against a second workflow's routing table rather than delivery-flow's, which is
+      all `profile_steps` could reach before.
+
+      Both punch-out denominator readings turned out to be a *report* concern, not a field on
+      `outcome.json` — `delivery-report.py` already emitted them, so the work landed in 7.4.
+
+      10 tests in `tests/workflow/test_sdlc_outcome.py`, mutation-checked: four deliberately
+      broken detectors, all killed.
+- [x] 7.3 Verified by the hand-edit, not by reading the code: a `WEAKENED` verdict that blocks,
+      rewritten to `SURVIVED` after its edge had already recorded the sha of what it saw. The run
+      is `failed` with reason `manual-correction` and names the artifact, while the artifact
+      itself now looks perfect. The opposite direction is tested too — a clean run must not be
+      accused, or every outcome is `failed` and the signal is worthless.
+- [x] 7.4 Two defects in `delivery-report.py`, both the section 5/6 class — present, successful,
+      checking nothing. The numbers come from this file.
+
+      **It could not see an sdlc run.** `trace_files` gated on `is_delivery_repo` and globbed a
+      hard-coded `delivery/`. Loud rather than silent (`main` exits non-zero on no items instead
+      of printing 0%), but "no runs exist" and "this report cannot see the runs that exist" are
+      different facts. Now resolves each declared workflow's `artifacts.root` — with
+      `common.parse_mapping`, since the descriptor parser returns a flat mapping and every
+      absolute artifact root was quietly falling back to `<repo>/<artifact_dir>`, which exists
+      for nobody who configured a root outside the repo. That one only showed up under a test
+      whose artifacts were in a vault rather than in-repo.
+
+      **An unrecognised uncertified step was waved through the certification claim.**
+      `certifiable()` asked whether the step's kind was in `CERTIFIABLE_KINDS`; a step absent
+      from the table answered `False` — identical to a deterministic producer — so it was *set
+      aside* and the run still counted toward the certified-only rate. Invisible while
+      delivery-flow's sixteen steps were the whole table. With two workflows every sdlc node was
+      unknown, and worse: the sdlc table is keyed by **segment** while the trace records the
+      **node**, so even reading both descriptors left all eleven node names unrecognised. The
+      role is now tri-state (`node` / `deterministic` / `unknown`), unknown disqualifies, and
+      `unknown_steps` is reported separately from `excluded_from_certification` — one bucket is
+      how the first version hid this. The deliberate `orchestrator` exclusion is a closed named
+      set, guarded by a test, so it cannot grow back into a fallback.
+
+      Per-segment rather than end-to-end: `segment_certification()` reads the registry's
+      `certified:` flags and a segment counts as certified only when **every** node in it is.
+      The report names `readiness` as the one certified sdlc segment, names the other five as
+      outside any claim, and states in words that **no end-to-end rate is asserted** for a
+      pipeline containing an uncertified segment. An unreadable registry reports `unknown`, not
+      certified.
+
+      21 tests in `tests/workflow/test_report_certification.py`; five mutants including a full
+      revert to the pre-fix two-answer `certifiable`, all killed.
+
+      Found on the way: `tests/workflow/test_readiness_gate.py` permanently repointed the shared
+      `descriptor.PLUGIN_ROOT` at a temp directory, so every later test in the same run saw a
+      plugin with no workflows in it. Only the tests resolving an artifact root two modules away
+      noticed. Now restored with `addCleanup`.
 - [ ] 7.5 Real runs at story granularity until the readiness rate is meaningful. Evals guard
       regressions; only real runs produce the rate
 

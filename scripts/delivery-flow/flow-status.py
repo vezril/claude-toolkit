@@ -59,18 +59,33 @@ STEPS = workflow_descriptor.step_table(DESCRIPTOR)
 BY_STEP = {step: (artifact, kind, optional_when) for artifact, step, kind, optional_when in STEPS}
 
 
-def profile_steps(profile: dict):
+def by_step(table) -> dict:
+    """A routing table as `step -> (artifact, kind, optional_when)`.
+
+    Exposed so a caller holding another workflow's table can resolve a profile against it.
+    Without this, `profile_steps` could only ever answer for delivery-flow, because `BY_STEP`
+    is built at import time from this module's own descriptor.
+    """
+    return {step: (artifact, kind, optional_when)
+            for artifact, step, kind, optional_when in table}
+
+
+def profile_steps(profile: dict, table: dict = None):
     """[(artifact, step, kind, optional_when)] for a profile, or (None, error).
 
     The order is the profile's, and every step it names must exist in the routing table —
     a profile that names a step the table does not have would otherwise route to nothing.
+
+    `table` is `step -> (artifact, kind, optional_when)`; it defaults to this workflow's so
+    every existing caller is unchanged.
     """
+    lookup = BY_STEP if table is None else table
     rows, unknown = [], []
     for step in profile.get("steps") or []:
-        if step not in BY_STEP:
+        if step not in lookup:
             unknown.append(step)
             continue
-        artifact, kind, optional_when = BY_STEP[step]
+        artifact, kind, optional_when = lookup[step]
         rows.append((artifact, step, kind, optional_when))
     if unknown:
         return None, (f"profile {profile.get('profile')!r} names steps that are not in the "
