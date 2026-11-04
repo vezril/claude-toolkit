@@ -49,9 +49,57 @@ A practical playbook for driving a feature from idea to shipped code with the `c
         └──────────────── orchestrated by sdlc-orchestrator, human approves each gate ─────────────────┘
 ```
 
-![The SDLC pipeline: analysis → planning → solutioning → story lint gate → implementation, coordinated by the sdlc-orchestrator with a human approving each gate](figures/sdlc-pipeline.svg)
+![The SDLC pipeline as six certifiable segments — analysis, planning, solutioning, readiness, implementation, verification — each handing off a schema-backed artifact through a deterministic edge or a human punch-out; only readiness is certified, and the orchestrator sequences the segments without running any of the checks itself](figures/sdlc-pipeline.svg)
 
 **Artifacts are the handoff.** Each phase reads the previous artifact and produces the next: the PRD tells the architect what matters; the architecture tells the dev which patterns to follow; the story gives one unit of focused context.
+
+---
+
+## Segments: how a pipeline this long can be trusted at all
+
+The four phases above are how you *think* about the work. **Segments** are how the pipeline is *certified*, and they matter the moment you want to claim the thing is trustworthy rather than merely configured.
+
+The constraint is external: a workflow certification's unit is a chain of **2–3 nodes**. The sdlc pipeline is eleven nodes across six phases. You cannot submit it, and adding guardrails does not make it smaller. So the pipeline is cut into segments that *can* each be certified, and trust is argued by composition rather than asserted over the whole.
+
+A **segment** is a 2–3 node chain with four properties:
+
+1. **Schema-backed artifacts between its nodes** — the hand-off is data with a schema, not prose a model re-interprets.
+2. **A deterministic edge hook after each node's write** — `hooks/check-edge.py` validates the artifact when it lands, and records a verdict in the trace either way.
+3. **A declared terminus** — the node the segment ends on, so "done" is a fact about a file rather than a judgment.
+4. **A declared hand-off** — `data` if the next segment consumes it, `prose` if only a human reads it.
+
+| Segment | Nodes | Hands off | Certified? |
+|---|---|---|---|
+| `analysis` | analysis | `brief.json` | no |
+| `planning` | planning → planning-review | `prd-verdict.json` | no |
+| `solutioning` | solutioning → solutioning-review | `design-verdict.json` | no |
+| **`readiness`** | **readiness → readiness-review** | **`readiness-verdict.json`** + the story set | **yes** |
+| `implementation` | implementation → implementation-green | `implementation.json` | no |
+| `verification` | verification → verification-ci | `outcome.json` | no |
+
+The table lives in `skills/sdlc-orchestration/workflow.yaml`; `skills/sdlc-orchestration/steps.yaml` carries each node's certification evidence. **An uncertified segment is not a disabled segment** — you can run it attended, with your own judgment at the gate. What it cannot do is run unattended: `scripts/delivery-flow/check-certification.py` blocks delegation to an uncertified step, so the pipeline stays honest about which parts it can run without you.
+
+### The composition rule
+
+> A pipeline of certified segments is trustworthy when **every intra-segment hand-off is schema-checked by a hook**, and **every inter-segment join is either a deterministic edge or a human punch-out**.
+
+The point of the second clause is what it forbids: **nothing anywhere may depend on a model choosing to run a check.** A gate that a model is instructed to run is not a gate, because a model that skips it produces no failure — that is the single defect this project has found most often, and it is why the readiness validators moved from an instruction in a skill onto a hook.
+
+Honest limits of the rule, stated rather than buried:
+
+- **It is this project's reading**, not something a certification body has signed off. No reviewer has confirmed that composed segments satisfy the criteria a single chain satisfies. See `skills/workflow-certification/` for the claim as it stands.
+- **A `PostToolUse` hook cannot un-write a file.** The edge records a failed verdict; refusing to advance is the orchestrator's obligation. Prevention only happens where a `PreToolUse` hook stops the write (the dev-pair boundary).
+- **No end-to-end rate is claimed.** With one segment certified, the measured success rate belongs to `readiness` alone. `delivery-report.py` states the rate per certified segment and refuses a pipeline-wide number — a rate over nine uncertified nodes would be a number about links nobody measured.
+
+### The data contract
+
+The rule for whether an artifact may be prose is mechanical, not aesthetic:
+
+> **If a node consumes it, it has a schema. If only a human reads it, it can be prose.**
+
+So `brief.md`, `summary.md`, review reports written for people, and the rendered story markdown are all legitimately prose. Anything a *next step* reads is schema-backed and edge-checked: the four verdict artifacts, `brief.json`, `implementation.json`, `outcome.json`.
+
+One consequence worth knowing, because the design changed under it: `readiness` hands off **markdown stories plus a schema-backed verdict**, not a `story.json[]` set. The schema-backed story renderer was built and then retired; what survived is the markdown path that `scripts/lint-story.py` owns, with the verdict as the artifact routing keys on. The stories are what the verdict is *about*; the verdict is the thing with a schema. Where a doc still implies a JSON story set, the verdict is the contract.
 
 ---
 
@@ -90,9 +138,17 @@ Define **how**, inside an **OpenSpec change** — the phase's artifact container
 
    **When the work came from a tracker**, `delivery-flow` hands over the OpenSpec change itself — `proposal.json` plus `tasks.md`, already reconciled against the challenge — and that is the spec the dev pair builds from. The story-planner remains the only route for everything else.
 
-4. **Readiness check** — layered. **Layer zero is deterministic, twice over:** `scripts/lint-story.py` validates every story against the normative schema (title/status/statement structure, Given/When/Then grammar, task↔AC mapping closure, `[Source:]` references that actually resolve, FR/CAP traceability), and `openspec validate <feature>` validates the change artifacts. A failure from **either** **short-circuits the gate and bounces the work back to the story-planner for rewrite**, before any LLM review runs (a missing openspec CLI blocks the gate — it never passes by absence). Then the substance review verifies PRD + architecture + specs + stories align. **Gate:** both validators clean + PASS/CONCERNS/FAIL — and **you approve** before any code.
+4. **Readiness check** — the `readiness` segment, and **the only certified one**. Two nodes then an edge, in that order:
 
-![The layered readiness gate sub-workflow: stories and change artifacts → two deterministic validators, lint-story.py and openspec validate (either failing loops back to the story-planner for rewrite, bounded at 3) → LLM readiness review on a separate model → human approval → implementation](figures/readiness-gate.svg)
+   - **`readiness` (story-planner)** writes the story set, the delta specs and `tasks.md`.
+   - **`readiness-review`** runs in a **fresh context, prompted to refute**, and emits `readiness-verdict.json` against its schema. It is a *node*, not a guardrail — an LLM reviewing an LLM is a second non-deterministic step, legitimate only because it is independent, separately certified, and emits a verdict a harness applies fixed rules to.
+   - **The edge fires on that write.** `hooks/check-edge.py` dispatches the check declared under `edge_checks` in `skills/sdlc-orchestration/workflow.yaml` — `scripts/sdlc/readiness-gate.py`, which runs `scripts/lint-story.py` over the story set (title/status/statement structure, Given/When/Then grammar, task↔AC closure, `[Source:]` references that resolve, FR/CAP traceability) and `openspec validate <feature>` over the change artifacts. A missing `openspec` CLI **blocks** — it never passes by absence.
+
+   **You do not invoke any of this, and you cannot skip it.** That matters more than it sounds: this used to be an instruction in a skill telling the orchestrator to run the validators, which made it no guardrail at all — a model that skipped it produced no failure. The honest limit is that a `PostToolUse` hook cannot un-write a file, so the verdict is recorded in the trace either way and **the orchestrator refuses to advance past a failed edge**. A failure bounces the work back to the story-planner for rewrite, bounded at ~3, then escalates.
+
+   **Gate:** edge clean + verdict `SURVIVED` (`WEAKENED` blocks until every finding is addressed *and the reviewer runs again* — there is deliberately no path from `WEAKENED` to advance that skips a fresh verdict) — and **you approve** before any code.
+
+![The readiness segment and its edge: the story-planner writes the story set, the readiness-review node writes readiness-verdict.json in a fresh context, and that write fires hooks/check-edge.py, which dispatches lint-story.py and openspec validate — a missing CLI blocks rather than passing. The verdict is traced either way, a failed edge loops back bounded at 3, and the orchestrator refuses to advance past it before your approval](figures/readiness-gate.svg)
 
 > Greenfield and brownfield take the **same path** now: the living specs in `openspec/specs/` are the baseline (empty on day one), and every change is expressed as deltas against them — the [[spec-driven-development]] OpenSpec approach, promoted from brownfield option to the standard route.
 
@@ -130,14 +186,14 @@ Don't run the heavyweight pipeline on a typo; don't vibe-code a platform.
 1. **Artifacts drive state, not chat history.** "Where are we?" = which files exist. Makes the process resumable and stateless.
 2. **Required steps block progress.** No skipping PRD → architecture → stories → dev on non-trivial work.
 3. **Fresh context per workflow.** One phase per conversation; **shard** large docs and load only the relevant section.
-4. **Separate, stronger model for validation.** Validation/readiness checks use a different model than the generator — avoids self-confirmation bias.
+4. **The checker is independent of the generator — not bigger than it.** What defeats self-confirmation is independence: a different model, *or* the same model in a fresh context with a refute-framed prompt. Tier is a separate question and runs the other way — **haiku first, sonnet next, frontier only with committed evidence that the cheaper tier missed the bar on the same suite**. Both certified readiness nodes run on haiku. (This line used to read "separate, stronger model", which licensed frontier tokens at every gate as though that were the rigour.)
 5. **Human-in-the-loop at every gate.** Agents propose; you dispose.
 6. **Lock the *what* before the *how*.** Requirements/SPEC precede architecture and code.
 7. **Execute, don't opine.** Every quality gate runs the code/tests/`terraform plan` — a review that doesn't execute is a guess. *(This is the deliberate upgrade over the source frameworks.)*
 
 **Where you come in** — the purple pills are the mandatory human approvals; everything between them runs on its own (amber = deterministic script, teal = LLM checker). On the standard track a feature costs you 4 + N approvals (N = story count) plus the final `openspec archive` close-out, plus escalations (exhausted rewrite loops, disputed tests, CONCERNS verdicts):
 
-![Human intervention points: you decide it's worth planning, approve the PRD, the architecture, readiness, and each story merge; the lint script and LLM review run without you](figures/human-gates.svg)
+![Human intervention points: you decide it's worth planning, approve the PRD, the architecture, readiness and each story merge, and trigger openspec archive; the LLM readiness review runs without you, and the deterministic edge fires on the write of its verdict rather than as a step the orchestrator chooses to run](figures/human-gates.svg)
 
 ---
 
@@ -150,7 +206,7 @@ An opt-in variant for fire-and-forget bugfixes: label a GitHub issue and the pip
 | Worth planning? | Opt-in label + author allowlist + quick-track triage (bigger → escalate) |
 | PRD approval | Quick-track spec derived from the issue, validator-model sanity check |
 | Architecture approval | **Not replaced** — architecture work is out of unattended scope |
-| Readiness | `lint-story.py` + `openspec validate` + separate-model review (**CONCERNS = FAIL**) |
+| Readiness | The `readiness` edge (`lint-story.py` + `openspec validate`, on the hook) + an independent refuting review (**CONCERNS = FAIL**) |
 | Per-story merge | Suite green + coverage + refuting reviewer PASS → PR opened, **not merged** |
 
 ![Unattended mode: you file and label the issue, guards and gates run mechanically (validators, protected-path check, refuting review on a separate model), and the only other human action is merging the PR; failures escalate to needs-human](figures/human-gates-unattended.svg)
@@ -166,7 +222,7 @@ Safety model: issue text is *data*, never instructions; protected paths (CI conf
 1. **Plan** — [[requirements-analyst]]: PRD with `FR: TOTP 2FA`, NFR `auth p95 < 200ms`, non-goal "no SMS 2FA", success metric "% accounts with 2FA" + counter-metric "login success rate must not drop". *You approve.*
 2. **Open the change** — [[sdlc-orchestrator]]: `openspec new change add-2fa`; `proposal.md` distills the PRD's what/why.
 3. **Architect** — [[solution-architect]]: characteristics = security + usability + performance; decision recorded as an ADR ("TOTP via authenticator app; secrets crypto-sharded"); C4 container diagram updated; the change's `design.md` carries the 2FA-scoped how and points at the ADR. *You approve.*
-4. **Specs & stories** — [[story-planner]]: delta specs (`specs/auth/spec.md`: `ADDED Requirement: TOTP second factor` with Given/When/Then scenarios); stories `Enable 2FA`, `Verify TOTP at login`, `Recovery codes` — each INVEST, referenced from `tasks.md`. `lint-story.py` + `openspec validate` both pass. *You approve readiness.*
+4. **Specs & stories** — [[story-planner]]: delta specs (`specs/auth/spec.md`: `ADDED Requirement: TOTP second factor` with Given/When/Then scenarios); stories `Enable 2FA`, `Verify TOTP at login`, `Recovery codes` — each INVEST, referenced from `tasks.md`. The `readiness-review` node writes `readiness-verdict.json` (`SURVIVED`, no findings); that write fires the edge, which runs `lint-story.py` and `openspec validate` — both clean, and the pass is recorded in the trace. *You approve readiness.*
 5. **Build** — per story off `tasks.md`: [[test-writer]] turns the acceptance criteria into failing tests; [[implementer]] writes the production code that passes them; [[secure-coding]] checks the secret handling; [[qa-test-architect]] marks login/verify as **P0**, turns the acceptance criteria into tests, and **runs them + coverage**. [[git-and-ci-reviewer]] checks the PR/workflow. *You approve the merge.*
 6. **Close out** — *you trigger* `openspec archive add-2fa`: the auth delta becomes part of the living `openspec/specs/auth/spec.md`.
 

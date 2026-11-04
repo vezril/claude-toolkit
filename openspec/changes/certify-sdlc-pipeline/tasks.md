@@ -219,14 +219,78 @@ S.1–S.6, 3.1, 3.2, 3.4, 3.7 are retired rather than done. 3.3, 3.5, 3.6 and 3.
 
 ## 8. Documentation, in the same PR
 
-- [ ] 8.1 `docs/using-the-sdlc-dev-team.md`: segments, the composition rule, the data contract
-- [ ] 8.2 Figures: `readiness-gate`, `sdlc-pipeline`, `human-gates` — keep the colour language
-      (purple human gate, amber deterministic script, teal LLM checker, coral build,
-      red/green dev pair)
-- [ ] 8.3 Mirrors per `CLAUDE.md`: `agents/README.md`,
-      `skills/sdlc-orchestration/SKILL.md`, `skills/prime/` team bindings
-- [ ] 8.4 Fix the model-policy line: "separate, stronger model" → checker differs from generator,
-      haiku-first (design D7)
-- [ ] 8.5 `evals/README.md` if the substrate changes how suites are wired
-- [ ] 8.6 Record in `skills/workflow-certification/` that composition is this project's reading
-      and whether a reviewer confirmed it
+- [x] 8.1 New "Segments" section in the playbook: why the pipeline is cut up at all (the unit is
+      2–3 nodes; this pipeline is eleven), the four properties a segment must have, the six
+      segments with their real node names and hand-off artifacts, and the composition rule
+      stated as a rule. Three limits are stated rather than buried: it is this project's
+      reading and **unconfirmed**, a `PostToolUse` hook cannot un-write a file, and no
+      end-to-end rate is claimed.
+
+      The data contract is the mechanical version — *if a node consumes it, it has a schema; if
+      only a human reads it, it can be prose* — with the consequence that bit me in section 7
+      spelled out: `readiness` hands off **markdown stories plus a schema-backed verdict**, not
+      a `story.json[]` set. D1 and D3 describe the design; the renderer was built and retired,
+      and the doc now says which one shipped.
+
+      Phase 3 step 4 was rewritten for the same reason: it described the validators as layers
+      the orchestrator runs *before* the LLM review. The real order is node → node → edge, and
+      the edge fires on the verdict's write.
+- [x] 8.2 `sdlc-pipeline.svg` redrawn as the six segments with per-segment certification badges
+      and the edge/punch-out between each; `readiness-gate.svg` redrawn to the actual mechanism
+      (the review node writes the verdict, *that write* fires `check-edge.py`, which dispatches
+      the declared check) — the old figure drew the validators as a step before the review;
+      `human-gates.svg` reordered to match and given the missing `openspec archive` gate.
+      Colour language kept, and purple now appears in `readiness-gate.svg`, which previously
+      had a human approval with no human colour on it.
+
+      A checker (`/tmp` throwaway) verified all six figures are well-formed XML and that nothing
+      is drawn outside its `viewBox`. Its first version could not fail: it measured the
+      full-canvas background rect, so every figure looked exactly as tall as its own viewBox.
+- [x] 8.3 `agents/README.md` and `skills/prime/SKILL.md` updated; `skills/sdlc-orchestration/SKILL.md`
+      covered by 8.4.
+
+      **`agents/sdlc-orchestrator.md` still instructed the orchestrator to run
+      `lint-story.py` and `openspec validate` itself** — the exact instruction task 4.5 moved
+      onto a hook *because* an instruction is not a guardrail. The skill had been updated and
+      the agent had not, so the two mirrors disagreed about whether the gate was the
+      orchestrator's job. Found by the new test, not by reading.
+
+      `prime` now reports two things it was silent about: whether the repo actually opts in (a
+      `.sdlc.yaml` at the root — a filesystem fact, not an assumption) and which segments are
+      certified, since that is what decides whether anything can run unattended.
+- [x] 8.4 Wrong in both halves, and fixed in all six places that asserted it. *Independence* is
+      the mechanism — a different model **or** the same model in a fresh context with a
+      refute-framed prompt — and *tier* runs the opposite way to what the line implied: haiku
+      first, sonnet next, frontier only with a committed results file showing the cheaper tier
+      below the bar on the same suite. Both certified readiness nodes run on haiku.
+
+      `skills/requirements-engineering/SKILL.md` and
+      `skills/agentic-workflows/references/patterns-and-frameworks.md` carried the same claim by
+      citation and were corrected too; a test now fails on any file that prescribes a stronger
+      model, allowing it only where the old wording is quoted in order to correct it.
+- [x] 8.5 It does. Node-prompt suites are wired differently from skill suites, and the README
+      only documented the latter: the prompt is a versioned file rather than a `SKILL.md`, and
+      `steps.yaml` binds the suite to the running prompt by sha so that **editing a node prompt
+      un-certifies the step**. Also recorded: certifying against inputs the node never sees in
+      production is the trap (the `cross-examine` near-miss), the three-consecutive-runs rule at
+      the cheapest passing tier, `load-bearing.md` / `iteration-log.md` as required artifacts
+      whose five labels are counted so a fixed *assert* cannot pass as prompt development, and
+      that a green score deserves suspicion — `score.js` once printed PASS at 100% on a run
+      where four of six cases had errored.
+- [x] 8.6 Recorded in `skills/workflow-certification/SKILL.md` as a named section, with the rule
+      stated and its status stated next to it: **unconfirmed — no reviewer has been asked**, and
+      nothing in the course text addresses composition either way. What survives if it is
+      rejected is named (the per-segment certification, which is submittable regardless), along
+      with the three things that keep the gap honest meanwhile: uncertified segments are blocked
+      from unattended delegation rather than merely labelled, no end-to-end rate is reported,
+      and the caveat is repeated in the playbook where omitting it would have been convenient.
+- [x] 8.7 `tests/workflow/test_documentation_mirrors.py` — 24 tests reading the descriptor and
+      the registry and requiring the docs to agree. Added because `CLAUDE.md`'s "docs change in
+      the same commit" rule was itself prose, and prose is what nobody re-reads; it is what
+      caught the stale orchestrator agent in 8.3.
+
+      Seven mutants, all killed — but two survived the first pass and both were my fault: one
+      mutant was a no-op (it added a comment instead of flipping `certified:`), and one test was
+      genuinely weak (it searched the whole file for "unconfirmed", a word that also appears in
+      a passing mention, so deleting the actual status declaration left it green). The test now
+      asserts on the status line itself.

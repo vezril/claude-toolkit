@@ -30,6 +30,37 @@ repeated N times.
 Scale: a submission is a chain of roughly **2–3 nodes**, each clearing its Stage 3 bar over
 **3 consecutive runs**. It is not "certify all forty of my agents".
 
+## Composition: this project's reading, and **not confirmed by a reviewer**
+
+The 2–3 node scale is a hard constraint, and a real pipeline is longer than that. The sdlc
+pipeline is eleven nodes. This project's answer is to cut it into **segments** — 2–3 node chains,
+each independently certified and independently submittable — and to argue the pipeline's
+trustworthiness by composition:
+
+> A pipeline of certified segments is trustworthy when **every intra-segment hand-off is
+> schema-checked by a hook**, and **every inter-segment join is either a deterministic edge or a
+> human punch-out**. Nothing anywhere depends on a model choosing to run a check.
+
+**Status of that claim: unconfirmed.** It is an interpretation, written down here so it can be
+disputed rather than assumed. No reviewer has been asked whether a composed pipeline satisfies
+the criteria a single 2–3 node chain satisfies, and nothing in the course text addresses
+composition either way. If a reviewer rejects it, what survives is the per-segment
+certification — which is the submittable unit regardless — and what is lost is only the
+pipeline-level claim.
+
+Three things keep the gap honest in the meantime:
+
+- **Uncertified segments are blocked from unattended delegation**, not merely labelled.
+  `check-certification.py` is the enforcement, and `steps.yaml` records every node's evidence,
+  including the nine sdlc nodes currently at `certified: false`.
+- **No end-to-end rate is reported.** `delivery-report.py` states a rate per *certified* segment
+  and refuses a pipeline-wide number — a rate across uncertified nodes would be a number about
+  links nobody measured. A segment counts as certified only when every node in it is.
+- **The weaker claim is stated where the stronger one would be convenient.** The composition rule
+  is reproduced in `docs/using-the-sdlc-dev-team.md` with the same "unconfirmed" caveat attached.
+
+Design rationale: `openspec/changes/certify-sdlc-pipeline/design.md` (D1, D6).
+
 ## Three rules that fall out of it
 
 **1. If a node's output is read by another node, it must be structured data with a schema.**

@@ -1,10 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="680" viewBox="0 0 680 430" role="img">
-<title>The layered readiness gate</title>
-<desc>The story-planner's stories and change artifacts flow into two deterministic validators, lint-story.py and openspec validate; either failing loops back to the story-planner for rewrite, both passing proceeds to the LLM readiness review, then human approval, then implementation.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="760" viewBox="0 0 760 530" role="img">
+<title>The readiness segment and its edge</title>
+<desc>The readiness segment's two nodes run in sequence: the readiness node (story-planner) writes the story set, then the readiness-review node, in a fresh context on haiku, writes readiness-verdict.json. That write triggers hooks/check-edge.py, which dispatches the declared edge check scripts/sdlc/readiness-gate.py — lint-story.py plus openspec validate, with a missing CLI blocking rather than passing. The verdict is recorded in the trace either way; a failed edge loops back to the story-planner, bounded at three, and the orchestrator refuses to advance past it. A human then approves before implementation.</desc>
 <style>
 text{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;fill:#3d3d3a}
 .th{font-size:14px;font-weight:600}
 .ts{font-size:12px;fill:#73726c}
+.tt{font-size:11px;fill:#73726c}
 .arr{stroke:#73726c;stroke-width:1.5;fill:none}
 g.teal>rect{fill:#E1F5EE;stroke:#0F6E56}
 g.teal text.th{fill:#085041}
@@ -15,35 +16,70 @@ g.coral text.ts{fill:#993C1D}
 g.amber>rect{fill:#FAEEDA;stroke:#854F0B}
 g.amber text.th{fill:#633806}
 g.amber text.ts{fill:#854F0B}
+g.purple>rect{fill:#EFE9FA;stroke:#5B3BA8}
+g.purple text.th{fill:#3F2878}
+g.purple text.ts{fill:#5B3BA8}
+.seg{fill:none;stroke:#0F6E56;stroke-width:1;stroke-dasharray:4 3;opacity:.55}
 </style>
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#73726c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
-<rect x="0" y="0" width="680" height="430" fill="#ffffff"/>
+<rect x="0" y="0" width="760" height="530" fill="#ffffff"/>
+
+<!-- the segment boundary: two certified nodes -->
+<rect class="seg" x="196" y="26" width="300" height="190" rx="10"/>
+<text class="tt" x="506" y="36" text-anchor="start" dominant-baseline="central">segment: readiness</text>
+<text class="tt" x="506" y="52" text-anchor="start" dominant-baseline="central">both nodes Stage 3</text>
+<text class="tt" x="506" y="68" text-anchor="start" dominant-baseline="central">certified, on haiku</text>
+
 <g class="teal">
-  <rect x="200" y="40" width="280" height="56" rx="8"/>
-  <text class="th" x="340" y="58" text-anchor="middle" dominant-baseline="central">story-planner</text>
-  <text class="ts" x="340" y="78" text-anchor="middle" dominant-baseline="central">stories + delta specs + tasks.md</text>
+  <rect x="210" y="44" width="272" height="56" rx="8"/>
+  <text class="th" x="346" y="62" text-anchor="middle" dominant-baseline="central">readiness — story-planner</text>
+  <text class="ts" x="346" y="82" text-anchor="middle" dominant-baseline="central">stories + delta specs + tasks.md</text>
 </g>
-<line x1="340" y1="100" x2="340" y2="136" class="arr" marker-end="url(#arrow)"/>
-<text class="ts" x="352" y="118" text-anchor="start" dominant-baseline="central">stories/*.md + changes/&lt;feature&gt;/</text>
+
+<line x1="346" y1="104" x2="346" y2="140" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="358" y="122" text-anchor="start" dominant-baseline="central">stories/*.md + changes/&lt;feature&gt;/</text>
+
+<g class="teal">
+  <rect x="210" y="144" width="272" height="56" rx="8"/>
+  <text class="th" x="346" y="162" text-anchor="middle" dominant-baseline="central">readiness-review — node</text>
+  <text class="ts" x="346" y="182" text-anchor="middle" dominant-baseline="central">fresh context · prompted to refute</text>
+</g>
+
+<line x1="346" y1="204" x2="346" y2="252" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="358" y="222" text-anchor="start" dominant-baseline="central">writes readiness-verdict.json</text>
+<text class="tt" x="358" y="238" text-anchor="start" dominant-baseline="central">the write is what fires the hook</text>
+
+<!-- the edge: deterministic, on a hook, not a call the model makes -->
 <g class="amber">
-  <rect x="200" y="140" width="280" height="56" rx="8"/>
-  <text class="th" x="340" y="158" text-anchor="middle" dominant-baseline="central">lint-story.py + openspec validate</text>
-  <text class="ts" x="340" y="178" text-anchor="middle" dominant-baseline="central">deterministic — either failure loops back</text>
+  <rect x="150" y="256" width="392" height="92" rx="8"/>
+  <text class="th" x="346" y="276" text-anchor="middle" dominant-baseline="central">edge — hooks/check-edge.py (PostToolUse)</text>
+  <text class="ts" x="346" y="296" text-anchor="middle" dominant-baseline="central">dispatches the declared check: scripts/sdlc/readiness-gate.py</text>
+  <text class="ts" x="346" y="314" text-anchor="middle" dominant-baseline="central">lint-story.py · openspec validate · change dir resolves</text>
+  <text class="ts" x="346" y="332" text-anchor="middle" dominant-baseline="central">a missing CLI blocks — it never passes by absence</text>
 </g>
-<path d="M196 168 L120 168 L120 68 L196 68" class="arr" marker-end="url(#arrow)"/>
-<text class="ts" x="112" y="108" text-anchor="end" dominant-baseline="central">exit ≠ 0 ↻<tspan x="112" dy="1.3em">rewrite, ≤3</tspan></text>
-<line x1="340" y1="200" x2="340" y2="236" class="arr" marker-end="url(#arrow)"/>
-<text class="ts" x="352" y="214" text-anchor="start" dominant-baseline="central">both exit 0</text>
-<g class="teal">
-  <rect x="200" y="240" width="280" height="56" rx="8"/>
-  <text class="th" x="340" y="258" text-anchor="middle" dominant-baseline="central">Readiness review — LLM</text>
-  <text class="ts" x="340" y="278" text-anchor="middle" dominant-baseline="central">substance · separate model</text>
+<text class="tt" x="556" y="286" text-anchor="start" dominant-baseline="central">declared in workflow.yaml</text>
+<text class="tt" x="556" y="302" text-anchor="start" dominant-baseline="central">under edge_checks, keyed</text>
+<text class="tt" x="556" y="318" text-anchor="start" dominant-baseline="central">by the artifact written —</text>
+<text class="tt" x="556" y="334" text-anchor="start" dominant-baseline="central">not a call a model makes</text>
+
+<!-- failure loops back to the producer -->
+<path d="M146 302 L70 302 L70 72 L206 72" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="62" y="180" text-anchor="end" dominant-baseline="central">edge fails ↻<tspan x="62" dy="1.3em">rewrite, ≤3</tspan><tspan x="62" dy="1.3em">then escalate</tspan></text>
+
+<line x1="346" y1="352" x2="346" y2="388" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="358" y="368" text-anchor="start" dominant-baseline="central">verdict recorded in the trace either way</text>
+
+<g class="amber">
+  <rect x="210" y="392" width="272" height="42" rx="8"/>
+  <text class="ts" x="346" y="406" text-anchor="middle" dominant-baseline="central">a PostToolUse hook cannot un-write a file:</text>
+  <text class="ts" x="346" y="422" text-anchor="middle" dominant-baseline="central">the orchestrator refuses to advance past a failed edge</text>
 </g>
-<line x1="340" y1="300" x2="340" y2="336" class="arr" marker-end="url(#arrow)"/>
-<text class="ts" x="352" y="316" text-anchor="start" dominant-baseline="central">PASS · you approve</text>
-<g class="coral">
-  <rect x="200" y="340" width="280" height="56" rx="8"/>
-  <text class="th" x="340" y="358" text-anchor="middle" dominant-baseline="central">Implementation</text>
-  <text class="ts" x="340" y="378" text-anchor="middle" dominant-baseline="central">test-writer ⇄ implementer</text>
+
+<line x1="346" y1="438" x2="346" y2="462" class="arr" marker-end="url(#arrow)"/>
+
+<g class="purple">
+  <rect x="210" y="466" width="272" height="44" rx="8"/>
+  <text class="th" x="346" y="482" text-anchor="middle" dominant-baseline="central">you approve readiness</text>
+  <text class="ts" x="346" y="500" text-anchor="middle" dominant-baseline="central">then implementation · test-writer ⇄ implementer</text>
 </g>
 </svg>
