@@ -221,6 +221,10 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **phq-9** — walk someone through the PHQ-9 depression screening questionnaire as a warm, one-question-at-a-time supportive check-in (verbatim instrument, 0–27 scoring + severity bands, functional-impairment item, PHQ-2 pre-screen), with hard rails the roleplay never overrides: it's a **screen, not a diagnosis**; **not a replacement for professional care**; and any endorsement of item 9 (self-harm) triggers a real, non-fictional safety response + crisis resources (988/911/findahelpline.com) regardless of the total. From the PHQ-9 instrument PDFs + Wikipedia/MDCalc/safe-interpretation sources.
 - **gad-7** — walk someone through the GAD-7 generalized-anxiety screening questionnaire as a warm, one-question-at-a-time supportive check-in (verbatim instrument, 0–21 scoring + severity bands, functional-impairment item, GAD-2 pre-screen, the ≥10 threshold; also screens panic/social-anxiety/PTSD, not just GAD), with hard rails the roleplay never overrides: it's a **screen, not a diagnosis**, and **not a replacement for professional care**. No self-harm item, but surfaces real crisis resources (988/911/findahelpline.com) if distress arises. Sibling of **phq-9**; anxiety and depression often co-occur.
 
+**Gender & identity**
+
+- **gender-identity** — gender terms explained the way the people who use them mean them, without assigning anyone a label. Keeps the layers apart (sex characteristics, identity, expression, modality, orientation), maps how the umbrellas nest and leak (transgender, non-binary, genderqueer, transfeminine, transmasculine), and covers agender, demigender, genderfluid and xenogender with their microlabels, the expression terms (feminine, masculine, androgynous, GNC, gender neutral), pride flags with their designers and disputed attributions, and pronouns in English and French (they, Mx, neopronouns, *iel*, épicène writing). Rails: a label means what its user says, never diagnose or assign a label, dysphoria is not the entry test (the clinical diagnosis routes to `dsm-gender-dysphoria`), medical and legal specifics are out of scope, live debates (xenogender inclusion, transmedicalism, ROGD) presented as debates, and distress outranks the glossary. Summarised from 14 LGBTQIA+ Wiki pages (CC BY-SA), not copied; per-term detail in `references/glossary.md`.
+
 **Games**
 
 - **swgoh-expert** — Star Wars: Galaxy of Heroes expert assistant (teams, counters, mods, relics, GAC/TW/Conquest).
@@ -435,6 +439,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `gcp-vpc` |  |  |  |  |
 | `gcp-vpc-service-controls` |  |  |  |  |
 | `gcp-workflows` |  |  |  |  |
+| `gender-identity` |  |  |  |  |
 | `git` | 96% | 100% | sonnet | Sole gap: ~50-char imperative subjects; rescue/safety calls base-strong; no patch |
 | `git-ship` | 100% | 100% | sonnet | Base-strong (universal ship-safety instincts); neutral-safe, no patch |
 | `gitbucket` | 100% | 100% | sonnet | **Tie, but weak evidence.** I verified the model getting these facts wrong against a live 4.48.0 instance, yet it scored 3/3 — because my cases were refusal-shaped (*does not invent*, *declines the premise*) rather than fact-shaped. A fact-shaped rerun would likely show a delta. Log: `evals/_batch5/iteration-log.md` |
