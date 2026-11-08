@@ -14,7 +14,8 @@ show, in one message, without an interrogation:
   Wars Hard, Platinum.)
 - What have you cleared? Your Clan Boss difficulty, the highest stage in each dungeon, and the
   Doom Tower floor.
-- Blessings and Awakening on your key champions.
+- Blessings and Awakening on your key champions. HellHades account data already has
+  Awakening and a blessing id, so only ask which blessing an id is.
 - Anything rotating that matters: today's Clan Boss affinity, the Hydra heads, the Doom Tower
   rotation.
 
