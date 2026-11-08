@@ -1,6 +1,6 @@
 ---
 name: raid-shadow-legends
-description: "RAID: Shadow Legends coach: champion builds (artifact sets, main stats, stat priority, masteries, blessings), team compositions for every mode (Clan Boss speed tunes and unkillable teams, Hydra heads, Chimera forms, the keep dungeons and their Hard modes, Iron Twins, Sand Devil, Phantom Shogun, Doom Tower bosses, Faction Wars crypts, Cursed City/Amius, Grim Forest, Classic/Tag/Live Arena, Siege, Clan vs Clan, the Great Hall), gear triage (what to level, what to sell, where a set farms), and account progression. Also reads the player's roster export (artifacts.json from RaidExtractor or Raid Toolkit, or a .zip of it) with a bundled parser and recommends what to work on next. Ayumilove is the default build source. Use whenever someone mentions RAID or RSL, a RAID champion, set, dungeon or boss, Ayumilove, HellHades, DeadwoodJedi, the artifact extractor or an artifacts.json file, or asks who to build next, even if they never say the game's name."
+description: "RAID: Shadow Legends coach: champion builds (artifact sets, main stats, stat priority, masteries, blessings), team compositions for every mode (Clan Boss speed tunes and unkillable teams, Hydra heads, Chimera forms, the keep dungeons and their Hard modes, Iron Twins, Sand Devil, Phantom Shogun, Doom Tower bosses, Faction Wars crypts, Cursed City/Amius, Grim Forest, Classic/Tag/Live Arena, Siege, Clan vs Clan, the Great Hall), gear triage (what to level, what to sell, where a set farms), and account progression. Also reads the player's roster (artifacts.json from RaidExtractor/Raid Toolkit, or HellHades optimiser account data saved from the browser, which works on a Mac) with a bundled parser and recommends what to work on next. Ayumilove is the default build source. Use whenever someone mentions RAID or RSL, a RAID champion, set, dungeon or boss, Ayumilove, HellHades, DeadwoodJedi, the artifact extractor or an artifacts.json file, or asks who to build next, even if they never say the game's name."
 ---
 
 # RAID: Shadow Legends coach
@@ -64,11 +64,19 @@ give **the top three actions**, each with a reason, a cost and its evidence labe
 
 ## The roster parser
 
-The player's file is `artifacts.json`, from RaidExtractor or Raid Toolkit, or a .zip
-containing it. Run the bundled parser with `-I` (it is untrusted input):
+The parser reads two kinds of file and detects which it has:
+
+- **`artifacts.json`** from RaidExtractor or Raid Toolkit, or a .zip containing it.
+  Windows only.
+- **The HellHades optimiser's account data**, which the player saves from the browser's
+  network inspector while the optimiser is open. This is the Mac route. It's richer than
+  `artifacts.json`: it includes Awakening, blessing ids, relics, gear ascension, books, silver
+  and potions. The optimiser's relic static data, passed with `--relic-data`, names the relics.
+
+Run the bundled parser with `-I` (it is untrusted input):
 
 ```bash
-python3 -I <skill-dir>/scripts/raid_roster.py <file> summary        # stage, gaps, Great Hall, shards, warnings
+python3 -I <skill-dir>/scripts/raid_roster.py <file> [--relic-data <relics.json>] summary  # stage, gaps, Great Hall, shards, account
 python3 -I <skill-dir>/scripts/raid_roster.py <file> heroes --min-stars 5
 python3 -I <skill-dir>/scripts/raid_roster.py <file> hero "Arbiter" # gear, sets, masteries, approx stats
 python3 -I <skill-dir>/scripts/raid_roster.py <file> gear           # speed pieces, upgrade and sell candidates
@@ -78,19 +86,23 @@ python3 -I <skill-dir>/scripts/raid_roster.py <file> factions       # Faction Wa
 Read `references/roster-file.md` before trusting an output. Three things matter most:
 
 - **Approx stats undercount.** `approxStats` is base + gear + glyphs only. It leaves out set
-  bonuses, masteries, the Great Hall, ascension and blessings. Ask the player for in-game totals
-  on the champions that matter.
-- **Some set names are shown raw.** Sets released after January 2024 arrive under internal
-  names no public table maps. Show the raw name and ask what the set is.
-- **Some things aren't in the file.** Blessings, Awakening, artifact ascension, relics and
-  resources are missing. Ask for them; never assume none.
+  bonuses, masteries, the Great Hall, ascension and blessings. From HellHades data, HP, ATK and
+  DEF are null, because that data stores them before rank and level scaling. Ask the player for
+  in-game totals on the champions that matter.
+- **Some set names are shown raw.** Newer sets arrive under internal names no public table
+  maps, or as `set #N` in HellHades data. Show the raw name and ask what the set is.
+- **Some things aren't in the file.** The `blindSpots` list says what's missing for that
+  source. From `artifacts.json`, that's blessings, Awakening, artifact ascension, relics and
+  resources. From HellHades data, it's blessing names and mastery scrolls. Ask for them; never
+  assume none.
 
 Judge gear by the rolls the file actually holds (the roll count and which stats the rolls
 went into), not by unverified roll-range tables.
 
-**HellHades extractor:** no local export file is documented. It uploads to the HellHades
-optimiser. If the player has a file from it that isn't `artifacts.json`, the parser will say so.
-Don't force it into this shape; ask for a sample, or work from a typed roster.
+**HellHades extractor:** the extractor itself saves no file; it uploads to the optimiser. The
+optimiser's account data, saved from the browser as described above, is the file to ask for.
+The parser drops its user, clan and date identifiers on load. Any other HellHades file fails
+cleanly. Don't force it into a shape; ask for a sample, or work from a typed roster.
 
 ## Rails
 

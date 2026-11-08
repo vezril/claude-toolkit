@@ -7,6 +7,8 @@ refused automated fetches.
 | Number | Label | Source |
 |---|---|---|
 | Export schema, enum encodings, the typeId rule, percent-as-fraction | `[VERIFIED]` | Extractor C# source (RaidExtractor, Raid Toolkit account-extension) |
+| HellHades account data: integer enums for slot, stat, rank, rarity, role, affinity, sets 0–44/1000–1003, factions 1–16 | `[VERIFIED]` against a real file (Nov 2026) | RaidExtractor C# enums; slot × main-stat pairs; faction ids × champion names |
+| HellHades faction 17 = Argonites; set ids 60/62/65 | `[UNVERIFIED]`: the faction is inferred; the sets are unknown, shown as `set #N` | Champions filed under 17; the optimiser's `guardians` keys |
 | ACC vs RES: ~90% land at parity, ~97% at ACC +30, 3% floor resist | `[VERIFIED]` | HellHades, Buffs/Debuffs/Instant Effects |
 | Buff/debuff tier values (Decrease DEF 30/60 etc.) | `[VERIFIED]` | Ayumilove Buffs & Debuffs guide |
 | Mastery scroll totals (100 Basic / 600 Advanced / 950 Divine); reset 150 gems after the first | `[VERIFIED]` | Ayumilove Mastery guide |

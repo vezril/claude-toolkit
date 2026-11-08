@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Tests for skills/raid-shadow-legends/scripts/raid_roster.py.
 
-The fixtures are synthetic rosters built in this file in the artifacts.json shape the two
-extractors write (field names from their C# source). No real account data is used.
+The fixtures are synthetic rosters built in this file: the artifacts.json shape the two
+extractors write (field names from their C# source), and the HellHades optimiser's account
+shape (integer enums, defaults omitted). No real account data is used.
 
 Run: python3 tests/raid-roster/test_raid_roster.py
 """
@@ -95,6 +96,78 @@ def gen2_roster():
     data["heroes"][0]["isGuardian"] = False
     data["heroes"][0]["unassignedMasteryScrolls"] = {"Basic": 40, "Advanced": 0}
     return data
+
+
+HH_USER_ID = 987654321
+HH_CLAN = "ClanNameShouldNotLeak"
+
+
+def hh_roster():
+    """The HellHades optimiser's account shape: integer enums, defaults omitted (no
+    isAbsolute = percent, no level = 0), its own heroTypes table, account identifiers."""
+    artifacts = [
+        # boots, Speed set, SPD main, SPD sub with 2 rolls and a glyph, gear ascension
+        {"id": 1, "level": 16, "isActivated": True, "set": 4, "rank": 6, "rarity": 5,
+         "kind": 4, "primaryBonus": {"kind": 4, "isAbsolute": True, "value": 45.0},
+         "secondaryBonuses": [
+             {"kind": 4, "isAbsolute": True, "value": 11.0, "enhancement": 3.0, "level": 2},
+             {"kind": 1, "value": 0.06}],
+         "ascendLevel": 2, "ascendBonus": {"kind": 4, "isAbsolute": True, "value": 2.0}},
+        # gloves, Perception (38), C.RATE% main
+        {"id": 2, "level": 12, "set": 38, "rank": 5, "rarity": 4, "kind": 3,
+         "primaryBonus": {"kind": 7, "value": 0.5},
+         "secondaryBonuses": [{"kind": 6, "isAbsolute": True, "value": 20.0, "level": 1}]},
+        # unequipped amulet (Cloak = 8), faction-locked to Argonites (17), no set
+        {"id": 3, "set": 0, "rank": 4, "rarity": 3, "kind": 8, "requiredFraction": 17,
+         "primaryBonus": {"kind": 8, "value": 0.2}, "secondaryBonuses": []},
+        # a set id no published enum names
+        {"id": 4, "set": 60, "rank": 6, "rarity": 5, "kind": 7,
+         "primaryBonus": {"kind": 1, "isAbsolute": True, "value": 1500.0},
+         "secondaryBonuses": []},
+    ]
+    hero_types = [
+        {"id": 2016, "name": "Arbiter", "fraction": 3, "rarity": 5,
+         "forms": [{"role": 3, "element": 1, "skillTypeIds": [20161, 20162],
+                    "baseStats": {"health": 76.0, "attack": 87.0, "defence": 82.0,
+                                  "speed": 110.0, "resistance": 30.0, "accuracy": 10.0,
+                                  "criticalChance": 15.0, "criticalDamage": 50.0}}]},
+        {"id": 6620, "name": "Horned Viper", "fraction": 17, "rarity": 3,
+         "forms": [{"role": 0, "element": 2, "skillTypeIds": [66201],
+                    "baseStats": {"health": 60.0, "attack": 100.0, "defence": 70.0,
+                                  "speed": 99.0, "resistance": 30.0, "accuracy": 0.0,
+                                  "criticalChance": 15.0, "criticalDamage": 50.0}}]},
+    ]
+    heroes = [
+        {"id": 100, "typeId": 2016, "grade": 6, "level": 60, "empowerLevel": 0,
+         "locked": False, "inStorage": False, "artifacts": [1, 2], "relics": [7],
+         "masteries": [500161, 500343], "skillLevels": {"20161": 5, "20162": 3},
+         "awakenedGrade": 2, "blessingId": 1102},
+        {"id": 101, "typeId": 6620, "grade": 4, "level": 40, "empowerLevel": 0,
+         "locked": False, "inStorage": True, "artifacts": None, "relics": None,
+         "masteries": [], "skillLevels": {}, "awakenedGrade": 0, "blessingId": None},
+    ]
+    return {
+        "createdOn": "2026-11-08T00:00:00Z", "userId": HH_USER_ID, "name": ACCOUNT_NAME,
+        "userName": None, "clanId": 4242, "clanName": HH_CLAN,
+        "accountCreatedOn": "2020-01-01T00:00:00Z",
+        "artifacts": artifacts, "heroes": heroes, "heroTypes": hero_types,
+        "relics": [{"id": 7, "typeId": 1, "rank": 2, "level": 3, "sockets": []}],
+        "relicStones": [], "greatHall": {"Magic": {"Accuracy": 4, "Health": 1}},
+        "arenaLeague": 14, "arenaPoints": 1840, "liveArenaLeague": 0, "liveArenaPoints": 950,
+        "shards": {"Ancient": 9, "Void": 1},
+        "guardians": {"Argonites": {"Rare": [{"firstHero": 101, "secondHero": None},
+                                             {"firstHero": None, "secondHero": None}]}},
+        "resources": {"Silver": 17633693.08, "Gem": 197.0, "Energy": 123.0,
+                      "Orb_MagicLow": 37.0, "Orb_VoidHigh": 12.0, "CursedCity_Key": 8.0},
+        "blackMarketItems": {"SkillUpgradeItemEpic": 12, "SkillUpgradeItemLegendary": 1},
+        "doubleAscendSoulCount": {"15300100": 1, "11301510": 2},
+        "accountStatistics": {"factionWars": {"stars": 127}},
+    }
+
+
+def relic_data():
+    return {"relicTypes": [{"id": 1, "name": "Unholy Grail", "rarity": 3}],
+            "relicStoneTypes": []}
 
 
 def run_cli(path, *args):
@@ -338,6 +411,113 @@ class Reports(Base):
             code = rr.main([str(self.write(gen2_roster())), "summary"])
         self.assertEqual(code, 0)
         self.assertIn("counts", json.loads(buf.getvalue()))
+
+
+class HellHades(Base):
+    def setUp(self):
+        super().setUp()
+        self.path = self.write(hh_roster(), "raid_account.json")
+        self.r = rr.Roster(rr.load(self.path), {1: "Unholy Grail"})
+
+    def test_detected_as_hellhades(self):
+        self.assertEqual(self.r.gen["generation"], "hellhades")
+
+    def test_names_come_from_hero_types(self):
+        self.assertEqual([h["name"] for h in self.r.heroes], ["Arbiter", "Horned Viper"])
+
+    def test_integer_enums_decode(self):
+        arb = self.r.heroes[0]
+        self.assertEqual((arb["stars"], arb["rarity"], arb["faction"], arb["role"],
+                          arb["affinity"]),
+                         (6, "Legendary", "The Sacred Order", "Support", "Magic"))
+        boots = self.r.artifacts[1]
+        self.assertEqual((boots["slot"], boots["rank"], boots["rarity"], boots["set"]),
+                         ("Boots", 6, "Legendary", "Speed"))
+        self.assertEqual(self.r.artifacts[3]["slot"], "Amulet")
+
+    def test_missing_is_absolute_means_percent(self):
+        gloves = self.r.artifacts[2]
+        self.assertEqual(gloves["main"]["stat"], "C.RATE")
+        self.assertTrue(gloves["main"]["percent"])
+        self.assertEqual(gloves["main"]["value"], 50.0)
+        hp = [b for b in self.r.artifacts[1]["subs"] if b["kind"] == "Health"][0]
+        self.assertEqual((hp["stat"], hp["value"], hp["rolls"]), ("HP%", 6.0, 0))
+
+    def test_missing_level_is_zero(self):
+        self.assertEqual(self.r.artifacts[3]["level"], 0)
+
+    def test_unknown_set_id_is_shown_raw(self):
+        a = self.r.artifacts[4]
+        self.assertEqual((a["set"], a["mapping"]), ("set #60", "unmapped"))
+
+    def test_faction_17_is_argonites_and_marked_inferred(self):
+        viper = self.r.heroes[1]
+        self.assertEqual(viper["faction"], "Argonites")
+        self.assertEqual(viper["factionMapping"], "inferred")
+        self.assertEqual(self.r.artifacts[3]["factionLock"], "Argonites")
+
+    def test_awakening_blessing_relics_and_ascension(self):
+        arb = self.r.heroes[0]
+        self.assertEqual((arb["ascension"], arb["awakening"], arb["blessingId"]), (6, 2, 1102))
+        self.assertEqual(arb["relics"][0]["name"], "Unholy Grail")
+        self.assertEqual(self.r.artifacts[1]["ascension"]["bonus"]["total"], 2.0)
+
+    def test_relic_without_relic_data_says_how_to_name_it(self):
+        r = rr.Roster(rr.load(self.path))
+        self.assertIn("--relic-data", r.heroes[0]["relics"][0]["name"])
+
+    def test_approx_stats_skip_unscaled_hp_atk_def(self):
+        s = self.r.heroes[0]["approxStats"]
+        self.assertIsNone(s["HP"])
+        self.assertIsNone(s["ATK"])
+        self.assertEqual(s["SPD"], 110 + 45 + 14 + 2)
+        self.assertEqual(s["ACC"], 10 + 20)
+        self.assertEqual(s["C.RATE"], 15 + 50)
+        self.assertIn("before rank and level", s["label"])
+
+    def test_skills_and_masteries(self):
+        arb = self.r.heroes[0]
+        self.assertEqual(arb["skills"], [{"typeId": 20161, "level": 5},
+                                         {"typeId": 20162, "level": 3}])
+        self.assertEqual([m["name"] for m in arb["masteries"]], ["Warmaster", "Lore of Steel"])
+
+    def test_summary_account_block(self):
+        s = self.r.summary()
+        self.assertEqual(s["arenaLeague"], "Silver IV")
+        acct = s["account"]
+        self.assertEqual(acct["resources"]["Silver"], 17633693)
+        self.assertEqual(acct["books"], {"Rare": 0, "Epic": 12, "Legendary": 1})
+        self.assertEqual(acct["potions"]["Magic"]["lesser"], 37)
+        self.assertEqual(acct["keys"], {"CursedCity_Key": 8})
+        self.assertEqual(acct["awakeningSouls"], 3)
+        self.assertEqual(s["factionGuardians"]["Argonites"], {"slots": 2, "filled": 1})
+        self.assertEqual(s["greatHall"]["totalLevels"], 5)
+        self.assertEqual(s["counts"]["sixStarLevel60"], 1)
+        self.assertEqual(s["investmentGaps"]["builtWithoutBlessing"], [])
+
+    def test_blind_spots_are_the_hellhades_ones(self):
+        self.assertIs(self.r.blind_spots, rr.BLIND_SPOTS_HH)
+
+    def test_account_identifiers_dropped_and_never_printed(self):
+        s = self.r.summary()
+        self.assertEqual(s["redacted"], ["userId", "name", "userName", "clanId", "clanName",
+                                         "createdOn", "accountCreatedOn"])
+        rp = self.write(relic_data(), "raid_relic_data.json")
+        for args in (["--relic-data", str(rp), "summary"], ["heroes"], ["hero", "Arbiter"],
+                     ["gear"], ["factions"]):
+            code, out = run_cli(self.path, *args)
+            self.assertEqual(code, 0, args)
+            for secret in (str(HH_USER_ID), ACCOUNT_NAME, HH_CLAN, "4242"):
+                self.assertNotIn(secret, out, (args, secret))
+
+    def test_heroes_rows_carry_awakening_and_blessing(self):
+        row = self.r.hero_rows()["heroes"][0]
+        self.assertEqual((row["awakening"], row["blessingId"]), (2, 1102))
+
+    def test_relic_data_given_as_roster_is_explained(self):
+        with self.assertRaises(rr.RosterError) as e:
+            rr.load(self.write(relic_data(), "relics.json"))
+        self.assertIn("--relic-data", str(e.exception))
 
 
 if __name__ == "__main__":

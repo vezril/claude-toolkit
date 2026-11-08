@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
-"""Parse a RAID: Shadow Legends roster export (artifacts.json) into facts the skill can reason on.
+"""Parse a RAID: Shadow Legends roster export into facts the skill can reason on.
 
-Stdlib only. Reads the open `artifacts.json` written by RaidExtractor (Gen 1, no
-`fileVersion`) or the Raid Toolkit extractor (Gen 2, `"fileVersion": "1.3"`), or a .zip
-holding that file. The schema was read from both extractors' C# source; see
-references/roster-file.md for the field table and what the file does not contain.
+Stdlib only. Reads three shapes:
+
+- `artifacts.json` from RaidExtractor (Gen 1, no `fileVersion`) or the Raid Toolkit
+  extractor (Gen 2, `"fileVersion": "1.3"`), or a .zip holding that file. Schema read from
+  both extractors' C# source.
+- The HellHades optimiser's account data, as the player saves it from their own browser's
+  network inspector (top-level `heroTypes`, integer enums). Optionally with the optimiser's
+  relic static data (`--relic-data`) to name relics.
+
+See references/roster-file.md for the field tables and what each shape does not contain.
 
 Usage:
-  python3 -I raid_roster.py FILE summary
+  python3 -I raid_roster.py FILE [--relic-data FILE] summary
   python3 -I raid_roster.py FILE heroes [--min-stars N] [--include-food]
   python3 -I raid_roster.py FILE hero NAME
   python3 -I raid_roster.py FILE gear [--top N]
@@ -15,8 +21,10 @@ Usage:
 
 Output is JSON on stdout. Errors are JSON on stdout with exit code 2.
 
-Privacy: the account-level `id` and `name` are never printed. Hero and artifact ids are
-in-game instance ids and are kept so outputs can cross-reference each other.
+Privacy: account-level identifiers (`id`, `name`, and for HellHades data `userId`,
+`userName`, `clanId`, `clanName` and the account dates) are dropped on load and never
+printed. Hero and artifact ids are in-game instance ids and are kept so outputs can
+cross-reference each other.
 """
 
 import argparse
@@ -91,10 +99,12 @@ FACTION_LABEL = {
     "NyresanElves": "Sylvan Watchers",
     "Samurai": "Shadowkin",
     "Dwarves": "Dwarves",
+    "Argonites": "Argonites",
 }
-# These two pairings are inferred (newer factions under older internal names), not read
-# from source. The output marks them so the skill can say so.
-FACTION_INFERRED = {"NyresanElves", "Samurai"}
+# These pairings are inferred (newer factions under older internal names, or a faction id
+# no published enum lists), not read from source. The output marks them so the skill can
+# say so.
+FACTION_INFERRED = {"NyresanElves", "Samurai", "Argonites"}
 
 # Internal set name -> (in-game name, confidence). No public file pairs these; every entry
 # is inferred. "high" = classic sets whose internal name describes the bonus unambiguously,
@@ -178,6 +188,58 @@ BLIND_SPOTS = [
     "Percent values are rounded to 2 decimals by the extractor, so a 4.6% roll reads as 5%.",
     "Skill max levels are not in the file, so book gaps need a lookup.",
 ]
+BLIND_SPOTS_HH = [
+    "HP, ATK and DEF base values in this data are unscaled (before rank and level), so "
+    "approxStats leaves them null. SPD, ACC, RES, C.RATE and C.DMG are base + gear + glyphs "
+    "+ gear ascension. Set bonuses, masteries, Great Hall, blessings and empowerment are "
+    "excluded either way. Check in-game.",
+    "Blessings come as raw ids; no public table names them. Ask which blessing it is.",
+    "Some set ids have no published name and are shown as `set #N`. Ask what the set is.",
+    "Skill max levels are not in the data, so book gaps need a lookup.",
+    "Mastery scrolls are not in the data.",
+    "This is the optimiser's copy of the account: as fresh as the last extractor upload.",
+]
+
+# --- HellHades optimiser account data (integer enums) --------------------------------------
+# Numeric values from RaidExtractor's C# enums (RaidExtractor.Core/Native/*.cs), which mirror
+# the game's own ids. Checked against the data: slot x main-stat pairs (boots carry SPD,
+# gloves C.RATE/C.DMG, weapons flat ATK, shields flat DEF, helmets flat HP), and faction ids
+# against the champion names listed under each id.
+HH_SLOT = {1: "Helmet", 2: "Chest", 3: "Gloves", 4: "Boots", 5: "Weapon", 6: "Shield",
+           7: "Ring", 8: "Cloak", 9: "Banner"}
+HH_STAT = {1: "Health", 2: "Attack", 3: "Defense", 4: "Speed", 5: "Resistance",
+           6: "Accuracy", 7: "CriticalChance", 8: "CriticalDamage", 9: "CriticalHeal"}
+HH_RANK = {i: n for i, n in enumerate(["One", "Two", "Three", "Four", "Five", "Six"], 1)}
+HH_RARITY = {i: n for i, n in enumerate(RARITY_ORDER, 1)}
+HH_ROLE = {0: "Attack", 1: "Defense", 2: "Health", 3: "Support", 4: "Evolve", 5: "Xp"}
+HH_ELEMENT = {1: "Magic", 2: "Force", 3: "Spirit", 4: "Void"}
+HH_FACTION = {1: "BannerLords", 2: "HighElves", 3: "SacredOrder", 4: "CovenOfMagi",
+              5: "OgrynTribes", 6: "LizardMen", 7: "Skinwalkers", 8: "Orcs", 9: "Demonspawn",
+              10: "UndeadHordes", 11: "DarkElves", 12: "KnightsRevenant", 13: "Barbarians",
+              14: "NyresanElves", 15: "Samurai", 16: "Dwarves",
+              17: "Argonites"}  # 17 is not in any published enum; inferred from its champions
+HH_SET = {i: n for i, n in enumerate([
+    "None", "Hp", "AttackPower", "Defense", "AttackSpeed", "CriticalChance",
+    "CriticalDamage", "Accuracy", "Resistance", "LifeDrain", "DamageIncreaseOnHpDecrease",
+    "SleepChance", "BlockHealChance", "FreezeRateOnDamageReceived", "Stamina", "Heal",
+    "BlockDebuff", "Shield", "GetExtraTurn", "IgnoreDefense", "DecreaseMaxHp", "StunChance",
+    "DotRate", "ProvokeChance", "Counterattack", "CounterattackOnCrit", "AoeDamageDecrease",
+    "CooldownReductionChance", "CriticalHealMultiplier", "AttackPowerAndIgnoreDefense",
+    "HpAndHeal", "ShieldAndAttackPower", "ShieldAndCriticalChance", "ShieldAndHp",
+    "ShieldAndSpeed", "UnkillableAndSpdAndCrDmg", "BlockReflectDebuffAndHpAndDef",
+    "HpAndDefence", "AccuracyAndSpeed", "CritDmgAndTransformWeekIntoCritHit",
+    "ResistanceAndBlockDebuff", "AttackAndCritRate", "FreezeResistAndRate",
+    "CritRateAndLifeDrain", "PassiveShareDamageAndHeal"])}
+HH_SET.update({1000: "IgnoreCooldown", 1001: "RemoveDebuff", 1002: "ShieldAccessory",
+               1003: "ChangeHitType"})
+HH_ARENA = {0: None, 1: "Bronze I", 2: "Bronze II", 3: "Bronze III", 4: "Bronze IV",
+            11: "Silver I", 12: "Silver II", 13: "Silver III", 14: "Silver IV",
+            21: "Gold I", 22: "Gold II", 23: "Gold III", 24: "Gold IV", 30: "Platinum"}
+# Account-level identifiers in the HellHades data. Dropped on load, never printed.
+HH_PERSONAL = ("userId", "name", "userName", "clanId", "clanName", "createdOn",
+               "accountCreatedOn")
+HH_BOOKS = {"SkillUpgradeItemRare": "Rare", "SkillUpgradeItemEpic": "Epic",
+            "SkillUpgradeItemLegendary": "Legendary"}
 
 
 class RosterError(Exception):
@@ -208,17 +270,179 @@ def load(path):
         data = json.loads(raw.decode("utf-8-sig"))
     except (UnicodeDecodeError, json.JSONDecodeError) as e:
         raise RosterError(f"not valid JSON: {e}") from e
+    if isinstance(data, dict) and isinstance(data.get("relicTypes"), list) \
+            and "heroes" not in data:
+        raise RosterError("this is the relic static data, not an account; pass it with "
+                          "--relic-data and give the account file as FILE")
     if not isinstance(data, dict) or not (
         isinstance(data.get("heroes"), list) or isinstance(data.get("artifacts"), list)
     ):
         raise RosterError(
-            "not an artifacts.json roster: no top-level `heroes` or `artifacts` list. "
-            "If this came from the HellHades extractor, its format is undocumented."
+            "not a roster: no top-level `heroes` or `artifacts` list. Expected artifacts.json "
+            "(RaidExtractor / Raid Toolkit) or the HellHades optimiser's account data."
         )
+    if is_hellhades(data):
+        return from_hellhades(data)
     return data
 
 
+def load_relic_names(path):
+    """Relic type id -> name from the HellHades optimiser's relic static data."""
+    p = Path(path)
+    if not p.is_file():
+        raise RosterError(f"relic data file not found: {path}")
+    try:
+        data = json.loads(p.read_bytes().decode("utf-8-sig"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        raise RosterError(f"relic data is not valid JSON: {e}") from e
+    types = data.get("relicTypes") if isinstance(data, dict) else None
+    if not isinstance(types, list):
+        raise RosterError("relic data has no `relicTypes` list")
+    return {t.get("id"): t.get("name") for t in types if isinstance(t, dict)}
+
+
+def is_hellhades(data):
+    """The optimiser's account data carries its own champion table and integer grades."""
+    heroes = data.get("heroes") or []
+    return isinstance(data.get("heroTypes"), list) or (
+        bool(heroes) and isinstance(heroes[0], dict) and isinstance(heroes[0].get("grade"), int)
+    )
+
+
+def _hh_bonus(b):
+    """HellHades omits default values: no isAbsolute means percent, no level means 0 rolls."""
+    if not isinstance(b, dict):
+        return None
+    return {"kind": HH_STAT.get(b.get("kind"), b.get("kind")),
+            "isAbsolute": bool(b.get("isAbsolute", False)),
+            "value": b.get("value") or 0,
+            "enhancement": b.get("enhancement") or 0,
+            "level": b.get("level") or 0}
+
+
+def _hh_artifact(a):
+    s = a.get("set", 0)
+    out = {
+        "id": a.get("id"),
+        "kind": HH_SLOT.get(a.get("kind"), a.get("kind")),
+        "rank": HH_RANK.get(a.get("rank"), a.get("rank")),
+        "rarity": HH_RARITY.get(a.get("rarity"), a.get("rarity")),
+        "setKind": HH_SET.get(s, f"set #{s}"),
+        "level": a.get("level", 0),
+        "primaryBonus": _hh_bonus(a.get("primaryBonus")),
+        "secondaryBonuses": [x for x in map(_hh_bonus, a.get("secondaryBonuses") or []) if x],
+    }
+    rf = a.get("requiredFraction")
+    if rf:
+        out["requiredFraction"] = HH_FACTION.get(rf, rf)
+    if a.get("ascendLevel"):
+        out["ascendLevel"] = a["ascendLevel"]
+        out["ascendBonus"] = _hh_bonus(a.get("ascendBonus"))
+    return out
+
+
+def from_hellhades(d):
+    """Convert the optimiser's account data to the artifacts.json shape the Roster reads,
+    dropping account identifiers. HellHades-only facts go under `_hh`."""
+    warnings = []
+    types = {t.get("id"): t for t in d.get("heroTypes") or [] if isinstance(t, dict)}
+    relic_type = {r.get("id"): r for r in d.get("relics") or [] if isinstance(r, dict)}
+    heroes = []
+    for h in d.get("heroes") or []:
+        t = types.get(h.get("typeId"))
+        if t is None:
+            warnings.append("hero typeId missing from heroTypes; name unknown")
+            t = {}
+        form = (t.get("forms") or [{}])[0] or {}
+        base = form.get("baseStats") or {}
+        g = h.get("grade")
+        heroes.append({
+            "id": h.get("id"),
+            "typeId": h.get("typeId"),
+            "name": t.get("name"),
+            "grade": f"Stars{g}" if isinstance(g, int) else g,
+            "level": h.get("level"),
+            "empowerLevel": h.get("empowerLevel"),
+            "fraction": HH_FACTION.get(t.get("fraction"), t.get("fraction")),
+            "rarity": HH_RARITY.get(t.get("rarity"), t.get("rarity")),
+            "role": HH_ROLE.get(form.get("role"), form.get("role")),
+            "element": HH_ELEMENT.get(form.get("element"), form.get("element")),
+            "artifacts": h.get("artifacts") or [],
+            "masteries": h.get("masteries") or [],
+            "skills": [{"typeId": int(k) if str(k).isdigit() else k, "level": v}
+                       for k, v in (h.get("skillLevels") or {}).items()],
+            "inStorage": h.get("inStorage", False),
+            "locked": h.get("locked"),
+            # SPD, ACC, RES and crit do not scale with rank or level; HP/ATK/DEF do, and the
+            # optimiser stores them unscaled, so they are left out on purpose.
+            "speed": base.get("speed"),
+            "resistance": base.get("resistance"),
+            "accuracy": base.get("accuracy"),
+            "criticalChance": base.get("criticalChance"),
+            "criticalDamage": base.get("criticalDamage"),
+            "_baseUnscaled": True,
+            "_awakening": h.get("awakenedGrade"),
+            "_blessingId": h.get("blessingId"),
+            "_relics": [
+                {"typeId": relic_type.get(rid, {}).get("typeId"),
+                 "rank": relic_type.get(rid, {}).get("rank"),
+                 "level": relic_type.get(rid, {}).get("level")}
+                for rid in h.get("relics") or []
+            ],
+        })
+    res = d.get("resources") or {}
+    bm = d.get("blackMarketItems") or {}
+    potions = defaultdict(dict)
+    for k, v in res.items():
+        m = re.match(r"Orb_(Magic|Force|Spirit|Void|Arcane)(Low|Mid|High)$", k)
+        if m:
+            potions[m.group(1)][{"Low": "lesser", "Mid": "greater", "High": "superior"}[
+                m.group(2)]] = int(v)
+    guardians = {}
+    for fac, by_rarity in (d.get("guardians") or {}).items():
+        if isinstance(by_rarity, dict):
+            slots = [s for r in by_rarity.values() if isinstance(r, list) for s in r]
+            guardians[fac] = {"slots": len(slots),
+                              "filled": sum(1 for s in slots if isinstance(s, dict)
+                                            and s.get("firstHero"))}
+    league = d.get("arenaLeague")
+    return {
+        "_source": "hellhades",
+        "_redacted": [k for k in HH_PERSONAL if k in d],
+        "_warnings": sorted(set(warnings)),
+        "heroes": heroes,
+        "artifacts": [_hh_artifact(a) for a in d.get("artifacts") or [] if isinstance(a, dict)],
+        "arenaLeague": HH_ARENA.get(league, league),
+        "greatHall": d.get("greatHall") or {},
+        "shards": d.get("shards") or {},
+        "_hh": {
+            "resources": {k: (round(res[k]) if isinstance(res.get(k), (int, float)) else None)
+                          for k in ("Silver", "Gem", "Energy", "AutoBattleTicket")},
+            "books": {label: bm.get(k, 0) for k, label in HH_BOOKS.items()},
+            "potions": dict(potions),
+            "keys": {k: round(v) for k, v in res.items()
+                     if isinstance(v, (int, float)) and re.search(r"Key$|_Key$", k)},
+            "relics": {"owned": len(d.get("relics") or []),
+                       "stones": len(d.get("relicStones") or [])},
+            "awakeningSouls": sum(v for v in (d.get("doubleAscendSoulCount") or {}).values()
+                                  if isinstance(v, (int, float))),
+            "factionGuardians": guardians,
+            "areaBonuses": d.get("areaBonuses"),
+            "arena": {"classicLeague": HH_ARENA.get(league, league),
+                      "classicPoints": d.get("arenaPoints"),
+                      "tagLeague": d.get("arena3x3League"),
+                      "liveLeague": d.get("liveArenaLeague"),
+                      "livePoints": d.get("liveArenaPoints")},
+            "stars": d.get("accountStatistics"),
+            "inClan": bool(d.get("clanId")),
+        },
+    }
+
+
 def generation(data):
+    if data.get("_source") == "hellhades":
+        return {"generation": "hellhades", "fileVersion": None,
+                "tool": "HellHades optimiser account data (saved from the browser)"}
     fv = data.get("fileVersion")
     if fv is None:
         return {"generation": 1, "fileVersion": None, "tool": "RaidExtractor (Gen 1)"}
@@ -300,6 +524,10 @@ def artifact(a, warnings, owner=None):
     }
     if a.get("requiredFraction"):
         out["factionLock"] = FACTION_LABEL.get(a["requiredFraction"], a["requiredFraction"])
+    if a.get("ascendLevel"):
+        out["ascension"] = {"level": a["ascendLevel"],
+                            "bonus": bonus(a["ascendBonus"], warnings)
+                            if a.get("ascendBonus") else None}
     if "sellPrice" in a:
         out["sellPrice"] = a["sellPrice"]
     return out
@@ -313,10 +541,13 @@ def mastery(mid):
 
 
 class Roster:
-    def __init__(self, data):
+    def __init__(self, data, relic_names=None):
         self.data = data
         self.gen = generation(data)
-        self.warnings = set()
+        self.hh = self.gen["generation"] == "hellhades"
+        self.blind_spots = BLIND_SPOTS_HH if self.hh else BLIND_SPOTS
+        self.relic_names = relic_names or {}
+        self.warnings = set(data.get("_warnings") or [])
         if self.gen["generation"] is None:
             self.warnings.add(f"unrecognised fileVersion {self.gen['fileVersion']!r}")
         heroes = data.get("heroes") or []
@@ -385,6 +616,14 @@ class Roster:
         }
         if fraction in FACTION_INFERRED:
             out["factionMapping"] = "inferred"
+        if self.hh:
+            out["awakening"] = h.get("_awakening")
+            out["blessingId"] = h.get("_blessingId")
+            out["relics"] = [
+                r | {"name": self.relic_names.get(r["typeId"],
+                                                  f"relic type {r['typeId']} (pass --relic-data)")}
+                for r in h.get("_relics") or []
+            ]
         scrolls = h.get("unassignedMasteryScrolls")
         if isinstance(scrolls, dict):
             out["unassignedMasteryScrolls"] = scrolls
@@ -397,7 +636,8 @@ class Roster:
         flat = defaultdict(float)
         pct = defaultdict(float)
         for g in gear:
-            for b in ([g["main"]] if g["main"] else []) + g["subs"]:
+            asc = (g.get("ascension") or {}).get("bonus")
+            for b in ([g["main"]] if g["main"] else []) + g["subs"] + ([asc] if asc else []):
                 (pct if b["percent"] else flat)[b["kind"]] += b["total"]
 
         def crit(v):
@@ -406,6 +646,9 @@ class Roster:
 
         stats = {}
         for kind, label in (("Health", "HP"), ("Attack", "ATK"), ("Defense", "DEF")):
+            if h.get("_baseUnscaled"):
+                stats[label] = None  # base not scaled for rank/level in this source
+                continue
             base = float(h.get(kind[0].lower() + kind[1:]) or 0)
             stats[label] = round(base * (1 + pct[kind] / 100) + flat[kind])
         base_spd = float(h.get("speed") or 0)
@@ -416,6 +659,9 @@ class Roster:
         stats["C.DMG"] = round(crit(h.get("criticalDamage")) + pct["CriticalDamage"], 1)
         stats["label"] = ("approximate: base + gear + glyphs only; set bonuses, masteries, "
                           "Great Hall, ascension and blessings excluded. Check in-game.")
+        if h.get("_baseUnscaled"):
+            stats["label"] += (" HP/ATK/DEF are null because this source stores them before "
+                               "rank and level scaling.")
         return stats
 
     def real_heroes(self):
@@ -454,10 +700,11 @@ class Roster:
             v for h in heroes for v in (h.get("unassignedMasteryScrolls") or {}).values()
             if isinstance(v, (int, float))
         )
-        return {
+        out = {
             "source": self.gen,
             "lastUpdated": self.data.get("lastUpdated"),
-            "redacted": [k for k in ("id", "name") if k in self.data],
+            "redacted": (self.data["_redacted"] if "_redacted" in self.data
+                         else [k for k in ("id", "name") if k in self.data]),
             "counts": {
                 "champions": len(heroes),
                 "fodderAndFood": len(self.heroes) - len(heroes),
@@ -477,10 +724,18 @@ class Roster:
             "shards": shards,
             "unassignedMasteryScrolls": unassigned or None,
             "investmentGaps": gaps,
-            "builtChampions": sorted(h["name"] for h in built),
-            "blindSpots": BLIND_SPOTS,
+            "builtChampions": sorted(h["name"] or "?" for h in built),
+            "blindSpots": self.blind_spots,
             "warnings": sorted(self.warnings),
         }
+        if self.hh:
+            out["account"] = self.data.get("_hh")
+            out["factionGuardians"] = (self.data.get("_hh") or {}).get("factionGuardians")
+            gaps["builtWithoutBlessing"] = sorted(
+                h["name"] or "?" for h in built if not h.get("blessingId"))
+            gaps["builtWithoutAwakening"] = sorted(
+                h["name"] or "?" for h in built if not h.get("awakening"))
+        return out
 
     def hero_rows(self, min_stars=0, include_food=False):
         pool = self.heroes if include_food else self.real_heroes()
@@ -489,6 +744,8 @@ class Roster:
                                "level", "ascension", "empower", "masteryCount", "inVault")}
             | {"sets": h["gear"]["sets"], "emptySlots": h["gear"]["emptyArtifactSlots"],
                "SPD~": h["approxStats"]["SPD"], "ACC~": h["approxStats"]["ACC"]}
+            | ({"awakening": h.get("awakening"), "blessingId": h.get("blessingId")}
+               if self.hh else {})
             for h in pool if (h["stars"] or 0) >= min_stars
         ]
         rows.sort(key=lambda r: (-(r["stars"] or 0), -(r["level"] or 0), r["name"] or ""))
@@ -506,7 +763,8 @@ class Roster:
             d = dict(h)
             d["gear"] = dict(h["gear"], pieces=[self.artifacts[i] for i in h["gear"]["pieceIds"]])
             out.append(d)
-        return {"matches": out, "blindSpots": BLIND_SPOTS, "warnings": sorted(self.warnings)}
+        return {"matches": out, "blindSpots": self.blind_spots,
+                "warnings": sorted(self.warnings)}
 
     def gear(self, top=25):
         arts = list(self.artifacts.values())
@@ -612,8 +870,9 @@ def stage_signal(six_star_60, gh_total):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Summarise a RAID artifacts.json roster export.")
+    ap = argparse.ArgumentParser(description="Summarise a RAID roster export.")
     ap.add_argument("file")
+    ap.add_argument("--relic-data", help="HellHades relic static data, to name relics")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("summary")
     p_heroes = sub.add_parser("heroes")
@@ -626,7 +885,8 @@ def main(argv=None):
     sub.add_parser("factions")
     args = ap.parse_args(argv)
     try:
-        roster = Roster(load(args.file))
+        relic_names = load_relic_names(args.relic_data) if args.relic_data else None
+        roster = Roster(load(args.file), relic_names)
         if args.cmd == "summary":
             out = roster.summary()
         elif args.cmd == "heroes":
