@@ -32,6 +32,13 @@ PRIME = ROOT / "skills" / "prime" / "SKILL.md"
 CERTIFICATION = ROOT / "skills" / "workflow-certification" / "SKILL.md"
 EVALS_README = ROOT / "evals" / "README.md"
 
+# The story-contract mirrors: the files that tell a *writer* of stories how the gate works.
+# Not in MIRRORS, which is the pipeline's own docs — which is exactly why section 8 missed them.
+STORY_SCHEMA = ROOT / "skills" / "spec-driven-development" / "references" / "story-schema.md"
+SDD_SKILL = ROOT / "skills" / "spec-driven-development" / "SKILL.md"
+STORY_PLANNER = ROOT / "agents" / "story-planner.md"
+LINTER = ROOT / "scripts" / "lint-story.py"
+
 MIRRORS = {
     "docs/using-the-sdlc-dev-team.md": PLAYBOOK,
     "skills/sdlc-orchestration/SKILL.md": SKILL,
@@ -217,6 +224,73 @@ class TestTheReadinessGateIsNotDescribedAsSelfInvoked(unittest.TestCase):
 
     def test_the_skill_still_forbids_the_orchestrator_running_them(self):
         self.assertIn("do not run those gates yourself", SKILL.read_text())
+
+
+class TestTheStoryContractMirrorsAgreeWithTheEdge(unittest.TestCase):
+    """The four files that narrate `lint-story.py` to a *writer* of stories.
+
+    Section 8 updated the sdlc mirrors in `MIRRORS` and missed these, because they live under
+    `spec-driven-development` and `agents/story-planner.md` rather than with the pipeline docs.
+    All four kept describing the pre-4.5 gate — `agents/story-planner.md` told the planner "the
+    orchestrator runs two deterministic validators", which is the instruction 4.5 deleted. The
+    gap was a hand-maintained file list, so the list is derived from the claim instead: any file
+    that names the linter has to name what dispatches it.
+    """
+
+    STORY_MIRRORS = {
+        "skills/spec-driven-development/references/story-schema.md": STORY_SCHEMA,
+        "skills/spec-driven-development/SKILL.md": SDD_SKILL,
+        "agents/story-planner.md": STORY_PLANNER,
+        "scripts/lint-story.py": LINTER,
+    }
+
+    def test_each_one_names_the_hook_that_dispatches_the_linter(self):
+        for name, path in self.STORY_MIRRORS.items():
+            with self.subTest(file=name):
+                self.assertIn(
+                    "check-edge.py", path.read_text(),
+                    f"{name} describes lint-story.py without naming the hook that runs it")
+
+    def test_none_of_them_claims_the_linter_runs_before_the_review(self):
+        """Allowed only where a file quotes the old claim to retract it."""
+        pattern = re.compile(r"(layer zero|before any LLM|before the LLM review)", re.I)
+        for name, path in self.STORY_MIRRORS.items():
+            for i, line in enumerate(path.read_text().splitlines(), 1):
+                if not pattern.search(line):
+                    continue
+                with self.subTest(file=name, line=i):
+                    # Only an explicit retraction is allowed. A looser escape (any line
+                    # containing "not") would pass almost everything and test nothing.
+                    self.assertTrue(
+                        "used to" in line or "does NOT" in line,
+                        f"{name}:{i} still claims the linter runs before the LLM review; the "
+                        "reviewer's write of readiness-verdict.json is what fires it")
+
+    def test_the_declared_check_is_the_one_they_name(self):
+        """The prose names `readiness-gate.py`; the descriptor must actually declare it."""
+        checks = D.load(SDLC).get("edge_checks") or {}
+        declared = {Path(rel).name for rel in checks.values()}
+        self.assertIn("readiness-gate.py", declared)
+        for name, path in self.STORY_MIRRORS.items():
+            if "readiness-gate.py" in path.read_text():
+                break
+        else:
+            self.fail("no story mirror names the script the descriptor declares")
+
+    def test_markdown_is_stated_to_be_the_only_story_format(self):
+        """`story.json` is retired. A mirror still offering it would send a writer nowhere."""
+        for name, path in self.STORY_MIRRORS.items():
+            text = path.read_text()
+            if "story.json" not in text:
+                continue
+            with self.subTest(file=name):
+                self.assertTrue(
+                    re.search(r"retire|only story format|no second", text, re.I),
+                    f"{name} mentions story.json without saying it is retired")
+
+    def test_no_story_schema_json_is_referenced_as_if_it_existed(self):
+        self.assertFalse((ROOT / "schemas" / "story.schema.json").exists(),
+                         "schemas/story.schema.json is back; the mirrors say it is retired")
 
 
 class TestEveryReferencedFigureExists(unittest.TestCase):
