@@ -26,7 +26,7 @@ Detail on the patterns from Anthropic's "Building Effective Agents," the agent l
 
 **5. Evaluator-optimizer** — a **generator** LLM produces output; an **evaluator** LLM critiques it against criteria; loop until the evaluator is satisfied (bounded).
 - *Use when:* clear evaluation criteria exist and iteration measurably helps (code that must pass review; a doc that must meet a checklist).
-- *This is the maker-checker / generator-critic pattern* behind every SDLC phase gate. Make the evaluator a **different/stronger model** and **ground it in execution** where possible.
+- *This is the maker-checker / generator-critic pattern* behind every SDLC phase gate. Make the evaluator **independent** of the generator — a different model, or the same model in a fresh context prompted to refute — and **ground it in execution** where possible. Independence is the mechanism; a larger evaluator is an orthogonal (and usually unnecessary) choice.
 
 ## The autonomous agent loop (Claude Agent SDK)
 When steps can't be pre-defined, use a true agent:

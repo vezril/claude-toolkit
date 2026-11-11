@@ -1,0 +1,173 @@
+# Step registry for the SDLC pipeline: every LLM task prompt it can run, with its Stage 3
+# certification evidence. Checked by scripts/delivery-flow/check-certification.py (which moves
+# to scripts/workflow/ with the rest of the substrate).
+#
+# Same format and same parser as skills/delivery-flow/steps.yaml. Paths are relative to the
+# repository root. Editing a prompt changes its sha256 and un-certifies the step until the
+# suite is re-run and prompt_sha256 is updated.
+#
+# **Everything here is uncertified.** No eval suite has been run against any of these prompts,
+# so none of them carries `prompt_sha256`, `results` or `consecutive_runs`. That is the honest
+# state and it is load-bearing: `check-certification.py` blocks delegation to an uncertified
+# step, so this file is what stops the pipeline being driven before its nodes have evidence.
+# Section 5 certifies `readiness` first (design D6); the rest follow or stay blocked.
+#
+# A note on who the reviewers are. Design D1 names `analyst`, `requirements-reviewer` and
+# `readiness-reviewer` as nodes. None exists as an agent. The analysis and planning seats are
+# the `requirements-analyst`, and every refute-framed reviewer seat is the
+# `adversarial-validator` — the same agent in a different chair, which is why task 5.3 asks
+# whether to reuse `evals/cross-examine/` for the readiness reviewer. Each seat still needs its
+# own certification: the agent is shared, the prompt and its evidence are not.
+
+steps:
+  - step: analysis
+    segment: analysis
+    agent: requirements-analyst
+    prompt: skills/requirements-engineering/SKILL.md
+    tier: sonnet
+    certified: false
+    inputs: [item.json]
+    outputs: [brief.json]
+    known_residual: "no eval suite exists for this step"
+
+  - step: planning
+    segment: planning
+    agent: requirements-analyst
+    prompt: skills/requirements-engineering/SKILL.md
+    tier: sonnet
+    certified: false
+    inputs: [brief.json]
+    outputs: [prd.json]
+    known_residual: "no eval suite exists for this step"
+
+  - step: planning-review
+    segment: planning
+    agent: adversarial-validator
+    prompt: skills/cross-examine/SKILL.md
+    tier: sonnet
+    certified: false
+    inputs: [prd.json]
+    outputs: [prd-verdict.json]
+    known_residual: "no eval suite exists for this step"
+
+  - step: solutioning
+    segment: solutioning
+    agent: solution-architect
+    prompt: skills/software-architecture/SKILL.md
+    tier: sonnet
+    certified: false
+    inputs: [prd.json]
+    outputs: [design.json]
+    known_residual: "no eval suite exists for this step"
+
+  - step: solutioning-review
+    segment: solutioning
+    agent: adversarial-validator
+    prompt: skills/cross-examine/SKILL.md
+    tier: sonnet
+    certified: false
+    inputs: [design.json]
+    outputs: [design-verdict.json]
+    known_residual: "no eval suite exists for this step"
+
+  # The first segment to be certified (design D6). story-planner decomposes; the reviewer
+  # attacks the result. The deterministic gates that used to be the orchestrator's
+  # responsibility — lint-story.py and `openspec validate` — are edges now (task 4.5), so
+  # neither node is asked to run them and neither can claim they passed.
+  # Certified on haiku (task 5.1-5.2, 5.5). Design D7 is haiku-first and haiku cleared three
+  # consecutive runs on v2, so there is no escalation to justify.
+  #
+  # The prompt under test is the eval's own `prompts/prompt_v2.md`, not
+  # `skills/spec-driven-development/SKILL.md`. The skill is reference material the planner
+  # reads; the node prompt is the thing measured, and certifying the skill instead would
+  # certify text the suite never saw.
+  - step: readiness
+    segment: readiness
+    agent: story-planner
+    prompt: skills/sdlc-orchestration/references/readiness.md
+    prompt_sha256: 075c02c7cff179eda7aaa5578e3fc32c8283bb08348c3398eb872aa3323b03d1
+    certified_version: evals/readiness-stories/prompts/prompt_v2.md
+    tier: haiku
+    certified: true
+    eval: evals/readiness-stories/
+    results: evals/readiness-stories/results/run_v2_haiku_1.json
+    consecutive_runs:
+      - evals/readiness-stories/results/run_v2_haiku_1.json
+      - evals/readiness-stories/results/run_v2_haiku_2.json
+      - evals/readiness-stories/results/run_v2_haiku_3.json
+    criteria: [schema, coverage, grounding, decomposition]
+    load_bearing: evals/readiness-stories/load-bearing.md
+    iteration_log: evals/readiness-stories/iteration-log.md
+    inputs: [design.json]
+    outputs: [stories]
+    known_residual: "three cases, so a genuinely multi-epic change is untested; the vacuous-criterion failure ('then the behaviour is covered by a test') is caught only by the rubric and only on the two cases it runs on; nothing tests dependency order between stories, because the segment declares none"
+
+  # Certified on haiku (tasks 5.3-5.5). Four iterations, three of which were my own asserts
+  # being wrong — the log says which, because `check-certification.py` counts any section
+  # carrying the five labels and harness fixes must not pass as prompt development.
+  #
+  # Task 5.3's ruling, revised: `evals/cross-examine/` is **not** reused. Its criteria design
+  # is (contract / accuracy / safety, with a sound case as the false-positive test), but it
+  # feeds an incident ticket and a timeline and expects markdown, while this node is handed a
+  # story set and must emit readiness-verdict.json. Certifying against inputs a node never
+  # sees in production is the same error as certifying a prompt the suite never saw. The
+  # adversarial-validator agent keeps its own suite for its own job.
+  - step: readiness-review
+    segment: readiness
+    agent: adversarial-validator
+    prompt: skills/sdlc-orchestration/references/readiness-review.md
+    prompt_sha256: baf312633a703f520b6d868ba2e83ad1209002f73c4e4a95c31be2a4d310fceb
+    certified_version: evals/readiness-review/prompts/prompt_v4.md
+    tier: haiku
+    certified: true
+    eval: evals/readiness-review/
+    results: evals/readiness-review/results/run_v4_haiku_1.json
+    consecutive_runs:
+      - evals/readiness-review/results/run_v4_haiku_1.json
+      - evals/readiness-review/results/run_v4_haiku_2.json
+      - evals/readiness-review/results/run_v4_haiku_3.json
+    criteria: [contract, accuracy, safety]
+    load_bearing: evals/readiness-review/load-bearing.md
+    iteration_log: evals/readiness-review/iteration-log.md
+    inputs: [stories]
+    outputs: [readiness-verdict.json]
+    known_residual: "`safety` checks only that findings cite real material and that the verdict is not REFUTED, so a grounded but trivial finding passes it; only the vacuous case carries a rubric, so the suite's judgement of finding quality rests on one; the sound case is not beyond criticism and both models find real gaps in it every run"
+  - step: implementation
+    segment: implementation
+    agent: test-writer
+    prompt: agents/test-writer.md
+    tier: sonnet
+    certified: false
+    inputs: [stories]
+    outputs: [tests]
+    known_residual: "no eval suite exists for this step"
+
+  - step: implementation-green
+    segment: implementation
+    agent: implementer
+    prompt: agents/implementer.md
+    tier: sonnet
+    certified: false
+    inputs: [tests]
+    outputs: [diff]
+    known_residual: "no eval suite exists for this step"
+
+  - step: verification
+    segment: verification
+    agent: qa-test-architect
+    prompt: skills/test-strategy/SKILL.md
+    tier: sonnet
+    certified: false
+    inputs: [diff]
+    outputs: [review.json]
+    known_residual: "no eval suite exists for this step"
+
+  - step: verification-ci
+    segment: verification
+    agent: ci-watcher
+    prompt: agents/ci-watcher.md
+    tier: haiku
+    certified: false
+    inputs: [review.json]
+    outputs: [outcome.json]
+    known_residual: "no eval suite exists for this step"

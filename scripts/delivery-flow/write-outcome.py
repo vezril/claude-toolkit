@@ -30,9 +30,25 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import (CONFIG_NAME, artifact_root, is_delivery_repo, load_config, load_json,  # noqa: E402
-                    load_profiles, open_punch_outs, repo_root, select_profile, sha256)
+_HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(_HERE))
+sys.path.insert(0, str(_HERE.parent / "workflow"))
+from common import (CONFIG_NAME, load_json, load_profiles, open_punch_outs,  # noqa: E402
+                    parse_mapping, repo_root, select_profile, sha256)
+import descriptor as workflow_descriptor  # noqa: E402
+import layout as workflow_layout  # noqa: E402
+
+
+def workflow_config(repo: Path, wf: dict) -> dict:
+    """The repo's config for this workflow. `{}` when it cannot be read.
+
+    Not `common.load_config`, which hard-codes `.delivery-flow.yaml`: reading the wrong file
+    would silently default every ceiling and make an sdlc run look unbudgeted.
+    """
+    try:
+        return parse_mapping((repo / wf["config_name"]).read_text())
+    except OSError:
+        return {}
 
 HERE = Path(__file__).resolve().parent
 OUTCOME = "outcome.json"
@@ -144,17 +160,30 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     repo = repo_root(Path(args.repo))
-    if not is_delivery_repo(repo):
-        print(f"{repo} is not a delivery-flow repo: no {CONFIG_NAME} at its root", file=sys.stderr)
+
+    # The *active* workflow, not delivery-flow by assumption. This script gated on
+    # `is_delivery_repo`, so on an sdlc repo it exited 2 — honest, unlike the enforcement
+    # hook's silent inertness in task 6.3, but it meant an sdlc run could never be closed out,
+    # and a profile that cannot write a terminal artifact is indistinguishable from one that
+    # stalled.
+    wf, wf_err = workflow_descriptor.resolve(repo)
+    if wf_err:
+        print(wf_err, file=sys.stderr)
         return 2
-    item_dir = artifact_root(repo) / args.item
+    if wf is None:
+        names = ", ".join(workflow_descriptor.config_names()) or CONFIG_NAME
+        print(f"{repo} opts into no workflow: no {names} at its root", file=sys.stderr)
+        return 2
+    item_dir = workflow_layout.item_dir(repo, args.item, wf["artifact_dir"],
+                                        workflow_config(repo, wf))
     if not item_dir.is_dir():
         print(f"no such item: {args.item}", file=sys.stderr)
         return 2
 
-    cfg = load_config(repo)
+    cfg = workflow_config(repo, wf)
     try:
-        profiles = load_profiles()
+        profiles = load_profiles(workflow_descriptor.PLUGIN_ROOT / wf["profiles"]
+                                 if wf.get("profiles") else None)
     except (OSError, ValueError) as e:
         print(f"could not read profiles.yaml: {e}", file=sys.stderr)
         return 2
@@ -168,7 +197,9 @@ def main(argv=None) -> int:
     spec = importlib.util.spec_from_file_location("flow_status", HERE / "flow-status.py")
     flow = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(flow)
-    rows, rows_err = flow.profile_steps(profile)
+    # This workflow's routing table, not the one flow-status imported for itself.
+    rows, rows_err = flow.profile_steps(
+        profile, flow.by_step(workflow_descriptor.step_table(wf)))
     if rows_err:
         print(rows_err, file=sys.stderr)
         return 2
