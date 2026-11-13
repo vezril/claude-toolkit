@@ -58,6 +58,21 @@ cp -R agents/*.md /path/to/repo/.claude/agents/
 - **secure-coding** — defensive hardening against common vulnerability classes (memory safety, injection, auth/secrets/TLS); pairs with cryptography.
 - **information-theory** — Cover & Thomas: entropy, KL divergence, mutual information, source-coding & channel-capacity limits, with applications to crypto, compression, coding, and ML.
 
+**Machine learning & AI** (each built from primary literature with the folklore flagged inline — ⚠️ marks a claim the research could not verify, and the `## Sources` section of each skill names its own sources' errors)
+
+- **neural-networks-ml** — artificial neural networks and deep learning: the mechanics (forward pass, backprop, the optimizer and initializer zoo, normalization, regularization), the architecture families and what each is actually for (MLP, CNN, RNN/LSTM, transformer, GNN, diffusion), the honest limitations, and a lineage with the usual myths stripped out (what Minsky & Papert actually proved, who did and didn't invent backprop, what the "AI winters" actually were).
+- **evolutionary-algorithms** — population-based stochastic search as a six-slot template, with the dialects (GA, ES/CMA-ES, EP, GP, DE) distinguished by what they actually commit to, the multi-objective family (NSGA-II/III, SPEA2, MOEA/D, indicator-based) and the hypervolume and impossibility results that constrain it, a when-*not*-to-use table, and the theory status stated plainly: the schema theorem's six conditions and non-iterability, the building-block hypothesis as refuted on the Royal Road, No Free Lunch with its closure-under-permutation precondition, and the parts that are genuinely proven. Applications verified against the primary papers (the ST5 antenna, Thompson's FPGA, NEAT, OpenAI ES, AmoebaNet, FunSearch/AlphaEvolve) rather than the retellings.
+- **k-nearest-neighbours** — the lazy, instance-based classifier where the model *is* the training set: Fix & Hodges consistency and the Cover & Hart 2× Bayes-risk bound, metric and weighting choices, the curse of dimensionality stated precisely, index structures (k-d tree, ball tree, LSH, HNSW) and when each stops helping, and the scikit-learn surface.
+- **learning-vector-quantization** — Kohonen's supervised prototype classifier, where the model is a small set of labelled vectors you can print and plot: LVQ1/2.1/3, the divergence problem and GLVQ/GRLVQ/GMLVQ as the principled fixes, and the interpretability case for using it.
+- **self-organizing-maps** — the unsupervised competitive-learning map that is simultaneously a nonlinear projection, a vector quantizer and a visualization: the algorithm and its two phases, topographic error and quantization error, U-matrix/component-plane reading, and the honest limits (no objective function in the classic form, the magnification-factor result, and what it does *not* share with t-SNE/UMAP).
+- **stochastic-parrot** — what Bender, Gebru, McMillan-Major & Shmitchell actually argued in the 2021 FAccT paper (and what they did not), the firing and its disputed account, and the state of the debate since: the form-vs-meaning argument, the understanding/benchmark counter-evidence on both sides, and the environmental and data-documentation claims checked against their own sources.
+
+**Brains, minds & consciousness** (the neuroscience and the philosophy, kept separate from the ML skills on purpose — the resemblance between the two is itself one of the contested claims)
+
+- **neural-networks-biology** — biological neural networks: the neuron and the action potential (Hodgkin–Huxley with its actual parameters), synaptic transmission and its unreliability, plasticity (Hebb's real postulate, LTP, STDP and the published doubts about it, homeostatic and three-factor plasticity), cortical and hippocampal circuits, neural coding, connectomics and what a wiring diagram does *not* tell you — and an itemized account of where the McCulloch–Pitts/perceptron abstraction departs from the biology, including the biological-plausibility-of-backprop literature (feedback alignment, target prop, predictive coding, equilibrium prop, dendritic and burst-dependent models).
+- **integrated-information-theory** — Tononi's axiom-to-postulate theory identifying consciousness with the cause–effect structure unfolded from a maximal substrate, across all four versions with their change logs (including the measure history EI → KLD → EMD → ID and the normalization oscillation), the exclusion postulate and what it buys and costs, the intractability record, why PCI is *not* Φ, and the controversies in full: Aaronson's constructions and Tononi's reply, the Cogitate adversarial collaboration result prediction-by-prediction, the unfolding argument and all five published replies, and the two "pseudoscience" letters with the signatory diff.
+- **panpsychism** — the view that mentality is fundamental and ubiquitous, as a live minority position in analytic philosophy of mind rather than the mysticism it is usually taken for: Chalmers' three orthogonal axes, the five motivating arguments, the combination problem decomposed (subject-summing, the palette problem, structural mismatch) and the attempted solutions, the objection catalogue, and the survey numbers that show how small the minority actually is.
+
 **Agentic SDLC** (multi-agent software lifecycle; BMAD + Richards & Ford + Anthropic, adapted with execution-grounded review)
 
 - **sdlc-orchestration** — meta: the four phases, maker-checker per phase, artifact-driven state, HITL gates; routes to the specialists below.
@@ -273,7 +288,7 @@ Each skill is a folder with a `SKILL.md` (YAML frontmatter `name` + `description
 
 ## Skill evaluation (EDD) status
 
-Every skill in the repo, with evaluation-driven-development (EDD) results where a skill has been put through a deterministic promptfoo eval suite. Untested skills are listed with blank results. **The table is the inventory**, so a skill missing from it is a skill nobody notices is untested — `python3 scripts/check-edd-table.py` asserts every `skills/` directory has exactly one row and vice versa, and prints the current scored/blank counts (as of this writing: **124 scored, 163 blank, 287 total**). Scores are N=3-per-case majority; most suites grade deterministically, though `phq-9`, `detect-ai` and the agent suites use a thresholded `llm-rubric` for judgment criteria (noted per row); "naive baseline" is the task with no skill loaded, "with skill" is the real `SKILL.md` embedded. Full suites and iteration logs live in `evals/<skill>/` (`iteration-log.md`); older runs are in `promptfoo/skill-evals/<skill>/`. "Eval model" is the Claude model the suite's provider ran (`claude -p --model <m>`) — the baseline for any future try-it-on-a-cheaper-model optimization; "—" marks deterministic script harnesses with no model arm. (Agents are scored separately: `ci-watcher` has its own tool-using suite, run on **haiku** by design, naive 29% → definition 100%; and `adversarial-validator` scores **0% → 100%** on `evals/cross-examine/`, where the 0% is a contract failure — a generic assistant writes balanced review prose instead of a verdict line and attack log.)
+Every skill in the repo, with evaluation-driven-development (EDD) results where a skill has been put through a deterministic promptfoo eval suite. Untested skills are listed with blank results. **The table is the inventory**, so a skill missing from it is a skill nobody notices is untested — `python3 scripts/check-edd-table.py` asserts every `skills/` directory has exactly one row and vice versa, and prints the current scored/blank counts (as of this writing: **124 scored, 172 blank, 296 total**). Scores are N=3-per-case majority; most suites grade deterministically, though `phq-9`, `detect-ai` and the agent suites use a thresholded `llm-rubric` for judgment criteria (noted per row); "naive baseline" is the task with no skill loaded, "with skill" is the real `SKILL.md` embedded. Full suites and iteration logs live in `evals/<skill>/` (`iteration-log.md`); older runs are in `promptfoo/skill-evals/<skill>/`. "Eval model" is the Claude model the suite's provider ran (`claude -p --model <m>`) — the baseline for any future try-it-on-a-cheaper-model optimization; "—" marks deterministic script harnesses with no model arm. (Agents are scored separately: `ci-watcher` has its own tool-using suite, run on **haiku** by design, naive 29% → definition 100%; and `adversarial-validator` scores **0% → 100%** on `evals/cross-examine/`, where the 0% is a contract failure — a generic assistant writes balanced review prose instead of a verdict line and attack log.)
 
 | Skill | EDD naive baseline | With skill | Eval model | Outcome |
 |---|---|---|---|---|
@@ -375,6 +390,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `dsm-substance-related` | 100% | 100% | sonnet | **No measurable delta.** Baseline already has the abuse/dependence merger, caffeine having no use disorder, internet gaming being Section III only, and alcohol withdrawal being potentially fatal. Log: `evals/_dsm/iteration-log.md` |
 | `dsm-trauma-stressor` | 60% | 100% | sonnet | Rails + routing suite (batch 2). Baseline fails at least one rail; skill arm 5/5. Log: `evals/_dsm/iteration-log-rails.md` |
 | `event-storming` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already has orange past-tense domain events and frames hot spots as valuable output. Log: `evals/_batch4/iteration-log.md` |
+| `evolutionary-algorithms` |  |  |  |  |
 | `finch` | 44% | 100% | sonnet | Baseline 6/8/6 of 16 across the 3 runs; skill 16/16 on all 3. 8 cases fail the baseline every run: read-only home mount, Rosetta's macOS-26 floor, SOCI, cosign-keyless-unsupported, Containerfile auto-detect, DevContainers wiring, `creds_helpers`+`credsStore`, "VM = isolation" pushback. Skill was 100% from v1, so no patch — iteration went into the *suite*: added a `no-hallucination` criterion (baseline invents `finch vm ssh`, `finch soci create`), and N=3 overturned an N=1 read that had credited the model with 3 facts it doesn't reliably know. Ships a paired naive-baseline arm. Log: `evals/finch/iteration-log.md` |
 | `flipper-unleashed` | 100% | 100% | sonnet | No delta — baseline already separates the region unlock from DangerousSettings and warns about the latter. Log: `evals/_batch5/iteration-log.md` |
 | `flipper-zero` |  |  |  |  |
@@ -469,11 +485,14 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `humanize` | 92% | 96% | sonnet | Style/edit skill; de-cliché lift (mechanical tells), no patch |
 | `indian-super-chief` |  |  |  | Not yet evaluated |
 | `information-theory` |  |  |  |  |
+| `integrated-information-theory` |  |  |  |  |
 | `intentional-daily` | — | 100% | haiku | ✅ `evals/intentional/` (17 cases, real vault diffs). v1 as written 91% → v4 100% on haiku-5-5; pinned `model: claude-haiku-5-5`. Sonnet-5-5 98%, haiku-4-5 63% |
 | `intentional-weekly` | — | 100% | haiku | ✅ `evals/intentional/` (17 cases, real vault diffs). v1 as written 91% → v4 100% on haiku-5-5; pinned `model: claude-haiku-5-5`. Sonnet-5-5 98%, haiku-4-5 63% |
 | `ios-debugger-agent` |  |  |  |  |
 | `javascript` |  |  |  |  |
+| `k-nearest-neighbours` |  |  |  |  |
 | `lambda-calculus` |  |  |  |  |
+| `learning-vector-quantization` |  |  |  |  |
 | `malbolge` |  |  |  |  |
 | `markdown` |  |  |  |  |
 | `merge` | 96% | 96% | sonnet | ✅ Shipped (PR #49) — house version rules + over-wait regression fixed |
@@ -483,6 +502,8 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `native-app-profiling` |  |  |  |  |
 | `network-engineering` |  |  |  |  |
 | `network-security` | 100% | 100% | sonnet | No delta on 2 cases — baseline already prescribes segmentation, default-deny and upstream DDoS mitigation. Log: `evals/_batch3/iteration-log.md` |
+| `neural-networks-biology` |  |  |  |  |
+| `neural-networks-ml` |  |  |  |  |
 | `new-constellation-service` |  |  |  | Not yet evaluated |
 | `nextjs` |  |  |  |  |
 | `nginx` |  |  |  |  |
@@ -499,6 +520,7 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `os-security` |  |  |  |  |
 | `os-virtualization` |  |  |  |  |
 | `osdev-kernel` |  |  |  |  |
+| `panpsychism` |  |  |  |  |
 | `personal-finance` |  |  |  | **Measured 100% → 100%, recorded as no result.** Six runs, zero variation: the naive arm already declines to state TFSA/RESP figures from memory and already refuses to bless a concentrated bet. By this table's own standard a tie means the skill isn't pulling weight on what was tested — but the honest read is that my two restraint cases were the behaviours a safety-trained model already has. The skill's actual substance is untested. Log: `evals/personal-finance/iteration-log.md` |
 | `phq-9` | 67% | 100% | sonnet | Both **safety** rails are base-strong (crisis response on item-9, screen-not-diagnosis) — PPP in the naive arm, so the skill's measured value is the administration protocol: the no-skill arm dumps the instrument instead of the gentle one-item-at-a-time setup. Suite is a regression net for rails the model already holds, not proof it installs them. Uses `llm-rubric` on 2 of 3 cases. Log: `evals/phq-9/iteration-log.md` |
 | `portapack-mayhem` |  |  |  |  |
@@ -531,10 +553,12 @@ Every skill in the repo, with evaluation-driven-development (EDD) results where 
 | `sdlc-orchestration` | 100% | 100% | sonnet | Base-strong; governance inferable from stated facts; neutral-safe, no patch |
 | `secretary-followups` |  |  |  | Not yet evaluated |
 | `secure-coding` | 100% | 100% | sonnet | Base-model-strong; skill precision-safe (no over-flag) |
+| `self-organizing-maps` |  |  |  |  |
 | `site-reliability-engineering` |  |  |  |  |
 | `software-architecture` | 92% | 100% | sonnet | Base-strong; +trade-off discipline, no patch |
 | `software-design` | 67% | 100% | sonnet | **Deep-module judgment.** Shown five single-method classes and asked "good separation of concerns?", the naive arm approves; the skill names it shallow modules / classitis. Log: `evals/_batch3/iteration-log.md` |
 | `spec-driven-development` | 0% | 100% | sonnet | ✅ Shipped (PR #47) — 2 measured gaps patched |
+| `stochastic-parrot` |  |  |  |  |
 | `stripe-payments` | 100% | 100% | sonnet | No delta — baseline already fulfils from webhooks, verifies against the raw body, and dedupes on event id. Log: `evals/_batch5/iteration-log.md` |
 | `swgoh-expert` |  |  |  |  |
 | `swift-concurrency-expert` | 100% | 100% | sonnet | **No measurable delta.** Naive arm already pushes back on `@unchecked Sendable` and offers the smallest isolation fix. Log: `evals/_batch4/iteration-log.md` |
