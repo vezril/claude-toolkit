@@ -8,20 +8,33 @@ already submitted** (sections 1 and 2, the substrate extraction and hook general
 a submission is open. Additive work that leaves the submitted tree where it is may proceed,
 and section 3 is exactly that.
 
-- [ ] 0.1 While a submission is open, keep sections 1–2 (substrate extraction, hook
-      generalisation) out of the submitted tree's layout. Additive work proceeds (design D2,
-      narrowed)
-- [ ] 0.2 Ask the reviewer Open Question 1: is a pipeline of certified 2–3 node segments joined
-      by deterministic edges certifiable *segment by segment*? This is the assumption the whole
-      change rests on and it is mine, not the deck's. A "no" stops the change at section 4
-- [ ] 0.3 Ask Open Question 2: do knowledge skills loaded as context need their own
-      certification? sdlc loads many more than delivery-flow, so the answer changes the cost
-- [ ] 0.4 Record the baseline: `pytest tests/delivery-flow/` and
-      `python3 tests/delivery-flow/bypass/run-bypass.py` both green, with the output committed,
-      so the extraction has something to be compared against
-- [ ] 0.5 Confirm the readiness gate's two checks still behave as documented:
-      `lint-story.py` non-zero on a malformed story set, and `openspec validate` non-zero on a
-      malformed change dir
+- [~] 0.1 SPENT, 2026-11-11 — the constraint has nothing left to protect. Sections 1–2 landed as
+      PR #113 and sections 3–8 as PR #128, both merged; there is no open submission whose tree
+      could be restructured underneath it. Kept in the list rather than deleted because the
+      narrowing it records (additive work proceeds; do not relayout a submitted tree) is the
+      reusable part, and the next submission will want it again
+- [ ] 0.2 **BLOCKED on a human — this is the change's one load-bearing unknown.** Ask the
+      reviewer Open Question 1: is a pipeline of certified 2–3 node segments joined by
+      deterministic edges certifiable *segment by segment*? The assumption is mine, not the
+      deck's. A "no" does not undo what shipped — per-segment certification is the submittable
+      unit either way — but it retracts the pipeline-level claim, which is why
+      `skills/workflow-certification/SKILL.md` already records the rule as unconfirmed and
+      `delivery-report.py` refuses a pipeline-wide rate
+- [ ] 0.3 **BLOCKED on a human.** Ask Open Question 2: do knowledge skills loaded as context need
+      their own certification? sdlc loads many more than delivery-flow, so the answer changes
+      the cost. Nothing shipped depends on the answer; it sizes the work after `readiness`
+- [~] 0.4 RETIRED, 2026-11-11 — a pre-extraction baseline recorded *after* the extraction merged
+      is not a baseline, it is a measurement with nothing to compare against. The function was
+      served at the time by 1.4, which recorded 532 delivery-flow tests green and unchanged
+      across every slice plus the bypass suite at 24/24 blocked, and that is the comparison this
+      task existed to enable. Ticking it now would be back-dating evidence
+- [x] 0.5 Both confirmed by execution, 2026-11-11. `lint-story.py` over a story set whose file
+      has no `# Story {epic}.{n}:` heading exits **1**, naming all eight violated rules and
+      printing `GATE: FAIL`. `openspec validate` (v1.15.0) over a change directory whose
+      `specs/thing/spec.md` carries no delta header exits **1** with
+      `✗ [ERROR] ... No delta sections found` and `No deltas found`. Neither passes by absence —
+      and `scripts/sdlc/readiness-gate.py` treats a missing `openspec` CLI as a failure for the
+      same reason
 
 ## 1. Substrate extraction (behaviour-preserving)
 
@@ -64,12 +77,15 @@ S.1–S.6, 3.1, 3.2, 3.4, 3.7 are retired rather than done. 3.3, 3.5, 3.6 and 3.
 - [~] 3.2 RETIRED — `scripts/workflow/story.py`: the shared template + coverage checks, imported by both
       the renderer and the edge, so they cannot disagree about what a story is (the `brief.py`
       pattern)
-- [ ] 3.3 Rewrite `scripts/lint-story.py` as schema validation plus the semantic checks a schema
-      cannot express: Given/When/Then grammar, task↔AC closure, resolvable references, FR/CAP
-      traceability. Keep the name and CLI. **Scope corrected: this is for the markdown path
-      only.** Rendered stories are not linted by it and must not be — `story-schema.md` now
-      says so in a Scope section. The two formats have two laws and one of them is a JSON
-      schema already enforced at the edge
+- [~] 3.3 RETIRED, 2026-11-11 — the premise died with the rest of section 3. "Schema validation
+      plus the semantic checks a schema cannot express" presupposed `schemas/story.schema.json`
+      and a second, JSON story format; both are gone, so there is no schema half to rewrite and
+      a JSON schema cannot validate markdown. `lint-story.py` already enforces the whole of
+      `story-schema.md` — structure, Given/When/Then grammar, task↔AC closure in both
+      directions, `[Source:]` resolution and FR/CAP traceability — which is the entire list this
+      task asked for. The scope note it carried ("`story-schema.md` now says so in a Scope
+      section") was also false: no such section existed, and with one format there is nothing
+      for it to scope. What *was* actually wrong in these files is fixed under 3.6
 - [~] 3.4 RETIRED — `render-story.py`: generate `story.md` from `story.json` for human readers; never
       parsed. **Deferred and demoted to a convenience.** It was implicitly the plan for making
       the handoff work, and it is not needed for that: the dev pair consumes `story.json`
@@ -77,10 +93,42 @@ S.1–S.6, 3.1, 3.2, 3.4, 3.7 are retired rather than done. 3.3, 3.5, 3.6 and 3.
       human wants to read a story outside an editor — and it must stay unparsed, because a
       markdown story that `lint-story.py` could accept would have to carry invented tasks and
       `FR`/`CAP` IDs
-- [ ] 3.5 One-shot migration script for existing markdown stories, with a report of what it
-      could not convert
-- [ ] 3.6 Update `story-schema.md` and `lint-story.py` together — they are a normative pair per
-      `CLAUDE.md`
+- [~] 3.5 RETIRED, 2026-11-11 — a migration needs a destination. It was to convert markdown
+      stories into `story.json`, which no longer exists and which nothing would read. Markdown
+      stories are not broken and need no conversion; the format they already satisfy is the
+      surviving one
+- [x] 3.6 Done, and the real content was not what this task anticipated. The pair is intact
+      (`story-schema.md` + `lint-story.py`, no `story.schema.json` to add), but both still
+      described the **pre-4.5** gate, and so did two files nobody had listed as mirrors:
+      - `story-schema.md` claimed the linter "runs before any LLM review" and is "layer zero".
+        That ordering is now **inverted**: the `readiness` segment is `readiness` →
+        `readiness-review`, and the reviewer's write of `readiness-verdict.json` is what fires
+        the check. Rewritten as "an edge check, not an instruction", stating the narrower
+        guarantee a `PostToolUse` hook can actually make — the failure is recorded and advancing
+        past it is refused — instead of "no LLM review runs on a malformed set", which is no
+        longer true
+      - `scripts/lint-story.py`'s docstring, same correction, plus its three real callers (the
+        edge, standalone use, and `evals/readiness-stories/`'s `schema` criterion)
+      - `skills/spec-driven-development/SKILL.md`, same
+      - **`agents/story-planner.md` was the worst of the four**: it told the planner "the
+        orchestrator runs **two deterministic validators**" — the exact instruction 4.5 deleted
+        for being no guardrail — so the agent whose output the gate judges was documented
+        against a gate that no longer works that way
+      Root cause: section 8's mirror list was hand-maintained and scoped to the pipeline's own
+      docs, so four files under `spec-driven-development/` and `agents/` were never in it.
+      `tests/workflow/test_documentation_mirrors.py` gains
+      `TestTheStoryContractMirrorsAgreeWithTheEdge`, which derives the obligation from the claim
+      — any file naming the linter must name what dispatches it, none may claim the pre-4.5
+      ordering, and a mention of `story.json` must say it is retired
+- [x] 3.6b The change's own spec deltas said the retired thing, which `openspec archive` would
+      have promoted into the living specs. `specs/sdlc-story-contract/spec.md` was six ADDED
+      requirements about `story.json`, `schemas/story.schema.json`, `story.md` and the renderer
+      — rewritten to the markdown contract, the OpenSpec change as the handoff, the semantic
+      checks, and the normative pair. Separately, 4.5 changed behaviour the **living** spec
+      `openspec/specs/sdlc-solutioning-openspec/spec.md` describes ("short-circuit ... before any
+      LLM alignment review runs") and the change had no delta for it, so a new
+      `specs/sdlc-solutioning-openspec/spec.md` carries the `## MODIFIED Requirements` that
+      corrects both who runs the gate and when. `openspec validate certify-sdlc-pipeline` clean
 - [~] 3.7 RETIRED — Update `test-writer` and `implementer` prompts to consume `story.json`. Each gained a
       "When the story is a `story.json`" section: `acceptance_criteria[]` is the spec,
       `sources[]` is context to **open** rather than a summary to trust, there are no tasks and
@@ -89,8 +137,13 @@ S.1–S.6, 3.1, 3.2, 3.4, 3.7 are retired rather than done. 3.3, 3.5, 3.6 and 3.
       (`agents/test-writer.md`, `agents/implementer.md`, `hooks/enforce-dev-pair-boundary.py`)
       still holds — the boundary is by file path and a `story.json` is read, never written, by
       either agent
-- [ ] 3.8 Resolve Open Question 5: whether dev-pair territory is still path-based once stories
-      are data
+- [x] 3.8 Open Question 5 resolved by dissolution, 2026-11-11: **stories did not become data**,
+      so the condition the question was asked under never arrived. Dev-pair territory stays
+      path-based, and the three-place agreement `CLAUDE.md` requires — `agents/test-writer.md`,
+      `agents/implementer.md`, `hooks/enforce-dev-pair-boundary.py` — is unchanged and still
+      holds. Worth recording *why* it would have held even on the retired path: a story is read
+      and never written by either agent, so no story file falls in either territory whatever its
+      format. The question was about the wrong risk
 
 ## 4. Register the pipeline as segments
 

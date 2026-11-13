@@ -1,14 +1,28 @@
 #!/usr/bin/env python3
-"""Deterministic story-file linter — layer zero of the implementation-readiness gate.
+"""Deterministic story-file linter — the deterministic half of the readiness gate.
 
 Enforces the normative schema in
 skills/spec-driven-development/references/story-schema.md. Checks FORM only
 (structure, Given/When/Then grammar, task-AC mapping closure, resolvable
 [Source:] references, FR/CAP traceability); judging whether criteria are
-MEANINGFUL stays with the LLM/human reviewer.
+MEANINGFUL stays with the reviewer node.
 
-Exit 0: all stories pass. Exit 1: any story fails — the readiness gate must
-short-circuit and return the report to the story-planner for rewrite.
+Exit 0: all stories pass. Exit 1: any story fails — the readiness edge fails,
+the problems are recorded in the trace, and the orchestrator refuses to advance;
+the report goes back to the story-planner for rewrite.
+
+**Nobody invokes this by choice in the pipeline.** It is declared under
+`edge_checks` in skills/sdlc-orchestration/workflow.yaml, keyed on
+readiness-verdict.json, and dispatched by hooks/check-edge.py through
+scripts/sdlc/readiness-gate.py. It used to be an instruction to the
+orchestrator, which made it no guardrail: a skipped instruction produces no
+failure. It does NOT run before the LLM review — the reviewer's write of the
+verdict is what fires it (see the Gate semantics section of story-schema.md,
+which is this file's normative pair and changes with it).
+
+Standalone invocation (the Usage section of story-schema.md) and
+evals/readiness-stories/, which shells out to this script for its `schema`
+criterion, are the other two callers.
 """
 import argparse
 import re
@@ -229,10 +243,16 @@ def main():
             print(f"  ! {w}")
         failed += bool(errors)
 
-    print(f"\n{len(files)} storie(s): {len(files) - failed} pass, {failed} fail")
+    noun = "story" if len(files) == 1 else "stories"
+    print(f"\n{len(files)} {noun}: {len(files) - failed} pass, {failed} fail")
     if failed:
-        print("GATE: FAIL — return this report to the story-planner for rewrite; "
-              "do not proceed to LLM review or implementation.")
+        # Not "do not proceed to LLM review": in the pipeline the reviewer has already run
+        # by the time this fires, because the reviewer's write of readiness-verdict.json is
+        # what dispatches this check. Saying otherwise told a reader the gate had a power it
+        # does not have.
+        print("GATE: FAIL — the readiness edge fails. Return this report to the "
+              "story-planner for rewrite; do not advance the segment or implement "
+              "against this set.")
     return 1 if failed else 0
 
 
