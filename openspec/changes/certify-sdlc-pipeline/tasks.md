@@ -169,9 +169,36 @@ S.1–S.6, 3.1, 3.2, 3.4, 3.7 are retired rather than done. 3.3, 3.5, 3.6 and 3.
 - [x] 5.3 Open Question 4 answered twice, because the first answer was wrong. **Do not reuse `evals/cross-examine/`.** Its criteria design is reused — contract / accuracy / safety with a sound case as the false-positive test — but it feeds an incident ticket and a timeline and expects markdown, while this node is handed a story set and must emit `readiness-verdict.json`. I first ruled 'reuse' on the strength of its per-criterion breakdown without checking the input and output domains; certifying a node against inputs it never sees in production is the same error as certifying a prompt the suite never saw. Design D5's claim that the suite tests reasoning lightly is separately false: 4 of its 6 asserts are reasoning
 - [x] 5.4 `evals/readiness-review/`: three cases — a set that stands, one with a dropped requirement, and one where the requirement is traced and delivered by nothing observable, which is the defect that looks like coverage and the reason the reviewer is a node rather than a script. `contract` validates against the real `readiness-verdict.schema.json` via `validate-artifact.py`. Fresh context and no tools: the reviewer judges only the material it is given
 - [x] 5.5 Three consecutive passing runs recorded for each node, with the prompt sha in `steps.yaml` and a frozen `certified_version` the gate compares against — so editing either live prompt un-certifies its step. The rule earned its place twice: `readiness` v1 passed two runs then scored 83.3%, and `readiness-review` v3 passed one arm and failed the other on identical input. A single run would have certified both
-- [~] 5.6 Both `readiness` nodes are certified and the gate agrees — `PASS readiness: haiku 11/11, 4 criteria, load-bearing 19/19, 3 iterations, 3 consecutive runs` and `PASS readiness-review: haiku 7/7, 3 criteria, load-bearing 18/18, 4 iterations, 3 consecutive runs`. A test asserts the segment's nodes are all certified and that each live prompt still matches its frozen copy.
+- [x] 5.6 Both `readiness` nodes are certified and the gate agrees — `PASS readiness: haiku 11/11, 4 criteria, load-bearing 19/19, 3 iterations, 3 consecutive runs` and `PASS readiness-review: haiku 7/7, 3 criteria, load-bearing 18/18, 4 iterations, 3 consecutive runs`. A test asserts the segment's nodes are all certified and that each live prompt still matches its frozen copy.
 
-      **Still open:** confirming at runtime that delegation is now permitted and that editing a prompt re-blocks it. The gate says so statically; nothing drives the orchestrator through the segment yet, and that needs section 7's harness.
+      Both runtime claims are now confirmed by `tests/workflow/readiness/run-readiness.py`,
+      which calls the real `check-certification.py` and records what it said in
+      `readiness-gate-report.md`. **Delegation is permitted** (both nodes exit 0 with PASS) and
+      **editing either live prompt re-blocks its node** (exit 1 naming the sha mismatch, exit 0
+      again once restored). Editing the frozen `certified_version` re-blocks too, by the other
+      rule — either file moving alone is a drift the other cannot see.
+
+      The thing that made this worth building: **nothing invoked the gate.** Every reference to
+      `check-certification.py` in the tree was a doc or a unit test, so the control that blocks
+      delegation to an uncertified step had no caller — the same present-but-checking-nothing
+      class as 6.3 and 7.4. The harness is the caller.
+
+      Two design points, both learned from earlier sections. The probes run against a **fixture
+      copy** of the registry and its evidence, because probes 2–4 edit a prompt to prove the edit
+      re-blocks, and a crash between the edit and the restore would have left the real step
+      un-certified — the harness that measures the gate would have broken it.
+      `TestTheHarnessLeavesTheRealTreeAlone` asserts the live shas afterwards. And the suite
+      carries **both polarities**: `uncertified-sibling-refused` runs the same gate on `analysis`
+      and requires a refusal, because a suite of "the gate said yes" probes proves only that
+      something returned zero. A run missing either polarity reports inconclusive rather than
+      pass.
+
+      5/5 harness mutants killed (no-op edit, both sha comparisons disabled, missing-evidence
+      waved through, a false `certified:` flag) and 7 tests in
+      `tests/workflow/test_readiness_delegation.py`, which fail when the gate stops comparing.
+
+      **Not claimed:** this is a delegation check, not a run. No model is called, so it produces
+      no readiness rate — that is 7.5, and it needs real items.
 
 ## 6. Punch-outs and attack evidence
 
