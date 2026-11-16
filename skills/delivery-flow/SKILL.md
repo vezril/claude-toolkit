@@ -26,6 +26,46 @@ blocked, stop and tell the human what the block is; do not route around it.
 `--status` means: print that and stop. `--step <name>` forces one step, which is for redoing
 a distillation after new input arrives, not for skipping a block.
 
+## One ticket, one worktree
+
+**Before the first step of a ticket, give it its own worktree in the code repo:**
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}"/scripts/delivery-flow/ensure-worktree.py <ITEM-KEY>
+```
+
+Then work the ticket there, not in the main checkout. Run it again on every resumption — it is
+idempotent, so the second call reports the worktree the first made. `git worktree list` is the
+record; there is no artifact for this, because git already knows and a second source of truth
+would be a second thing to get wrong.
+
+Three sessions sharing one checkout once spent an afternoon stepping on each other: a branch
+switch with uncommitted work in it, a merge left half-resolved, and one `git add -A` that swept
+another session's files into a commit describing something else. A ticket that owns its
+worktree cannot do that to another ticket.
+
+**Never work around a refusal from this script.** It refuses when the worktree would not be a
+delivery-flow repo — and the reason that matters is `.delivery-flow.yaml` is often untracked
+(it carries a client's tracker and local paths, so a public checkout excludes it). A worktree
+without it is not a delivery repo, which means **every hook is inert there**: no edge checks,
+no punch-out enforcement, no trace, and nothing saying so. The script copies the config in and
+then asserts the result; a run in a worktree it refused would look like it was working.
+
+## Artifacts live in the vault, never in the repo
+
+A run's artifacts are the ticket body, the triage rationale, the breakdown and the brief —
+someone else's words, most of the time. In the code repo that is one `git add` from a branch
+and one push from publishing a client's text, so `artifacts.root` points at the vault's
+`_runs` directory and the vault's own private git does the versioning and the cross-machine
+sync.
+
+This is enforced, not advised: `flow-status.py` exits 2 before computing a position if the
+root is inside the code repo, or if a vault is bound and the root sits outside it. The only
+exception is `artifacts.in_repo_ack`, a written reason rather than a flag. **Never add that
+ack to get a blocked run moving** — it is a decision about where a client's data may live,
+which makes it a human's, and the honest fix is almost always to point `artifacts.root` at
+the vault instead.
+
 ## Before anything: the binding
 
 Read `.delivery-flow.yaml` at the repo root ([references/config.md](references/config.md)).
@@ -268,6 +308,18 @@ Every item ends with `outcome.json`: `completed`, `punched-out` (a human took th
 and the flow stopped), `failed` (retries exhausted, or an artifact was hand-corrected), or
 `abandoned`. The report script writes it; `delivery-report.py` rolls outcomes up into the
 end-to-end rate and the per-step model, token and cost tables.
+
+**It is written once.** A second report over a terminal outcome is refused: the first record is
+the run's evidence, and one a later invocation can replace is not a record of anything. If a
+run genuinely needs reporting again, discard it (`DISCARDED-<KEY>` with the reason) and start a
+new one; `--force` exists for deliberate replacement and destroys the first.
+
+**Continuing into the next profile is a separate invocation.** When a profile reaches its
+terminus, `flow-status.py` names the next one and stops — because `profile:` is a live config
+file, so changing it mid-item makes the outcome's `profile` field describe the setting at report
+time rather than the steps that ran. An outcome whose profile disagrees with the artifacts on
+disk now records `off_profile_artifacts`, which is how a run credited to a profile it did not
+follow becomes visible instead of quietly improving the certified-only rate.
 
 ## References
 

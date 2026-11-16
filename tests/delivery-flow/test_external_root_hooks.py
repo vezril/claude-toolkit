@@ -28,9 +28,29 @@ EDGE = ROOT / "hooks" / "check-edge.py"
 ENFORCE = ROOT / "hooks" / "enforce-punch-outs.py"
 sys.path.insert(0, str(SCRIPTS))
 
+import common  # noqa: E402
+
 TRIAGE = {"item": "AN-1", "type": "feature", "path": "standard", "domains": ["backend"],
           "summary": "s", "rationale": "r", "handoff": False, "handoff_reason": None,
           "architecture_change": False, "breaking_change": False}
+
+
+# Valid enough for `openspec validate --strict`, which runs as an extra layer wherever the
+# CLI is installed: an ADDED requirement needs requirement text and at least one scenario.
+# A fixture that fails it would make the proposal edge look broken for the wrong reason.
+VALID_DELTA_SPEC = """## ADDED Requirements
+
+### Requirement: Callers can request a date range
+
+The endpoint SHALL accept a start and end date and SHALL return only the records that fall
+within them.
+
+#### Scenario: A caller requests a range
+
+- **GIVEN** a ledger holding records across several dates
+- **WHEN** a caller requests a date range
+- **THEN** only the records inside that range are returned
+"""
 
 
 def breakdown(stories=2):
@@ -228,6 +248,60 @@ class TestTheSentinelLandsAfterTheArtifact(unittest.TestCase):
         records = [x for x in r.trace() if x.get("artifact") == "triage.json"]
         self.assertEqual(1, records[-1]["edge"]["exit"])
 
+    def test_a_persistent_failure_does_not_record_forever(self):
+        """The regression the first fix shipped, and the test that was missing.
+
+        `or failed` re-checked on every hook invocation while the last verdict was a failure.
+        For a failure whose cause is neither the artifact nor its sentinel, nothing ever
+        changes, so it appended a record each time: 44 identical failures on one artifact in
+        the live AN-3702, and AN-3631 from 8 failed edges to 65. The earlier suite asked only
+        whether a *passing* record suppresses re-checking.
+        """
+        r = ExternalRoot()
+        # Fails on something that is neither the artifact nor the sentinel: a proposal whose
+        # change directory does not exist. Both inputs are valid and stay valid.
+        r.write("proposal.json", {
+            "item": r.item, "change_id": "nope", "change_path": "openspec/changes/nope",
+            "specs_touched": [], "tasks": [{"id": "T1", "description": "d", "files": ["a.py"]}],
+            "dependencies_added": [], "scope": False, "architecture": False, "breaking": False})
+        self.assertEqual(0, r.sentinel("proposal.json", "propose").returncode)
+        self.assertEqual(2, r.edge("proposal.json").returncode)
+        after_first = len([x for x in r.trace() if x.get("artifact") == "proposal.json"])
+        self.assertEqual(1, after_first)
+
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                   "cwd": str(r.repo), "tool_input": {"command": "ls -la"}}
+        for _ in range(5):
+            subprocess.run([sys.executable, str(EDGE)], input=json.dumps(payload),
+                           capture_output=True, text=True)
+        after = len([x for x in r.trace() if x.get("artifact") == "proposal.json"])
+        self.assertEqual(after_first, after,
+                         f"the failure re-recorded {after - after_first} extra times")
+
+    def test_the_record_carries_the_sentinel_sha(self):
+        """What lets the gate tell a sentinel landing from nothing happening."""
+        r = ExternalRoot()
+        r.write("breakdown.json", breakdown())
+        r.sentinel("breakdown.json", "breakdown")
+        r.edge("breakdown.json")
+        rec = [x for x in r.trace() if x.get("artifact") == "breakdown.json"][-1]
+        expected = common.sha256(r.item_dir / "breakdown.json.sentinel.json")
+        self.assertEqual(expected, rec["sentinel_sha256"])
+
+    def test_a_rewritten_sentinel_is_rechecked(self):
+        """A sentinel that starts lying after a pass must not be suppressed by the gate."""
+        r = ExternalRoot()
+        r.write("breakdown.json", breakdown(stories=2))
+        r.sentinel("breakdown.json", "breakdown")
+        self.assertEqual(0, r.edge("breakdown.json").returncode)
+        r.sentinel("breakdown.json", "breakdown", counts={"stories": 99})
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                   "cwd": str(r.repo), "tool_input": {"command": "ls -la"}}
+        out = subprocess.run([sys.executable, str(EDGE)], input=json.dumps(payload),
+                             capture_output=True, text=True)
+        self.assertEqual(2, out.returncode, "a sentinel rewritten to lie was not re-checked")
+        self.assertIn("99", out.stderr)
+
     def test_a_passing_record_still_suppresses_rechecking(self):
         """The sha gate's real job. Only a failure is retried, or the trace triples."""
         r = ExternalRoot()
@@ -243,6 +317,155 @@ class TestTheSentinelLandsAfterTheArtifact(unittest.TestCase):
                            capture_output=True, text=True)
         after = len([x for x in r.trace() if x.get("artifact") == "breakdown.json"])
         self.assertEqual(before, after, "a passing edge was re-recorded")
+
+
+class TestProposalResolvesAgainstTheCodeRepo(unittest.TestCase):
+    """The change directory lives in the code repo, never beside the artifact.
+
+    `check_artifact` inferred the repo with `repo_root(path.parent)`. Under an external
+    `artifacts.root` the artifact's parent is the vault, so the change-directory check looked
+    for `openspec/changes/<id>` in the vault, did not find it, and reported "no change
+    directory" — blaming the node for a directory it had correctly created in the repo. The
+    hook's `identify()` already knows the right repo; it now hands it in.
+    """
+
+    PROPOSAL = {
+        "item": "AN-1", "change_id": "add-range", "change_path": "openspec/changes/add-range",
+        "specs_touched": ["openspec/changes/add-range/specs/range/spec.md"],
+        "tasks": [{"id": "T1", "description": "Add the range endpoint",
+                   "files": ["src/Range.scala"]}],
+        "dependencies_added": [], "scope": False, "architecture": False, "breaking": False,
+    }
+
+    def change_dir(self, r):
+        """The OpenSpec change directory, in the code repo where the node puts it."""
+        d = r.repo / "openspec" / "changes" / "add-range"
+        (d / "specs" / "range").mkdir(parents=True)
+        for name in ("proposal.md", "design.md"):
+            (d / name).write_text(f"# {name}\n")
+        (d / "specs" / "range" / "spec.md").write_text(VALID_DELTA_SPEC)
+        (d / "tasks.md").write_text("## 1. Work\n\n- [ ] T1 Add the range endpoint\n")
+        return d
+
+    def test_the_change_directory_is_found_in_the_code_repo(self):
+        r = ExternalRoot()
+        self.change_dir(r)
+        r.write("proposal.json", self.PROPOSAL)
+        self.assertEqual(r.sentinel("proposal.json", "propose").returncode, 0)
+        out = r.edge("proposal.json")
+        self.assertEqual(0, out.returncode, out.stderr)
+        self.assertNotIn("no change directory", out.stderr)
+        records = [x for x in r.trace() if x.get("artifact") == "proposal.json"]
+        self.assertTrue(records)
+        self.assertEqual(0, records[-1]["edge"]["exit"])
+        self.assertIn("change-dir", records[-1]["edge"]["name"])
+
+    def test_a_genuinely_missing_change_directory_still_fails(self):
+        """Handing the repo in must not make the check toothless."""
+        r = ExternalRoot()
+        r.write("proposal.json", self.PROPOSAL)
+        r.sentinel("proposal.json", "propose")
+        out = r.edge("proposal.json")
+        self.assertEqual(2, out.returncode)
+        self.assertIn("no change directory", out.stderr)
+
+    def test_the_failure_names_the_absolute_path_it_looked_in(self):
+        """So a wrong repo is visible instead of reading as a missing directory."""
+        r = ExternalRoot()
+        r.write("proposal.json", self.PROPOSAL)
+        r.sentinel("proposal.json", "propose")
+        out = r.edge("proposal.json")
+        self.assertIn(str(r.repo / "openspec" / "changes" / "add-range"), out.stderr)
+
+    def test_the_vault_is_not_where_it_looks(self):
+        """The precise regression, and the one that needs the vault to be a git repo.
+
+        The real vault is itself a git repo — that is how the run trail is versioned — so
+        `repo_root` walking up from an artifact inside it *succeeds*, and returns the vault.
+        Without the `.git` below this test passes either way, because the walk falls off the
+        top and the decoy is never reached: it would assert the right thing and prove nothing.
+        """
+        r = ExternalRoot()
+        vault = r.runs.parent.parent.parent          # the vault's own root: `~/Amazon RAG`
+        (vault / ".git").mkdir(exist_ok=True)
+        # Planted where the broken inference looks — `repo_root(artifact.parent)` resolves to
+        # the vault root, so that is the only place a decoy could ever have satisfied it.
+        decoy = vault / "openspec" / "changes" / "add-range"
+        (decoy / "specs" / "range").mkdir(parents=True)
+        for name in ("proposal.md", "design.md"):
+            (decoy / name).write_text(f"# {name}\n")
+        (decoy / "specs" / "range" / "spec.md").write_text(VALID_DELTA_SPEC)
+        (decoy / "tasks.md").write_text("## 1. Work\n\n- [ ] T1 Add the range endpoint\n")
+        r.write("proposal.json", self.PROPOSAL)
+        r.sentinel("proposal.json", "propose")
+        out = r.edge("proposal.json")
+        self.assertEqual(2, out.returncode, "a decoy in the vault satisfied the check")
+        self.assertIn("no change directory", out.stderr)
+
+
+class TestDiscardedRunsAreInert(unittest.TestCase):
+    """Parking a run has to stop the hooks looking at it, not just the report.
+
+    `delivery-report.py` and `package-evidence.py` honoured the `DISCARDED-` convention; the
+    hooks did not. So a parked run's artifacts were re-scanned on every tool call, and a stale
+    failure on one of them rejected tool calls for work on a *different* item. That is what
+    blocked the AN-3702 re-run: the edge kept failing over AN-3631's and DISCARDED-AN-3702's
+    `proposal.json`, neither of which anyone was working on.
+
+    Discarding a run is the project's way of saying "stop drawing conclusions from this". The
+    hooks have to mean it too, or parking a run fixes the number and leaves the flow jammed.
+    """
+
+    def discard(self, r, name="AN-OLD"):
+        """A parked run holding an artifact that fails its edge."""
+        d = r.runs / f"DISCARDED-{name}"
+        d.mkdir()
+        (d / "proposal.json").write_text(json.dumps({
+            "item": name, "change_id": "gone", "change_path": "openspec/changes/gone",
+            "specs_touched": [], "tasks": [{"id": "T1", "description": "d", "files": ["a.py"]}],
+            "dependencies_added": [], "scope": False, "architecture": False, "breaking": False}))
+        return d
+
+    def test_a_discarded_runs_artifact_does_not_block_other_work(self):
+        r = ExternalRoot()
+        self.discard(r)
+        r.write("breakdown.json", breakdown())
+        self.assertEqual(0, r.sentinel("breakdown.json", "breakdown").returncode)
+        out = r.edge("breakdown.json")
+        self.assertEqual(0, out.returncode,
+                         f"a parked run's artifact rejected unrelated work: {out.stderr}")
+
+    def test_a_discarded_runs_artifact_is_not_traced(self):
+        r = ExternalRoot()
+        d = self.discard(r)
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                   "cwd": str(r.repo), "tool_input": {"command": "ls -la"}}
+        subprocess.run([sys.executable, str(EDGE)], input=json.dumps(payload),
+                       capture_output=True, text=True)
+        self.assertFalse((d / "trace.jsonl").exists(),
+                         "the hook wrote a trace record into a discarded run")
+
+    def test_a_live_runs_artifact_is_still_checked(self):
+        """The exclusion must be the prefix and nothing broader."""
+        r = ExternalRoot()
+        r.write("triage.json", {**TRIAGE, "type": "enhancement"})
+        r.sentinel("triage.json", "triage")
+        self.assertEqual(2, r.edge("triage.json").returncode,
+                         "a live run's bad artifact stopped being checked")
+
+    def test_a_discarded_runs_item_key_in_a_command_is_not_followed(self):
+        r = ExternalRoot()
+        d = self.discard(r)
+        found = _edge_module().rooted_paths(
+            f"cat x > {d.name}/proposal.json", [r.runs], common)
+        self.assertEqual([], found)
+
+    def test_live_item_dirs_excludes_only_discarded(self):
+        r = ExternalRoot()
+        self.discard(r)
+        names = [p.name for p in common.live_item_dirs(r.runs)]
+        self.assertIn(r.item, names)
+        self.assertNotIn("DISCARDED-AN-OLD", names)
 
 
 class TestBashPathsResolveAgainstTheRoot(unittest.TestCase):
@@ -319,6 +542,93 @@ class TestEnforceUnderExternalRoot(unittest.TestCase):
                              capture_output=True, text=True)
         self.assertNotIn("deny", out.stdout.lower(),
                          "the hook must be inert where no delivery-flow config exists")
+
+
+class TestTheChangeDirectoryResolvesAgainstTheRepo(unittest.TestCase):
+    """`proposal.json`'s change directory lives in the delivery repo, not under the root.
+
+    This blocked a real run at `propose`. `check_artifact` called
+    `proposal_rules.problems(path, common.repo_root(path.parent))`, and `path.parent` is the
+    item directory under `artifacts.root`. The real root is inside the Obsidian vault, which
+    is itself a git repo, so `repo_root` climbed to the vault and looked for
+    `openspec/changes/<id>` there — somewhere a change directory will never be. The edge
+    reported "no change directory at openspec/changes/<id>" against a change that existed, and
+    the flow correctly refused to advance past a failed edge. A checker bug presenting as a bad
+    artifact.
+
+    It also hid a second check: `openspec-validate` only runs once the directory is found, so
+    it had never executed under an external root at all.
+
+    `policy_disagreements` already took `repo` for this exact reason; this one call site was
+    missed. The lesson is the one the rest of this file records — a default argument that
+    resolves from the artifact's own path is wrong the moment the artifacts move.
+    """
+
+    CHANGE_ID = "add-thing"
+
+    def _fixture(self):
+        x = ExternalRoot()
+        change = x.repo / "openspec" / "changes" / self.CHANGE_ID
+        (change / "specs" / "thing").mkdir(parents=True)
+        (change / "specs" / "thing" / "spec.md").write_text("## ADDED Requirement: a\n")
+        for name in ("proposal.md", "design.md", "tasks.md"):
+            (change / name).write_text("- [ ] T1 do it\n")
+        x.write("proposal.json", {
+            "item": "AN-1", "change_id": self.CHANGE_ID,
+            "change_path": f"openspec/changes/{self.CHANGE_ID}",
+            "specs_touched": [], "tasks": [
+                {"id": "T1", "description": "do it", "files": ["src/a.py"]}]})
+        return x, change
+
+    def _problems(self, path, repo):
+        """`check_artifact`'s change-dir problems, with and without the repo threaded in."""
+        import importlib.util
+
+        import common
+
+        def load(name, p):
+            spec = importlib.util.spec_from_file_location(name, p)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod
+
+        ce = load("ce", EDGE)
+        va = load("va", SCRIPTS / "validate-artifact.py")
+        tg = load("tg", SCRIPTS / "triggers.py")
+        pr = load("pr", SCRIPTS / "validate-proposal.py")
+        _ok, problems, ran = ce.check_artifact(path, common.load_schemas(), common, va, tg, pr,
+                                               repo)
+        return problems, ran
+
+    def test_the_change_directory_is_found_in_the_repo(self):
+        x, _ = self._fixture()
+        problems, ran = self._problems(x.item_dir / "proposal.json", x.repo)
+        self.assertIn("change-dir", ran)
+        missing = [p for p in problems if "no change directory" in p]
+        self.assertEqual(missing, [], f"the change dir exists in {x.repo} and was not found")
+
+    def test_without_the_repo_it_looks_in_the_wrong_place(self):
+        """Pins the old behaviour, so the fix cannot be quietly reverted.
+
+        Asserted through the default-argument path rather than by editing the source: calling
+        with `repo=None` is exactly what the buggy call site did.
+        """
+        x, _ = self._fixture()
+        problems, _ = self._problems(x.item_dir / "proposal.json", None)
+        self.assertTrue([p for p in problems if "no change directory" in p],
+                        "resolving from the artifact path should miss the change dir")
+
+    def test_openspec_validate_becomes_reachable(self):
+        """The check the bug was hiding. It cannot run until the directory is found.
+
+        `openspec` may not be installed, in which case the checker records the attempt
+        differently — so this asserts the gating problem is gone rather than that the
+        validator ran, which would make the test depend on the host.
+        """
+        x, _ = self._fixture()
+        problems, ran = self._problems(x.item_dir / "proposal.json", x.repo)
+        self.assertIn("change-dir", ran)
+        self.assertNotIn("no change directory at openspec/changes/" + self.CHANGE_ID, problems)
 
 
 if __name__ == "__main__":

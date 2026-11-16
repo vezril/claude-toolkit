@@ -1,0 +1,15 @@
+{
+  "change_id": "add-csv-export",
+  "goal": "Let a workspace owner export their members to CSV, including members who have been deactivated, and keep the export off the request thread.",
+  "requirements": [
+    {"id": "FR-1", "text": "A workspace owner can request a CSV export of all members and is told the export is being prepared."},
+    {"id": "FR-2", "text": "The export runs in the background and the owner is emailed a download link when it is ready."},
+    {"id": "FR-3", "text": "Deactivated members appear in the export with their deactivation date, because finance needs them for billing reconciliation."},
+    {"id": "CAP-1", "text": "A download link expires 24 hours after it is issued and cannot be reused afterwards."}
+  ],
+  "architecture": "Django app with Celery already configured for background work and SES for mail. Exports are written to S3 under a per-workspace prefix and served through a presigned URL. There is an existing `WorkspaceMember` model with an `is_active` flag and a `deactivated_at` timestamp.",
+  "sources": {
+    "docs/prd.md": "# PRD: member CSV export\n\n## FR-1\nA workspace owner can request a CSV export of all members and is told the export is being prepared.\n\n## FR-2\nThe export runs in the background and the owner is emailed a download link when it is ready.\n\n## FR-3\nDeactivated members appear in the export with their deactivation date, because finance needs them for billing reconciliation.\n\n## CAP-1\nA download link expires 24 hours after it is issued and cannot be reused afterwards.\n",
+    "docs/architecture.md": "# Architecture\n\n## background-work\nCelery is already configured. Exports run as a task.\n\n## storage\nExports are written to S3 under a per-workspace prefix and served through a presigned URL.\n\n## data-model\n`WorkspaceMember` has an `is_active` flag and a `deactivated_at` timestamp.\n"
+  }
+}

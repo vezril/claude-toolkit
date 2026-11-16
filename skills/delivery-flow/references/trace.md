@@ -21,7 +21,7 @@ An **edge record** (written by `check-edge.py` on PostToolUse, pass or fail):
 
 ```json
 {"ts": "…", "item": "DEM-12", "step": "breakdown", "artifact": "breakdown.json",
- "hook": "check-edge", "sha256": "ab0e92…",
+ "hook": "check-edge", "sha256": "ab0e92…", "sentinel_sha256": "71c4af…",
  "edge": {"name": "parse+schema+sentinel+counts+input-contract+policy-claim", "exit": 1,
           "summary": "sentinel claims stories=8 but the file holds 5"}}
 ```
@@ -31,6 +31,24 @@ beside the artifact and is as editable as the artifact is; the trace is append-o
 what makes a later hand-edit detectable at all. `write-outcome.py` compares every artifact
 against its last traced sha and marks the run `failed` with reason `manual-correction` on a
 mismatch — so "how many runs were corrected by hand" is a number you can state.
+
+`sentinel_sha256` is the other half of the edge's input, and it is what decides whether the
+edge runs again. An artifact is re-checked when either sha has moved since the last record,
+and not otherwise: if neither input changed, no re-run can reach a different verdict.
+
+That rule replaced two broken ones. Comparing the artifact alone meant a sentinel landing
+*after* its artifact — which is the contract `SKILL.md` specifies — never cleared the
+"no readable sentinel" failure it caused, and AN-3702 sat blocked on a verdict that was true
+only for the instant it was taken. Re-checking whenever the last verdict was a failure fixed
+that and had no termination condition: a failure caused by neither input re-recorded on every
+hook invocation, reaching 44 identical records on one artifact and taking another run from 8
+failed edges to 65.
+
+A failure whose cause is a third thing — a missing OpenSpec change directory, say — is cleared
+by rerunning the producing step, which rewrites the artifact. That is the recovery path the
+design already specifies, at most three times before it becomes a punch-out. Records written
+before this field existed have no sentinel sha and are treated as unchanged, so upgrading does
+not re-fire every historical failure at once.
 
 ## `name: "no-schema"` — the artifact nothing checked
 

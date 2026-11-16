@@ -1,0 +1,58 @@
+# Copy to <target-repo>/.sdlc.yaml — its presence is what opts a repo into the SDLC pipeline.
+#
+# Every hook and script in the plugin is inert without it, which is what stops the pipeline
+# firing in unrelated sessions. A repo may hold this *and* `.delivery-flow.yaml`; the two
+# workflows keep separate artifact directories and separate registries so neither reads the
+# other's runs.
+#
+# The *kinds* of punch-out trigger are declared in `skills/sdlc-orchestration/workflow.yaml`.
+# The values below are per repo on purpose: which paths are protected and what the ceilings
+# should be depend on the repo, and a plugin-level default would be wrong everywhere or
+# quietly permissive.
+
+profile: readiness          # readiness | implementation | full. See templates/sdlc/profiles.yaml.
+
+# Where run artifacts go. Relative keeps them in the repo; absolute puts them outside it — use
+# that for a public repo where a client's requirements have no business sitting in the tree.
+artifacts:
+  root: sdlc
+  commit: false
+
+forge:
+  kind: github-pr
+  base: main
+
+test_command: "make test"   # what the verification segment runs
+
+punch_out:
+  # Cost ceiling for one item across every segment. The budget trigger fires when the
+  # API-equivalent cost passes it.
+  cost_budget_usd: 5.00
+
+  # Reruns of one step before a punch-out is due. Matches the plugin default and
+  # `templates/unattended/unattended-policy.yml` — one number for one idea.
+  retry_limit: 3
+
+  # Globs the pipeline may never modify. A planned or realized edit under one of these raises a
+  # protected-path punch-out. Checked by `scripts/check-protected-paths.py`.
+  #
+  # `**` crosses directories, `*` does not; paths are repo-relative. This list is deliberately
+  # not empty by default: the files that configure the pipeline are the ones it must never
+  # rewrite, because a run that can edit its own guardrails has none.
+  protected_paths:
+    - .github/workflows/**
+    - .claude/**
+    - .sdlc.yaml
+    - hooks/**
+    - scripts/**
+
+  # Ceilings for the derived triggers. Tune against real runs rather than editing the
+  # substrate.
+  story_ceiling: 8            # more stories than this in one change derives a scope trigger
+  epic_ceiling: 3             # more epics than this derives a scope trigger
+  vault_staleness_days: 14
+
+decisions:
+  # Punch-out decisions must carry a signature that verifies against these signers. Without a
+  # readable file the flow refuses outward actions rather than proceeding unsigned.
+  allowed_signers: ~/.config/sdlc/allowed_signers

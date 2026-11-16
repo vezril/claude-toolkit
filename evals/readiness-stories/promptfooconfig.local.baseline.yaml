@@ -1,0 +1,85 @@
+# DERIVED FILE -- do not hand-edit.
+# Regenerate with: python3 evals/_provider/make-local-configs.py evals/readiness-stories
+#
+# NAIVE-BASELINE arm: the `skill` var is removed. Tests and asserts come verbatim from promptfooconfig.yaml (the CI arm);
+# only the providers differ, swapped to the shared exec: scripts in
+# evals/_provider/ for machines where anthropic:claude-agent-sdk cannot
+# authenticate. Deliberately not named promptfooconfig.yaml, so CI's
+# auto-discovery ignores it.
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "readiness story-planner node: schema, coverage, grounding on 3 changes -- NAIVE BASELINE (no skill in context)"
+# The prompt under test is the readiness node. run.sh copies prompts/prompt_vN.md to
+# current.md. No working_dir and no tools: the planner decomposes the change it is given and
+# cannot go reading the repos these changes were modelled on.
+prompts:
+  - file://prompt-baseline.txt
+providers:
+  - id: exec:../_provider/claude.sh
+    label: haiku
+  - id: exec:../_provider/claude.sh
+    label: sonnet
+defaultTest:
+  options:
+    # The rubric grader. Without this promptfoo defaults to OpenAI and every llm-rubric
+    # assert errors on a missing OPENAI_API_KEY — which is not a failing score, it is no
+    # score at all, and the first run of this suite reported 100% on the two cases that
+    # happened to have no rubric.
+    provider:
+      id: exec:../_provider/claude-grader.sh
+      config:
+        model: sonnet
+        apiKeyRequired: false
+        max_turns: 5
+  assert:
+    # Criterion 1 — schema. Runs scripts/lint-story.py, the same script the readiness edge
+    # runs, rather than a second copy of the rules that could pass a set the edge rejects.
+    - type: javascript
+      metric: schema
+      value: file://asserts/schema.js
+    # Criterion 2 — coverage. Every requirement traced, and the story count within bounds in
+    # both directions.
+    - type: javascript
+      metric: coverage
+      value: file://asserts/coverage.js
+    # Criterion 3 — grounding. No invented requirement id, no generic story statement.
+    - type: javascript
+      metric: grounding
+      value: file://asserts/grounding.js
+tests:
+  - description: "case-01-totp"
+    vars:
+      case: case-01-totp
+      change: file://inputs/case-01-totp.json
+  - description: "case-02-export"
+    vars:
+      case: case-02-export
+      change: file://inputs/case-02-export.json
+    assert:
+      # Criterion 4 — decomposition. Judged by rubric because "independently valuable" is not
+      # a property a script can read off the text. Scoped to this case, which is the one built
+      # to invite splitting by layer.
+      - type: llm-rubric
+        metric: decomposition
+        value: >-
+          Each story is a user-visible outcome rather than an implementation layer. There is no
+          story whose subject is the Celery task, the S3 bucket, the email transport or a
+          database migration considered on its own — those appear as tasks inside a story that
+          delivers something observable. A reader could demonstrate each story to the workspace
+          owner and have them recognise it. FR-3 (deactivated members in the export, with their
+          deactivation date) is present as its own requirement rather than folded silently into
+          the export story, and CAP-1 (the link expiring after 24 hours) is traced even though
+          it is a CAP rather than an FR.
+  - description: "case-03-rate-limit"
+    vars:
+      case: case-03-rate-limit
+      change: file://inputs/case-03-rate-limit.json
+    assert:
+      - type: llm-rubric
+        metric: decomposition
+        value: >-
+          The set contains no infrastructure story: no story whose subject is installing or
+          configuring Redis, and no story whose subject is adding a column to the api_keys
+          table. Those are tasks inside the stories that need them. CAP-1 (counters surviving a
+          restart) is stated as its own traced requirement with an observable criterion, rather
+          than being absorbed into the 429 story where its absence would be invisible until a
+          restart.

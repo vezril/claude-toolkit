@@ -28,7 +28,9 @@ class Repo:
         self.dir = Path(tempfile.mkdtemp())
         (self.dir / ".git").mkdir()
         (self.dir / ".delivery-flow.yaml").write_text(
-            "tracker:\n  kind: jira\n  external: true\nprofile: full\nvault:\n  binding: null\n")
+            "tracker:\n  kind: jira\n  external: true\nprofile: full\n"
+            "artifacts:\n  in_repo_ack: test fixture, no real ticket text\n"
+            "vault:\n  binding: null\n")
         self.item = item
         self.item_dir = self.dir / "delivery" / item
         self.item_dir.mkdir(parents=True)

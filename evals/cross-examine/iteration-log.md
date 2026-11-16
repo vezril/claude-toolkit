@@ -74,6 +74,37 @@ would have hit the same wall.
   after a skill that tests an agent is a bookkeeping trap — it is what left `cross-examine`
   looking like a scored skill in the first place.
 
+## Haiku arm, 2026-11-02 — below the bar, escalated to sonnet
+
+Design D7 inverts the model policy: haiku first, escalate only with a committed results file
+showing haiku below the bar on the same suite. This is that file.
+
+Same suite, same asserts, same cases. Only the node under test changed —
+`EVAL_MODEL=haiku` with `GRADER_MODEL=sonnet`, so the judge was not downgraded alongside the
+subject.
+
+| Run | Score | contract | accuracy | safety |
+|---|---|---|---|---|
+| `results/haiku_1.json` | 6/6 = 100% | 2/2 | 2/2 | 2/2 |
+| `results/haiku_2.json` | 6/6 = 100% | 2/2 | 2/2 | 2/2 |
+| `results/haiku_3.json` | 5/6 = 83.3% | **1/2** | 2/2 | 2/2 |
+
+Three consecutive passing runs is the bar and haiku produced two. **Escalated to sonnet**,
+which has 3x 6/6 in `results/skill_1..3.json`.
+
+The interesting part is *what* haiku dropped. Not reasoning — accuracy and safety stayed 2/2
+in all three runs, including the false-positive case. It failed `contract` for using
+**endorsement vocabulary ("CONFIRMED")** on the analysis it was required to refute.
+
+That is a framing failure wearing a format failure's clothes. The agent's entire job is to
+attack a conclusion; a reviewer that says CONFIRMED has adopted the opposite stance, and the
+vocabulary ban exists to catch exactly that drift. So the honest reading is not "haiku is
+slightly sloppy about output shape" but "haiku did not reliably hold the adversarial frame for
+three runs", which is the thing being certified.
+
+Two runs out of three also means a single run would have certified it. The three-consecutive
+rule is what caught this, not the score.
+
 ## Reproducing
 
 ```bash

@@ -1,6 +1,6 @@
 ---
 name: sdlc-orchestration
-description: Orchestrating a multi-agent, AI-assisted software development lifecycle (SDLC) — the meta-skill that runs the pipeline from idea to shipped code. Covers the four phases (Analysis → Planning → Solutioning → Implementation), the maker-checker (generator + reviewer + clarifier) pattern per phase, artifact-driven state (the repo's files, not chat history, determine where you are), human-in-the-loop gates, required-vs-optional steps, the per-story build cycle, and the discipline of running each workflow in a fresh context and using a separate/stronger model for validation. Synthesizes the BMAD-method workflow and the multi-agent SDLC literature, adapted with execution-grounded review (run code/tests/plans, don't just opine). Use when planning or running an end-to-end feature/project with agents, deciding what SDLC step comes next, choosing which specialist skill/agent to invoke, setting up the artifact pipeline (brief → PRD/SRS → architecture → stories → code → tests), or coordinating a team of role agents. Routes to requirements-engineering, software-architecture, spec-driven-development, test-strategy, agentic-workflows, tdd, devops, and the role subagents.
+description: Orchestrating a multi-agent, AI-assisted software development lifecycle (SDLC) — the meta-skill that runs the pipeline from idea to shipped code. Covers the four phases (Analysis → Planning → Solutioning → Implementation), the maker-checker (generator + reviewer + clarifier) pattern per phase, artifact-driven state (the repo's files, not chat history, determine where you are), human-in-the-loop gates, required-vs-optional steps, the per-story build cycle, and the discipline of running each workflow in a fresh context with a checker that differs from the generator (independence, not a bigger model — cheapest tier that clears the bar). Synthesizes the BMAD-method workflow and the multi-agent SDLC literature, adapted with execution-grounded review (run code/tests/plans, don't just opine). Use when planning or running an end-to-end feature/project with agents, deciding what SDLC step comes next, choosing which specialist skill/agent to invoke, setting up the artifact pipeline (brief → PRD/SRS → architecture → stories → code → tests), or coordinating a team of role agents. Routes to requirements-engineering, software-architecture, spec-driven-development, test-strategy, agentic-workflows, tdd, devops, and the role subagents.
 ---
 
 # SDLC Orchestration
@@ -29,38 +29,9 @@ idea → product brief → PRD/SRS → ┌─ OpenSpec change ──────
 
 Each stage consumes the prior artifact and emits a new, versioned one. The PRD tells the architect which constraints matter; the architecture tells the dev which patterns to follow; the story gives focused, complete context for one unit of implementation. Keep artifacts as files in the repo.
 
-## Where stories come from (two entry points)
+## Where stories come from
 
-The story set has two possible origins, and **which one applies is decided by whether a `breakdown.json` exists — not by preference**.
-
-1. **No `breakdown.json` → story-planner.** This is the default and covers everything above: a feature that entered through Analysis/Planning, an idea, a repo doc, a conversation. The story-planner decomposes PRD + architecture into epics and INVEST stories with testable acceptance criteria. It is a node: it exercises judgement, so it is the thing that gets certified.
-2. **A challenged `breakdown.json` → render it.** A [[delivery-flow]] run that starts from a tracker item ends holding `breakdown.json` — epics, stories and acceptance criteria written by a certified node and then attacked by `challenge-breakdown`. `scripts/delivery-flow/render-stories.py` turns that into one `story-<epic>-<story>.json` per story, carrying every field across unchanged.
-
-### Running the tracker handoff
-
-```bash
-# 1. Render the story set. Refuses on an unchallenged or REFUTED breakdown.
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/delivery-flow/render-stories.py" AN-1234 \
-        --repo . [--change openspec/changes/<id>]
-
-# 2. Layer zero: schema + the consuming agent's input contract, per story.
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/delivery-flow/validate-artifact.py" \
-        <artifacts>/AN-1234/story-E1-S1.json --consumer test-writer
-
-# 3. Hand one story to the dev pair, test-writer first. Pass the *path*, not the contents —
-#    both agents are told to open `sources[]` themselves.
-```
-
-**Layer zero is different on this path, not absent.** A markdown story set is gated by `scripts/lint-story.py`; a rendered set is gated by `schemas/story.schema.json` (via `validate-artifact.py` and the edge hook, which governs `story-*.json`) plus the renderer's own `invented()` / `missing_from()` fidelity checks and its refusal to run before `challenge-breakdown`. `lint-story.py` does not apply here and should not be forced to: it requires a task↔AC breakdown, Dev Notes and `FR-{n}`/`CAP-{n}` traceability, none of which a tracker item has — satisfying it would mean **inventing** the three things the renderer exists not to invent.
-
-Two consequences to carry into implementation: there is **no dependency order** (`ordering.determined: false` — you sequence the stories), and a `WEAKENED` challenge verdict means the plan stands with recorded findings that are meant to be fixed in place, so read `challenge-breakdown.json` before building.
-
-**The rendered path is for tracker items only.** Two mistakes it exists to prevent:
-
-- **Do not feed a breakdown to story-planner.** That puts an uncertified decomposition downstream of a certified one, which voids the chain's end-to-end number and creates a second place the plan can drift from the ticket. The renderer is an **edge, not a node**: no judgement, nothing to certify, and it cannot invent a story the challenge never saw (`invented()` enforces that rather than a reviewer checking it).
-- **Do not reach for the renderer when there is no breakdown.** There is nothing to render, and story-planner is not a fallback for it — it is the entry point for that work.
-
-The renderer **refuses to run on an unchallenged or refuted breakdown**. The challenge is the control for a dropped requirement, and that is the `breakdown` node's known residual defect; rendering before the challenge would carry the drop straight into the build. Two gaps it states rather than fills: stories carry a `sources` array pointing at the artifacts they came from instead of summarised Dev Notes, and they sit in breakdown order with `ordering.determined: false`, because dependency ordering is a judgement that belongs to a node or a human.
+**The story-planner, always.** A tracker item that came through [[delivery-flow]] arrives as an OpenSpec change — `proposal.json` plus the change's `tasks.md` — and *that* is the spec the dev pair builds from, because `propose` is what reconciles the challenge findings. There is no second path and no rendered story set; a breakdown is planning input, never the story set itself.
 
 ## The maker-checker pattern (per phase)
 
@@ -79,11 +50,11 @@ It loops, bounded, until the reviewer is satisfied or a max-iteration cap is hit
 - **Artifacts drive state, not chat history.** Determine "where are we?" by which output files exist, not by what was said in the conversation. This makes the process resumable and stateless.
 - **Required steps block progress.** You cannot skip the PRD, architecture, epics & stories, readiness check, sprint planning, story creation, or dev — each later phase depends on the prior artifact.
 - **Run each workflow in a fresh context window.** Don't chain multiple phases in one conversation; load only the artifacts that phase needs (shard large docs — see [[spec-driven-development]]).
-- **Use a separate, stronger model for validation.** Validation/readiness checks benefit from a different high-quality model than the generator, to avoid self-confirmation bias.
+- **The checker must differ from the generator — which is not the same as "use the bigger model".** What defeats self-confirmation is independence, not horsepower: a *different* model, or the same model in a **fresh context with a refute-framed prompt**. Model *tier* is a separate question, and the answer runs the other way: **haiku first, then sonnet, frontier only with a committed results file showing the cheaper tier below the bar on the same suite** (`skills/workflow-certification/`). Both readiness nodes are certified on haiku. This skill used to say "separate, stronger model", which conflated the two and licensed spending frontier tokens on every gate as if that were the rigour. The trace records the model a step *actually ran on* and flags drift from its declared tier, so an escalation has to be argued rather than assumed.
 - **Human-in-the-loop at every gate.** The human approves phase transitions; agents propose, humans dispose.
 - **Lock the *what* before the *how*.** Requirements and the SPEC kernel come before architecture and code ([[spec-driven-development]]).
 - **Execute, don't opine.** A review that doesn't run the code/tests/plan is a guess. Ground every checker in real tool output. (The biggest weakness of the source frameworks.)
-- **Gate mechanically before you gate with judgment.** Where an artifact's *form* is checkable by a script, check it with a script — deterministic, reproducible, cheap — and let the LLM/human reviewer spend judgment only on *substance*. The readiness gate has **two deterministic layers with one rule**: `scripts/lint-story.py` enforces the story schema from [[spec-driven-development]] (structure, Given/When/Then grammar, task↔AC closure, resolvable references, FR/CAP traceability), and `openspec validate <feature>` enforces the change-artifact form. **Either failing short-circuits the gate** straight back to the story-planner for rewrite (bounded, ~3 iterations, then escalate) — the LLM review never runs on a malformed set. A missing openspec CLI blocks the gate with a clear report; it never passes by absence.
+- **Gate mechanically before you gate with judgment — and do not run those gates yourself.** Where an artifact's *form* is checkable by a script, a script checks it, so the reviewer spends judgment only on *substance*. The readiness gate's two deterministic layers — `scripts/lint-story.py` for the story schema and `openspec validate` for the change-artifact form — are **edge checks on a hook**, declared in `skills/sdlc-orchestration/workflow.yaml` under `edge_checks` and run by `hooks/check-edge.py` when `readiness-verdict.json` is written. You do not invoke them and you cannot skip them. This used to be an instruction here, which made it no guardrail at all: a model that skipped it produced no failure. A `PostToolUse` hook cannot un-write a file, so the honest claim is narrower than it looks — the verdict is recorded in the trace either way, and **you refuse to advance past a failed edge**. A missing `openspec` CLI blocks the gate; it never passes by absence.
 
 ## Tracks (match process weight to the work)
 
@@ -106,7 +77,7 @@ An opt-in variant for fire-and-forget work — typically triggered by a labeled 
 | Worth planning? | Trigger policy: opt-in label + author allowlist + quick-track triage (anything larger → escalate) |
 | PRD approval | Quick track: lightweight spec derived from the issue, sanity-checked by the validator model |
 | Architecture approval | **Not replaced** — out of scope, escalate |
-| Readiness | `lint-story.py` + `openspec validate` (hard exits) + separate-model review where **CONCERNS = FAIL** |
+| Readiness | edge checks on `readiness-verdict.json` (`lint-story.py` + `openspec validate`, run by the hook, not by you) + separate-model review where **CONCERNS = FAIL** |
 | Per-story merge | Full suite green + coverage vs the P0/P1 map + refuting reviewer PASS → **PR opened, not merged** |
 
 **Safety rules (non-negotiable):**
@@ -146,7 +117,7 @@ The human's role shifts from gatekeeper to **exception handler + merge authority
 
 1. Identify the **phase** and the **track** first; produce/consume the right **artifact**.
 2. Decompose each phase into **clarify → generate → review (execute) → human-approve**, bounded.
-3. **Artifacts as state**, **fresh context per workflow**, **separate validator model**, **HITL gates**.
+3. **Artifacts as state**, **fresh context per workflow**, **a checker independent of the generator** (different model *or* fresh context + refute framing; cheapest tier that clears the bar), **HITL gates**.
 4. Route content work to the specialist skill/agent; keep this skill about sequence and state.
 5. Ground every review in **real execution**.
 
@@ -154,6 +125,6 @@ The human's role shifts from gatekeeper to **exception handler + merge authority
 
 - [[requirements-engineering]] · [[software-architecture]] · [[spec-driven-development]] · [[test-strategy]] — the phase specialists.
 - [[agentic-workflows]] — how to wire the agents together at runtime (Anthropic patterns, Claude Agent SDK, LangGraph).
-- [[delivery-flow]] — the tracker-item workflow that feeds this one. Its `breakdown.json` is the story set; see "Where stories come from" above for which entry point applies.
+- [[delivery-flow]] — the tracker-item workflow that feeds this one. It hands over an OpenSpec change, not a story set; see "Where stories come from" above.
 - [[tdd]] · [[clean-code]] · [[software-design]] · [[domain-driven-design]] · [[event-storming]] · [[secure-coding]] · [[devops]] · [[github-actions]] — invoked within phases.
 - Sources: the BMAD-method workflow & docs (MIT); the multi-agent SDLC series (Aravinda Kumar); adapted with execution-grounded review.

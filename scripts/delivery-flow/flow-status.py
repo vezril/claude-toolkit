@@ -32,52 +32,60 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import (CONFIG_NAME, artifact_root, is_delivery_repo, load_config, load_json,  # noqa: E402
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent / "workflow"))
+from common import (CONFIG_NAME, artifact_root, artifact_root_problems,  # noqa: E402
+                    is_delivery_repo, load_config, load_json,
                     load_profiles, open_punch_outs, repo_root, select_profile)
+import descriptor as workflow_descriptor  # noqa: E402
 
 MAX_RERUNS = 3
 
-# (artifact, step, kind, optional-when) — the routing table, in order.
-# "optional_when" names a config question; the step is skipped when the answer is no.
+# The routing table, read from this workflow's descriptor rather than written here.
 #
-# This is the whole table. A *profile* (templates/delivery-flow/profiles.yaml) names an
-# ordered subset of it, and routing happens inside that subset only; a repo that names no
-# profile gets `full`, which is every step below.
-STEPS = [
-    ("item.json", "intake", "adapter", None),
-    ("triage.json", "triage", "node", None),
-    ("project-context.json", "project-memory", "script", "vault"),
-    ("breakdown.json", "breakdown", "node", None),
-    ("challenge-breakdown.json", "challenge-breakdown", "node", None),
-    ("summary.md", "brief", "script", None),
-    ("proposal.json", "propose", "node", None),
-    ("implementation.json", "implementation", "sdlc", None),
-    ("verify.json", "verify", "build", None),
-    ("challenge-implementation.json", "challenge-implementation", "node", None),
-    ("pr.md", "pr-description", "node", None),
-    ("pr-opened.json", "open-pr", "adapter", None),
-    ("post.md", "post-summary", "node", None),
-    ("posted.json", "post-back", "adapter", None),
-    ("outcome.json", "report", "script", None),
-    ("vault-updated.json", "vault-update", "node", "vault"),
-]
+# It used to be Python literals in this file, which meant the one table a second workflow
+# would need was locked inside delivery-flow's own status script. The descriptor
+# (`skills/delivery-flow/workflow.yaml`) now owns it; the tuple shape below is unchanged, so
+# every existing consumer of `STEPS` is untouched and the move is behaviour-free.
+#
+# `optional_when` still names a config question; the step is skipped when the answer is no.
+# A *profile* (`templates/delivery-flow/profiles.yaml`) names an ordered subset of this
+# table, and routing happens inside that subset only; a repo naming no profile gets `full`.
+DESCRIPTOR = workflow_descriptor.load(
+    workflow_descriptor.PLUGIN_ROOT / "skills" / "delivery-flow" / "workflow.yaml")
+STEPS = workflow_descriptor.step_table(DESCRIPTOR)
 
 BY_STEP = {step: (artifact, kind, optional_when) for artifact, step, kind, optional_when in STEPS}
 
 
-def profile_steps(profile: dict):
+def by_step(table) -> dict:
+    """A routing table as `step -> (artifact, kind, optional_when)`.
+
+    Exposed so a caller holding another workflow's table can resolve a profile against it.
+    Without this, `profile_steps` could only ever answer for delivery-flow, because `BY_STEP`
+    is built at import time from this module's own descriptor.
+    """
+    return {step: (artifact, kind, optional_when)
+            for artifact, step, kind, optional_when in table}
+
+
+def profile_steps(profile: dict, table: dict = None):
     """[(artifact, step, kind, optional_when)] for a profile, or (None, error).
 
     The order is the profile's, and every step it names must exist in the routing table —
     a profile that names a step the table does not have would otherwise route to nothing.
+
+    `table` is `step -> (artifact, kind, optional_when)`; it defaults to this workflow's so
+    every existing caller is unchanged.
     """
+    lookup = BY_STEP if table is None else table
     rows, unknown = [], []
     for step in profile.get("steps") or []:
-        if step not in BY_STEP:
+        if step not in lookup:
             unknown.append(step)
             continue
-        artifact, kind, optional_when = BY_STEP[step]
+        artifact, kind, optional_when = lookup[step]
         rows.append((artifact, step, kind, optional_when))
     if unknown:
         return None, (f"profile {profile.get('profile')!r} names steps that are not in the "
@@ -415,6 +423,16 @@ def main(argv=None) -> int:
         return 2
 
     cfg = load_config(repo)
+    # Preflight, before any position is computed: a run whose artifacts sit in the code repo
+    # is one `git add` from putting a client's ticket text on a branch. Refused here because
+    # this is the one thing every invocation runs first — SKILL.md's rule is "do what
+    # flow-status says", so a refusal here stops the flow rather than warning into a log.
+    misplaced = artifact_root_problems(repo, cfg)
+    if misplaced:
+        print("BLOCKED — the run artifacts are in the wrong place:", file=sys.stderr)
+        for p in misplaced:
+            print(f"  - {p}", file=sys.stderr)
+        return 2
     try:
         profiles = load_profiles()
     except (OSError, ValueError) as e:

@@ -33,21 +33,40 @@ from pathlib import Path
 
 
 def parse_protected_paths(policy_path):
-    """Extract the `protected_paths:` list without a YAML dependency."""
-    globs, in_block = [], False
+    """Extract the `protected_paths:` list without a YAML dependency.
+
+    The key is matched at **any** indentation, because the same concept lives in two shapes:
+    top-level in `templates/unattended/unattended-policy.yml`, and nested under `punch_out:` in
+    `.delivery-flow.yaml` and `templates/sdlc/sdlc.yaml`. Matching only column 0 meant this
+    checker could read one of them and returned an empty list for the others — caught because
+    an empty list exits 2 rather than passing, which is the one design decision here worth
+    keeping above all others.
+
+    A list item belongs to the block while it is indented *more* than the key. That is what
+    ends the block when a sibling key follows at the same level, without needing to know
+    anything else about the file.
+    """
+    globs, key_indent = [], None
     for raw in policy_path.read_text(encoding="utf-8").splitlines():
         line = raw.split("#", 1)[0].rstrip()
         if not line.strip():
             continue
-        if re.match(r"^protected_paths\s*:\s*$", line):
-            in_block = True
+        m = re.match(r"^(\s*)protected_paths\s*:\s*$", line)
+        if m:
+            key_indent = len(m.group(1))
             continue
-        if in_block:
-            m = re.match(r"^\s+-\s+(\S.*)$", line)
-            if m:
-                globs.append(m.group(1).strip().strip("'\""))
-            elif not line[:1].isspace() or not line.lstrip().startswith("-"):
-                in_block = False
+        if key_indent is None:
+            continue
+        item = re.match(r"^(\s*)-\s+(\S.*)$", line)
+        if item and len(item.group(1)) > key_indent:
+            globs.append(item.group(2).strip().strip("'\""))
+            continue
+        # Anything else at or left of the key's indentation closes the block. A deeper
+        # non-list line is ignored rather than ending it, so a comment or a nested mapping
+        # inside the block cannot truncate the list silently.
+        indent = len(line) - len(line.lstrip())
+        if indent <= key_indent:
+            key_indent = None
     return globs
 
 

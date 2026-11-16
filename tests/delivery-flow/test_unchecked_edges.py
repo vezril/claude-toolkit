@@ -56,7 +56,8 @@ class Repo:
         self.dir = Path(tempfile.mkdtemp())
         (self.dir / ".git").mkdir()
         (self.dir / ".delivery-flow.yaml").write_text(
-            "tracker:\n  kind: local-markdown\n  external: false\n")
+            "tracker:\n  kind: local-markdown\n  external: false\n"
+            "artifacts:\n  in_repo_ack: test fixture, no real ticket text\n")
         self.item = item
         self.item_dir = self.dir / "delivery" / item
         self.item_dir.mkdir(parents=True)

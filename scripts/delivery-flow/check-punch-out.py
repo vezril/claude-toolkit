@@ -33,8 +33,11 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent / "workflow"))
 import triggers as trigger_rules  # noqa: E402  (the local `triggers()` owns that name)
+import trace as trace_rules  # noqa: E402
 from common import artifact_root, is_delivery_repo, load_config, load_json, repo_root  # noqa: E402
 
 DEFAULT_RETRY_LIMIT = 3
@@ -113,17 +116,8 @@ def item_changed_files(repo: Path, item: str, cfg: dict) -> tuple:
 
 
 def read_trace(item_dir: Path) -> list:
-    p = item_dir / "trace.jsonl"
-    if not p.exists():
-        return []
-    out = []
-    for line in p.read_text().splitlines():
-        if line.strip():
-            try:
-                out.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
-    return out
+    """This item's trace. One definition of "the trace is damaged" lives in the substrate."""
+    return trace_rules.read(item_dir / "trace.jsonl")
 
 
 def triggers(repo: Path, item: str, step: str, cfg: dict) -> tuple:
