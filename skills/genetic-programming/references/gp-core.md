@@ -2,7 +2,7 @@
 Source-verified notes. Fetches 2026-11-11. [V] = verified against an artifact
 actually read; [U] = unverified, flagged.
 
-## 1.4 GENETIC PROGRAMMING
+## Genetic programming
 
 - John R. Koza, *Genetic Programming: On the Programming of Computers by Means
   of Natural Selection*, MIT Press, Cambridge MA, 1992, ISBN 0-262-11170-5,
@@ -24,11 +24,14 @@ actually read; [U] = unverified, flagged.
   bytes, read in full), is
   http://www0.cs.ucl.ac.uk/staff/W.Langdon/ftp/papers/poli08_fieldguide.pdf ***
 
-### REPRESENTATION
+### Representation
 
 expression trees over a FUNCTION SET and a TERMINAL SET. Both
 requirements are Koza's own 1992 terms. [V — definitions from the Field Guide
 §3.2, which cites Koza 1992 and has Koza as a contributing author.]
+
+#### Closure
+
 - CLOSURE, verbatim: "most function sets are required to have an important
   property known as closure (Koza, 1992), which can in turn be broken down into
   the properties of TYPE CONSISTENCY and EVALUATION SAFETY."
@@ -46,6 +49,9 @@ requirements are Koza's own 1992 terms. [V — definitions from the Field Guide
   simple way to generate the constant 1, via an expression of the form (% x x).
   This combined with a similar mechanism for generating 0 via (- x x) ensures
   that GP can easily construct these two important constants."
+
+#### Sufficiency
+
 - SUFFICIENCY, verbatim: "Sufficiency means it is possible to express a solution
   to the problem at hand using the elements of the primitive set. Unfortunately,
   sufficiency can be guaranteed only for those problems where theory, or
@@ -56,6 +62,9 @@ requirements are Koza's own 1992 terms. [V — definitions from the Field Guide
   unnecessary primitives in an attempt to ensure sufficiency does not tend to
   slow down GP overmuch, although there are cases where it can bias the system in
   unexpected ways."
+
+#### Strongly typed GP
+
 - STRONGLY TYPED GP is the alternative to closure's type-consistency demand:
   David J. Montana, "Strongly Typed Genetic Programming", *Evolutionary
   Computation* 3(2):199-230, June 1995, DOI 10.1162/evco.1995.3.2.199. [V via
@@ -66,7 +75,7 @@ requirements are Koza's own 1992 terms. [V — definitions from the Field Guide
   use of generic functions and generic data types makes it more powerful than
   other approaches to type-constraint enforcement."]
 
-### KOZA'S DEFAULT TABLEAU
+### Koza's default tableau
 
 I could not read the 1992 book (archive.org
 lending-gated), but almost all of it is verified from Koza's own later paper,
@@ -115,7 +124,7 @@ genetic-programming.com/jkpdf/scjournallong.pdf. [V — read in full.] Verbatim:
   swapping of terminals from tree to tree in a manner more akin to point mutation
   as opposed to true recombining of 'building block' substructures)."
 
-### THE HARDWARE
+### The hardware
 
 [V — genetic-programming.com/machine1000.html] A
 "1,000-Pentium Beowulf-Style Cluster Computer for Genetic Programming": "a
@@ -141,7 +150,7 @@ of 10,000,000 3,000-byte individuals."
   results that are competitive with human-produced results."
   GP III and GP IV POPULATION SIZES: [U] — not reachable. Do not assert one.
 
-### BLOAT
+### Bloat
 DEFINITION, [V — Field Guide §11.3]: "very often the average size (number of
 nodes) of the programs in a population, after a certain number of generations in
 which it was largely static, at some point would start growing at a rapid pace.
@@ -163,7 +172,7 @@ population", so bloat requires "some small l's for which p(l,t) < Phi(l,t) and
 also some bigger l's for which p(l,t) > Phi(l,t)". Derived from Poli's exact
 schema theory.
 
-### THE FOUR THEORIES
+### The four theories
 (a) REPLICATION ACCURACY / protective code / introns. *** CITATION CORRECTION:
     the theory the literature CALLS "replication accuracy" is attributed by the
     Field Guide to McPhee & Miller, NOT to Blickle & Thiele or Nordin & Banzhaf.
@@ -301,7 +310,10 @@ problem of combating bloat in their runs."
   recent and most theoretically grounded, and the one the 2012 survey of record
   foregrounds", NOT as "the winner". ***
 
-### PARSIMONY-PRESSURE REMEDIES
+### Parsimony-pressure remedies
+
+#### Size and depth limits
+
 - SIZE AND DEPTH LIMITS, and the pathology of the naive implementation, [V, Field
   Guide §11.3.2]: "Many implementations of this idea (e.g., (Koza, 1992)) apply a
   genetic operator and then check whether the offspring is beyond the size or
@@ -319,12 +331,18 @@ problem of combating bloat in their runs."
   the minimum possible solution... and add some percentage (e.g. 50-200%) as a
   safety margin." *** Note the Field Guide does NOT mention the depth-17 limit
   anywhere (grep-verified). ***
+
+#### Linear parsimony pressure
+
 - LINEAR PARSIMONY PRESSURE, [V]: "the new fitness function is f(x) - c*l(x),
   where l(x) is the size of program x ... and c is a constant known as the
   PARSIMONY COEFFICIENT." Cited to Koza 1992; Zhang & Mühlenbein 1993, 1995.
   Essential footnote: "While the new fitness is used to guide evolution, one still
   needs to use the original fitness function to recognise solutions and stop
   runs."
+
+#### Covariant parsimony pressure
+
 - COVARIANT PARSIMONY PRESSURE — Poli & McPhee, "Parsimony Pressure Made Easy",
   GECCO 2008, pp. 1267-1274, DOI 10.1145/1389095.1389340. [V — read in full.]
   The closed form is exactly as expected. From eq. (13)-(14): absence of growth,
@@ -350,6 +368,9 @@ problem of combating bloat in their runs."
   tournament selection." So the PROOF is for fitness-proportionate selection and
   the tournament result is EMPIRICAL. *** Experiments: 6-MUX, populations 100 /
   1,000 / 10,000, 100 runs each, 500 generations.
+
+#### Lexicographic parsimony pressure
+
 - LEXICOGRAPHIC PARSIMONY PRESSURE — Luke & Panait, "Lexicographic Parsimony
   Pressure", GECCO 2002, Morgan Kaufmann, pp. 829-836, ISBN 1-55860-878-8. [V —
   PDF read.] Abstract verbatim: "Lexicographic parsimony pressure modifies
@@ -378,6 +399,9 @@ problem of combating bloat in their runs."
   that winner is [U] — only the abstract was read; the full text at
   cognet.mit.edu/system/cogfiles/journalpdfs/evco.2006.14.3.309.pdf is worth
   chasing, since it is the only systematic nine-way comparison. ***
+
+#### The Tarpeian method
+
 - THE TARPEIAN METHOD — Poli, "A Simple but Theoretically-motivated Method to
   Control Bloat in Genetic Programming", EuroGP 2003, LNCS 2610, pp. 204-217,
   DOI 10.1007/3-540-36599-0_19. [V] Author's abstract verbatim: "based on the
@@ -397,12 +421,18 @@ problem of combating bloat in their runs."
   can either increase or reduce the generalization power of GP hypotheses,
   depending on the problem at hand. This suggest[s] that a blind use of TC is not
   safe."
+
+#### Multi-objective size-vs-error
+
 - MULTI-OBJECTIVE SIZE-VS-ERROR, [V, Field Guide §9.2.1/§11.3.2]: "recent methods
   also include the use of multi-objective optimisation to control bloat. This
   typically involves the use of a modified selection based on the Pareto
   criterion." Cited: Ekárt & Németh 2001; de Jong, Watson & Pollack 2001; with
   the Field Guide's own caution that "without diversity enhancement (given by
   modern MOO methods)" the approach does not work well.
+
+#### Operator equalisation
+
 - OPERATOR EQUALISATION — the method crossover-bias theory directly motivated.
   Antecedents [V]: Dignum & Poli, "Operator Equalisation and Bloat Free GP",
   EuroGP 2008, LNCS 4971, pp. 110-121, DOI 10.1007/978-3-540-78671-9_10 — "we
@@ -421,6 +451,9 @@ problem of combating bloat in their runs."
   derives the target each generation from the fitness observed in each bin. Silva,
   Dignum & Vanneschi 2012 report "Genetic Programming using OpEq is essentially
   bloat free", and also "the unexpected effect of OpEq on overfitting".
+
+#### Anti-bloat operators
+
 - ANTI-BLOAT OPERATORS, [V]: size-fair crossover and size-fair mutation (Langdon
   2000; Crawford-Marks & Spector 2002) — "In size-fair crossover... the crossover
   point in the first parent is selected randomly ... Then the size of the subtree
@@ -432,6 +465,9 @@ problem of combating bloat in their runs."
   terminal).
 
 VARIANTS (compressed; full detail in the source file).
+
+#### Grammatical evolution
+
 - GRAMMATICAL EVOLUTION: Ryan, Collins & O'Neill, "Grammatical evolution: Evolving
   programs for an arbitrary language", EuroGP 1998, LNCS 1391, pp. 83-96, DOI
   10.1007/BFb0055930; O'Neill & Ryan, "Grammatical evolution", IEEE TEVC
@@ -487,6 +523,9 @@ VARIANTS (compressed; full detail in the source file).
   STANDARD GE SEARCH OPERATORS IS HIGHER THAN THAT OF STANDARD GP SEARCH
   OPERATORS, which allows more focused search in GE." So do not present "GE has
   bad locality, GP has good locality" as settled.
+
+#### Linear GP
+
 - LINEAR GP: Brameier & Banzhaf, *Linear Genetic Programming*, Springer, 2007,
   ISBN 978-0-387-31029-9, DOI 10.1007/978-0-387-31030-5 [V]; earlier Brameier &
   Banzhaf, "A comparison of linear genetic programming and neural networks in
@@ -505,6 +544,9 @@ VARIANTS (compressed; full detail in the source file).
   are never read are STRUCTURALLY non-effective introns, detectable and removable
   in linear time — which is why LGP is the natural setting for intron and
   neutral-variation studies.
+
+#### Cartesian GP
+
 - CARTESIAN GP: Miller & Thomson, "Cartesian Genetic Programming", EuroGP 2000,
   LNCS 1802, pp. 121-132, DOI 10.1007/978-3-540-46239-2_9 [V]; Miller (ed.),
   *Cartesian Genetic Programming*, Springer Natural Computing Series, 2011, DOI
@@ -572,6 +614,9 @@ VARIANTS (compressed; full detail in the source file).
   "Stack-based" is [V] (Helmuth & Spector, GECCO 2013 Companion, pp. 1627-1634,
   DOI 10.1145/2464576.2466814). The finer detail — multiple separately typed
   stacks including a CODE stack that makes Push self-modifying — is [U].
+
+#### Geometric semantic GP
+
 - GEOMETRIC SEMANTIC GP: Moraglio, Krawiec & Johnson, "Geometric Semantic Genetic
   Programming", PPSN XII (part 1), LNCS 7491, pp. 21-31, DOI
   10.1007/978-3-642-32937-1_3. [V — primary paper read in full.]
@@ -626,6 +671,9 @@ VARIANTS (compressed; full detail in the source file).
   stage, an assembling step is needed to generate the complete individual from the
   pointers, which still presents an exponential size." So the remedy makes GSGP
   RUNNABLE; it does NOT make the model small or interpretable. ***
+
+#### Lexicase selection
+
 - LEXICASE SELECTION: Spector, "Assessment of problem modality by differential
   performance of lexicase selection in genetic programming: a preliminary
   report", GECCO 2012 Companion, pp. 401-408, DOI 10.1145/2330784.2330846 [V];

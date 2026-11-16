@@ -1,14 +1,14 @@
-THEORY PART 1/4 (ALTERNATE / SECOND RESEARCHER) — Schema theorem, implicit parallelism, building-block hypothesis, and the criticisms.
+# The schema theorem, implicit parallelism and the building-block hypothesis
 
-### NOTE ON PROVENANCE
+### Note on provenance
 
 /tmp/ea-theory-part1.txt was already occupied by another agent's Part 1 when I went to write, so I did not overwrite it. This file is my independent version. It is better-sourced on the critical literature: the other file marks the Grefenstette / Grefenstette & Baker / Muehlenbein / Altenberg / Vose / Nix & Vose / Wright-Vose-Rowe / Stephens-Waelbroeck citations UNVERIFIED, whereas I verified them from Crossref and verbatim from Altenberg's own 1995 reference list (which I obtained in full). Prefer this file for those citations.
 
 All web sources fetched 2026-11-11. WebSearch was unavailable; verification used the Crossref REST API, OpenAlex, the arXiv API, and author-hosted / repository PDFs. dblp, Google, DuckDuckGo, ScienceDirect, Wiley, ACM DL and Springer chapter pages all blocked me.
 
-### 1. HOLLAND'S SCHEMA THEOREM
+### Holland's schema theorem
 
-### PRIMARY SOURCE
+### Primary source
 
 John H. Holland, *Adaptation in Natural and Artificial Systems*, University of Michigan Press 1975; 2nd ed. MIT Press 1992. (Book; no DOI. Bibliographic details are standard and corroborated by every source below; I did not read the book itself — flag page references as coming from secondary sources.)
 
@@ -20,7 +20,7 @@ DEFINITIONS (verified against two independent sources — Altenberg 1995 FOGA 3,
 - f(H,t) = the average observed fitness of the population members matching H at generation t. fbar(t) = the average fitness of the whole population at t.
 - Counts: there are 3^l schemata but 2^(2^l) subsets of the search space, so most subsets are NOT schemata. One string of length l matches 2^l schemata; a population of n strings has instances of between 2^l and n*2^l distinct schemata.
 
-### THE INEQUALITY
+### The inequality
 
 Two forms circulate and both are legitimate; the difference is whether mutation survival is kept exact or linearised.
 
@@ -45,7 +45,7 @@ CONDITIONS, stated precisely. Altenberg 1995 (FOGA 3, p. 24) gives Holland's cla
 
 6. The >= is there because Holland counted only *destructive* effects of crossover and mutation and pessimistically assumed every crossover inside the defining length destroys H. It ignores *constructive* effects (crossover creating new instances of H). White: "The proof is an exercise in elementary probability. The result is an inequality because Holland only factored in the destructive effects of crossover".
 
-### WHAT IT IS AND IS NOT
+### What it is and is not
 
 It is a one-generation expectation bound, a lower bound on an expected count. It is NOT a long-run dynamical result. The standard criticisms (White attributes this list to Whitley 1993; the published source in the same vein is Darrell Whitley, "Deception, dominance and implicit parallelism in genetic search", Annals of Mathematics and AI 5(1):49-78, 1992, DOI 10.1007/BF01530780 — VERIFIED via Crossref):
 - It cannot be iterated recursively: it is an inequality over an expectation, so compounding it over t generations loses information at every step and the bound degrades to vacuity.
@@ -55,17 +55,17 @@ It is a one-generation expectation bound, a lower bound on an expected count. It
   with p(H,t) the selection probability of H and L(H,i), R(H,i) the left/right truncations of H at position i. Credit: Christopher R. Stephens & Henri Waelbroeck, "Schemata Evolution and Building Blocks", Evolutionary Computation 7(2):109-124, 1999, DOI 10.1162/evco.1999.7.2.109 (arXiv nlin/0006048) — VERIFIED via OpenAlex; and Riccardo Poli's exact schema theorems for GP, 2000-2001. Also Alden H. Wright, "The Exact Schema Theorem", arXiv:1105.3538, 2011 — VERIFIED via OpenAlex.
 - The theorem extends to *arbitrary subsets* of the search space, not just Holland schemata, and for arbitrary operators — which destroys the idea that schemata are privileged objects. VERIFIED in Altenberg 1995, who credits Grefenstette 1989 (FOGA 1), Radcliffe 1991 ("Equivalence class analysis of genetic algorithms", Complex Systems 5(2):183-205) and Vose 1991 ("Generalizing the notion of schema in genetic algorithms", Artificial Intelligence 50(3):385-396). Altenberg's own Theorem 4 ("Schema, Covariance Form") is explicitly stated for "any subset H of the search space".
 
-### 2. IMPLICIT PARALLELISM AND THE O(n^3) CLAIM
+### Implicit parallelism and the O(n^3) claim
 
 TERMINOLOGY, VERIFIED: Holland originally called it "intrinsic parallelism" (Holland 1975, p. 74) and later renamed it "implicit parallelism" (Holland 1992). Source: Keki Burjorjee, "The Fundamental Problem with the Building Block Hypothesis", arXiv:0810.3356, 2008, which cites the page — I read this paper in full.
 
-### THE CLAIM
+### The claim
 
 A population of n strings can "usefully process" on the order of n^3 schemata per generation, i.e. that many schemata are present in enough copies to be statistically sampled and are short/low-order enough not to be disrupted. The argument, VERIFIED in White's survey (Proposition 1 and the paragraph after it):
 - Let phi be the number of instances of a schema required before you call it "sampled" (a statistician's confidence parameter), and let theta be the highest schema order represented at that frequency. Then theta = log2(n/phi), and the number of schemata of order theta present in the population is 2^theta * C(l,theta) >= n^3.
 - STATED RANGE OF VALIDITY (the crucial and usually omitted part): "This result holds when 64 <= n <= 2^20 and l >= 64." It is an arithmetic coincidence over a parameter window, not an asymptotic theorem.
 
-### STATUS
+### Status
 
 contested; present the n^3 figure as folklore with a narrow numerical justification, not as a theorem. Key references, all VERIFIED bibliographically:
 - Alberto Bertoni & Marco Dorigo, "Implicit parallelism in genetic algorithms", Artificial Intelligence 61(2):307-314, 1993, DOI 10.1016/0004-3702(93)90071-I. (Crossref + OpenAlex.) Content UNVERIFIED — no abstract is deposited and I could not reach the full text; do not put words in its mouth. It is the standard citation for re-deriving the counting argument and showing the n^3 figure depends on the parameter choices.
@@ -75,9 +75,9 @@ contested; present the n^3 figure as folklore with a narrow numerical justificat
 - Alden H. Wright, Michael D. Vose & Jonathan E. Rowe, "Implicit Parallelism", in GECCO 2003, Lecture Notes in Computer Science (LNCS 2724), pp. 1505-1517, Springer, DOI 10.1007/3-540-45110-2_22. VERIFIED via Crossref AND OpenAlex.
   *** CORRECTION TO THE BRIEF (1 of 3): this paper has THREE authors — Wright, Vose, Rowe — NOT four; Christopher Stephens is not an author. *** Both Crossref and OpenAlex agree. The brief probably conflated it with the Stephens & Waelbroeck exact-schema line or with Poli/Stephens/Wright/Rowe's FOGA 7 papers. Content UNVERIFIED — Springer blocked me; cited 33 times (OpenAlex); it formalises implicit parallelism in the Vose dynamical-systems framework and argues the informal n^3 reading does not survive formalisation.
 
-### 3. THE BUILDING-BLOCK HYPOTHESIS
+### The building-block hypothesis
 
-### PRIMARY SOURCE
+### Primary source
 
 David E. Goldberg, *Genetic Algorithms in Search, Optimization, and Machine Learning*, Addison-Wesley, 1989. ISBN 0-201-15767-5. (Crossref has only the Choice Reviews record, DOI 10.5860/choice.27-0936; the book itself has no DOI.)
 *** FLAG: I could NOT obtain the book and therefore could NOT verify Goldberg's exact wording. *** Do not present a verbatim Goldberg quote on my authority. The widely quoted p. 41 sentence — "Short, low order, and highly fit schemata are sampled, recombined, and resampled to form strings of potentially higher fitness" — is UNVERIFIED in this session.
@@ -88,7 +88,7 @@ What I CAN give verified:
 - The stronger version the critical literature actually attacks, verbatim from White: "Hypothesis 2 (Static Building Block Hypothesis). Given any schema partition, a genetic algorithm is expected to converge to the class with the best static average fitness." This formulation is Grefenstette's (1993) and is the one deception is defined against. FLAG: verified only from White's secondary account, not from Grefenstette's own text.
 - Holland's metaphysical backing, VERIFIED verbatim via Burjorjee: Holland's "building block thesis" "holds that most of what we know about the world pivots on descriptions and mechanisms constructed from elementary building blocks", with building blocks being parts that "(i) must be easy to identify (once they've been discovered or picked out), and (ii) must be readily recombined to form a wide variety of structures".
 
-### 4. THE CRITICISMS
+### The criticisms
 
 ### 4a. GREFENSTETTE, "DECEPTION CONSIDERED HARMFUL". VERIFIED via Crossref and OpenAlex: John J. Grefenstette, "Deception Considered Harmful" (with a footnote "With apologies to Edsger Dijkstra (Dijkstra, 1968)"), in L. Darrell Whitley (ed.), *Foundations of Genetic Algorithms 2* (FOGA 2), pp. 75-91, Morgan Kaufmann, 1993. DOI 10.1016/B978-0-08-094832-4.50011-8. 137 citations (OpenAlex). Also DTIC technical report ADA294072, DOI 10.21236/ada294072. Content UNVERIFIED — Elsevier, DTIC and OpenAlex all withheld the text; no abstract deposited. The argument, corroborated by the secondary literature (White, Burjorjee): the formal notion of "deception" presupposes the Static Building Block Hypothesis, which is false, because a GA does not sample schemata uniformly — it samples from a biased, evolving distribution. Consequently deception is neither necessary nor sufficient for GA-hardness: deceptive problems can be easy and non-deceptive problems can be hard. FLAG the "neither necessary nor sufficient" phrasing as my synthesis of the secondary literature, not a verified quotation.
 Also VERIFIED in the same FOGA series: Grefenstette, "Predictive models using fitness distribution of genetic operators", FOGA 3, pp. 139-161, 1995 (from Altenberg's reference list).
@@ -100,7 +100,7 @@ Also VERIFIED in the same FOGA series: Grefenstette, "Predictive models using fi
 2. "The Schema Theorem holds even when the schemata defined by a representation may not capture the properties that determine fitness"; and
 3. "The Schema Theorem extends to arbitrary subsets of the search space regardless of the kind of genetic operators, not merely the subsets defined by Holland schemata."
 
-### 4d. ALTENBERG AND PRICE'S THEOREM — the strongest single critique, and I have the full text.
+### Altenberg and price's theorem — the strongest single critique, and I have the full text.
 VERIFIED: Lee Altenberg, "The Schema Theorem and Price's Theorem", in Darrell Whitley & Michael Vose (eds.), *Foundations of Genetic Algorithms 3* (FOGA 3), pp. 23-49, Morgan Kaufmann, San Francisco, 1995. No DOI. Full text at https://dynamics.org/Altenberg/FILES/LeeSTPT.pdf (fetched 2026-11-11; the reprint notes proof details for Theorem 5 were added to the appendix on 15 August 2001). Citation confirmed from Altenberg's own publication list at dynamics.org/Altenberg/PAPERS/.
 
 Abstract, load-bearing sentence (verbatim): "dissenting arguments are reviewed and elaborated upon, explaining why the Schema Theorem has no implications for how well a GA is performing."
@@ -116,7 +116,7 @@ The argument, verbatim where quoted:
 - THE CONSTRUCTIVE HALF — the "missing" schema theorem (his Theorem 5, "Evolution of the fitness distribution under recombination"), derived using Hilda Geiringer's (1944) recombination-distribution representation. Schemata *reappear* when you specialise to recombination operators, and the theorem makes the BBH's real content explicit: "(1) that the recombination operator determines which schemata are being recombined; and (2) that there needs to be a correlation between complementary schemata of high fitness and the fitness distributions of their recombinant offspring in order for the GA to increase the chance of sampling fitter individuals." He describes this as giving "a quantitative expression to the Building Blocks Hypothesis". This matters rhetorically: Altenberg is not an anti-schema partisan; he reconstructs what the BBH would have to assert to be true.
 - His positive proposal: use *evolvability* — "the ability to produce individuals fitter than any existing" — and the transmission function in the fitness domain, as the right performance statistic. Introduced in Altenberg 1994, "Emergent Phenomena in Genetic Programming", in Sebald & Fogel (eds.), *Proc. 3rd Annual Conference on Evolutionary Programming*, pp. 233-241, World Scientific. (No DOI; PDF at dynamics.org/Altenberg/FILES/Altenberg_EPIGP_1994.pdf.)
 
-### 4e. VOSE'S DYNAMICAL-SYSTEMS / MARKOV-CHAIN PROGRAMME. All VERIFIED via Crossref:
+### Vose's dynamical-systems / markov-chain programme. All verified via Crossref:
 - Allen E. Nix & Michael D. Vose, "Modeling genetic algorithms with Markov chains", Annals of Mathematics and Artificial Intelligence 5(1):79-88, 1992, DOI 10.1007/BF01530781. 442 citations. Content UNVERIFIED (no abstract deposited). This models the finite-population simple GA as an exact finite Markov chain whose state is the population vector, with the infinite-population limit given by a deterministic "heuristic" map G.
 - Michael D. Vose, *The Simple Genetic Algorithm: Foundations and Theory*, MIT Press, 1999. DOI 10.7551/mitpress/6229.001.0001. VERIFIED, with full chapter structure (also verified, via Crossref chapter DOIs): Introduction 1-2; Notation 3-4; Random Heuristic Search 5-20; The Simple Genetic Algorithm 21-38; Implementation 39-48; The Walsh Transform 49-66; Computing with the Heuristic 67-76; Basic Examples 77-92; The Inverse Heuristic 93-104; Focused Heuristics 105-118; Linear Fitness 119-128; Perturbation Arguments 129-138; Transient Behavior 139-150; Asymptotic Behavior 151-168; Hyperbolicity 169-174; Geometric Invariance 175-184; Quotients 185-198; Models 199-210; **Schemata 211-218**; Appendix 219-232. The rhetorical point writes itself: in the field's most rigorous monograph, schemata occupy eight pages near the end, after the whole dynamical-systems development.
 - Vose's preface, verbatim (VERIFIED as quoted by Burjorjee, arXiv:0810.3356): "My central purpose in writing this book is to provide an introduction to what is known about the theory of the Simple Genetic Algorithm. The rigor of mathematics is employed so as not to inadvertently repeat myths or recount folklore." Burjorjee adds that Vose notes the absence of core elements of the schema/BBH story from the rigorous theory.
@@ -128,7 +128,7 @@ The argument, verbatim where quoted:
 
 Also worth citing on the "what did schema theory ever predict" question: Holland's *principle of minimal alphabets* (the schema-theoretic argument that binary encodings are optimal) was, per White, "an informal argument" that "detractors produced convincing arguments for why larger alphabets are optimal for certain problems" — one of the concrete failed predictions of the schema programme.
 
-### 5. THE ROYAL ROAD STORY — the empirical refutation
+### The royal road story — the empirical refutation
 
 This is the single best-documented failure of the BBH as a predictive claim, and I have the primary text.
 
@@ -145,7 +145,7 @@ R1, DEFINED EXACTLY (verbatim from the NIPS paper, Figure 1 and the text): l = 6
 
 THE EXPECTATIONS, in their own words: "Given this hypothesis, we initially expected that the building-block structure of R1 would lay out a 'royal road' for the GA to follow to the optimal string. We also expected that simple hill-climbing schemes would perform poorly since a large number of bit positions must be optimized simultaneously in order to move from an instance of a lower-order schema ... to an instance of a higher-order intermediate schema .... **However both these expectations were overturned** (Forrest & Mitchell, 1993)."
 
-### THE ALGORITHMS
+### The algorithms
 
 The GA: fitness-proportionate selection with sigma scaling, single-point crossover, point mutation. RMHC (random mutation hill climbing, a zero-temperature Monte Carlo method, suggested to them by Richard Palmer): pick a random string, evaluate; mutate one uniformly chosen locus; "If the mutation leads to an equal or higher fitness, the new string replaces the old string"; iterate. Also SAHC (steepest-ascent hill climbing) and NAHC (next-ascent hill climbing).
 
@@ -156,7 +156,7 @@ THE NUMBERS, verbatim, 200 runs on R1, counting function evaluations to find the
 
 THE DIAGNOSIS — HITCHHIKING: "the simple GA ... optimized R1 quite slowly, at least in part because of 'hitchhiking': once an instance of a higher-order schema is discovered, its high fitness allows the schema to spread quickly in the population, with 0s in other positions in the string hitchhiking along with the 1s in the schema's defined positions. This slows down the discovery of schemas in the other positions, especially those that are close to the highly fit schema's defined positions. Hitchhiking can in general be a serious bottleneck for the GA." And: "One major impediment was hitchhiking, which limited implicit parallelism by fixing certain schema regions suboptimally."
 
-### THE ANALYSIS
+### The analysis
 
 For N adjacent blocks of K ones each (R1: N = K = 8):
 - RMHC time to find one block: a Markov-chain analysis (credited to Richard Palmer, personal communication) gives E(K,1) "slightly larger than 2^K, converging slowly to 2^K from above as K -> infinity"; for K = 8, E(K,1) = 301.2.

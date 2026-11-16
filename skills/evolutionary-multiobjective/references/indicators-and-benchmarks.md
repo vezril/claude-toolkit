@@ -12,7 +12,7 @@ survey, Tanabe & Ishibuchi RE suite (arXiv:2009.12867).
 Note: sciencedirect.com, research-collection.ethz.ch and IEEE Xplore HTML all
 return 403 to automated fetching.
 
-## 3.6 PERFORMANCE INDICATORS — AND WHY COMPARISON IS ITSELF HARD
+## Performance indicators — and why comparison is itself hard
 HYPERVOLUME (HV, a.k.a. the S metric). Definition, verbatim from Li & Yao [VFT]:
 "Given a solution set A and a reference point r, **HV(A) = lambda( UNION_{a in A}
 { x | a < x < r } )** where lambda denotes the **Lebesgue measure**. ... the HV value
@@ -85,7 +85,7 @@ solutions in the reference set — "**IGD+ is insensitive to the DRSs**." A usef
 case: "GD and IGD [can be compliant] when used for a **bi-objective problem with a
 continuous Pareto front** (Schutze et al. 2012)."
 
-### ADDITIVE AND MULTIPLICATIVE EPSILON-INDICATOR
+### Additive and multiplicative epsilon-indicator
 
 From Zitzler et al. 2003 [VFT] — the
 BINARY I_eps is the paper's own contribution and its headline POSITIVE result. For
@@ -199,7 +199,10 @@ correction; (6) prefer attainment-function/EAF plots when claiming one set is BE
 THAN another. *** Items 1-4 are directly supported by the sources above; items 5-6 are
 standard community convention rather than a quotation. ***
 
-## 3.7 BENCHMARK SUITES
+## Benchmark suites
+
+### ZDT
+
 **ZDT.** Zitzler, Deb & Thiele, "Comparison of Multiobjective Evolutionary Algorithms:
 Empirical Results", *Evolutionary Computation* 8(2):173-195, June 2000. **DOI
 10.1162/106365600568202 — DOI V.** [VFT]
@@ -241,6 +244,8 @@ BEYOND THAT: modern algorithms solve ZDT1-3 and ZDT6 to near-optimality in a few
 thousand evaluations, so ZDT discriminates almost nothing in 2026 except as a smoke
 test; and ZDT5's binary encoding means most real-coded libraries cannot run it without
 special handling. ***
+
+### DTLZ
 
 **DTLZ.** Deb, Thiele, Laumanns & Zitzler, "Scalable Test Problems for Evolutionary
 Multiobjective Optimization", in *Evolutionary Multiobjective Optimization* (Abraham,
@@ -291,6 +296,8 @@ DTLZ8 and DTLZ9 have side constraints (the WFG paper omits them for that reason)
 - **TRIANGULAR-FRONT BIAS** — see §3.4: Tanabe & Ishibuchi 2020 [VFT] on why
   decomposition methods look good here.
 
+### WFG
+
 **WFG.** Huband, Hingston, Barone & While, "A Review of Multiobjective Test Problems and
 a Scalable Test Problem Toolkit", IEEE TEVC 10(5):477-506, October 2006. **DOI
 10.1109/TEVC.2005.861417 — DOI V.** [VFT]
@@ -332,6 +339,8 @@ a common [setting] in the literature" and that **NSGA-II STILL HADN'T CONVERGED 
 several WFG problems at 25,000 generations.** "On WFG1, for example, NSGA-II shows poor
 coverage" — WFG1's bias remains hard for NSGA-II today. ***
 
+### The RE real-world suite
+
 **REAL-WORLD: THE RE SUITE.** Tanabe & Ishibuchi, "An easy-to-use real-world
 multi-objective optimization problem suite", *Applied Soft Computing* 89:106078, April
 2020. **DOI 10.1016/j.asoc.2020.106078 — DOI V. arXiv:2009.12867.** [VFT]
@@ -355,6 +364,8 @@ simple equations or surrogate models" — cheap to evaluate, which is the point.
 jMetalPy ships both **RE** and **RWA** suites; pymoo does NOT ship RE as of 0.6.2 (its
 real-world-flavoured problems are BNH, OSY, TNK, Truss2D, Welded Beam, plus MODAct).
 
+### CEC MOEA competitions
+
 **CEC MOEA COMPETITIONS.** *** [FLAG — THIS IS THE WEAKEST-SOURCED ITEM IN THIS
 SECTION.] The CEC competition record could not be verified directly. What WAS checked:
 Suganthan's GitHub profile (fetched 2026-11-11) lists `2021-RW-MOP` (real-world
@@ -374,7 +385,10 @@ instances' distinguishing feature (per the MOEA/D-DE paper, DOI V) is **COMPLICA
 PARETO *SETS*** — nonlinear variable linkages in DECISION space, which DTLZ/WFG largely
 lack and which break algorithms that assume simple PS geometry.
 
-## 3.8 CONSTRAINT HANDLING IN MOEAs
+## Constraint handling in MOEAs
+
+### Deb's constraint-domination principle (CDP)
+
 **DEB'S CONSTRAINT-DOMINATION PRINCIPLE (CDP)** — and the primary source is the NSGA-II
 paper itself, §VI [VFT, verbatim]:
   "**Definition 1** A solution i is said to **constrained-dominate** a solution j, if
@@ -412,6 +426,9 @@ where the constrained optimum lives.
 THE ALTERNATIVES, from Liang et al., which groups CDP, epsilon-constraint and stochastic
 ranking as the "feasibility-rule / separate-handling" family [VFT, verbatim: "mainly
 including the CDP, epsilon constrained method, and stochastic ranking (SR)"]:
+
+### Epsilon-constraint method
+
 **EPSILON-CONSTRAINT METHOD**, verbatim: "This method was proposed by **Takahama and
 Sakai**, which **uses a parameter epsilon to relax constraints. epsilon is gradually
 reduced, and when the constraint violation degree of an individual is less than epsilon,
@@ -429,6 +446,9 @@ method anneals into CDP and converges to feasibility. *** Follow-ups: Takahama &
 CEC 2010, DOI 10.1109/CEC.2010.5586484; and *Studies in Computational Intelligence*,
 2009, DOI 10.1007/978-3-642-00619-7_3. epsilon-DE variants won several CEC constrained
 competitions.
+
+### Stochastic ranking
+
 **STOCHASTIC RANKING (SR)** — and this is worth stating mechanically because it is the
 cleanest idea in the area. Verbatim from Liang et al.: "a probability parameter p_f is
 introduced. When two individuals are compared, **the probability with p_f only compares
@@ -450,6 +470,9 @@ between "pure feasibility-first" (P_f = 0) and "ignore constraints" (P_f = 1) wi
 DIMENSIONLESS PARAMETER AND NO PROBLEM-DEPENDENT SCALING — which is exactly the thing
 penalty coefficients get wrong. *** Implemented in pymoo as **SRES** and **ISRES** (the
 improved variant with differential variation).
+
+### Repair
+
 **REPAIR.** Problem-specific projection of infeasible individuals back into the feasible
 set. MOEA/D has a hook for exactly this (Step 2.2, verbatim: "Apply a problem-specific
 repair/improvement heuristic on y to produce y'"; and "a problem-specific heuristic is
@@ -460,6 +483,9 @@ solutions." *** CAVEAT: repair biases the search distribution toward the constra
 boundary and is not generic. Also decide explicitly whether you write the repaired
 genotype back (Lamarckian) or only use its fitness (Baldwinian) — they behave very
 differently. ***
+
+### Penalty functions
+
 **PENALTY FUNCTIONS.** The survey's first family. Static penalties "remain unchanged in
 the early and late stages of evolution, which is not conducive to the balance between
 the objectives and constraints"; dynamic/adaptive penalties adjust the coefficient by
@@ -476,6 +502,9 @@ optimum (the usual case) the right coefficient depends on the Lagrange multiplie
 you do not know. DEATH PENALTY additionally fails whenever the feasible region is small
 or disconnected — you may never sample a feasible point at all, and it discards the only
 information that would tell you which way feasibility lies. ***
+
+### Multi-population / two-archive methods
+
 **MULTI-POPULATION / TWO-ARCHIVE METHODS** — the current state-of-the-art direction:
 maintain one archive driving convergence and one exploring infeasible space. **C-TAEA:
 Li, Chen, Fu & Yao, "Two-Archive Evolutionary Algorithm for Constrained Multiobjective
@@ -504,7 +533,7 @@ RNSGA2, PINSGA2, NSGA3, UNSGA3, RNSGA3, CTAEA, SMSEMOA, SPEA2, OmniOptimizer, CM
 MOPSO_CD, DNSGA2, KGB, NSDE, GDE3, NSDER all support constraints; *** MOEAD, AGEMOEA,
 AGEMOEA2, RVEA and CMAES are marked as NOT supporting constraints. ***
 
-## 3.9 WHY EAs ARE GENUINELY STATE OF THE ART HERE — AND WHERE THEY ARE NOT
+## Why EAs are genuinely state of the art here — and where they are not
 THE GENUINE STRENGTHS:
 1. **ONE RUN RETURNS A WHOLE FRONT APPROXIMATION.** This is the structural advantage. A
    scalarization-based pipeline runs one NLP solve per weight vector and must choose the
