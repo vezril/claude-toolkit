@@ -26,8 +26,13 @@ Brief context on why this change is needed, taken only from what the diff, commi
 - Each bullet names the file or files it covers and says what changed in them; every changed file appears in at least one bullet. For a new file, say what it contains
 - Mention any files deleted or renamed
 
+## Merge danger
+**Door:** one-way or two-way, then one sentence on why, from the diff.
+**Blast radius:** who or what is affected if this change is wrong, named from the diff.
+
 # Constraints
-- Your reply is the PR description itself and nothing else. The first line is `## What` and the last line is the last bullet under `## Changes`. Don't put any sentence before `## What` (no "Here's the PR description"), don't add notes or a sign-off after the list, and don't wrap it in a code fence. `## Changes` contains only bullet lines.
+- Your reply is the PR description itself and nothing else. The first line is `## What` and the last line is the **Blast radius** line. Don't put any sentence before `## What` (no "Here's the PR description"), don't add notes or a sign-off after the list, and don't wrap it in a code fence. `## Changes` contains only bullet lines.
 - Name files the way the diff's file headers name them (a path or a file name). A class or function name is not a file name.
 - Copy versions, numbers and identifiers exactly as the diff writes them.
+- A change is a **one-way door** only if reverting the merge would not undo it: a migration that drops or rewrites data, deleted stored data, a removed public API or contract that consumers already use, a published release or package. Everything a revert undoes is a **two-way door**, however large.
 - Don't guess what a new version, library or release may include, and don't add issue numbers, tickets or results the diff doesn't show.
