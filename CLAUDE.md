@@ -26,7 +26,13 @@ The pipeline's own rule is "artifacts drive state" — stale workflow docs break
   identical: `agents/test-writer.md`, `agents/implementer.md`, and the classifier in
   `hooks/enforce-dev-pair-boundary.py`.
 - The story file format is normative: `skills/spec-driven-development/references/story-schema.md`
-  and `scripts/lint-story.py` must change together.
+  and `scripts/lint-story.py` must change together. So must the two files that narrate the gate
+  to a *writer* of stories — `skills/spec-driven-development/SKILL.md` and
+  `agents/story-planner.md`. All four describe who runs `lint-story.py` and when; they were
+  missed once because the mirror list was scoped to the pipeline's own docs, and
+  `TestTheStoryContractMirrorsAgreeWithTheEdge` in `tests/workflow/test_documentation_mirrors.py`
+  now enforces the agreement instead of a review. Markdown is the only story format — a rendered
+  `story.json`/`schemas/story.schema.json` was proposed and retired.
 - The unattended-mode policy lives in three places that must stay consistent:
   the "Unattended mode" section of `skills/sdlc-orchestration/SKILL.md`, the Modes section of
   `agents/sdlc-orchestrator.md`, and the reference templates in `templates/unattended/`.

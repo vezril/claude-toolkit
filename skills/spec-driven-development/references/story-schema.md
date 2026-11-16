@@ -1,8 +1,12 @@
 # Story file schema (normative)
 
 The machine-checkable contract for story files. `scripts/lint-story.py` enforces exactly this;
-the story-planner writes to it; the readiness gate short-circuits on violations. Prose guidance
+the story-planner writes to it; the readiness edge check fails on violations. Prose guidance
 lives in the skill body — this file is the format law. Keep the three in sync.
+
+Markdown is the **only** story format. A schema-backed `story.json` rendered alongside it was
+proposed and retired (see `openspec/changes/certify-sdlc-pipeline/`): it froze a story set
+before the challenge findings that `propose` resolves. There is no second law.
 
 ## Required structure
 
@@ -56,18 +60,36 @@ As a {role}, I want {action}, so that {benefit}.
 Warnings (reported, non-fatal): missing `## Dev Agent Record`; FR/CAP IDs present but no PRD-like
 source to verify them against.
 
-## Gate semantics (short-circuit)
+## Gate semantics (an edge check, not an instruction)
 
-The linter is **layer zero of the readiness gate** and runs before any LLM review:
+The linter is the **deterministic half of the readiness gate**, and in the SDLC pipeline **nobody
+invokes it by choice**. It is declared under `edge_checks` in
+`skills/sdlc-orchestration/workflow.yaml`, keyed on `readiness-verdict.json`, and dispatched by
+`hooks/check-edge.py` (via `scripts/sdlc/readiness-gate.py`, which also runs
+`openspec validate`) when that artifact is written. It used to be an instruction telling the
+orchestrator to run it, which made it no guardrail at all: a model that skipped it produced no
+failure.
 
-- exit `0` — lint-clean; the LLM alignment review (substance: are the criteria *meaningful*?) may proceed.
-- exit `1` — **the gate fails immediately**; the orchestrator returns the report to the story-planner
-  for rewrite (bounded — ~3 iterations, then escalate to the human). No LLM review, no approval,
-  no implementation on a lint-dirty set.
+- exit `0` — lint-clean; the edge passes and the segment may advance.
+- exit `1` — **the edge fails**, the problems are recorded in the trace, and the orchestrator
+  **refuses to advance past the segment's terminus**; the report goes back to the story-planner
+  for rewrite (bounded — ~3 iterations, then escalate to the human). No approval, no
+  implementation on a lint-dirty set.
 
-The split is deliberate: the script owns *form* (deterministic, reproducible), the reviewer owns
-*substance*. A vacuous-but-well-formed criterion ("given the system, when used, then it works")
-passes the linter by design — catching it is the LLM/human reviewer's job.
+**Ordering, stated honestly.** This file used to say the linter "runs before any LLM review".
+It does not. The `readiness` segment is two nodes — `readiness` then `readiness-review` — and the
+reviewer's write of `readiness-verdict.json` is what fires the check. A `PostToolUse` hook cannot
+un-write a file, so the guarantee is not "no LLM review ran on a malformed set"; it is that the
+failure is recorded and advancing past it is refused. The reviewer is also prompted to refute
+rather than confirm, which is the independence that does the work here.
+
+The split of labour is unchanged: the script owns *form* (deterministic, reproducible), the
+reviewer owns *substance*. A vacuous-but-well-formed criterion ("given the system, when used,
+then it works") passes the linter by design — catching it is the reviewer's job.
+
+Run standalone (outside the pipeline) with the usage below; the eval suite
+`evals/readiness-stories/` shells out to this same script for its `schema` criterion, so the
+suite and the edge cannot disagree about what passes.
 
 ## Usage
 
