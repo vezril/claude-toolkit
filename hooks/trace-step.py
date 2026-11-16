@@ -26,6 +26,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 HELPERS = Path(__file__).resolve().parents[1] / "scripts" / "delivery-flow"
+SUBSTRATE = Path(__file__).resolve().parents[1] / "scripts" / "workflow"
+sys.path.insert(0, str(SUBSTRATE))
+import descriptor as workflow_descriptor  # noqa: E402
 
 
 def _common():
@@ -34,13 +37,24 @@ def _common():
     return common
 
 
-def _registry(common, repo):
-    """step -> {tier, certified}: what the registry says this step should have run on."""
+def _registry(common, repo, workflow=None):
+    """step -> {tier, certified}: what the registry says this step should have run on.
+
+    The registry path comes from the workflow's descriptor rather than being spelled out here.
+    A second workflow has its own steps.yaml, and reading the first one's would attribute
+    model drift against tiers that were never declared for these steps.
+
+    No descriptor, or an ambiguous one, yields `{}` — the same answer as a missing registry,
+    which the caller already handles by recording the step without tier information. A trace
+    record with no tier is honest; one checked against the wrong registry is not.
+    """
     import importlib.util
     spec = importlib.util.spec_from_file_location("check_certification", HELPERS / "check-certification.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    reg = common.PLUGIN_ROOT / "skills" / "delivery-flow" / "steps.yaml"
+    if not workflow or not workflow.get("registry"):
+        return {}
+    reg = Path(workflow_descriptor.PLUGIN_ROOT) / workflow["registry"]
     if not reg.exists():
         return {}
     out = {}
@@ -63,7 +77,10 @@ def tier_of(model: str) -> str:
 
 def current_step(repo: Path, common):
     """The step the orchestrator said it was running, and for which item."""
-    for path in sorted(common.artifact_root(repo).glob("*/.current-step")) if common.artifact_root(repo).exists() else []:
+    # Live runs only: a discarded run's leftover `.current-step` would attribute this
+    # session's tokens to a run that has been parked as untrustworthy evidence.
+    for path in [d / ".current-step" for d in common.live_item_dirs(common.artifact_root(repo))
+                 if (d / ".current-step").exists()]:
         doc, err = common.load_json(path)
         if not err and doc.get("step"):
             return doc.get("item") or path.parent.name, doc["step"]
@@ -90,8 +107,11 @@ def main() -> int:
     # the flow is meant to be driven. Orchestrating from a different repo yields no step
     # records, and that absence is honest.
     repo = common.repo_root(Path(payload.get("cwd") or "."))
-    if not common.is_delivery_repo(repo):
+    # Any workflow, resolved from the descriptors: this hook serves whichever one the repo
+    # opted into, and stays inert when that is none.
+    if not workflow_descriptor.any_opted_in([repo]):
         return 0
+    workflow, _err = workflow_descriptor.resolve(repo)
 
     item, step = current_step(repo, common)
     if not item:
@@ -110,7 +130,7 @@ def main() -> int:
     if not transcript or not transcript.exists():
         common.append_trace(repo, item, {
             "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "item": item, "step": step_name, "agent": agent,
+            "item": item, "step": step_name, "agent": agent, "hook": "trace-step",
             "session_id": payload.get("session_id"), "agent_id": payload.get("agent_id"),
             "trace_error": f"transcript not found: {transcript or '(no path in payload)'}",
         })
@@ -152,7 +172,7 @@ def main() -> int:
         return 0
 
     pricing = common.load_pricing()
-    registry = _registry(common, repo)
+    registry = _registry(common, repo, workflow)
     declared = registry.get(step_name, {})
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -162,6 +182,10 @@ def main() -> int:
         declared_tier = declared.get("tier")
         record = {
             "ts": now, "item": item, "step": step_name, "agent": agent,
+            # Names its author, as check-edge's records do. Without it every step record
+            # landed in an unlabelled bucket and a reader could not tell which hook wrote
+            # what — 93 of AN-3702's 127 records were anonymous.
+            "hook": "trace-step",
             "session_id": payload.get("session_id"), "agent_id": payload.get("agent_id"),
             "model": model, "messages": usage["messages"],
             "input_tokens": usage["input_tokens"], "output_tokens": usage["output_tokens"],

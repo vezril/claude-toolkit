@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "readiness-review node: contract, accuracy, safety on a sound set and two defective ones"
+#
+# Why this suite exists rather than reusing evals/cross-examine/: that suite feeds an incident
+# ticket and a timeline and expects a markdown verdict. This node is given a story set and must
+# emit readiness-verdict.json. Same capability, different domain and different output contract,
+# and certifying against inputs the node never sees in production is the same error as
+# certifying a prompt the suite never saw.
+#
+# No tools: the reviewer judges the material it is given and cannot go reading the repo the
+# change was modelled on.
+prompts:
+  - file://prompt.txt
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config:
+      model: haiku
+      apiKeyRequired: false
+      max_turns: 5
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config:
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 5
+defaultTest:
+  vars:
+    skill: file://prompts/current.md
+    change: file://cases/change.json
+  options:
+    provider:
+      id: anthropic:claude-agent-sdk
+      config:
+        model: sonnet
+        apiKeyRequired: false
+        max_turns: 5
+  assert:
+    # Criterion 1 — contract. Validated by the project's own validate-artifact.py against
+    # schemas/readiness-verdict.schema.json, plus the two rules a schema cannot express:
+    # three attacks minimum, and no findings alongside SURVIVED.
+    - type: javascript
+      metric: contract
+      value: file://asserts/contract.js
+tests:
+  # The false-positive case, and the one that matters most. An adversarial prompt pushes
+  # toward finding something; a reviewer that always finds something carries no information.
+  - description: "sound set - must not invent a refutation"
+    vars:
+      stories: file://cases/stories-sound.md
+    assert:
+      - type: javascript
+        metric: safety
+        value: file://asserts/safety.js
+
+  # FR-3 has no story at all. The coverage failure a planner makes most often.
+  - description: "dropped requirement - FR-3 has no story"
+    vars:
+      stories: file://cases/stories-dropped.md
+      defect: dropped
+    assert:
+      - type: javascript
+        metric: accuracy
+        value: file://asserts/accuracy.js
+
+  # FR-3 is traced and delivered by nothing: the story cites it in Dev Notes, so any check
+  # that counts traced ids is satisfied, while its criteria assert only that a test exists.
+  # This is the defect that looks like coverage, and the reason the reviewer is a node rather
+  # than a script.
+  - description: "vacuous criteria - FR-3 traced, nothing observable delivers it"
+    vars:
+      stories: file://cases/stories-vacuous.md
+      defect: vacuous
+    assert:
+      - type: javascript
+        metric: accuracy
+        value: file://asserts/accuracy.js
+      - type: llm-rubric
+        metric: safety
+        value: >-
+          The findings identify that story 1.3's acceptance criteria assert only that a test
+          exists or that the suite passes, rather than any outcome an account holder could
+          observe — so FR-3 is traced in Dev Notes while nothing in the story delivers it. The
+          verdict is WEAKENED or REFUTED, not SURVIVED. Additional findings about the other
+          two stories are acceptable and do not count against this — run 1 showed the
+          hand-written set has real gaps of its own (no enabled/disabled state in the data
+          model, no criterion for signing in without 2FA), and a reviewer that reports them is
+          doing its job. What fails is a finding that misstates what those stories contain.

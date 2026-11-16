@@ -20,12 +20,19 @@ TRIAGE = {"item": "DEM-12", "type": "feature", "path": "standard", "domains": ["
           "architecture_change": False, "breaking_change": False}
 
 
+# These fixtures keep their artifacts in-repo on purpose, which the preflight refuses unless
+# the config says why. Spelled out rather than hidden in a helper: the rule is that a run's
+# ticket text lives in the vault, and a fixture is one of the few honest exceptions.
+ACK = "artifacts:\n  in_repo_ack: test fixture, no real ticket text\n"
+
+
 class Repo:
     def __init__(self, vault=False, item="DEM-12"):
         self.dir = Path(tempfile.mkdtemp())
         (self.dir / ".git").mkdir()
         (self.dir / ".delivery-flow.yaml").write_text(
             "tracker:\n  kind: local-markdown\nforge:\n  kind: github-pr\n"
+            + ACK
             + ("vault:\n  binding: olympus\n" if vault else "vault:\n  binding: null\n"))
         self.item = item
         self.item_dir = self.dir / "delivery" / item

@@ -1,0 +1,139 @@
+# The SDLC pipeline's workflow descriptor — the second workflow, and the reason the substrate
+# exists.
+#
+# Read by `scripts/workflow/descriptor.py`, the same parser and the same stdlib subset as
+# `skills/delivery-flow/workflow.yaml`. If this file needed a parser change, the substrate
+# would have been shaped around one workflow and the generalisation would not have been real.
+#
+# **Nothing here is certified.** `skills/sdlc-orchestration/steps.yaml` marks every node
+# `certified: false`, and `check-certification.py` blocks delegation to an uncertified step, so
+# declaring this pipeline does not make it runnable. That is deliberate: the declaration is
+# what section 5 certifies against, segment by segment, starting with `readiness` (design D6).
+
+workflow: sdlc
+
+# A distinct opt-in file, so a repo can run the delivery flow, this pipeline, both, or neither.
+# A repo holding only `.delivery-flow.yaml` is not an sdlc repo and its hooks must not fire
+# here — which is what `registry.known` enforces by consulting each workflow's own predicate.
+config_name: .sdlc.yaml
+
+# A distinct artifact directory for the same reason. Two workflows writing into one directory
+# would make `parse_artifact_path` ambiguous and an item key could belong to either.
+artifact_dir: sdlc
+
+sign_namespace: sdlc-decision
+
+schemas: schemas
+registry: skills/sdlc-orchestration/steps.yaml
+profiles: templates/sdlc/profiles.yaml
+
+# Extra edge checks, keyed by the artifact written (design D4). The edge hook runs these after
+# a node's write, in addition to schema and sentinel. This is how the readiness gate stopped
+# being an instruction: `lint-story.py` and `openspec validate` are deterministic and neither
+# was a guardrail while a model had to choose to run them.
+#
+# Declared here rather than hard-coded in the hook. `check-edge.py` had
+# `if path.name == "proposal.json"` written into it, which is one workflow's checker inside
+# the shared machinery; a second workflow could not add one without editing the hook.
+edge_checks:
+  readiness-verdict.json: scripts/sdlc/readiness-gate.py
+
+# What a review verdict means for the flow (design D5). The rules live in
+# `scripts/workflow/verdict.py`; only the WEAKENED policy is a choice, and it differs between
+# the two workflows — which is why it is declared rather than decided in the substrate.
+#
+# `require-addressed`: WEAKENED blocks until the reviewed artifact has been rewritten, and then
+# the reviewer runs again. There is deliberately no path from WEAKENED to advance that skips a
+# fresh verdict, because "the findings are addressed" is exactly the claim an edge exists to
+# not take on trust. These stories feed a build; delivery-flow's breakdown feeds a brief a
+# human reads, which is why its answer is different and equally correct.
+verdict_policy:
+  weakened: require-addressed
+
+# Punch-out triggers for this workflow (task 6.1). A punch-out is a point where the flow stops
+# and a human decides; `hooks/enforce-punch-outs.py` refuses outward actions while one is open.
+#
+# `gate: human` on a segment means advancing past its terminus needs a signed decision. These
+# four are not invented here — they are the approvals
+# `docs/using-the-sdlc-dev-team.md` already documents, moved from prose a model has to remember
+# into data the machinery reads. Everything between them runs unattended.
+#
+# The other triggers are policy, so the *kinds* are declared here and the *values* live in each
+# repo's `.sdlc.yaml`: which paths are protected and what the ceilings are depend on the repo,
+# and a plugin-level default would either be wrong everywhere or quietly permissive.
+punch_out:
+  # Segment boundaries that require a human decision before the flow advances.
+  human_gates: [analysis, planning, readiness, verification]
+
+  # Trigger kinds this workflow raises. Named so a bypass run can enumerate them rather than
+  # being handed a list by hand — a gate nobody attacked is a gate nobody tested.
+  triggers: [phase-gate, protected-path, budget, retry-limit, refuted-twice, external-post]
+
+  # Ceilings. Defaults here, overridable per repo; these match
+  # `templates/unattended/unattended-policy.yml` so the attended and unattended pipelines do
+  # not disagree about the same number.
+  retry_limit: 3
+  max_rewrite_iterations: 3
+  max_turns_per_phase: 60
+  max_minutes_per_job: 30
+  consecutive_escalations: 3
+
+# The routing table, one row per **segment** (design D1). A segment is a 2–3 node chain with
+# schema-backed artifacts between its nodes, a deterministic edge after each write, a declared
+# terminus, and a hand-off that is either data the next segment consumes or prose a human reads
+# at a gate.
+#
+#   artifact   what must exist for routing to advance past this segment
+#   step       the segment name, used by the trace, the registry and the profiles
+#   kind       `segment` — a chain of nodes, not a single step
+#   nodes      the registry steps inside it, in order
+#   terminus   the node the segment ends on
+#   handoff    `data` (consumed by the next segment) or `prose` (read by a human)
+#
+# `readiness` hands off markdown stories plus a verdict rather than the `story.json[]` D1's
+# table names. That changed when `render-stories.py` was retired: the schema-backed story set
+# went with it, and the markdown path that `lint-story.py` owns is what survived. The verdict
+# is the schema-backed artifact routing keys on, and the stories are what it is a verdict
+# about.
+steps:
+  - artifact: brief.json
+    step: analysis
+    kind: segment
+    nodes: [analysis]
+    terminus: analysis
+    handoff: data
+
+  - artifact: prd-verdict.json
+    step: planning
+    kind: segment
+    nodes: [planning, planning-review]
+    terminus: planning-review
+    handoff: data
+
+  - artifact: design-verdict.json
+    step: solutioning
+    kind: segment
+    nodes: [solutioning, solutioning-review]
+    terminus: solutioning-review
+    handoff: data
+
+  - artifact: readiness-verdict.json
+    step: readiness
+    kind: segment
+    nodes: [readiness, readiness-review]
+    terminus: readiness-review
+    handoff: data
+
+  - artifact: implementation.json
+    step: implementation
+    kind: segment
+    nodes: [implementation, implementation-green]
+    terminus: implementation-green
+    handoff: data
+
+  - artifact: outcome.json
+    step: verification
+    kind: segment
+    nodes: [verification, verification-ci]
+    terminus: verification-ci
+    handoff: data

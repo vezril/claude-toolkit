@@ -42,7 +42,7 @@ Adversarial validation:
 
 Agentic SDLC team:
 
-- **`sdlc-orchestrator.md`** — drives a feature through analysis → planning → solutioning → implementation; opens the feature's OpenSpec change at Solutioning (`openspec new change` + proposal.md) and names `openspec archive` as the human-triggered close-out; delegates to the specialists, gates handoffs (readiness = lint-story.py **and** `openspec validate`, either failure short-circuits), keeps a human in the loop (plans/routes, doesn't write the content artifacts). Supports an opt-in **unattended mode** (trust rung 1: CI-triggered via `templates/unattended/`, mechanical gates + refuting review, ends at a PR — merge and archive stay human).
+- **`sdlc-orchestrator.md`** — drives a feature through analysis → planning → solutioning → implementation; opens the feature's OpenSpec change at Solutioning (`openspec new change` + proposal.md) and names `openspec archive` as the human-triggered close-out; delegates to the specialists, gates handoffs, keeps a human in the loop (plans/routes, doesn't write the content artifacts). The readiness gate is **not its job to invoke**: `lint-story.py` and `openspec validate` are `edge_checks` declared in `skills/sdlc-orchestration/workflow.yaml` and run by `hooks/check-edge.py` when `readiness-verdict.json` is written — either failure is recorded in the trace and the orchestrator refuses to advance. The pipeline is registered as six **segments** in that descriptor (`analysis`, `planning`, `solutioning`, `readiness`, `implementation`, `verification`); only `readiness` is certified, and `check-certification.py` blocks unattended delegation to the rest. Supports an opt-in **unattended mode** (trust rung 1: CI-triggered via `templates/unattended/`, mechanical gates + refuting review, ends at a PR — merge and archive stay human).
 - **`requirements-analyst.md`** — elicits and writes the PRD/SRS or SPEC; measurable NFRs, INVEST stories, locks the *what* before the *how*.
 - **`solution-architect.md`** — turns requirements into architecture (characteristics → style trade-offs → components → ADRs → risk storming → C4).
 - **`story-planner.md`** — builds the change's delta specs and tasks.md, and decomposes PRD + architecture into epics and self-contained, INVEST, traceable story files (tasks.md references the stories).
@@ -92,6 +92,7 @@ Active coding / operations:
 - **`ios-app-debugger.md`** — builds/runs/debugs iOS/macOS apps on the simulator; reproduces, profiles, and fixes runtime issues.
 - **`apple-release-manager.md`** — packages/signs/notarizes SwiftPM macOS apps and generates App Store release notes.
 - **`issue-fixer.md`** — takes a GitHub issue end to end (gh → fix → build/test → commit & push); domain-neutral.
+- **`application-reviewer.md`** — assesses the user's **own** CV against **one** job posting: a four-part verdict (knockout exposure, likely AI tier, parse health, ranking signals) with verbatim evidence, and no match percentage. Binds `ats-screening`; the deterministic half lives in `scripts/application-review/` (extraction + parse health, merged-range years arithmetic, verbatim-quote and honesty edges, verdict composition, report rendering). Refuses third-party/bulk CVs, fabrication, hidden text and protected-trait inference. `Write` is scoped to the run's temp directory.
 
 Communications & writing:
 

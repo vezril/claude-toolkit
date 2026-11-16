@@ -70,7 +70,7 @@ See `references/elicitation-and-validation.md` for the fuller catalog and how to
 
 ## Validation / Definition of Ready
 
-A PRD/story isn't done because it's written — review it (ideally with a **different, stronger model** per [[sdlc-orchestration]]):
+A PRD/story isn't done because it's written — review it with a checker **independent** of whatever wrote it: a different model, or the same model in a fresh context prompted to refute (per [[sdlc-orchestration]] — independence, not a bigger model):
 
 - Are all quality requirements **measurable**? Are FRs **testable** and ID'd?
 - Do success metrics map to FRs? Are **non-goals** explicit? **Counter-metrics** present?

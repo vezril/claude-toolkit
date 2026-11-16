@@ -66,7 +66,7 @@ As a {role}, I want {action}, so that {benefit}.
 
 The **References** section is what makes it self-contained — it points at the exact spec/architecture sections, so the dev agent loads only those. Acceptance criteria are the contract for [[tdd]] and [[test-strategy]].
 
-This format is **normative and machine-checked**: `references/story-schema.md` pins down the exact grammar, and `scripts/lint-story.py` enforces it deterministically (structure, Given/When/Then ordering, task↔AC mapping closure, `[Source:]` resolution, FR/CAP traceability) as layer zero of the readiness gate in [[sdlc-orchestration]] — a violation short-circuits the gate and returns the story for rewrite. The linter owns form; whether a criterion is *meaningful* stays with the reviewer.
+This format is **normative and machine-checked**: `references/story-schema.md` pins down the exact grammar, and `scripts/lint-story.py` enforces it deterministically (structure, Given/When/Then ordering, task↔AC mapping closure, `[Source:]` resolution, FR/CAP traceability). In [[sdlc-orchestration]] it is the deterministic half of the readiness gate and runs as an **edge check on a hook** — declared under `edge_checks` in `skills/sdlc-orchestration/workflow.yaml` and dispatched by `hooks/check-edge.py` when `readiness-verdict.json` is written. Nobody chooses to run it, and nobody can skip it; a violation fails the edge, is recorded in the trace, and the orchestrator refuses to advance until the story is rewritten. Markdown is the only story format — a rendered `story.json` was proposed and retired. The linter owns form; whether a criterion is *meaningful* stays with the reviewer.
 
 ## Document sharding (context management)
 

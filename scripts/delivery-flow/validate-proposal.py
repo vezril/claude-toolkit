@@ -78,7 +78,20 @@ def openspec_layer(repo: Path, change_id: str) -> dict:
 
 
 def problems(path: Path, repo: Path = None) -> tuple:
-    """(problems, info) for one proposal.json. Never raises on bad input."""
+    """(problems, info) for one proposal.json. Never raises on bad input.
+
+    `repo` is the **code** repository — the one whose `openspec/changes/` this proposal is a
+    contract about. **Pass it.** It is not derivable from `path`: with `artifacts.root`
+    pointing outside the project, `proposal.json` sits in the vault, and walking up from it
+    finds the vault or nothing at all. `hooks/check-edge.py` hands in the repo its
+    `identify()` resolved, and the CLI takes `--repo`.
+
+    The fallback inference remains for the in-repo layout, where the artifact really does live
+    under the code repo. When it is wrong it is now wrong *loudly*: the missing-change-directory
+    message names the absolute path it looked in, because the relative form read as "the node
+    never created the directory" when the truth was "the checker looked in the wrong repo" —
+    a check that blames the artifact for its own misresolution is worse than one that fails.
+    """
     repo = repo or repo_root(path.parent)
     doc, err = load_json(path)
     if err:
@@ -93,8 +106,8 @@ def problems(path: Path, repo: Path = None) -> tuple:
         out.append(f"change_path {declared!r} is outside the repository")
     if not change_dir.is_dir():
         shown = declared or f"openspec/changes/{change_id}"
-        out.append(f"no change directory at {shown}")
-        return out, {"change_id": change_id}
+        out.append(f"no change directory at {shown} (looked in {change_dir})")
+        return out, {"change_id": change_id, "repo": str(repo)}
 
     for name in REQUIRED_ARTIFACTS:
         if not (change_dir / name).is_file():

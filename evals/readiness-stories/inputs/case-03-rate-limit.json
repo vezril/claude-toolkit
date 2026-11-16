@@ -1,0 +1,14 @@
+{
+  "change_id": "add-api-rate-limit",
+  "goal": "Protect the public API from a single client exhausting it, without breaking the two integration partners who already burst well above the intended limit.",
+  "requirements": [
+    {"id": "FR-1", "text": "A request over the per-key limit is rejected with 429 and a Retry-After header saying when to try again."},
+    {"id": "FR-2", "text": "An API key can be given a custom limit that overrides the default, so the two existing integration partners keep working unchanged."},
+    {"id": "CAP-1", "text": "Rate-limit counters survive an application restart, because restarting must not hand every client a fresh budget."}
+  ],
+  "architecture": "FastAPI service behind nginx. Redis is already in the stack for caching and is the intended counter store. Limits are per API key, read from an existing `api_keys` table that has no limit column yet.",
+  "sources": {
+    "docs/prd.md": "# PRD: API rate limiting\n\n## FR-1\nA request over the per-key limit is rejected with 429 and a Retry-After header saying when to try again.\n\n## FR-2\nAn API key can be given a custom limit that overrides the default, so the two existing integration partners keep working unchanged.\n\n## CAP-1\nRate-limit counters survive an application restart, because restarting must not hand every client a fresh budget.\n",
+    "docs/architecture.md": "# Architecture\n\n## counter-store\nRedis is already in the stack and is the intended counter store.\n\n## data-model\nLimits are per API key, read from the existing `api_keys` table, which has no limit column yet.\n"
+  }
+}

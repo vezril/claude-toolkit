@@ -46,6 +46,13 @@ ALLOWED_TIERS = {"haiku", "sonnet"}
 LOG_LABELS = ("baseline", "hypothesis", "change", "result", "reasoning")
 
 
+# The fields a certified step must carry. Module-level so a test can assert against
+# *this* list rather than a hand-copied one: a checker and its test disagreeing about
+# what counts as evidence is how a step passes a weaker bar than the gate enforces.
+REQUIRED_FIELDS = ("prompt", "tier", "results", "prompt_sha256", "criteria",
+                   "iteration_log", "load_bearing", "certified_version")
+
+
 def _scalar(v: str):
     v = v.strip()
     if v in ("", "null", "~"):
@@ -172,7 +179,7 @@ def complete_iterations(path: Path) -> int:
 def check_step(entry: dict, root: Path) -> list:
     problems = []
     name = entry.get("step", "?")
-    req = ["prompt", "tier", "results", "prompt_sha256", "criteria", "iteration_log", "load_bearing", "certified_version"]
+    req = list(REQUIRED_FIELDS)
     missing = [k for k in req if not entry.get(k)]
     if missing:
         return [f"missing registry fields: {', '.join(missing)}"]

@@ -21,8 +21,9 @@ evals/<skill>/
 Every config points `defaultTest.vars.skill` at `file://../../skills/<skill>/SKILL.md` and runs
 the shared `prompt.txt`, which injects the skill and the test's `{{request}}`.
 
-Suites currently in the repo: **akka**, **calvin-voice**, **cross-examine**, **detect-ai**,
-**diagnosing-bugs**, **finch**, **grilling**, **handoff**, **humanize**, **intentional**
+Suites currently in the repo: **akka**, **application-reviewer**, **calvin-voice**,
+**cross-examine**, **detect-ai**, **diagnosing-bugs**, **finch**, **grilling**, **handoff**,
+**humanize**, **intentional**
 (intentional-daily, intentional-weekly, aversion-breaker), **outreach**, **phq-9**, **pr-description**,
 **wizard**, **writing-for-agents**. `intentional` uses its own provider (`provider.js`): each case runs in a
 fresh copy of a synthetic Obsidian vault and the asserts grade the file diff as well as the reply.
@@ -33,6 +34,19 @@ writing-for-agents) run through their own `run.sh`, which gives the agent a temp
 and scans its tool calls for paths outside it. `diagnosing-bugs` lets the agent edit (Bash
 sandboxed, Edit/Write limited to the copy) and grades the code it leaves; `wizard` runs each
 generated script in a pseudo-terminal (`drive.py`) against stub `gh`/`open`.
+
+`application-reviewer` is the only suite whose cases, gold labels and `tests.yaml` are all
+**generated**: `fixtures/cases.py` holds the hand-written CVs, postings and per-requirement gold,
+and `fixtures/build.py` writes the real PDFs and DOCX (`docgen.py`, standard library only), runs
+the real `extract.py` for each case's `parse.json`, and derives the gold verdict by pushing the
+hand-written statuses through the real `verdict.py` — so a label that contradicts the code fails
+at build time instead of being scored. `run.sh` refuses to run against a stale tree
+(`build.py --check`) or an uncalibrated grader (`calibration/run.py`). All grading lives in one
+Python script (`grade.py`) that imports the pipeline's own `contracts.py`, `edges.py` and
+`verdict.py`; the JS asserts are three-line adapters, so the suite cannot drift from what the
+skill actually enforces. It also carries a naive-baseline arm with two extra prose-capable
+measurements (`coverage`, `no_score`), because the naive prompt scores a flat zero on all three
+certified criteria and that comparison on its own says nothing.
 
 `finch` is the one suite that ships a **paired naive-baseline arm**
 (`promptfooconfig.local.baseline.yaml`): same model, same asserts, same `tests.yaml`, no
@@ -142,6 +156,47 @@ failure tells you *which dimension* regressed.
    - a *factual* skill → the specific claims survive
 4. Nothing to wire in CI — [`.github/workflows/skill-evals.yml`](../.github/workflows/skill-evals.yml)
    auto-discovers every `evals/*/promptfooconfig.yaml`.
+
+## Certifying a *node* prompt (a different kind of suite)
+
+Most suites here test a **skill**: `defaultTest.vars.skill` points at a `SKILL.md`, and the thing
+measured is whether that instruction set holds its rails. A handful test a **node** instead — a
+single prompt that a workflow step runs in production, which must clear a Stage 3 bar before the
+step may be delegated to at all. `evals/readiness-stories/` and `evals/readiness-review/` are the
+two built so far.
+
+What differs, and why it is not optional:
+
+- **The prompt is a versioned file, not the skill.** `prompts/prompt_v1.md … prompt_vN.md` with
+  `prompts/current.md` as the one the config loads. The version numbers are the evidence trail
+  for the iteration log; without them "the prompt improved" is unfalsifiable.
+- **A registry entry binds the suite to the running prompt.**
+  `skills/sdlc-orchestration/steps.yaml` records, per node: the production `prompt:` path and its
+  `prompt_sha256`, the `certified_version:` the suite actually scored, the `tier:`, the `eval:`
+  directory, and the `results:` file. `scripts/delivery-flow/check-certification.py` re-hashes the
+  production prompt and **blocks delegation when it has drifted** from the certified version.
+  Editing a node prompt un-certifies the step until the suite is re-run — that is the point, not
+  a snag.
+- **Certifying against the wrong inputs is the easy mistake.** A node suite must feed the node
+  what production feeds it and demand the artifact production demands. `readiness-review` was
+  nearly satisfied by reusing `evals/cross-examine/`, which shares the capability but hands the
+  model an incident ticket and expects markdown; this node is handed a story set and must emit
+  `readiness-verdict.json`. Reusing it would have certified a contract the node never honours.
+- **Three consecutive runs at the declared tier**, cheapest first: haiku, then sonnet, frontier
+  only with a committed results file showing the cheaper tier *below* the bar on the same suite.
+  Both readiness nodes are certified on haiku.
+- **`load-bearing.md` and `iteration-log.md` are required artifacts**, not notes. The log's
+  sections carry five labels (baseline / hypothesis / change / result / reasoning) and
+  `check-certification.py` counts them — so a fix to a broken *assert* cannot be passed off as
+  prompt development. Three of `readiness-stories`' four iterations were exactly that, and the
+  log says so.
+- **`score.js` + `run.sh` report per-criterion metrics**, because a single pass rate hides which
+  dimension regressed. Be suspicious of a green score: `score.js` once printed PASS at 100% on a
+  run where four of six cases had *errored*.
+
+Node suites are discovered by CI the same way as skill suites — there is nothing extra to
+register — but a green node suite is only half the artifact. The registry entry is what makes it
+enforceable.
 
 ## CI
 

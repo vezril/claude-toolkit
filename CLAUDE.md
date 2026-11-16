@@ -26,7 +26,13 @@ The pipeline's own rule is "artifacts drive state" — stale workflow docs break
   identical: `agents/test-writer.md`, `agents/implementer.md`, and the classifier in
   `hooks/enforce-dev-pair-boundary.py`.
 - The story file format is normative: `skills/spec-driven-development/references/story-schema.md`
-  and `scripts/lint-story.py` must change together.
+  and `scripts/lint-story.py` must change together. So must the two files that narrate the gate
+  to a *writer* of stories — `skills/spec-driven-development/SKILL.md` and
+  `agents/story-planner.md`. All four describe who runs `lint-story.py` and when; they were
+  missed once because the mirror list was scoped to the pipeline's own docs, and
+  `TestTheStoryContractMirrorsAgreeWithTheEdge` in `tests/workflow/test_documentation_mirrors.py`
+  now enforces the agreement instead of a review. Markdown is the only story format — a rendered
+  `story.json`/`schemas/story.schema.json` was proposed and retired.
 - The unattended-mode policy lives in three places that must stay consistent:
   the "Unattended mode" section of `skills/sdlc-orchestration/SKILL.md`, the Modes section of
   `agents/sdlc-orchestrator.md`, and the reference templates in `templates/unattended/`.
@@ -50,6 +56,18 @@ The pipeline's own rule is "artifacts drive state" — stale workflow docs break
   consults. Adapters map remote fields; they never re-decide policy. The contract and each
   adapter's field mapping are documented in `skills/delivery-flow/references/adapters.md` —
   change a mapping and change that reference.
+- The application-reviewer's five step contracts live only in
+  `scripts/application-review/contracts.py`. `skills/ats-screening/references/contracts.md` is
+  **generated** from it by `scripts/application-review/gen_contracts_doc.py --write`, and
+  `tests/application-review/test_contracts.py` fails when the two drift — change the module and
+  regenerate the doc in the same commit. `edges.py` validates against the same module, so the
+  page the model reads and the checker that judges its output cannot disagree.
+- The application-reviewer's eval fixtures and gold are generated too:
+  `evals/application-reviewer/fixtures/cases.py` holds the hand-written cases and
+  `fixtures/build.py` writes `cases/`, `expected/` and `tests.yaml`. Run `build.py` after editing
+  `cases.py`; `build.py --check` fails on a stale tree and `run.sh` refuses to run a suite
+  against one. The gold verdict is derived by pushing the hand-written statuses through the real
+  `verdict.py`, so a label that contradicts the code is caught at build time rather than scored.
 - `load_roster` in `scripts/delivery-flow/common.py` parses
   `templates/delivery-flow/roster.yaml`, whose closed vocabulary of work kinds is repeated in
   `skills/delivery-flow/references/roster.md` and in `tests/delivery-flow/test_roster.py`.
