@@ -48,6 +48,11 @@ skill actually enforces. It also carries a naive-baseline arm with two extra pro
 measurements (`coverage`, `no_score`), because the naive prompt scores a flat zero on all three
 certified criteria and that comparison on its own says nothing.
 
+`pocock-folds` measures the guidance folded from the same repo into four existing skills
+(software-design, tdd, domain-driven-design, software-architecture): v1 is each skill as it was on
+`main`, v2 with the fold, nine cases graded on the behaviour the fold adds (target) and on what the
+skill already did (guard). It also runs through `run.sh` with a temp world and a tool-call scan.
+
 `finch` is the one suite that ships a **paired naive-baseline arm**
 (`promptfooconfig.local.baseline.yaml`): same model, same asserts, same `tests.yaml`, no
 `SKILL.md` in context. Run both and the difference is the skill's measured value rather than

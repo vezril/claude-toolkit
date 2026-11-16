@@ -24,6 +24,23 @@ What becomes easier AND harder as a result — the positive and the
 **negative** outcomes, and any new risks/follow-ups.
 ```
 
+**When an ADR is worth writing.** All three must hold: hard to reverse, surprising without context,
+the result of a real trade-off. What typically qualifies: the architectural shape ("the write model is
+event-sourced, the read model is projected into Postgres"); integration patterns between contexts
+("ordering and billing talk through domain events, not synchronous HTTP"); technology choices with
+lock-in (the database, the message bus, the auth provider: the ones that take a quarter to swap, not
+every library); boundary and scope decisions, including the explicit no's; deliberate deviations from
+the obvious path ("manual SQL instead of an ORM because …"), which stop the next engineer "fixing"
+something deliberate; constraints the code can't show ("no AWS: compliance"); and rejected
+alternatives whose rejection isn't obvious.
+
+**The short form.** For a smaller decision that still clears all three tests, one paragraph is
+enough: context, what was decided, why. Add Status when decisions get revisited, and Considered
+Options or Consequences only when they say something non-obvious. The value is recording *that* a
+decision was made and *why*, not filling in sections. (The three-test gate and the short form are
+adapted from Matt Pocock's `domain-modeling` skill, mattpocock/skills, MIT; see
+`THIRD_PARTY_NOTICES.md`.)
+
 Keep them immutable: don't edit an accepted ADR — supersede it with a new one and mark the old `Superseded by`. ADRs give you a decision log that survives team turnover and prevents re-litigating settled questions.
 
 **Decision anti-patterns (ch. 19):**

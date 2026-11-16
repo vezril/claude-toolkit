@@ -42,7 +42,7 @@ A **module** (class, file, service, subsystem) has an **interface** (what a call
 4. **Different layer → different abstraction.** Adjacent layers should offer different abstractions; if a method just forwards to another with the same signature (pass-through), or a variable is threaded through many layers unused (pass-through variable), collapse or redesign.
 5. **Pull complexity downward** — it's better for the *module* to absorb complexity (e.g. sensible defaults, handling edge cases internally) than to push it up to many callers. A developer-author suffers complexity once so every caller is spared.
 6. **Define errors out of existence** — the best exception handling is to design the API so the error *can't occur* (e.g. make an operation idempotent, or define semantics so the "error" is normal). Failing that, **mask** exceptions low down, **aggregate** handling, or even just crash for unrecoverable cases — anything to reduce the number of places that handle exceptions.
-7. **Design it twice** — consider at least two genuinely different designs for any important interface/module before choosing; comparing alternatives produces far better results than taking the first idea.
+7. **Design it twice** — consider at least two genuinely different designs for any important interface/module before choosing; comparing alternatives produces far better results than taking the first idea. For an interface that matters, run it as parallel subagents under opposing constraints: `references/seams-and-testing.md`.
 8. **Better together or apart?** Bring pieces together if they share information, simplify the interface, or eliminate duplication; keep them apart to separate general-purpose from special-purpose code. Don't split methods just to make them short.
 
 ## The famous divergences from Clean Code (apply judgment)
@@ -70,6 +70,7 @@ Several APoSD principles are structural defaults in [[functional-programming]] /
 
 - **`references/deep-modules.md`** — Ch. 4–9: deep vs shallow modules & classitis, information hiding & leakage, general-purpose modules, different-layer/different-abstraction (pass-through methods/variables, decorators), pull complexity downward, better-together-or-apart.
 - **`references/comments-names-design.md`** — Ch. 11–18: design it twice, the comments chapters (the four excuses, describe what isn't obvious, write comments first), choosing names, modifying existing code, consistency, code should be obvious.
+- **`references/seams-and-testing.md`** — the working procedure for one deepening: classify each dependency (in-process, local-substitutable, remote-but-owned, true external) to pick the test strategy, "one adapter is a hypothetical seam, two make it real", replace-don't-layer testing, the deletion test, and design-it-twice as parallel subagents.
 - **`references/errors-trends-redflags.md`** — Ch. 2 (complexity in depth), Ch. 10 (define errors out of existence), Ch. 19 (software trends & critiques), Ch. 20 (designing for performance), and the book's **Summary of Design Principles** and **Summary of Red Flags**.
 
 ## Related
