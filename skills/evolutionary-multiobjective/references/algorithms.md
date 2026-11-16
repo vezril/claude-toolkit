@@ -12,7 +12,7 @@ survey, Tanabe & Ishibuchi RE suite (arXiv:2009.12867).
 Note: sciencedirect.com, research-collection.ethz.ch and IEEE Xplore HTML all
 return 403 to automated fetching.
 
-## 3.1 FOUNDATIONS
+## Foundations
 
 PARETO DOMINANCE (minimising all M objectives; f: X -> R^M). For u, v in R^M:
 - **WEAK DOMINANCE** u <= v  <=>  u_i <= v_i for all i. (Reflexive.)
@@ -43,7 +43,7 @@ of Pareto optimal vectors [the] PF."] Different decision vectors can map to the 
 objective vector — the WFG paper's term is "PARETO MANY-TO-ONE", which it notes
 holds for most DTLZ problems.
 
-### IDEAL AND NADIR POINTS
+### Ideal and nadir points
 - **IDEAL** z* with z*_i = min_{x in X} f_i(x). Generally infeasible when objectives
   conflict.
 - **NADIR** z^nad_i = max_{x in PS} f_i(x) — the componentwise worst value **OVER
@@ -53,7 +53,7 @@ holds for most DTLZ problems.
 NSGA-III estimates the ideal point per generation as z^min_j = min_{s in S_t} f_j(s)
 and estimates the nadir implicitly via hyperplane intercepts (§3.3). [VFT]
 
-### NON-DOMINATED SORTING
+### Non-dominated sorting
 
 partition a population P into fronts F_1, F_2, ... where F_1
 is the non-dominated subset of P, F_2 the non-dominated subset of P \ F_1, etc. The
@@ -96,6 +96,9 @@ efficient, and in the convex case the converse holds. Textbook: Miettinen,
 10.1007/978-1-4615-5563-6 [DOI V] — this is reference [1] of the MOEA/D paper.
 
 THE ALTERNATIVES THAT **CAN** REACH NON-CONVEX REGIONS:
+
+#### Weighted Tchebycheff
+
 **WEIGHTED TCHEBYCHEFF / CHEBYSHEV (weighted L_inf):**
     minimise g^te(x | lambda, z*) = max_{1<=i<=M} lambda_i * |f_i(x) - z*_i|
 Because the level sets are axis-aligned L_inf "boxes" rather than hyperplanes, the
@@ -107,6 +110,9 @@ solution of (1)." (Technically it finds WEAKLY Pareto-optimal points in degenera
 cases; augmented/epsilon-perturbed Tchebycheff fixes that.) The paper also records
 the cost: "One weakness with this approach is that its aggregation function is **not
 smooth** for a continuous MOP" — fine inside an EA, which never differentiates it.
+
+#### Achievement scalarizing function (ASF)
+
 **ACHIEVEMENT SCALARIZING FUNCTION (ASF), Wierzbicki:**
     ASF(x | z-bar, w) = max_{1<=i<=M} (f_i(x) - z-bar_i) / w_i
     (+ optional augmentation rho * SUM_i (f_i - z-bar_i)/w_i)
@@ -117,11 +123,14 @@ ability to reach concave regions; and z-bar can be an ASPIRATION (preference) po
 The augmented form guarantees proper efficiency. *** THIS IS EXACTLY THE FUNCTION
 NSGA-III USES to locate its extreme points (§3.3), and pymoo ships `ASF` and `AASF`
 as decomposition objects. ***
+
+#### PBI (penalty-based boundary intersection)
+
 **PBI (penalty-based boundary intersection)** — §3.4; also reaches non-convex
 fronts, and derives from Das & Dennis's Normal-Boundary Intersection (DOI
 10.1137/S1052623496307510, V).
 
-## 3.2 NSGA-II — THE ACTUAL ALGORITHM
+## NSGA-II — the actual algorithm
 **Deb, Pratap, Agarwal & Meyarivan, "A fast and elitist multiobjective genetic
 algorithm: NSGA-II", IEEE Transactions on Evolutionary Computation 6(2):182-197,
 April 2002. DOI 10.1109/4235.996017 — DOI VERIFIED** (Crossref returns exactly this
@@ -244,7 +253,7 @@ density. Documented consequences:
   Algorithms in Many-Objective Optimization", IEEE TEVC 18(3):348-365, 2014, DOI
   10.1109/TEVC.2013.2262178. [bibliographic data V via OpenAlex]
 
-## 3.3 NSGA-III AND THE MANY-OBJECTIVE PROBLEM
+## NSGA-III and the many-objective problem
 **Deb & Jain, "An Evolutionary Many-Objective Optimization Algorithm Using
 Reference-Point-Based Nondominated Sorting Approach, Part I: Solving Problems With
 Box Constraints", IEEE TEVC 18(4):577-601, August 2014. DOI
@@ -293,7 +302,7 @@ it at n = 100 gives fractions 0.046 (M=2), 0.106 (M=3), 0.187 (M=5), **0.026
 (M=10)** — the M=10 value is WILDLY BELOW the simulated 0.938 because 100 << e^10.
 USE THE SIMULATION NUMBERS, NOT THE ASYMPTOTIC, FOR REALISTIC POPULATION SIZES. ***
 
-### WHAT CHANGED FROM NSGA-II
+### What changed from NSGA-II
 
 The elitist shell is UNCHANGED: combine R_t = P_t ∪ Q_t,
 non-dominated sort, fill fronts until |S_t| >= N; if it fills exactly, done. *** THE
@@ -416,7 +425,10 @@ front's NON-EUCLIDEAN geometry rather than assuming a simplex) — Panichella, G
 lowercase "non-euclidean"]; AGE-MOEA2 follows in GECCO 2022, pp. 565-573, DOI
 10.1145/3512290.3528732.
 
-## 3.4 SPEA2 AND MOEA/D
+## SPEA2 and MOEA/D
+
+### SPEA2
+
 **SPEA2.** Zitzler, Laumanns & Thiele, "SPEA2: Improving the Strength Pareto
 Evolutionary Algorithm", **TIK-Report 103**, Computer Engineering and Networks
 Laboratory (TIK), ETH Zurich, 2001. ETH Research Collection DOI
@@ -479,6 +491,8 @@ exactly R(i) = 0 by the D(i) < 1 bound). Then three cases:
 ONE MORE SPEA2 DIFFERENCE, verbatim: "**only members of the archive participate in the
 mating selection process.**" Mating selection is binary tournament with replacement on
 the archive.
+
+### MOEA/D
 
 **MOEA/D.** Zhang & Li, "MOEA/D: A Multiobjective Evolutionary Algorithm Based on
 Decomposition", IEEE TEVC **11(6):712-731, December 2007. DOI
@@ -597,7 +611,10 @@ Computation* 22(2):231-264, 2014, DOI 10.1162/EVCO_a_00109. **MOEA/D-EGO**
 (surrogate-assisted) — Zhang, Liu, Tsang & Virginas, IEEE TEVC 14(3):456-474, 2010,
 DOI 10.1109/TEVC.2009.2033671. [all DOIs V]
 
-## 3.5 THE INDICATOR-BASED FAMILY
+## The indicator-based family
+
+### SMS-EMOA
+
 **SMS-EMOA.** Beume, Naujoks & Emmerich, "SMS-EMOA: Multiobjective selection based on
 dominated hypervolume", *European Journal of Operational Research* 181(3):1653-1669,
 September 2007. **DOI 10.1016/j.ejor.2006.08.008 — DOI VERIFIED.**
@@ -643,6 +660,8 @@ INDICATOR is not.
 pymoo's implementation [V, docs fetched 2026-11-11]: computes EXACT hypervolume
 contributions for **up to five objectives** via the **`moocore`** library, and
 **switches to an approximation automatically above five objectives.**
+
+### IBEA
 
 **IBEA.** Zitzler & Künzli, "Indicator-Based Selection in Multiobjective Search",
 *PPSN VIII*, LNCS 3242, pp. 832-842, 2004. **DOI 10.1007/978-3-540-30217-9_84 — DOI
@@ -789,6 +808,9 @@ EXACT ALGORITHM COMPLEXITIES BY DIMENSION, from the same survey [VFT]:
   paper was NOT read; the commonly quoted Omega(n log n) lower bound for d >= 2 and
   the Klee's-measure reduction are attributed to it but only its bibliographic record
   was verified, not its theorem statements. ***]
+
+#### HypE
+
 **HypE** — the practical answer. Bader & Zitzler, "HypE: An Algorithm for Fast
 Hypervolume-Based Many-Objective Optimization", *Evolutionary Computation* 19(1):45-76,
 Spring 2011, DOI 10.1162/EVCO_a_00009. [DOI V; tech-report version TIK-Report 286 read

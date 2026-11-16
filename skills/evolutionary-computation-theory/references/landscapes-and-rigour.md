@@ -1,11 +1,11 @@
-PART 4 — FITNESS LANDSCAPES, AND THE FIELD'S RIGOUR PROBLEM
+# Fitness landscapes, and the field's rigour problem
 Source-verified research notes for a reference document on evolutionary algorithms
 Research conducted 2026-11-11. All fetch dates 2026-11-11 unless stated.
 Verification convention: [VERIFIED — <artifact actually read>] / [UNVERIFIED]
 
-## 1. FITNESS LANDSCAPES: THE FORMAL DEFINITION, AND WHY IT MATTERS
+## Fitness landscapes: the formal definition, and why it matters
 
-## 1.1 The definition
+## The definition
 
 A FITNESS LANDSCAPE is a triple
 
@@ -27,7 +27,7 @@ on Hamming distance), NOT the Hamming hypercube — so the (1+1) EA and a
 single-bit-flip hill climber on the same objective function are searching two
 different landscapes.
 
-## 1.2 The crucial consequence
+## The crucial consequence
 
 *** A LANDSCAPE IS A PROPERTY OF THE OPERATOR, NOT OF THE OBJECTIVE FUNCTION
 ALONE. *** Everything anyone says about "the fitness landscape of problem P" is
@@ -70,9 +70,9 @@ crossbreeding and selection in evolution", *Proceedings of the Sixth
 International Congress of Genetics* 1:356–366, 1932 — the "adaptive landscape".
 [UNVERIFIED metadata.]
 
-## 2. DECEPTION
+## Deception
 
-## 2.1 The minimal deceptive problem
+## The minimal deceptive problem
 
 Goldberg's MINIMAL DECEPTIVE PROBLEM (MDP) is the smallest instance exhibiting
 schema-theoretic deception: a function on 2 bits (4 points) with fitnesses
@@ -91,7 +91,7 @@ can be deceptive.
   Morgan Kaufmann, 1987, pp. 74–88. [UNVERIFIED metadata.] Developed in Goldberg
   1989 [UNVERIFIED — I could not reach Goldberg 1989; see Part 1 §4.1].
 
-## 2.2 Trap functions
+## Trap functions
 
 A TRAP generalises the MDP to n bits: fitness increases toward one attractor
 (usually 0^n) over most of the space while the global optimum sits at the
@@ -112,9 +112,9 @@ The (1+1) EA on a trap needs Θ(n^n) expected time (Part 3 §3.3) — WORSE than
 exhaustive search's 2^n. Traps are the extremal demonstration that selection can
 be actively harmful, not merely unhelpful.
 
-## 2.3 The verdict on deception as a difficulty measure
+## The verdict on deception as a difficulty measure
 
-### NEGATIVE
+### Negative
 
 Grefenstette's "Deception considered harmful" (FOGA 2, 1993 — see
 Part 1 §5.1 for the citation and its UNVERIFIED status) argues that deception is
@@ -123,9 +123,9 @@ deceptive-but-easy and non-deceptive-but-hard functions. Deception is therefore
 neither necessary nor sufficient for GA-hardness. It survives as a useful
 CONSTRUCTION technique for hard benchmarks; it is dead as a predictor.
 
-## 3. EPISTASIS AND EPISTASIS VARIANCE
+## Epistasis and epistasis variance
 
-## 3.1 Epistasis, and its clean formalisation
+## Epistasis, and its clean formalisation
 
 EPISTASIS, borrowed from genetics, is interaction between loci: one gene's
 fitness contribution depends on other genes' values. A function on {0,1}^n is
@@ -146,7 +146,7 @@ measure below is an approximation to "how much mass sits in orders >= 2".
 [Albert D. Bethke, "Genetic algorithms as function optimizers", PhD thesis,
 University of Michigan, 1980. UNVERIFIED metadata.]
 
-## 3.2 The epistasis-variance measures
+## The epistasis-variance measures
 
 Both due to Davidor:
 
@@ -163,7 +163,7 @@ Both due to Davidor:
   G. J. E. Rawlins (ed.), *Foundations of Genetic Algorithms (FOGA 1)*, Morgan
   Kaufmann, 1991, pp. 23–35. [UNVERIFIED metadata.]
 
-## 3.3 The honest verdict: UNRELIABLE — with a wording caveat
+## The honest verdict: unreliable — with a wording caveat
 
   Bart Naudts and Leila Kallel, "A comparison of predictive measures of problem
   difficulty in evolutionary algorithms", *IEEE Transactions on Evolutionary
@@ -208,9 +208,9 @@ deception (§2.3) and FDC (§5): a statistic about the objective function being
 asked to predict a property of an algorithm–landscape pair. Three independent
 attempts, three refutations by construction; the PATTERN is the real finding.
 
-## 4. RUGGEDNESS: AUTOCORRELATION AND CORRELATION LENGTH
+## Ruggedness: autocorrelation and correlation length
 
-## 4.1 The random-walk autocorrelation function
+## The random-walk autocorrelation function
 
 RUGGEDNESS is operationalised via the autocorrelation of fitness along a RANDOM
 WALK on the landscape graph. Take a simple random walk (x_0, x_1, ...) on (X, N),
@@ -226,7 +226,7 @@ Smooth landscape: r(s) decays slowly. Rugged: fast. Maximally rugged (random):
 r(s) ≈ 0 for all s >= 1. Note this is explicitly a measure of the LANDSCAPE, not
 of f — the walk is taken on N. Contrast §§3 and 5.
 
-## 4.2 Correlation length
+## Correlation length
 
 For landscapes that are (approximately) ISOTROPIC / ELEMENTARY, r(s) decays
 geometrically, r(s) ≈ r(1)^s, and ruggedness is summarised by one number, the
@@ -258,9 +258,9 @@ is blind to heterogeneity — a landscape smooth in one region and rugged in
 another has a correlation length describing neither. Same averaging failure that
 defeats FDC (§5.3).
 
-## 5. FITNESS-DISTANCE CORRELATION
+## Fitness-distance correlation
 
-## 5.1 The measure
+## The measure
 
   Terry Jones and Stephanie Forrest, "Fitness distance correlation as a measure
   of problem difficulty for genetic algorithms", in *Proceedings of the Sixth
@@ -279,7 +279,7 @@ distances d_i:
 For MAXIMISATION, a useful landscape has fitness rising as distance to the
 optimum falls, i.e. FDC close to −1.
 
-## 5.2 The conventional thresholds
+## The conventional thresholds
 
 The classification Jones & Forrest proposed, which became conventional:
 
@@ -299,7 +299,7 @@ Jones & Forrest also introduced the FITNESS-DISTANCE SCATTER PLOT as the primary
 diagnostic, with the coefficient as a summary — worth preserving, since the
 coefficient alone discards the structure the plot reveals. [UNVERIFIED]
 
-## 5.3 The counterexample: Altenberg 1997
+## The counterexample: Altenberg 1997
 
   Lee Altenberg, "Fitness distance correlation analysis: An instructive
   counterexample", in *Proceedings of the Seventh International Conference on
@@ -349,9 +349,9 @@ three parts of it safely in your own voice:
 
 Same verdict as §2.3 and §3.3.
 
-## 6. NEUTRALITY AND NEUTRAL NETWORKS
+## Neutrality and neutral networks
 
-## 6.1 The biological root: Kimura's neutral theory
+## The biological root: Kimura's neutral theory
 
   Motoo Kimura, "Evolutionary rate at the molecular level", *Nature*
   217(5129):624–626, 1968. And: Motoo Kimura, *The Neutral Theory of Molecular
@@ -369,7 +369,7 @@ change is the mechanism by which a population relocates to a part of the space
 from which a NEW improvement becomes accessible. This reframes stagnation as
 possible positioning.
 
-## 6.2 Neutral networks in RNA landscapes
+## Neutral networks in rna landscapes
 
   Martijn A. Huynen, Peter F. Stadler and Walter Fontana, "Smoothness within
   ruggedness: The role of neutrality in adaptation", *Proceedings of the
@@ -393,7 +393,7 @@ The findings that matter for EC [UNVERIFIED]:
     area: "SMOOTHNESS WITHIN RUGGEDNESS". A landscape that looks rugged in its
     fitness values can be navigable because of neutral connectivity.
 
-## 6.3 Barnett: the NKp model and the netcrawler
+## Barnett: the NKp model and the netcrawler
 
   Lionel Barnett, "Ruggedness and neutrality — the NKp family of fitness
   landscapes", in *Proceedings of the Sixth International Conference on
@@ -430,7 +430,7 @@ Jansen & Wegener's result that REJECTING equal-fitness strings is sometimes
 provably better is its counterweight. Both are true; which applies depends on
 whether the plateau is a neutral network with portals or a trap.]
 
-## 6.4 Related EC work on neutrality
+## Related EC work on neutrality
 
 Names only, UNVERIFIED unless marked: Ebner, Shackleton and Shipman on redundant
 representations; Yu and Miller on neutrality in Cartesian Genetic Programming
@@ -445,9 +445,9 @@ Vassilev and Miller on neutrality in digital-circuit evolution landscapes. And:
   neutrality changes FDC without changing the underlying problem — another
   refutation of FDC, by a different route.
 
-## 7. NK LANDSCAPES
+## NK landscapes
 
-## 7.1 Kauffman's formulation, exactly
+## Kauffman's formulation, exactly
 
   Stuart A. Kauffman and Simon Levin, "Towards a general theory of adaptive
   walks on rugged fitness landscapes", *Journal of Theoretical Biology*
@@ -491,7 +491,7 @@ PROPERTIES — the point of the model:
     r(s) = (1 − (K+1)/N)^s, giving ℓ ≈ N/(K+1). [UNVERIFIED but standard, and a
     nice consistency check: K = 0 gives ℓ = N, K = N−1 gives ℓ = 1.]
 
-## 7.2 The complexity result — *** TWO CORRECTIONS / FLAGS ***
+## The complexity result — *** two corrections / flags ***
 
   "The computational complexity of N-K fitness functions", *IEEE Transactions on
   Evolutionary Computation* 4(4):373–379, 2000. DOI: 10.1109/4235.887236
@@ -538,7 +538,7 @@ not verify this; I did not reach the paper's abstract or text. What I can report
     model; polynomial for the ADJACENT-NEIGHBOURS model for any constant K.
     [BOTH PARTS UNVERIFIED. Verify against the paper.]
 
-## 7.3 Why NK landscapes remain useful
+## Why NK landscapes remain useful
 
 Despite being artificial, NK landscapes are the one landscape family in which
 ruggedness is a KNOB rather than an observation — which makes them the only
@@ -547,9 +547,9 @@ experiment rather than a correlation study. That is their whole value, and it is
 why the descendants matter: NKp for neutrality (§6.3), NKq for discretised
 fitness values, and MAX-k-SAT as the structured, real-problem relative.
 
-## 8. BIG VALLEYS, FUNNELS, AND LOCAL OPTIMA NETWORKS
+## Big valleys, funnels, and local optima networks
 
-## 8.1 The big-valley hypothesis
+## The big-valley hypothesis
 
 Empirical observation, originally from the TSP: in many combinatorial landscapes
 the LOCAL OPTIMA are not scattered independently but are themselves organised
@@ -571,7 +571,7 @@ the raw landscape is rugged.
   landscapes show much WEAKER big-valley structure than TSP landscapes, which is
   why memetic algorithms need different diversification there.
 
-### WHY IT MATTERS
+### Why it matters
 
 the big valley is the structural property that justifies iterated
 local search, memetic algorithms and path-relinking — i.e. searching in the SPACE
@@ -579,7 +579,7 @@ OF LOCAL OPTIMA rather than the space of solutions. If local optima form a big
 valley, a search that hops between them has a gradient to follow. If not, the
 whole family of methods loses its rationale.
 
-## 8.2 Funnels
+## Funnels
 
 Later work showed the big-valley picture is too simple for many instances, which
 instead have MULTIPLE FUNNELS — several distinct clusters of local optima, each
@@ -598,7 +598,7 @@ the objective function.
   BOTH UNVERIFIED metadata.] The term is borrowed from the protein-folding
   energy-landscape literature (Frauenfelder; Wolynes; Onuchic).
 
-## 8.3 Local optima networks (LONs)
+## Local optima networks (LONs)
 
   Gabriela Ochoa, Marco Tomassini, Sébastien Vérel and Christian Darabos, "A
   study of NK landscapes' basins and local optima networks", in *Proceedings of
@@ -634,9 +634,9 @@ performance far better than the earlier one-number measures. The lesson is not
 "network science is powerful"; it is that §1.2 was the whole problem all along,
 and the measures that respect it work while the measures that ignore it fail.
 
-## 9. THE FIELD'S RIGOUR PROBLEM
+## The field's rigour problem
 
-## 9.1 Why EAs are genuinely hard to analyse
+## Why EAs are genuinely hard to analyse
 
 Before any accusation of laziness, the honest technical reasons:
 
@@ -681,7 +681,7 @@ These are real difficulties, and they explain why the rigorous results concern
 the (1+1) EA on OneMax rather than a real GA on a real problem. They do not
 excuse what follows.
 
-## 9.2 The "novel metaheuristic" publication problem
+## The "novel metaheuristic" publication problem
 
 (i) SÖRENSEN: THE METAPHOR EXPOSED
 
@@ -807,7 +807,7 @@ could NOT confirm in Weyland's own words. Print the verified "special case of
 Evolution Strategies" and attribute the detailed correspondence to Weyland only
 after checking the paper.] ***
 
-### THE EMPIRICAL REFUTATION AND THE FOLLOW-UP
+### The empirical refutation and the follow-up
 
   Dennis Weyland, "A critical analysis of the harmony search algorithm—How not to
   solve sudoku", *Operations Research Perspectives* 2:97–105, December 2015.
@@ -991,7 +991,7 @@ verbatim:]
 This is the best single statement of the TWO-SIDED failure: the metaphor papers
 are bad biology AND bad optimisation. Nobody gains.
 
-## 9.3 The Evolutionary Computation Bestiary
+## The Evolutionary Computation Bestiary
 
   URL: https://github.com/fcampelo/EC-Bestiary
   Zenodo DOI badge present (concept record https://zenodo.org/badge/54759561).
@@ -1067,7 +1067,7 @@ https://raw.githubusercontent.com/fcampelo/EC-Bestiary/master/README.md on
     10.1007/978-3-031-70932-6_7), and an entry on exposing the chimp optimization
     algorithm (truncated in my read).
 
-## 9.4 Journal policies that resulted
+## Journal policies that resulted
 
 *** FLAGGED CLEARLY, AS YOU ASKED: I COULD NOT REACH THE JOURNAL OF HEURISTICS
 POLICY TEXT AND CANNOT QUOTE IT. ***
@@ -1103,7 +1103,7 @@ have both tightened expectations around baselines and novelty claims; GECCO and
 PPSN review forms now ask reviewers explicitly whether a proposed method is
 distinguishable from existing methods.
 
-## 9.5 Benchmarking: the constructive response
+## Benchmarking: the constructive response
 
   Thomas Bartz-Beielstein, Carola Doerr, Daan van den Berg, Jakob Bossek, Sowmya
   Chandrasekaran, Tome Eftimov, Andreas Fischbach, Pascal Kerschke, William La
@@ -1140,7 +1140,7 @@ performance reported as a mean of thirty runs with no statistics, and no
 reproducibility. (Note also "co-evolve over time by means of periodic updates":
 cite the arXiv version you actually read, with its version number and date.)
 
-## 9.6 The synthesis
+## The synthesis
 
 The rigour problem is NOT that EC lacks rigorous results — Part 3 shows it has
 excellent ones. It is a TWO-TIER STRUCTURE:
@@ -1177,11 +1177,11 @@ institutionalise by requiring metaphor-free descriptions: a method described
 without its metaphor can be compared; a method described only through its
 metaphor cannot.
 
-### APPENDIX
+### Appendix
 
 CORRECTIONS TO THE BRIEF, AND WHAT I COULD NOT VERIFY (ALL 4 PARTS)
 
-### CORRECTIONS TO THE BRIEF AS GIVEN
+### Corrections to the brief as given
   - Hwang et al. is *Evolutionary Computation* 26(2):299–345, 2018, DOI
     10.1162/evco_a_00212, and the expansion carries two more terms than
     "+ O(log n)": + (e/2) ln n + c_2 + O(n^(−1) log n). (Part 3 §2.1)

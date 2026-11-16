@@ -1,12 +1,12 @@
-THEORY PART 2/4 (ALTERNATE / SECOND RESEARCHER) — No Free Lunch: the exact statement, the preconditions, and what it does not imply.
+# No Free Lunch: the exact statement, and what it does not license
 
-### NOTE ON PROVENANCE
+### Note on provenance
 
 /tmp/ea-theory-part2.txt was already occupied by another agent's Part 2, so I did not overwrite it. This is my independent version. I obtained three primary texts in full for this section (Wolpert & Macready 1997 via a UBC mirror; the Droste/Jansen/Wegener (A)NFL tech report from the TU Dortmund repository; Igel & Toussaint's arXiv preprint), so the preconditions and theorem statements below are quoted from the papers rather than reconstructed.
 
 All web sources fetched 2026-11-11.
 
-### 1. THE PRIMARY PAPER
+### The primary paper
 
 VERIFIED (Crossref + OpenAlex): David H. Wolpert & William G. Macready, "No free lunch theorems for optimization", *IEEE Transactions on Evolutionary Computation* 1(1):67-82, April 1997. **DOI 10.1109/4235.585893 — DOI CONFIRMED.** 14,723 citations (OpenAlex, 2026-11-11). Full text obtained (mirror at cs.ubc.ca/~hutter/earg/papers07/00585893.pdf).
 
@@ -14,7 +14,7 @@ Earlier technical-report version, commonly cited: Wolpert & Macready, "No Free L
 
 Abstract, load-bearing sentence (verbatim): "A number of 'no free lunch' (NFL) theorems are presented which establish that for any algorithm, any elevated performance over one class of problems is offset by performance over another class."
 
-### 2. THE FRAMEWORK AND PRECONDITIONS, VERBATIM
+### The framework and preconditions, verbatim
 
 Every one of these is a genuine precondition, all stated explicitly in section II. I quote the paper directly because the preconditions are where the misuse happens.
 
@@ -47,7 +47,7 @@ Theorem 2 covers time-dependent cost functions (f shifted by an operator T betwe
 
 Beyond the two NFL theorems the paper also contains: a geometric interpretation ("an inner product between the optimization algorithm and the distribution of optimization problems likely to be encountered fixes the distribution over likely performances" — performance is set by "how aligned [the algorithm's vector] is with P(f)"); information-theoretic applications; and *a priori* head-to-head minimax distinctions between algorithms — "distinctions that result **despite** the NFL theorems' enforcing of a type of uniformity over all algorithms." Worth flagging: even Wolpert & Macready's own paper contains results showing algorithms are NOT all equivalent under non-average comparisons.
 
-### 3. THE SHARPENED NFL: CLOSURE UNDER PERMUTATION
+### The sharpened NFL: closure under permutation
 
 The most important refinement, and the thing that converts NFL from a slogan into a usable criterion.
 
@@ -64,7 +64,7 @@ Their cost measure (it matches Wolpert & Macready's distinct-evaluations convent
 Their proof is a short induction on |A| plus the randomised-to-deterministic averaging argument (citing Motwani & Raghavan 1995), and they say so: "The simplicity of the proof also implies that **'there is no secret or myth' behind the NFL theorem**."
 Their one-sentence intuition, verbatim and worth quoting: "The generalized NFL theorem is by no means surprising. **If a class of functions does not change by any permutation on the input space, there is no structure which can be used for search.** Hence, all search strategies show the same behavior."
 
-### 4. WHAT NFL DOES *NOT* IMPLY
+### What NFL does *not* imply
 
 ### 4a. IT DOES NOT APPLY TO PRACTICALLY RELEVANT FUNCTION CLASSES — the quantitative version. VERIFIED, FULL TEXT: **Christian Igel & Marc Toussaint, "On classes of functions for which No Free Lunch results hold", *Information Processing Letters* 86(6):317-321, 2003. DOI 10.1016/S0020-0190(03)00222-9.** 104 citations. Preprint arXiv:cs/0108011 (21 Aug 2001) — the version I read in full.
 THE COUNTING RESULT, verbatim:
@@ -99,14 +99,14 @@ Their three worked applications (all verbatim-sourced):
   - Trap, and the demolition of a cute trick: "The function Trap_n differs from OneMax_n only on the all zero string 0^n which is optimal for Trap_n .... This function is claimed to be difficult for search heuristics. However, this statement works in a one shot scenario and has to be wrong. A search heuristic may start by evaluating the function 0^n. **Whitley (1997) has discussed for each search heuristic H the variant H* defined by the following rule. If H evaluates f on a, then H* does the same for a and its bitwise complement abar. If H is efficient on OneMax_n then H* is efficient (losing at most a factor of 2) on Trap_n.** It is more meaningful to consider the class of trap functions Trap_{n,b} .... The proof of the ANFL theorem implies that each search heuristic fails on most of the trap functions. **This proves that Whitley's idea only helps in very special situations.**" (The Whitley reference is to the Gray-vs-binary free-lunch line — VERIFIED citation from Igel & Toussaint: D. Whitley, "A free lunch proof for gray versus binary encodings", GECCO '99, vol. 1, pp. 726-733, Morgan Kaufmann, 1999. Also Whitley, "Functions as Permutations: Regarding No Free Lunch, Walsh Analysis and Summary Statistics", PPSN VI, LNCS, pp. 169-178, 2000, DOI 10.1007/3-540-45356-3_17 — VERIFIED via Crossref.)
   - They then construct "a non-artificial and simple function ... which is a polynomial of degree 3" that is provably hard for simulated annealing and EAs — hardness does not require pathological description length. (Their section 5; I read the heading and opening but not the full construction. FLAG the details as unverified.)
 
-### 5. SHARPENED / FOCUSED NFL (Whitley & Rowe)
+### Sharpened / focused NFL (Whitley & Rowe)
 
 VERIFIED (Crossref):
 - **Darrell Whitley & Jonathan Rowe, "Focused no free lunch theorems", in *Proceedings of the 10th Annual Conference on Genetic and Evolutionary Computation (GECCO 2008)*, pp. 811-818, ACM. DOI 10.1145/1389095.1389254.** Content UNVERIFIED (ACM DL 403'd me). The "focused" line narrows NFL to pairs or small sets of algorithms on small sets of functions, showing NFL-type equivalences can hold on sets vastly smaller than a full permutation orbit.
 - **Darrell Whitley & Jonathan Rowe, "A 'No Free Lunch' Tutorial: Sharpened and Focused No Free Lunch", in A. Auger & B. Doerr (eds.), *Theory of Randomized Search Heuristics: Foundations and Recent Developments*, Series on Theoretical Computer Science vol. 1, pp. 255-287, World Scientific, 2011. DOI 10.1142/9789814282673_0009.** VERIFIED bibliographically; content UNVERIFIED. Best single survey entry point for the sharpened/focused family.
 - Related tutorials, all VERIFIED: Michael D. Vose & L. Darrell Whitley, "No free lunch", GECCO 2007 Companion, pp. 3734-3764, DOI 10.1145/1274000.1274131; Darrell Whitley, "No free lunch", GECCO 2008 Companion, pp. 2589-2612, DOI 10.1145/1388969.1389069; Darrell Whitley & Jean Paul Watson, "Complexity Theory and the No Free Lunch Theorem", in *Search Methodologies*, pp. 317-339, DOI 10.1007/0-387-28356-0_11; Darrell Whitley, "Sharpened and Focused No Free Lunch and Complexity Theory", in *Search Methodologies* (2nd ed.), pp. 451-476, 2013, DOI 10.1007/978-1-4614-6940-7_16.
 
-### 6. THE COEVOLUTIONARY FREE LUNCH
+### The coevolutionary free lunch
 
 VERIFIED with full abstract (Crossref + OpenAlex): **David H. Wolpert & William G. Macready, "Coevolutionary Free Lunches", *IEEE Transactions on Evolutionary Computation* 9(6):721-735, 2005. DOI 10.1109/TEVC.2005.856205.** 239 citations.
 The result, in their own words (verbatim from the abstract):
@@ -118,13 +118,13 @@ So the free lunch is specifically about *self-play producing a champion who is t
 Companion on the bandit side, VERIFIED: W. G. Macready & D. H. Wolpert, "Bandit problems and the exploration/exploitation tradeoff", IEEE TEC 2(1):2-22, 1998, DOI 10.1109/4235.728210.
 Later Wolpert retrospective, VERIFIED: David H. Wolpert, "What Is Important About the No Free Lunch Theorems?", in *Black Box Optimization, Machine Learning, and No-Free Lunch Theorems*, Springer Optimization and Its Applications, pp. 373-388, 2021, DOI 10.1007/978-3-030-66515-9_13. Content UNVERIFIED.
 
-### 7. THE CONTINUOUS-DOMAIN ESCAPE, AND THE NFL-AS-LICENCE FALLACY
+### The continuous-domain escape, and the nfl-as-licence fallacy
 
 Two things that matter for a reference document, verified via the Camacho-Villalon/Dorigo/Stuetzle critique literature (details in Part 4):
 - NFL does not hold in the continuous domain. VERIFIED as their claim with citations: they state the theorems "do not hold for multi-objective problems or continuous domains", citing **Auger & Teytaud, "Continuous lunches are free!" (2007) and their 2010 follow-up**. FLAG: I verified that Camacho-Villalon et al. make this claim and cite Auger & Teytaud; I did NOT independently fetch the Auger & Teytaud papers, so treat their exact statement and venue as unverified. (The commonly cited version is Anne Auger & Olivier Teytaud, "Continuous Lunches Are Free Plus the Design of Optimal Optimization Algorithms", Algorithmica 57(1):121-146, 2010 — FLAG this DOI/pagination as unverified in this session.)
 - THE "NFL LICENSES NEW ALGORITHMS" FALLACY — NFL's single largest real-world harm, worth a paragraph in any reference doc. Camacho-Villalon, Dorigo & Stuetzle (ITOR 30(6), Part 4) quote the offenders verbatim: Mirjalili et al. 2014 (Grey Wolf Optimizer), pp. 46-47 — "Obviously, the No Free Lunch theorem makes this field of study highly active which results in enhancing current approaches and proposing new meta-heuristics every year. This also motivates our attempts to develop a new meta-heuristic with inspiration from grey wolves."; and Mirjalili 2015 (Antlion Optimizer), p. 81 — "...the so-called No Free Lunch theorem allows researchers to propose new algorithms." Their own abstract names this: "we discuss the rationale often presented by the authors of metaphor-based algorithms as their motivation to propose more algorithms of this type, **which is based on a wrong understanding of the no-free-lunch theorems for optimization.**" Note the irony: three of the six algorithms they dissect are continuous optimisers, where NFL as stated does not even apply.
 - A third framing, VERIFIED as quoted in Bartz-Beielstein et al. (arXiv:2007.03488), who quote Culberson (1998): "In the context of search problems, the NFL theorem strictly only applies if arbitrary search landscapes are considered, while the instances of basically any search problem of interest have compact descriptions and therefore cannot give rise to arbitrary search landscapes." (Verified as Bartz-Beielstein et al.'s quotation of Culberson, not from Culberson directly.)
 
-### SUMMARY OF WHAT NFL DOES AND DOES NOT LICENSE
+### Summary of what NFL does and does not license
 DOES: for a uniform prior over a permutation-closed function class, with non-repeating black-box algorithms whose performance is scored on the sequence of distinct cost values visited, all algorithms have identical average performance. Also: head-to-head minimax distinctions survive (Wolpert & Macready's own section V-A), and self-play coevolution has genuine free lunches.
 DOES NOT: say anything about any class that is not permutation-closed — essentially every class with a neighbourhood structure, a steepness bound, a bound on the number of local optima, or a bounded description length (Igel & Toussaint: the c.u.p. fraction is << 10^-170 already for {0,1}^3 -> {0,1}). Does not apply to continuous domains, to multi-objective problems, to algorithms that exploit partial-solution cost structure (branch and bound is explicitly excluded by Wolpert & Macready), or to performance measures outside d_m^y (e.g. wall-clock time). And does not license inventing a new metaheuristic — but the ANFL theorem also denies you the opposite comfort: whatever your heuristic is good at, there are exponentially many barely-more-complex functions on which it fails with probability 1 - 2^(-n/3).

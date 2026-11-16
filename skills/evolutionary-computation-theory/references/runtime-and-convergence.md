@@ -1,6 +1,6 @@
-THEORY PART 3/4 (ALTERNATE / SECOND RESEARCHER) — Rigorous runtime analysis and convergence results.
+# Rigorous runtime analysis and convergence results
 
-### NOTE ON PROVENANCE
+### Note on provenance
 
 /tmp/ea-theory-part3.txt was already occupied by another agent's Part 3, so I did not overwrite it. This is my independent version. Its distinguishing asset: I obtained Wegener's 2002 methods paper in full from the TU Dortmund repository, so every theorem statement marked "Wegener Thm n" below is quoted verbatim from the primary text rather than recalled; and I obtained Hwang et al. 2018 in full, which supplies the exact OneMax constants and a verified history table.
 
@@ -10,7 +10,7 @@ PRIMARY SOURCES I READ IN FULL FOR THIS SECTION:
 - **Ingo Wegener, "Methods for the Analysis of Evolutionary Algorithms on Pseudo-Boolean Functions", in Sarker, Mohammadian & Yao (eds.), *Evolutionary Optimization*, International Series in Operations Research & Management Science vol. 48, pp. 349-369, Kluwer, 2002. DOI 10.1007/0-306-48041-7_14.** (eldorado.tu-dortmund.de item b141efbd-c3c2-4200-89b4-6788383aa472.)
 - **Hwang, Panholzer, Rolin, Tsai & Chen, "Probabilistic Analysis of the (1+1)-Evolutionary Algorithm", Evolutionary Computation 26(2):299-345, 2018, DOI 10.1162/evco_a_00212** (arXiv:1409.4955).
 
-### 1. THE (1+1) EA, DEFINED
+### The (1+1) EA, defined
 
 VERBATIM from Hwang et al. section 1:
   Algorithm (1+1)-EA
@@ -33,12 +33,12 @@ THE BENCHMARK FUNCTIONS, verbatim from Wegener's Definitions 3-9:
 - JUMP_m(x) = ||x|| if ||x|| < n-m or ||x|| = n, else n - ||x||. (The crossover benchmark.)
 - LP (long path): exponentially long paths; "They were first introduced by Horn, Goldberg, and Deb (1994). Their long path functions admit the possibility of shortcuts namely a mutation flipping O(1) bits and replacing p_i with p_j where j-i is exponentially large. This can make them easy for evolutionary algorithms as shown by Rudolph (1997) who also introduced long path functions with the additional property that for each p_i there is at most one successor on the path with Hamming distance d if d <= n^(1/2)."
 
-### 2. ONEMAX: Theta(n log n) AND THE TIGHT CONSTANT
+### Onemax: Theta(n log n) and the tight constant
 
 UPPER BOUND, Wegener Thm 4 (verbatim): "The expected run time of the (1+1)EA on ONEMAX is bounded above by **e*n*(ln n + 1)**. For each constant d > 0 there is a constant c such that the success probability of the (1+1)EA on a function with a unique global optimum within n ln n - cn steps is bounded above by d."
 The lower-bound mechanism is the coupon collector's theorem — and Wegener flags its generality: "the crucial fact is that the coupon collector's theorem leads to a lower bound for a large class of functions" (any function with a unique global optimum).
 
-### THE TIGHT ASYMPTOTICS
+### The tight asymptotics
 
 Verified history table, verbatim from Hwang et al. section 1:
 - **Garnier, Kallel & Schoenauer (1999): E(X_n) = e*n*log n + c_1*n + o(n), with c_1 ~= -1.9 at p = 1/n.** They also characterised the limit law: "(X_n - e n log n)/(e n) in terms of a log-exponential distribution (which is indeed a double exponential or a Gumbel distribution)." HONEST CAVEAT, verbatim from Hwang et al.: "However, some of their proofs, notably the error analysis, seem incomplete (as indicated in their paper). Thus a strong result such as (1) has remained obscure in the EA literature."
@@ -49,7 +49,7 @@ Verified history table, verbatim from Hwang et al. section 1:
 - **THE CURRENT SHARPEST RESULT, verbatim from Hwang et al.: "we focus on the mutation rate p = 1/n and prove that the expected number of steps used by the (1+1)-EA to reach optimum for OneMax function satisfies E(X_n) = e*n*log n + c_1*n + (1/2)*e*log n + c_2 + O(n^(-1) log n)".** With the constants given explicitly: c_1 = -e(log 2 + gamma + phi_1(1/2)) with |c_1| ~= **1.89254178834468682302257...** (gamma = Euler's constant; phi_1(z) = INTEGRAL_0^z [1/S_1(t) - 1/t] dt with S_1(z) = SUM_{l>=1} (z^l/l!) SUM_{0<=j<l} (l-j)(1-z)^j/j! an entire function), and **c_2 ~= 0.59789875...** They also give a general-initialisation version (their Theorem 3): if each bit starts at 1 with probability 1-rho, E(X_n)/(e n) = log rho*n + gamma + phi_1(rho) + [second-order term]/(2n) + O(log n / n^2).
 HEADLINE FOR A REFERENCE DOC: **(1+1) EA on OneMax = Theta(n log n), and precisely e*n*ln n - 1.8925*n + (e/2)*ln n + 0.5979 + O(log n / n).** The e = 2.71828... factor is the price of flipping each bit with probability 1/n rather than exactly one bit: (1-1/n)^(n-1) -> 1/e is the probability a given useful 1-bit mutation is not accompanied by a disruption.
 
-### 3. LEADINGONES: Theta(n^2)
+### Leadingones: Theta(n^2)
 
 UPPER BOUND, Wegener's fitness-level derivation (verbatim): "For LO let A_i contain all points with fitness i .... For x in A_i there is one 1-bit mutation leading to A_(i+1) (if i < n). Hence, s_i >= e^(-1)*(1/n) and we obtain the upper bound **e*n^2**." (Wegener Thm 6.)
 LOWER BOUND, Wegener Thm 7: "**n^2/6 - o(n^2)** for LO." Credited to Droste, Jansen & Wegener (1998b).
@@ -57,7 +57,7 @@ THE "FREE RIDERS" ARGUMENT (verbatim; the standard technique for LO lower bounds
 THE EXACT CONSTANT: for p = c/n the expected time is ((1+o(1))*n^2/(2c^2))*(e^c - 1), minimised not at c = 1 but at c ~= 1.59, and at p = 1/n the expected runtime is ((e-1)/2)*n^2*(1+o(1)) ~= 0.8591*n^2. VERIFIED CITATION: **Suentje Boettcher, Benjamin Doerr & Frank Neumann, "Optimal Fixed and Adaptive Mutation Rates for the LeadingOnes Problem", in PPSN XI, LNCS, pp. 1-10, Springer, 2010. DOI 10.1007/978-3-642-15844-5_1.** 146 citations.
 *** FLAG: the specific constants ((e-1)/2, c ~= 1.59, and the fitness-dependent-rate result that an optimal adaptive rate gives ~0.68*n^2) are from my background knowledge; Springer blocked me and no abstract is deposited, so I could NOT verify them this session. Cite the paper; treat the numbers as unverified. *** The Theta(n^2) bounds themselves ARE verified (Wegener Thms 6 and 7).
 
-### 4. LINEAR FUNCTIONS: Theta(n log n)
+### Linear functions: Theta(n log n)
 
 THE SEQUENCE OF RESULTS, all verified:
 - Easy upper bound by fitness levels, Wegener Thm 6: "**e*n^2** for all linear functions". Derivation: for degree-k functions with N positive weights, s_i^(-1) <= e*n^k gives e*n^k*N; "Since N <= n for linear functions, we obtain an e*n^2 upper bound for all linear functions and the upper bound for BV is decreased from exponential to quadratic." (Without the trick, the generic unimodal bound e*n*(N-1) applied to BV, which takes 2^n distinct values, gives e*n*(2^n - 1).)
@@ -67,26 +67,26 @@ THE SEQUENCE OF RESULTS, all verified:
 - **THE TIGHT RESULT: Carsten Witt, "Tight Bounds on the Optimization Time of a Randomized Search Heuristic on Linear Functions", *Combinatorics, Probability and Computing* 22(2):294-318, 2013. DOI 10.1017/S0963548312000600.** VERIFIED with full abstract. Verbatim: "We improve the previously best known bound in this setting from (1.39+o(1))en ln n to **en ln n + O(n)** in expectation and with high probability, which is tight up to lower-order terms. Moreover, upper and lower bounds for arbitrary mutation probabilities p are derived, which imply expected polynomial optimization time as long as p = O((ln n)/n) and p = Omega(n^(-C)) for a constant C > 0, and which are tight if p = c/n for a constant c > 0. **As a consequence, the standard mutation probability p = 1/n is optimal for all linear functions, and the (1+1) EA is found to be an optimal mutation-based algorithm.** Furthermore, the algorithm turns out to be surprisingly robust since the large neighbourhood explored by the mutation operator does not disrupt the search."
 CLEAN STATEMENT: **(1+1) EA on every linear function with non-zero weights = Theta(n log n), tightly e*n*ln n + O(n); p = 1/n is provably the optimal mutation rate for the whole class.** One of the genuinely satisfying results in the field: a tight bound, uniform over an infinite function class, with the folklore parameter choice vindicated.
 
-### 5. HARD FUNCTIONS: TRAP, NEEDLE, PLATEAUS, LONG PATHS
+### Hard functions: trap, needle, plateaus, long paths
 
 TRAP — **Theta(n^n)**, and the proof is instructive. Wegener Thm 9 (verbatim): "The expected run time of the (1+1)EA on TRAP is bounded above by **n^n** and below by **(1-2^(-Omega(n)))*n^n**." The universal upper bound n^n "holds for all pseudo-boolean functions (Droste, Jansen, and Wegener (1998b))". The proof is the "typical run" method in three phases: (i) initialisation gives < 2n/3 ones with failure probability 2^(-Omega(n)); (ii) within c*n^2*log n steps the algorithm reaches 0^n (it is optimising n-OneMax) with failure probability 2^(-Omega(n)); (iii) from 0^n only 1^n is accepted, and P(mutation produces 1^n from 0^n) = n^(-n), so the expected wait is n^n. Wegener's observation about why the naive guess is wrong: "the initial search point has approximately n/2 ones and the probability that mutation creates the global optimum is approximately n^(-n/2). The expected waiting time for an event with such a success probability is approximately n^(n/2) — only the square root of n^n." The point of the three-phase argument is that the algorithm is *driven away* from the n/2 region before it can get lucky.
 Also VERIFIED (Hwang et al. section 1, citing DJW 2002 TCS 276): "functions with Theta(n^n) expected time complexity for (1+1)-EA were constructed in Droste et al. [14], while a naive complete search requires only [O(2^n)]" — i.e. the (1+1) EA can be exponentially worse than exhaustive search.
 
 NEEDLE / flat landscapes. *** FLAG: I could NOT verify an exact Needle bound this session. *** The DJW 2002 TCS 276 paper is the standard citation and I obtained only a PostScript version whose text I could not extract. What I CAN say verified: Garnier/Kallel/Schoenauer 1999 analyse the first hitting time "without any selection", which is precisely the Needle case, and give expectation and variance up to terms of order l (their abstract, verified); and the ANFL theorem (Part 2) proves "each search heuristic fails on most of the haystack functions" (Droste/Jansen/Wegener, verbatim). The commonly quoted result is that the (1+1) EA on Needle takes expected time Theta(2^n) — **treat the exact constant/form as unverified and cite DJW 2002 (TCS 276:51-81) for it.**
 
-### PLATEAUS
+### Plateaus
 
 Wegener Thm 5 (verbatim): "The expected run time of the (1+1)EA on SPP is bounded above by **O(n^3)**. The success probability for n^4 steps is bounded below by 1 - 2^(-Omega(n))." The general plateau result, verbatim: "the expected time to pass a plateau which is a path of length l is bounded above by **O(n*l^2)**. If the fitness is increasing along the path, the expected run time equals **Theta(n*l)** .... Obviously, it is easier to follow a path with increasing fitness, but **even a path giving no hints is no real obstacle for the (1+1)EA**." The technique is the gambler's-ruin problem (random walk on the plateau). Related VERIFIED title from the Dortmund repository: "Evolutionary Algorithms — How to Cope With Plateaus of Constant Fitness and When to Reject Strings of the Same Fitness".
 
-### LONG PATHS
+### Long paths
 
 Two results that cut in opposite directions, both verified:
 - POSITIVE: **Guenter Rudolph, "How Mutation and Selection Solve Long-Path Problems in Polynomial Expected Time", Evolutionary Computation 4(2):195-205, 1996. DOI 10.1162/evco.1996.4.2.195.** VERIFIED with abstract (verbatim, whole thing): "It is shown by means of Markov chain analysis that unimodal binary long-path problems can be solved by mutation and elitist selection in a polynomially bounded number of trials on average." **NOTE THE YEAR AND VOLUME: 4(2), 1996 — not 5(2) and not 1997, though Wegener's own text cites it as "Rudolph (1997)".** The mechanism: mutation can shortcut the path by flipping several bits at once, collapsing an exponentially long path to polynomial time. Original long-path functions: Jeffrey Horn, David E. Goldberg & Kalyanmoy Deb, "Long path problems", PPSN III, 1994 — FLAG: citation taken from Wegener's text, not independently verified (my Crossref query for it was rate-limited).
 - NEGATIVE: Rudolph also designed a shortcut-proof variant, and for that one the (1+1) EA is slow. Wegener Thm 7 (verbatim): "**Omega(l*n)** for long path functions where l = O(n^(1/2)*2^(n^(1/2))) not allowing short cuts by at most n^(1/2) flipping bits and the property that the path is reached with constant positive probability in the first half." With the punchline, verbatim: "Such a long path function where l = O(n^(1/2) 2^(n^(1/2))) has been defined **proving that unimodal functions can be hard for the (1+1)EA**." The expected-progress argument: P(>= n^(1/2) bits flip) <= 2^(-Omega(n^(1/2) log n)), and a k-bit mutation has probability <= n^(-k), so expected progress per step <= SUM_{1<=k<n^(1/2)} k*n^(-k) + 2^(-Omega(n^(1/2) log n)) <= 2/n + 2^(-Omega(n^(1/2) log n)). So unimodality — the property that there is always an improving 1-bit move — buys you nothing against an exponentially long path.
 
-### 6. PROOF TECHNIQUES
+### Proof techniques
 
-### 6a. THE FITNESS-LEVEL METHOD (artificial fitness levels). Wegener's Definition 10 + Lemma 1, verbatim:
+### The fitness-level method (artificial fitness levels). Wegener's Definition 10 + Lemma 1, verbatim:
 "**Definition 10.** For A, B subset of {0,1}^n and f: {0,1}^n -> R the relation A <_f B holds if f(a) < f(b) for all a in A and b in B. A <_f-partition of {0,1}^n is a partition of {0,1}^n into non-empty sets A_1,...,A_m such that A_1 <_f A_2 <_f ... <_f A_m and all a in A_m are global optima."
 "**Lemma 1.** Let A_1,...,A_m be a <_f-partition, let p(A_i) be the probability that a randomly chosen search point belongs to A_i, let s(a) be the probability that a mutation of a in A_i belongs to A_(i+1) union ... union A_m, and let s_i = min{s(a) | a in A_i}. Then E(X_f) <= SUM_{1<=i<=m-1} p(A_i)(s_i^(-1) + ... + s_(m-1)^(-1)) <= s_1^(-1) + ... + s_(m-1)^(-1)."
 Wegener's own assessment, verbatim: "The proof of Lemma 1 is very simple. ... Nevertheless, this result is **surprisingly powerful. However, it is crucial to choose an appropriate <_f-partition.**"
@@ -94,7 +94,7 @@ The matching lower-bound version, Lemma 2 (verbatim): "E(X_f) >= SUM_{1<=i<=m-1}
 The full Wegener Thm 6 table of fitness-level upper bounds (verbatim): e*n*(ln n + 1) for ONEMAX; e*n^2 for all linear functions; e*n^k*N for degree-k functions with N positive non-vanishing weights; e*n^2 for LO; e*n*l for path functions on paths of length l if the search starts on the path; e*n*N for all unimodal functions taking at most N+1 different values.
 Tail-bound extension, VERIFIED: **Carsten Witt, "Fitness levels with tail bounds for the analysis of randomized search heuristics", Information Processing Letters 114(1-2):38-41, 2014. DOI 10.1016/j.ipl.2013.09.013.**
 
-### 6b. DRIFT ANALYSIS. Lineage, all verified bibliographically:
+### Drift analysis. Lineage, all verified bibliographically:
 - Origin outside EC: Bruce Hajek's simulated-annealing drift/hitting-time work. *** FLAG: I could NOT verify the Hajek citation this session — my Crossref query returned no match. The standard reference is B. Hajek, "Hitting-time and occupation-time bounds implied by drift analysis with applications", Advances in Applied Probability 14(3):502-525, 1982. Treat volume/pages as unverified. ***
 - Into EC: **Jun He & Xin Yao, "Drift analysis and average time complexity of evolutionary algorithms", Artificial Intelligence 127(1):57-85, 2001. DOI 10.1016/S0004-3702(01)00058-3.** VERIFIED, 471 citations. With an **erratum: He & Yao, Artificial Intelligence 140(1-2):245-248, 2002, DOI 10.1016/S0004-3702(02)00260-6** — worth citing alongside. Follow-up: He & Yao, "Towards an analytic framework for analysing the computation time of evolutionary algorithms", Artificial Intelligence 145(1-2):59-97, 2003, DOI 10.1016/S0004-3702(02)00381-8.
 - **Multiplicative drift: Benjamin Doerr, Daniel Johannsen & Carola Winzen, "Multiplicative Drift Analysis", Algorithmica 64(4):673-697, 2012. DOI 10.1007/s00453-012-9622-x.** VERIFIED (Crossref author order: Doerr, Johannsen, Winzen; OpenAlex scrambles it to "Carola Doerr, Daniel Johannsen, Benjamin Doerr" — Carola Winzen later published as Carola Doerr, hence the confusion; use the Crossref order for the 2012 record). 278 citations. Conference version: GECCO 2010, pp. 1449-1456, DOI 10.1145/1830483.1830748; see also Doerr/Johannsen/Winzen, "Drift analysis and linear functions revisited", CEC 2010, pp. 1-8, DOI 10.1109/CEC.2010.5586097. arXiv:1101.0776. Abstract verbatim on what it is for: "This allows easier analyses in those settings where the optimization progress is roughly proportional to the current distance to the optimum."
@@ -105,9 +105,9 @@ Tail-bound extension, VERIFIED: **Carsten Witt, "Fitness levels with tail bounds
 
 ### 6c. THE "TYPICAL RUN" METHOD. Wegener, verbatim on why expectations alone are not enough: "The behavior within one step or a few steps has a large uncertainty, although one can obtain bounds for the global behavior which have a very small error probability. The idea is to investigate search phases of well-chosen lengths. During each phase we expect a certain behavior of the (1+1)EA. Runs of the (1+1)EA fulfilling the aims of all phases are called 'typical'. ... The essential point is to prove an upper bound on the failure probability, i.e., the probability of a non-typical run."
 
-### 7. WHERE CROSSOVER PROVABLY HELPS
+### Where crossover provably helps
 
-### 7a. REAL ROYAL ROADS — the first rigorous proof. VERIFIED:
+### Real royal roads — the first rigorous proof. verified:
 - **Thomas Jansen & Ingo Wegener, "The Analysis of Evolutionary Algorithms — A Proof That Crossover Really Can Help", *Algorithmica* 34(1):47-66, 2002. DOI 10.1007/s00453-002-0940-2.** 224 citations. Conference version: ESA '99, LNCS, pp. 184-193, DOI 10.1007/3-540-48481-7_17.
 - THE RESULT, verbatim as Wegener Thm 10: "Evolutionary algorithms without crossover need for **JUMP_m, m = ceil(log n)**, with large probability **superpolynomial time (n^Omega(log n))**. A steady-state genetic algorithm with population size n and probability **p_c = 1/(n log n)** for uniform crossover has an expected run time on JUMP_m which is bounded above by **O(n^3 log n)**."
 - THE MECHANISM, verbatim: "It seems easy to obtain a population consisting only of individuals with exactly m zeros (or even an optimal individual). Uniform crossover on two individuals which have m zeros each and the zeros at different positions has a probability of exactly **2^(-2m) >= 1/n^2** to produce the global optimum 1^n and the probability that mutation does not destroy 1^n is approximately e^(-1). The expected waiting time increases to O(n^3 log n) because of the small crossover probability. **This small probability simplifies the control of the hitchhiking effect.**" And the hard part of the proof, stated honestly: "Crossover and selection destroy the independency of the individuals of the initial population. It gets more likely that individuals share zeros." — the whole technical difficulty is bounding the loss of diversity.
@@ -126,7 +126,7 @@ Tail-bound extension, VERIFIED: **Carsten Witt, "Fitness levels with tail bounds
 
 ### 7c. Also: Sudholt's factor-2 crossover result on OneMax and royal roads (details in Part 1) — Evolutionary Computation 25(2):237-274, 2017, DOI 10.1162/evco_a_00171. And on populations and diversity generally: **Dirk Sudholt, "The Benefits of Population Diversity in Evolutionary Algorithms: A Survey of Rigorous Runtime Analyses", in Doerr & Neumann 2020, pp. 359-404, DOI 10.1007/978-3-030-29414-4_8.** VERIFIED bibliographically.
 
-### 8. THE STANDARD REFERENCE BOOKS — all four VERIFIED
+### The standard reference books — all four verified
 - **Frank Neumann & Carsten Witt, *Bioinspired Computation in Combinatorial Optimization: Algorithms and Their Computational Complexity*, Natural Computing Series, Springer 2010. Book DOI 10.1007/978-3-642-16544-3.** 211 citations. (Chapter 2 "Combinatorial Optimization and Computational Complexity", pp. 9-19, DOI ..._2; Chapter 13 "Cutting Problems", pp. 191-203.)
 - **Anne Auger & Benjamin Doerr (eds.), *Theory of Randomized Search Heuristics: Foundations and Recent Developments*, Series on Theoretical Computer Science vol. 1, World Scientific, 2011. DOI 10.1142/7438** (front matter 10.1142/9789814282673_fmatter, pp. i-x; back matter _bmatter, pp. 355-359). Contains the Whitley & Rowe NFL tutorial at pp. 255-287. Companion journal special issue: Auger & Witt (eds.), Algorithmica 64(4):621-622, 2012, DOI 10.1007/s00453-012-9686-7.
 - **Thomas Jansen, *Analyzing Evolutionary Algorithms: The Computer Science Perspective*, Natural Computing Series, Springer 2013. Book DOI 10.1007/978-3-642-17339-4.** (Chapters verified via Crossref: "Evolutionary Algorithms and Other Randomized Search Heuristics", pp. 7-29, DOI ..._2; "Theoretical Perspectives on Evolutionary Algorithms", pp. 31-44, DOI ..._3.)
@@ -135,7 +135,7 @@ Tail-bound extension, VERIFIED: **Carsten Witt, "Fitness levels with tail bounds
 - Textbook entry point: **A. E. Eiben & J. E. Smith, *Introduction to Evolutionary Computing*, 2nd ed., Natural Computing Series, Springer 2015. Book DOI 10.1007/978-3-662-44874-8. The theory chapter is Chapter 16, "Theory", pp. 231-244, DOI 10.1007/978-3-662-44874-8_16** (VERIFIED via the Crossref chapter list; in the 1st edition, 2003, it was Chapter 11, "Theory", pp. 189-203, DOI 10.1007/978-3-662-05094-1_11).
 - The field's early survey of the obstacles: **Hans-Georg Beyer, Hans-Paul Schwefel & Ingo Wegener, "How to analyse evolutionary algorithms", *Theoretical Computer Science* 287(1):101-130, 2002. DOI 10.1016/S0304-3975(02)00137-8.** VERIFIED bibliographically; content UNVERIFIED (closed access, no abstract) — do not quote it.
 
-### 9. CONVERGENCE RESULTS AND THEIR CONDITIONS
+### Convergence results and their conditions
 
 ### 9a. RUDOLPH 1994 — both directions, and the citation to get right. VERIFIED with full abstract: **Guenter Rudolph, "Convergence analysis of canonical genetic algorithms", *IEEE Transactions on Neural Networks* 5(1):96-101, 1994. DOI 10.1109/72.265964.** 1,503 citations.
 ABSTRACT, VERBATIM IN FULL (it states both results precisely, so quote it rather than paraphrasing): "This paper analyzes the convergence properties of the canonical genetic algorithm (CGA) with mutation, crossover and proportional reproduction applied to static optimization problems. **It is proved by means of homogeneous finite Markov chain analysis that a CGA will never converge to the global optimum regardless of the initialization, crossover, operator and objective function. But variants of CGA's that always maintain the best solution in the population, either before or after selection, are shown to converge to the global optimum due to the irreducibility property of the underlying original nonconvergent CGA.** These results are discussed with respect to the schema theorem."
@@ -151,7 +151,7 @@ Also VERIFIED in this family: Yee Leung, Yong Gao & Zong-Ben Xu, "Degree of popu
 
 ### 9d. SUPERMARTINGALE / DRIFT AS THE BRIDGE. Drift analysis (section 6b) is exactly the technique that converts the qualitative "converges" into a quantitative expected hitting time: a potential function whose expected decrease per step is bounded below gives an expected hitting time by the additive or multiplicative drift theorem, and the processes involved are (super)martingales up to the drift. He & Yao 2001 (Artificial Intelligence 127(1):57-85) is the paper that explicitly introduced this bridge into EC, and Lengler's 2020 chapter is the modern treatment.
 
-### 9e. ES CONVERGENCE RATES — the continuous side.
+### ES convergence rates — the continuous side.
 - **Guenter Rudolph, "Local convergence rates of simple evolutionary algorithms with Cauchy mutations", *IEEE Transactions on Evolutionary Computation* 1(4):249-258, 1997. DOI 10.1109/4235.687885.** VERIFIED with full abstract (verbatim): "The standard choice for mutating an individual of an evolutionary algorithm with continuous variables is the normal distribution; however other distributions, especially some versions of the multivariate Cauchy distribution, have recently gained increased popularity .... **The results show that the order of local convergence is identical for Gaussian and spherical Cauchy distributions, whereas nonspherical Cauchy mutations lead to slower local convergence.** As a by-product of the analysis, some recommendations for the parametrization of the self-adaptive step size control mechanism can be derived." (A useful anti-folklore result: heavy-tailed mutation does not, by itself, improve the local convergence order.)
 - Also VERIFIED: Rudolph, "Asymptotical convergence rates of simple evolutionary algorithms under factorizing mutation distributions", LNCS, pp. 223-233, 1998, DOI 10.1007/BFb0026603; Rudolph, "Convergence Rates of Evolutionary Algorithms for Quadratic Convex Functions with Rank-Deficient Hessian", LNCS, pp. 151-160, 2013, DOI 10.1007/978-3-642-37213-1_16.
 - **JAEGERSKUEPPER — the (1+1) ES with the 1/5-rule.** Citations all VERIFIED (Crossref):
@@ -163,7 +163,7 @@ Also VERIFIED in this family: Yee Leung, Yong Gao & Zong-Ben Xu, "Degree of popu
   *** FLAG CLEARLY: Springer and ScienceDirect blocked me on all of these, and no abstracts are deposited in Crossref or OpenAlex, so the EXACT RESULTS ARE UNVERIFIED in this session. *** What the brief asserts — and what I believe is correct from background knowledge but cannot confirm — is that the (1+1) ES with the 1/5th success rule on the sphere function f(x) = ||x||^2 in R^n achieves **linear convergence order** (the log-distance to the optimum decreases by a constant per step in expectation) and needs **Theta(n) function evaluations per halving of the approximation error / distance to the optimum**, so Theta(n*log(1/epsilon)) evaluations to reach relative precision epsilon. The 2005 FOGA paper extends this to ellipsoidal landscapes and the 2006 TCS paper to general positive definite quadratic forms, where the conditioning of the Hessian enters the bound. **Present the Theta(n)-per-halving figure as attributed-but-unverified and cite Jaegerskuepper 2003 (ICALP) and 2006 (TCS 361(1):38-56) for it.**
   The structural contrast worth drawing: on the continuous sphere the (1+1) ES with step-size adaptation is *linearly* convergent — a constant factor of progress per O(n) evaluations — whereas on the discrete OneMax the (1+1) EA needs Theta(n log n) total because the last bits take Theta(n) attempts each (a coupon-collector tail). Continuous and discrete runtime theory are genuinely different mathematical subjects, and the "1/5 rule" is one of the few folklore heuristics with a rigorous justification.
 
-### 10. HONEST SUMMARY TABLE (sections 2-5, with verification status)
+### Honest summary table (sections 2-5, with verification status)
 (1+1) EA, mutation p = 1/n, expected optimization time:
 - OneMax: **Theta(n log n)**; tightly e*n*ln n - 1.8925n + (e/2)ln n + 0.598 + O(log n/n). [VERIFIED: Wegener Thm 4 upper; Hwang et al. 2018 exact; Garnier/Kallel/Schoenauer 1999 for the e*n*log n + c_1 n form]
 - Any linear function with non-zero weights: **Theta(n log n)**, tightly e*n*ln n + O(n); p = 1/n provably optimal. [VERIFIED: DJW 2002 for O(n log n); Witt 2013 for the tight form]
