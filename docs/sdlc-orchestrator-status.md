@@ -1,83 +1,91 @@
 # SDLC orchestrator build — running status
 
 Short and overwritten each session. Full spec is
-`openspec/changes/certify-sdlc-pipeline/`. Last updated 2026-10-30.
+`openspec/changes/certify-sdlc-pipeline/`. Last updated 2026-11-16.
 
 ## Where it stands
 
-**8 of 58 tasks.** The story contract is done. The pipeline is not started.
+**43 of 60 tasks done, 15 retired, 2 open — and both open ones wait on something
+other than code.** The readiness segment is certified, runs on haiku, and its
+delegation gate is now confirmed at runtime. Seven of nine sections are closed.
 
 | Section | State |
 |---|---|
-| 0. Sequencing | Gate dropped — it was invented, not required |
-| 1. Substrate extraction | Not started |
-| 2. Generalise the hooks | Not started |
-| 3. Story as data contract | S.1–S.6, 3.1, 3.7 done. 3.2–3.6, 3.8 open |
-| 4. Register pipeline as segments | Not started |
-| 5. Certify readiness segment | Not started |
-| 6. Punch-outs and attack evidence | Not started |
-| 7. Audit trail and success rate | Not started |
-| 8. Documentation | Not started |
+| 0. Sequencing | 0.2 and 0.3 open — both wait on the review, not on us |
+| 1. Substrate extraction | Done |
+| 2. Generalise the hooks | Done |
+| 3. Story as data contract | Retired. Cleanup landed as PR #129 |
+| 4. Register pipeline as segments | Done |
+| 5. Certify readiness segment | Done — certified, and confirmed at runtime |
+| 6. Punch-outs and attack evidence | Done |
+| 7. Audit trail and success rate | 7.5 open — needs real runs |
+| 8. Documentation | Done |
 
-## The one open decision
+Certification, from `skills/sdlc-orchestration/steps.yaml` rather than from this
+table: **1 of 6 segments.** The two `readiness` nodes are `certified: true` on
+haiku. `analysis`, `planning`, `solutioning`, `implementation` and `verification`
+are all `certified: false`. No end-to-end rate is asserted, by design.
 
-**Does `render-stories.py` survive?**
+## Not decisions — answers that arrive with the review
 
-It works: a challenged `breakdown.json` renders to validated `story-*.json` with
-sentinels, the dev pair knows the contract, the edge checks them.
+Tasks 0.2 and 0.3 are **blocked on the review coming back**, not on anyone asking
+anything. Nobody owes a question. Recorded here so they are not mistaken for
+pending actions.
 
-But AN-3631 — the first real run — did not use it. The chain went breakdown →
-propose → `tasks.md`, and propose *superseded* the rendered stories: S5 folded
-into S1, S6 dropped as a story. `render-stories.py` is also not a step in any
-profile, so its output lands in run directories the flow does not route. That is
-what produced six edge-failing files that halted the run until they were parked.
+**0.2 — is a pipeline of certified 2–3 node segments, joined by deterministic
+edges, certifiable segment by segment?** The change's one load-bearing unknown.
+The assumption is this project's own; it is not in the deck. Nothing shipped
+depends on the answer and a "no" costs no rework — per-segment certification is
+the submittable unit either way, and the pipeline-level claim is already hedged
+in `skills/workflow-certification/SKILL.md` (records the rule as unconfirmed) and
+`delivery-report.py` (refuses a pipeline-wide rate).
 
-Two ways out:
+**0.3 — do knowledge skills loaded as context need their own certification?**
+Pure sizing. sdlc loads many more knowledge skills than delivery-flow, so the
+answer sets the cost of everything after `readiness`. Nothing shipped depends on
+it.
 
-1. **Retire it.** Propose is the handoff; `proposal.json` + `tasks.md` is the
-   sanctioned input. Retires S.1–S.6 and 3.4 instead of finishing them.
-2. **Promote it.** Make it a real step before propose, registered in a profile
-   with a schema'd artifact.
+## The only actionable work left
 
-Recommendation: **retire it.** Propose already reconciles the challenge findings,
-which the renderer cannot do — it is forbidden from changing anything the
-breakdown said. Two sources of truth for the story set is the problem, not a
-feature.
+**Run the pipeline on real items. Task 7.5 is the last one, and it needs runs,
+not code.**
 
-Everything in sections 4–7 is blocked behind this, because it decides what
-section 3 is for.
+The readiness success rate stays meaningless until real runs at story granularity
+produce it. The evals in `evals/readiness-stories/` and `evals/readiness-review/`
+guard regressions; they do not generate a rate. Nothing can be built to shortcut
+this — it accumulates from use.
 
-## Done this session
+5.6 is closed. `tests/workflow/readiness/run-readiness.py` drives the real
+`check-certification.py` and confirms both runtime claims: delegation to the two
+certified nodes is permitted, and editing either live prompt re-blocks its node.
+Evidence is committed at
+`tests/workflow/readiness/readiness-gate-report.md`.
 
-- **S.5** — story-planner vs rendered path documented in three places
-  (`skills/sdlc-orchestration/SKILL.md`, `agents/story-planner.md`,
-  `docs/using-the-sdlc-dev-team.md`).
-- **3.1 + 3.7** — `schemas/story.schema.json` made reachable, dev-pair prompts
-  taught the `story.json` contract.
-- **Three real bugs**, all found by running real data, none by the test suites:
-  the story schema was unreachable (`artifact: "story.json"` vs real
-  `story-E1-S1.json`), the renderer wrote no sentinels, and `proposal.json`'s
-  change directory resolved against the vault instead of the repo. The last one
-  was blocking the live run at propose.
+Worth knowing why that mattered: **nothing had ever invoked the gate.** Every
+reference to `check-certification.py` was a doc or a unit test, so the control
+that blocks delegation to an uncertified step had no caller — the same
+present-but-checking-nothing defect as the three in the section below.
 
-Commits on `worktree-sdlc-story-seam`: `7a9a480`, `2aab6c1`, `ca61f29`. 488 tests
-green.
+## Known gap, not forgotten
+
+`claude-haiku-5-5` is absent from the pricing table (it covers
+`claude-haiku-4-5`), so every haiku step records `api_equivalent_cost_usd: null`
+with `pricing_missing: true`. Both certified nodes run on haiku, so criterion 4's
+cost figures currently omit the cheapest and most-used tier.
+
+This needs a published price. It will not be invented — a guessed price is worse
+than none. A test in `tests/workflow/test_audit_trail.py` asserts the gap exists
+and says to delete itself once a real price is added.
 
 ## The finding worth keeping
 
-Five defects today were the same class: **a gate that was present, reported
-success, and was checking nothing.** Three were dispatch (right checker, wrong or
-no input), one was a check bug, one was a declaration bug. Each subtype wants a
-different test:
+The recurring defect class this change kept hitting: **a checker that is present,
+successful, and checking nothing.** Right checker, wrong input.
 
-- dispatch → a boundary test ("does the checker run at all")
-- check → the matcher tested against near-misses
-- declaration → a test keyed to the *producer's* filename, not the registry's
-
-My first attempt at the boundary test was itself inert: it iterated declared
-names, so it passed while every real story went unchecked. Caught only by
-mutating the code and expecting a failure that did not come.
-
-`tests/delivery-flow/test_edge_dispatch.py` covers this. It also pins eight
-routed artifacts that no checker covers — six `full`-profile JSON artifacts past
-propose, plus `pr.md` and `post.md`.
+`enforce-punch-outs.py` recognised an sdlc repo and then looked for its artifacts
+in `delivery/`, so it permitted everything — and reported nothing, because "no
+punch-out is open" and "I looked in the wrong place" produce the same silence.
+`delivery-report.py` could not see an sdlc run at all. `check-protected-paths.py`
+matched `protected_paths:` only at column 0, so it found no block in either
+config that nests the key. Each was caught by a refuse-to-pass-by-absence rule,
+not by reading the code.
