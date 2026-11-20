@@ -161,3 +161,51 @@ is one step from an invented one, so I'm leaving the check strict.
 Certified: v6 on **Haiku**, 257/264 (97.3%) over two samples. Sonnet is 264/264. The known residual
 to watch is Haiku occasionally folding Merge danger into Changes. If it shows up in real PRs, the fix
 I'd try first is one sentence saying Merge danger is its own heading after Changes.
+
+## Iteration 7 — v7, brevity as a criterion
+
+**Baseline:** v6 certified on Haiku at 257/264 (97.3%) over two samples, on four criteria —
+contract, coverage, fidelity, risk. Nothing in the suite measured length, and nothing in the
+prompt asked for it.
+
+**Hypothesis:** a reviewer scans a PR description before they have any context and skips what
+looks long, so the section most likely to be missed is the last one — `## Merge danger`, the
+one v6 was built to add. Giving each section an explicit cap should move length without
+costing coverage, because the instruction is to use fewer words about the same changes, not to
+report fewer changes.
+
+**Change:** `prompt_v7.md` adds a `# Length` section (What ≤ 25 words, Why ≤ 2 sentences,
+Changes ≤ 5 flat bullets of ≤ 25 words, Door and Blast radius 1 sentence each) and a constraint
+banning graded adjectives. The suite gains a fifth criterion, `brevity`, in
+`asserts/brevity.js`.
+
+**Result:** not yet run on a model — this entry records the design and what the existing
+evidence already shows. Two things measured offline, with no model calls:
+
+- **v6's own 66 outputs score 1/33 brevity on both models** at v7's caps. A criterion a
+  certified prompt already satisfies would be decoration; this one is close to the flat zero an
+  absent behaviour should score.
+- **The caps are set from those 66 outputs**, each at or just above the median, so each is a
+  real constraint the tail violates badly. The distributions are in `load-bearing.md`.
+
+`asserts/brevity.selftest.js` is mutation-tested before any model call: 9/9 — the assert
+accepts a hand-written reference answer and fails on each of eight defects with the right
+reason.
+
+**Reasoning:** the first draft capped bullets at 20 words and that was wrong in a way worth
+recording. 20 sat *below* v6's median (20–25) and was the dominant violation on 26–32 of 33
+cases; worse, on the two six-file cases (case-06, case-07) the only way to meet it was to drop
+a file, which `coverage` requires to be there. A cap that can only be met by failing another
+criterion is not a stricter standard, it is a broken one. 25 is above the median, below p75
+(29), and still cuts a tail that runs to 84 words.
+
+The same cap had a side effect I did not plan. Instruction 12 ("group related changes together")
+had been unmapped since v1 — the honest exception in every load-bearing map through v6, because
+nothing measured grouping while the bullet count was unbounded. With a five-bullet cap, the two
+six-file cases cannot satisfy both the cap and the every-file rule *without* grouping, so the
+instruction became measurable as a consequence rather than by being given its own assert. The
+map is 29/29 for the first time.
+
+**What to watch when it runs:** whether `coverage` holds. Brevity and coverage are the one pair
+in this suite that can genuinely trade against each other, and the six-file cases are where it
+would show. If coverage drops, the cap is wrong, not the model.
