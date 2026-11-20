@@ -285,3 +285,70 @@ class TestItDoesNotPromiseAnEndToEndRate(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+def edge_record(artifact, step, exit_code=0):
+    """An edge record — what `check-edge.py` writes. Carries no `certified` field."""
+    return {"ts": "2026-11-04T00:00:00+00:00", "item": "SDLC-9", "step": step,
+            "hook": "check-edge", "artifact": artifact, "sha256": "a" * 64,
+            "sentinel_sha256": "b" * 64, "edge": {"exit": exit_code}}
+
+
+class TestARunWithNoStepRecordsIsNotCertified(unittest.TestCase):
+    """The vacuous-pass defect: `certified_all` started True and only a `certified: false`
+    moved it, so a run whose trace held no step records at all came out certified — a
+    certification over zero observations.
+
+    Found on live data: five of eight items on nx-neptune had edge records only and no
+    `trace-step` records, so `steps` read 0, cost read $0.00 and the certified column read
+    `yes`. Closing those runs out would have put them straight into the Stage 4 figure.
+
+    Same distinction task 7.4 drew for unrecognised steps, one level up: "no uncertified step
+    was found" and "no step was found" are different claims.
+    """
+
+    def test_a_trace_of_only_edge_records_is_unknown_not_certified(self):
+        repo = sdlc_repo([edge_record("readiness-verdict.json", "readiness"),
+                          edge_record("stories", "readiness")])
+        row, _ = one_row(repo)
+        self.assertEqual(row["steps"], 0, "fixture should have no step records")
+        self.assertIsNone(row["certified"],
+                          "a run with no recorded certification must be unknown, not certified")
+
+    def test_an_unknown_run_does_not_count_toward_the_certified_rate(self):
+        """The consequence that matters: it must not reach the Stage 4 numerator."""
+        repo = sdlc_repo([edge_record("readiness-verdict.json", "readiness")])
+        _, s = one_row(repo)
+        self.assertEqual(s["overall"]["certified_only"]["completed"], 0)
+        self.assertEqual(s["overall"]["all"]["completed"], 1,
+                         "it is still a terminal run, just not a certified one")
+
+    def test_a_record_carrying_certified_true_still_certifies(self):
+        """The guard: the fix must not make every run unknown."""
+        repo = sdlc_repo([step_record("readiness", True)])
+        row, s = one_row(repo)
+        self.assertIs(row["certified"], True)
+        self.assertEqual(s["overall"]["certified_only"]["completed"], 1)
+
+    def test_a_record_carrying_certified_false_is_still_a_refusal_not_unknown(self):
+        """`False` and `None` are different answers and must not collapse."""
+        repo = sdlc_repo([step_record("readiness", False)])
+        row, _ = one_row(repo)
+        self.assertIs(row["certified"], False,
+                      "an uncertified node disqualifies; that is not the same as unmeasured")
+
+    def test_mixed_records_certify_on_the_evidence_present(self):
+        """One step traced certified and one edge-only record: the claim rests on the step."""
+        repo = sdlc_repo([edge_record("stories", "readiness"),
+                          step_record("readiness-review", True)])
+        row, _ = one_row(repo)
+        self.assertIs(row["certified"], True)
+
+    def test_the_markdown_says_unknown_rather_than_no(self):
+        """Rendering it as `no` would accuse a run whose trace simply was not written."""
+        repo = sdlc_repo([edge_record("readiness-verdict.json", "readiness")])
+        items = report.collect([repo])
+        md = report.markdown(report.summarize(items), "2026-09-15")
+        row = [l for l in md.splitlines() if l.startswith("| SDLC-9 ")]
+        self.assertTrue(row, "the run should appear in the items table")
+        self.assertIn("unknown", row[0])

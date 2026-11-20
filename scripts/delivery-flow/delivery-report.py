@@ -289,6 +289,18 @@ def summarize(items: dict) -> dict:
         tokens = {f: 0 for f in TOKEN_FIELDS}
         cost, priced, certified_all = 0.0, True, True
         uncertified_nodes, excluded, unknown_steps = set(), set(), set()
+        # Did the trace record *any* step's certification status? `certified_all` starts True
+        # and only a `certified: false` moves it, so a run whose trace holds no step records
+        # at all came out as certified — vacuously, because a run with no observed steps has
+        # no uncertified ones. Five live items were in exactly that state: edge records only,
+        # no `trace-step` records, so `steps` read 0, cost read $0.00, and the certified column
+        # read `yes`.
+        #
+        # This is the same distinction task 7.4 drew for unrecognised steps, missed one level
+        # up: "no uncertified step was found" and "no step was found" are different claims, and
+        # only the first is a certification. Without this flag the Stage 4 figure would count
+        # runs whose traces it never read.
+        saw_certification = False
         for rec in entry["records"]:
             for f in TOKEN_FIELDS:
                 tokens[f] += rec.get(f) or 0
@@ -298,6 +310,8 @@ def summarize(items: dict) -> dict:
                     missing_pricing.add(rec["model"])
             else:
                 cost += rec["api_equivalent_cost_usd"]
+            if rec.get("certified") is not None:
+                saw_certification = True
             if rec.get("certified") is False:
                 # Only a node's certification is a claim about the chain, and only a
                 # *recognised* deterministic step may be set aside. See `certification_role`.
@@ -320,6 +334,12 @@ def summarize(items: dict) -> dict:
                 nonconformant.append({"item": key, "step": step, "model": rec.get("model"),
                                       "declared": rec.get("declared_tier"),
                                       "cost": rec.get("api_equivalent_cost_usd") or 0})
+
+        # No step's certification was ever recorded, so there is nothing to certify against.
+        # `None` rather than False: the run is not disqualified, it is unmeasured, and saying
+        # "no" would accuse a run whose trace simply was not written.
+        if not saw_certification:
+            certified_all = None
 
         outcome = entry["outcome"] or {}
         status = outcome.get("status") or ("in-flight" if entry["records"] or entry["edges"] else "empty")
@@ -425,7 +445,8 @@ def markdown(s: dict, pricing_as_of: str) -> str:
         L.append(f"| {r['item']} | {r['profile']} | {r['status']}{(' — ' + r['reason']) if r['reason'] else ''} | {r['steps']} | "
                  f"{r['input_tokens']:,} | {r['output_tokens']:,} | "
                  f"{'$' + format(r['cost_usd'], '.4f') if r['priced'] else 'unpriced'} | "
-                 f"{'yes' if r['certified'] else 'no'} | {r['failed_edges']} | {r['unchecked_edges']} |")
+                 f"{'unknown' if r['certified'] is None else ('yes' if r['certified'] else 'no')} | "
+                 f"{r['failed_edges']} | {r['unchecked_edges']} |")
 
     mc = s["manual_corrections"]
     L += ["", "## Manually-corrected runs", "",
