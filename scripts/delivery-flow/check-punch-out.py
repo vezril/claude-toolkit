@@ -171,6 +171,34 @@ def triggers(repo: Path, item: str, step: str, cfg: dict) -> tuple:
             found.append({"trigger": name, "evidence": evidence,
                           "decision": ask, "options": options})
 
+    # The diff-size ceilings, evaluated at `verify` — the first point where the whole change
+    # exists. Earlier the diff is partial, and a ceiling applied to a partial diff would
+    # either fire late or pass on a change that was not finished.
+    #
+    # Derivation only: there is no artifact field claiming a size, so unlike the three triggers
+    # above there is no flag path and no `policy_disagreement` to record. Rewording an artifact
+    # cannot move this one.
+    if step == "verify":
+        size = trigger_rules.derive_diff(
+            trigger_rules.diff_stat(repo, (cfg.get("forge") or {}).get("base")), cfg)
+        v = size["diff-size"]
+        if v["fired"]:
+            found.append({
+                "trigger": "diff-size",
+                "evidence": f"measured from the diff ({v['evidence']})",
+                "decision": "This change is larger than one review should carry. Proceed?",
+                "options": ["split it into separate changes", "proceed as one change", "stop"],
+            })
+        elif v["fired"] is None:
+            # Undetermined is reported, never silently treated as within the ceiling. An
+            # unmeasured diff and a small one must not read the same in the run's record.
+            found.append({
+                "trigger": "diff-size",
+                "evidence": f"the size could not be determined ({v['evidence']})",
+                "decision": "The change's size is unknown. Proceed without that check?",
+                "options": ["configure the ceilings and re-run", "proceed unmeasured", "stop"],
+            })
+
     changed, provenance, attribution = item_changed_files(repo, item, cfg)
     for kind, key, question in (("breaking", "contract_paths", "A shared contract changed. Proceed?"),
                                 ("protected-path", "protected_paths", "A protected path changed. Proceed?")):

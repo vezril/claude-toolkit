@@ -36,16 +36,16 @@ check that the three controls actually fire on a real run.
 
 ## 2. Diff-size ceilings
 
-- [ ] 2.1 `punch_out.max_diff_files` and `punch_out.max_diff_lines` in the config template, with
+- [x] 2.1 `punch_out.max_diff_files` and `punch_out.max_diff_lines` in the config template, with
       `skills/delivery-flow/references/config.md` updated in the same commit. An absent ceiling
       is reported, never treated as unlimited.
-- [ ] 2.2 The derivation in `scripts/delivery-flow/triggers.py` — the one home for derived
+- [x] 2.2 The derivation in `scripts/delivery-flow/triggers.py` — the one home for derived
       triggers, imported by `check-punch-out.py` and `hooks/check-edge.py` so it cannot be
       computed two ways. Reads the diff only; no node's size or scope field is consulted (D4).
-- [ ] 2.3 Record the measured file and line counts next to the ceilings they breached, so the
+- [x] 2.3 Record the measured file and line counts next to the ceilings they breached, so the
       punch-out carries its own evidence.
-- [ ] 2.4 Evaluate at `verify`, and re-evaluate when the diff changes after a passing check.
-- [ ] 2.5 Tests: within both ceilings advances; breaching either raises; an artifact claiming
+- [x] 2.4 Evaluate at `verify`, and re-evaluate when the diff changes after a passing check.
+- [x] 2.5 Tests: within both ceilings advances; breaching either raises; an artifact claiming
       the change is small does not clear it; a missing ceiling is an error. Mutation-check the
       derivation — a trigger that cannot fire is the defect this repo keeps finding.
 
