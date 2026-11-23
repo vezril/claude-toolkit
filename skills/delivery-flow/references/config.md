@@ -89,11 +89,32 @@ roster_overrides:            # replaces a kind of work wholesale, never merges i
     skills: [scala, akka]
     reviewers: [scala-fp-reviewer]
 
-allow_uncertified: [propose, vault-update]   # steps that may run without certification; each
-                             # run is marked certified: false and excluded from the Stage 4
-                             # rate. Both are here until they carry a prompt-edd package.
+allow_uncertified: [propose, review, vault-update]   # steps that may run without
+                             # certification; each run is marked certified: false and excluded
+                             # from the Stage 4 rate. All three are here until they carry a
+                             # prompt-edd package.
                              # `project-memory` is NOT here: it is a script, not a node.
+
+punch_out:
+  max_diff_files: 25         # a change touching more files than this raises a punch-out at
+  max_diff_lines: 800        # verify: the flow stops and a human decides split or proceed.
+                             # Derived from the actual diff, never from a node's claim about
+                             # its own size, so rewording an artifact cannot clear it.
+                             # Per-repo: what counts as large differs by repository, and a
+                             # plugin-level default would be wrong everywhere. An ABSENT
+                             # ceiling is reported, never treated as unlimited.
 ```
+
+## `review` and the chain gate
+
+`review` is outside the certified chain (`chain: false` in `steps.yaml`). That matters for the
+evidence package: `package-evidence.py` gates on `check-certification.py --all --chain-only`,
+so an uncertified non-chain step does not block a build whose claim is about the chain. Before
+`--chain-only` existed the packager gated on every registered step, and registering `review`
+was enough to take the Stage 4 package back to DRAFT while the certified chain was untouched.
+
+`--all` without `--chain-only` still reports every step, including the uncertified ones. The
+narrowing is to the *gate*, not to the report.
 
 ## Rules
 

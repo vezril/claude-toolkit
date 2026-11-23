@@ -72,4 +72,36 @@ steps:
     load_bearing: evals/pr-description/load-bearing.md
     iteration_log: evals/pr-description/iteration-log.md
     escalation_evidence: null
+    # Declared when `review` was added: `review.schema.json` names this step a consumer, and
+    # `tests/delivery-flow/test_schema_consumers.py` requires the registry to agree. The
+    # review's findings arrive as `carry_forward` and this step must address each.
+    #
+    # Declaring an input does not touch the step's certification: the prompt, its sha and its
+    # evidence are unchanged, and the certified suite never read this field.
+    inputs: [review.json]
     known_residual: "Haiku names PostgresFlyerLedger.scala (a class, not a file) on case-08 in about 1 of 3 runs; v6 carries two samples (run_v6_all.json 128/132, run_v6_all.s2.json 129/132) where triage, breakdown and challenge-breakdown each carry three consecutive runs, and `consecutive_runs` is absent here rather than listing two, because the gate enforces the three-run rule only when the field is present — a third sample is the honest way to close that gap"
+
+  # The reviewer node, added before the PR (design D1-D3). **Uncertified and declared.**
+  #
+  # No eval suite exists for it, so it carries no `prompt_sha256`, `results`,
+  # `consecutive_runs` or `certified_version`, and `check-certification.py` will refuse it.
+  # That refusal is the point: it must be listed in `allow_uncertified` for the flow to run it,
+  # every run traces `certified: false`, and those runs are excluded from any certified-only
+  # rate. The `full` profile was already outside the Stage 4 claim — this is a sixth uncertified
+  # node in it, so the profile is further from a certified chain after this change, not closer.
+  #
+  # `chain: false` because the certified chain is the `triage` profile and this step is not in
+  # it. The `triage` profile gains nothing here and its rate is unaffected.
+  #
+  # The reviewers are not named here: they come from `templates/delivery-flow/roster.yaml` per
+  # work kind, resolved at dispatch, so a roster edit does not need a registry edit. One step
+  # fans out to all of them (D1) rather than one step per reviewer, which would make the
+  # routing table a function of configuration.
+  - step: review
+    chain: false
+    prompt: skills/delivery-flow/references/review.md
+    tier: sonnet
+    certified: false
+    inputs: [diff, verify.json, proposal.json]
+    outputs: [review.json]
+    known_residual: "no eval suite exists for this step, so nothing measures whether a reviewer's findings are grounded in the diff or whether a SURVIVED verdict on a defective change would be caught; the schema requires per-finding evidence but cannot check that the evidence is real"
