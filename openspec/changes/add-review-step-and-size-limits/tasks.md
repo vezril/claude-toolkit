@@ -26,11 +26,11 @@ check that the three controls actually fire on a real run.
 - [x] 1.6 `skills/delivery-flow/workflow.yaml`: routing row keyed on `review.json`, and
       `verdict_policy.weakened: require-addressed` declared explicitly (D3) so a substrate
       default change cannot move it.
-- [ ] 1.7 The fan-out (D1): one step dispatching each roster reviewer in its own fresh context,
+- [x] 1.7 The fan-out (D1): one step dispatching each roster reviewer in its own fresh context,
       merging into one `review.json`. A work kind with an empty reviewer list is an error, not a
       skip — test that case, because a silent skip is the failure that would make this step
       decorative.
-- [ ] 1.8 Wire review findings into `carry_forward` and make `pr-description` obliged to
+- [x] 1.8 Wire review findings into `carry_forward` and make `pr-description` obliged to
       address each. Test the staleness rule: an unchanged diff means nothing was addressed, so
       the review reruns rather than advancing on self-report.
 

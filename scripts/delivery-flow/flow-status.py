@@ -101,6 +101,22 @@ QUICK_PATH_SKIPS = {"breakdown", "challenge-breakdown"}
 CHALLENGES = {
     "challenge-breakdown.json": ("breakdown.json", "breakdown"),
     "challenge-implementation.json": ("implementation.json", "implementation"),
+    # The reviewer's verdict routes through the same table, so it gets the same staleness rule
+    # and the same `carry_forward` for free rather than a second mechanism meaning the same
+    # thing.
+    #
+    # Its target is **the diff**, which is not a traced artifact and so cannot be compared by
+    # write index. `implementation.json` is the traced stand-in: the diff changes when the
+    # implementation step runs again, and that write is what the trace records. The stand-in is
+    # conservative in the right direction — it can mark a review stale when the diff did not
+    # actually change (an implementation rerun that produced identical code), which costs a
+    # re-review, where the opposite error would advance a merge on a review of code that no
+    # longer exists.
+    #
+    # `review.json` also carries `diff_sha256`, which is the exact check. Using it here would
+    # mean computing the diff inside flow-status, which is a build operation in a function that
+    # only reads artifacts; the sha is there for the review step and a reviewer to verify.
+    "review.json": ("implementation.json", "implementation"),
 }
 MAX_REFUTATIONS = 2
 
