@@ -146,9 +146,19 @@ def main(argv=None) -> int:
     suite = run_suite(repo, cfg.get("test_command") or "")
     checked, violations = run_protected(repo, cfg)
 
+    # Field names follow the artifacts the step already produced in the field, not names
+    # invented from the prompt descriptions. `test_command`, `passed` and `status` existed; a
+    # first version of this script used `command` and `suite` instead and its schema rejected
+    # all eight real artifacts, blocking their edges.
     doc = {"item": args.item, "story": args.story,
-           "command": cfg.get("test_command") or "(none configured)",
-           "suite": suite, "tests": tests,
+           "test_command": {"command": cfg.get("test_command") or "(none configured)",
+                            "source": ".delivery-flow.yaml test_command",
+                            "exit_code": suite["exit_code"],
+                            "status": suite["status"],
+                            "summary": suite["summary"]},
+           "passed": suite["status"] == "green",
+           "status": suite["status"],
+           "tests": tests,
            "protected_paths_checked": checked, "protected_violations": violations}
 
     if args.json:
