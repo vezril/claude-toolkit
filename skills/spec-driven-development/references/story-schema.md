@@ -46,6 +46,13 @@ As a {role}, I want {action}, so that {benefit}.
    Each AC is **either** Given/When/Then (contains the words *given*, *when*, *then* in that order;
    may span multiple lines until the next AC) **or** an explicit checklist item (`- AC-n: [ ] …`).
    With `--gwt-only`, checklist form is rejected too.
+   An AC may carry a **risk priority** — `- AC-1 (P0): Given …` — using `P0`–`P3`. With
+   `--require-priority`, every AC must carry one and the linter names each that does not.
+   The priority is the dev pair's **test scope**: `test-writer` covers P0 and P1 and writes no
+   test below P1, so an unprioritised criterion has no defined scope. Delivery-flow's verify
+   edge passes `--require-priority`; the readiness edge does not, which is why the flag is
+   opt-in rather than the default — the certified readiness suites carry unprioritised
+   fixtures and making it mandatory here would fail them against their own gate.
 5. **Task ↔ AC mapping is closed**: `## Tasks / Subtasks` has ≥ 1 top-level checkbox task; every
    top-level task carries an AC reference (`(AC: 1)`, `(AC: 1, 2)`, `(AC-1)`); every referenced AC
    exists; every AC is covered by ≥ 1 task. Indented subtasks need no reference.

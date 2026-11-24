@@ -34,7 +34,17 @@ STATUS_RE = re.compile(r"^Status\s*:\s*(\S.*)$", re.IGNORECASE)
 STORY_STMT_RE = re.compile(
     r"\bas\s+an?\s+.+?\bI\s+want\b.+?\bso\s+that\b\s*\S", re.IGNORECASE | re.DOTALL
 )
-AC_ITEM_RE = re.compile(r"^[-*]\s+AC-(\d+)\s*:?\s*(.*)$")
+# `- AC-1 (P0): Given …` — the priority is an optional group so every story written before it
+# existed still parses. Requiring it is opt-in via `--require-priority`, which delivery-flow's
+# verify edge passes and the readiness edge does not.
+#
+# **Why opt-in rather than required.** `evals/readiness-stories/` and
+# `evals/readiness-review/cases/` carry 29 unprioritised AC lines, and readiness-stories' own
+# `schema` criterion shells out to this script. Making the priority mandatory here would fail
+# the certified fixtures against their own gate and un-certify the `readiness` node — the one
+# certified segment of the sdlc pipeline — to add a rule that binds somewhere else entirely.
+AC_ITEM_RE = re.compile(r"^[-*]\s+AC-(\d+)\s*(?:\(\s*(P[0-3])\s*\))?\s*:?\s*(.*)$")
+AC_PRIORITIES = ("P0", "P1", "P2", "P3")
 CHECKBOX_RE = re.compile(r"^\[[ xX]\]")
 TASK_RE = re.compile(r"^([-*])\s+\[[ xX]\]\s+(.*)$")
 TASK_AC_REF_RE = re.compile(r"\(\s*AC\s*[:\s-]\s*([0-9,\s]+)\)", re.IGNORECASE)
@@ -81,7 +91,7 @@ def find_section(sections, *names):
     return None
 
 
-def lint_story(path, root, gwt_only):
+def lint_story(path, root, gwt_only, require_priority=False):
     errors, warnings = [], []
     text = path.read_text(encoding="utf-8", errors="replace")
     lines = text.splitlines()
@@ -118,12 +128,22 @@ def lint_story(path, root, gwt_only):
                 if current_id in ac_ids:
                     errors.append(f"[ac] duplicate id AC-{current_id} (line {lineno})")
                 ac_ids[current_id] = lineno
-                blocks.append((current_id, lineno, [m.group(2)]))
+                blocks.append((current_id, lineno, [m.group(3)], m.group(2)))
             elif blocks and line.strip() and not line.lstrip().startswith(("- ", "* ")):
                 blocks[-1][2].append(line.strip())
         if not blocks:
             errors.append("[ac] no acceptance criteria of the form '- AC-{n}: …'")
-        for ac_id, lineno, parts in blocks:
+        if require_priority:
+            # Named per criterion rather than reported as a count, because the dev pair has to
+            # act on a specific AC and "3 criteria lack a priority" tells it nothing.
+            for ac_id, lineno, _parts, prio in blocks:
+                if prio is None:
+                    errors.append(
+                        f"[ac] AC-{ac_id} has no priority (line {lineno}); write "
+                        f"'- AC-{ac_id} (P0): …' using one of {', '.join(AC_PRIORITIES)} — "
+                        "the dev pair tests P0 and P1 and nothing below, so an unprioritised "
+                        "criterion has no defined test scope")
+        for ac_id, lineno, parts, _prio in blocks:
             block = " ".join(parts)
             is_checklist = bool(CHECKBOX_RE.match(block.strip()))
             if gwt_only and is_checklist:
@@ -217,6 +237,9 @@ def main():
     parser.add_argument("paths", nargs="+", help="story .md files or directories of them")
     parser.add_argument("--root", default=".", help="base dir for resolving [Source:] paths (default: cwd)")
     parser.add_argument("--gwt-only", action="store_true", help="reject checklist-form ACs")
+    parser.add_argument("--require-priority", action="store_true",
+                        help="require a (P0-P3) priority on every AC; delivery-flow's verify "
+                             "edge passes this, the readiness edge does not")
     args = parser.parse_args()
 
     root = Path(args.root).resolve()
@@ -235,7 +258,7 @@ def main():
 
     failed = 0
     for f in files:
-        errors, warnings = lint_story(f, root, args.gwt_only)
+        errors, warnings = lint_story(f, root, args.gwt_only, args.require_priority)
         print(f"{'FAIL' if errors else 'PASS'} {f}")
         for e in errors:
             print(f"  - {e}")

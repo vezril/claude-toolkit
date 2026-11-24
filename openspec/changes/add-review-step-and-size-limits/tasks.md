@@ -51,17 +51,17 @@ check that the three controls actually fire on a real run.
 
 ## 3. P0/P1 test scope
 
-- [ ] 3.1 Add the per-criterion priority to the story/proposal contract and its schema (D5).
+- [x] 3.1 Add the per-criterion priority to the story/proposal contract and its schema (D5).
       An acceptance criterion with no priority is an error naming that criterion.
-- [ ] 3.2 `agents/test-writer.md`: cover P0 and P1, never below; a disputed priority is reported
+- [x] 3.2 `agents/test-writer.md`: cover P0 and P1, never below; a disputed priority is reported
       as a finding, never overridden (D6). Leave the file-territory definition untouched so the
       three-place agreement with `agents/implementer.md` and
       `hooks/enforce-dev-pair-boundary.py` still holds — and assert that in a test rather than
       trusting the diff.
 - [ ] 3.3 The verify check, **both directions**: every P0/P1 criterion has a test, and no test
       claims a criterion below P1. The second direction is the one this change exists for.
-- [ ] 3.4 A test covering several criteria counts for each; no duplicate test is demanded.
-- [ ] 3.5 Tests for all four cases above, with the out-of-scope direction mutation-checked.
+- [x] 3.4 A test covering several criteria counts for each; no duplicate test is demanded.
+- [x] 3.5 Tests for all four cases above, with the out-of-scope direction mutation-checked.
 
 ## 4. Documentation, in the same change
 
