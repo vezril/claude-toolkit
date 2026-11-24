@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """An artifact nothing checked must say so, rather than leaving a silence.
 
-Eight artifacts in the routing table have no schema: implementation.json, verify.json,
+Seven artifacts in the routing table have no schema: implementation.json,
 challenge-implementation.json, pr-opened.json, posted.json, vault-updated.json, and the
 `pr.md` / `post.md` prose. Every one sits in the `full` profile past `propose`, so the gap is
 plausibly a profile whose edges were never built — but nothing in the pipeline could say that,
@@ -97,13 +97,18 @@ class TestTheGapIsIdentified(unittest.TestCase):
         self.schemas = common.load_schemas()
         self.governed = check_edge.unschemad(flow_status, common, self.schemas)
 
-    def test_the_eight_unschemad_routing_table_artifacts(self):
+    def test_the_seven_unschemad_routing_table_artifacts(self):
         """Pinned. If this set changes, a schema was added or an artifact was renamed, and
-        either way the report's unchecked count means something different."""
+        either way the report's unchecked count means something different.
+
+        Was eight. `verify.json` left the set when `schemas/verify.schema.json` was added
+        alongside `run-verify.py` — the step had been `kind: build` with no producer, so the
+        artifact nothing wrote also had nothing to validate it."""
         self.assertEqual(
-            {"implementation.json", "verify.json", "challenge-implementation.json",
+            {"implementation.json", "challenge-implementation.json",
              "pr.md", "pr-opened.json", "post.md", "posted.json", "vault-updated.json"},
             self.governed)
+        self.assertNotIn("verify.json", self.governed)
 
     def test_the_certified_chains_artifacts_are_all_governed(self):
         """The triage profile is the Stage 4 chain; none of its artifacts may be unchecked."""
@@ -123,9 +128,9 @@ class TestTheGapIsRecorded(unittest.TestCase):
 
     def test_an_unschemad_artifact_gets_a_trace_record(self):
         r = Repo()
-        out = r.hook("verify.json") if r.write("verify.json", {"tests": "green"}) else None
+        out = r.hook("implementation.json") if r.write("implementation.json", {"tests": "green"}) else None
         self.assertEqual(0, out.returncode, out.stderr)
-        records = r.records_for("verify.json")
+        records = r.records_for("implementation.json")
         self.assertEqual(1, len(records), f"expected one record, got {r.trace()}")
         self.assertEqual("no-schema", records[0]["edge"]["name"])
         self.assertEqual(0, records[0]["edge"]["exit"])
@@ -179,10 +184,10 @@ class TestTheGapIsRecorded(unittest.TestCase):
     def test_malformed_json_in_an_unchecked_artifact_still_does_not_block(self):
         """It is unchecked: not even parsed. Recording must not smuggle in a parse gate."""
         r = Repo()
-        (r.item_dir / "verify.json").write_text("{not json")
-        out = r.hook("verify.json")
+        (r.item_dir / "implementation.json").write_text("{not json")
+        out = r.hook("implementation.json")
         self.assertEqual(0, out.returncode, out.stderr)
-        self.assertEqual("no-schema", r.records_for("verify.json")[0]["edge"]["name"])
+        self.assertEqual("no-schema", r.records_for("implementation.json")[0]["edge"]["name"])
 
     def test_prose_artifacts_are_recorded_too(self):
         r = Repo()
@@ -203,8 +208,8 @@ class TestNonArtifactsStayOut(unittest.TestCase):
     def test_the_trace_itself_is_not_recorded(self):
         """A record of writing the trace would be appended to the trace, forever."""
         r = Repo()
-        r.write("verify.json", {"tests": "green"})
-        r.hook("verify.json")
+        r.write("implementation.json", {"tests": "green"})
+        r.hook("implementation.json")
         before = len(r.trace())
         r.hook("trace.jsonl")
         self.assertEqual([], r.records_for("trace.jsonl"))
@@ -232,11 +237,11 @@ class TestItReadsAsUnchecked(unittest.TestCase):
         r.write("item.json", {"key": r.item, "title": "t", "body": "b", "status": "Open",
                               "url": "https://example.invalid/1", "source": "local-markdown",
                               "labels": [], "links": []})
-        r.write("verify.json", {"tests": "green"})
-        r.hook("verify.json")
+        r.write("implementation.json", {"tests": "green"})
+        r.hook("implementation.json")
         out = subprocess.run([sys.executable, str(FLOW), r.item, "--repo", str(r.dir)],
                              capture_output=True, text=True)
-        line = next((l for l in out.stdout.splitlines() if "verify.json" in l), "")
+        line = next((l for l in out.stdout.splitlines() if "implementation.json" in l), "")
         self.assertIn("unchecked", line, out.stdout)
         self.assertNotIn("✓", line)
 
