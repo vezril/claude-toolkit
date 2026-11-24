@@ -8,6 +8,22 @@ Last updated 2026-11-20.
 
 ## Can we submit?
 
+Run the gate, from the delivery repo:
+
+```bash
+python3 "$TOOLKIT"/scripts/delivery-flow/check-submission.py
+```
+
+It answers the whole question in one command and names the fix on each failing line. As of
+2026-11-24 it reports **NOT SUBMITTABLE** on two blocking checks: criterion 4 has no
+certified-only rate (`n = 0`), and three of four terminal runs have no step records.
+
+It exists because `package-evidence.py` gates only on the chain being certified. Asked to build
+with the Stage 4 figure reading `—`, it produced five populated directories, a 3,123-entry
+manifest and no complaint — a finished-looking package missing the one number the certification
+asks for.
+
+
 **No. Two things, and only one of them is work.**
 
 1. **`pr-description` fails its gate**, so `package-evidence.py` stamps DRAFT instead of

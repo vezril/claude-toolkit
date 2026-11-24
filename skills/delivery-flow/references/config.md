@@ -105,6 +105,15 @@ punch_out:
                              # ceiling is reported, never treated as unlimited.
 ```
 
+## Before submitting
+
+`check-submission.py` is the last gate: chain certified, package builds without a DRAFT stamp,
+criterion 4 has a rate at all, every terminal run has step records, and the denominator's
+composition is disclosed. Blocking failures exit 1; a thin denominator is a warning, because
+what sample a reviewer accepts is theirs to decide and not this script's.
+
+A check that cannot run is reported as a failure, never a pass.
+
 ## Replayed runs
 
 Re-running the flow over an already-closed ticket, to gather volume for criterion 4:
