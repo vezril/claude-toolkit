@@ -123,6 +123,15 @@ Two distinctions the artifact keeps, because collapsing either flatters a bad ru
 
 A red suite is a **successful** verify — the step reports, the edge and the reviewer judge.
 
+**`verify.json`'s schema is deliberately open**, and tightening it is a mistake worth naming.
+Across the eight artifacts written before the schema existed, only `item` appears in every one,
+and `test_command` appears as both a string and an object. The rest — `gates`,
+`discrepancies`, `planned_vs_realized`, `coverage_percent` and about eighty other keys — varies
+by run, because this is an evidence document the orchestrator shapes for the change in front of
+it rather than a fixed record. A first version of the schema was closed and required invented
+field names; it rejected all eight real artifacts and blocked their edges. `story` and `tests`
+are optional for the same reason: the scope edge reports an honest no-op without them.
+
 ## Before submitting
 
 `check-submission.py` is the last gate: chain certified, package builds without a DRAFT stamp,

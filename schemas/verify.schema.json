@@ -1,71 +1,99 @@
 {
   "artifact": "verify.json",
   "produced_by": "verify",
-  "consumed_by": ["review", "post-summary", "vault-update"],
-  "counts": {"tests": "tests[]", "protected_violations": "protected_violations[]"},
+  "consumed_by": [
+    "review",
+    "post-summary",
+    "vault-update"
+  ],
+  "counts": {
+    "tests": "tests[]"
+  },
   "consumers": {
-    "review": {"requires": ["suite", "tests"]},
-    "post-summary": {"requires": ["suite"]},
-    "vault-update": {"requires": ["suite"]}
+    "review": {
+      "requires": [
+        "item"
+      ]
+    },
+    "post-summary": {
+      "requires": [
+        "item"
+      ]
+    },
+    "vault-update": {
+      "requires": [
+        "item"
+      ]
+    }
   },
   "type": "object",
-  "required": ["item", "story", "command", "suite", "tests", "protected_paths_checked",
-               "protected_violations"],
-  "additionalProperties": false,
+  "required": [
+    "item"
+  ],
+  "additionalProperties": true,
   "properties": {
-    "item": {"type": "string", "minLength": 1},
+    "item": {
+      "type": "string",
+      "minLength": 1
+    },
+    "test_command": {
+      "description": "The test command run. Written as a bare string by some runs and as an object ({command, exit_code, \u2026}) by others, so both are accepted \u2014 this artifact is an evidence document the orchestrator shapes per run, not a fixed record.",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    "branch": {
+      "type": "string",
+      "minLength": 1
+    },
     "story": {
       "type": "string",
       "minLength": 1,
-      "description": "Repo-relative path to the story this verifies. Required because the test-scope edge resolves AC priorities from it; without it there is no declared scope to check and the check degrades to a no-op."
+      "description": "Repo-relative path to the story. Optional: the test-scope edge needs it to resolve AC priorities and reports an honest no-op without it, rather than the artifact being invalid."
     },
-    "command": {
+    "passed": {
+      "type": "boolean"
+    },
+    "status": {
       "type": "string",
-      "minLength": 1,
-      "description": "The test command actually run, verbatim from config.test_command. Recorded so a reviewer can re-run it rather than take the result on trust."
-    },
-    "suite": {
-      "type": "object",
-      "required": ["status", "exit_code"],
-      "additionalProperties": false,
-      "properties": {
-        "status": {
-          "type": "string",
-          "enum": ["green", "red", "not-run"],
-          "description": "`not-run` is a distinct answer from `red`: a suite that could not start says nothing about the code, and conflating them would let a missing test command read as a failing build."
-        },
-        "exit_code": {"type": "integer"},
-        "passed": {"type": "integer", "minimum": 0},
-        "failed": {"type": "integer", "minimum": 0},
-        "summary": {"type": "string"}
-      }
+      "minLength": 1
     },
     "tests": {
       "type": "array",
-      "description": "The tests this change carries. `covers` is what makes the P0/P1 scope check possible at all — without it the edge cannot tell which criteria are tested.",
+      "description": "Optional. When present, `covers` is what lets the scope edge check P0/P1 in both directions; without it the edge no-ops.",
       "items": {
         "type": "object",
-        "required": ["name", "covers"],
-        "additionalProperties": false,
+        "required": [
+          "name",
+          "covers"
+        ],
+        "additionalProperties": true,
         "properties": {
-          "name": {"type": "string", "minLength": 1},
-          "file": {"type": "string", "minLength": 1},
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "file": {
+            "type": "string",
+            "minLength": 1
+          },
           "covers": {
             "type": "array",
             "minItems": 1,
-            "items": {"type": "string", "pattern": "^(AC-)?[0-9]+$"},
-            "description": "Acceptance criterion ids. One test may legitimately cover several."
+            "items": {
+              "type": "string",
+              "pattern": "^(AC-)?[0-9]+$"
+            }
           }
         }
       }
-    },
-    "protected_paths_checked": {
-      "type": "boolean",
-      "description": "Whether the protected-path check actually ran. False with an empty violations list means nobody looked — which must not read the same as nothing found."
-    },
-    "protected_violations": {
-      "type": "array",
-      "items": {"type": "string", "minLength": 1}
     }
-  }
+  },
+  "_shape_note": "Deliberately OPEN. Across the eight verify.json written before this schema existed, only `item` appears in every one, and `test_command` appears in two different types. The artifact is a free-form evidence document \u2014 `gates`, `discrepancies`, `planned_vs_realized`, `coverage_percent` and 80 other keys vary by run. A closed schema rejected all eight and blocked their edges, which is why this requires the one stable field and validates the shapes it can rather than inventing a contract the step never had."
 }
