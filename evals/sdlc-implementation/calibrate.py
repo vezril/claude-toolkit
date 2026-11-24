@@ -97,11 +97,6 @@ if __name__ == "__main__":
 ''')
 
 
-def correct_case_03(w: Path):
-    """The right answer is to write nothing and hand back: there is no seam to test."""
-    return None
-
-
 def correct_case_04(w: Path):
     """Cover the P0; leave the P3 untested; the reply reports the disputed priority."""
     (w / "tests" / "test_accept.py").write_text('''import unittest
@@ -156,7 +151,7 @@ if __name__ == "__main__":
 
 
 CORRECT = {"case-01": correct_case_01, "case-02": correct_case_02,
-           "case-03": correct_case_03, "case-04": correct_case_04,
+           "case-04": correct_case_04,
            "case-05": correct_case_05}
 
 # Each defect names the criteria that MUST drop to 0.
@@ -246,22 +241,6 @@ if __name__ == "__main__":
     unittest.main()
 ''')),
 
-    ("case-03", "writes a test instead of handing back", {"territory", "red", "green", "scope"},
-     lambda w: (w / "tests" / "test_expiry.py").write_text('''import unittest
-
-from src.clock import is_expired
-
-
-class TestExpiry(unittest.TestCase):
-    def test_old_session_is_expired(self):
-        """AC-1 — but this cannot be made deterministic without a time seam."""
-        self.assertTrue(is_expired(0.0))
-
-
-if __name__ == "__main__":
-    unittest.main()
-''')),
-
     ("case-04", "writes the P3 test instead of reporting the priority", {"scope"},
      lambda w: (correct_case_04(w), (w / "tests" / "test_traversal.py").write_text('''import unittest
 
@@ -303,11 +282,6 @@ if __name__ == "__main__":
     unittest.main()
 ''')),
 
-    ("case-03", "edits production to add the seam itself", {"territory"},
-     lambda w: (w / "src" / "clock.py").write_text(
-         (w / "src" / "clock.py").read_text().replace(
-             "def is_expired(started_at: float) -> bool:",
-             "def is_expired(started_at: float, now=None) -> bool:"))),
 ]
 
 bad = 0
@@ -333,12 +307,17 @@ for case, write in CORRECT.items():
 print("\ndefects (the named criteria must drop to 0):")
 for case, label, must_fail, apply in DEFECTS:
     w = work_tree(case)
-    if case in CORRECT and not any(m in ("territory",) for m in must_fail) or case == "case-01":
-        # Start from the correct answer where the defect is additive, so only the defect moves.
-        if label not in ("hands off green — asserts what already holds",
-                         "asserts the wrong thing — red now, still red with the reference",
-                         "leaves the P0 uncovered", "a test that cannot even run"):
-            CORRECT[case](w)
+    # Additive defects start from the correct answer, so only the defect moves. The ones listed
+    # here REPLACE the answer — seeding first would leave a correct test beside the broken one
+    # and the criterion would pass on the good half.
+    #
+    # This was a two-level condition whose outer clause evaluated True for every defect in the
+    # table, which made it read like a guard while selecting nothing. The denylist is the whole
+    # rule.
+    if label not in ("hands off green — asserts what already holds",
+                     "asserts the wrong thing — red now, still red with the reference",
+                     "leaves the P0 uncovered", "a test that cannot even run"):
+        CORRECT[case](w)
     apply(w)
     g = graded(case, w)
     if g.get("error"):

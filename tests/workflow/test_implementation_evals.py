@@ -9,6 +9,7 @@ it only means anything if a test that guards nothing actually loses the point.
 """
 
 import json
+import re
 import subprocess
 import sys
 import unittest
@@ -20,7 +21,7 @@ SUITE = ROOT / "evals" / "sdlc-implementation"
 
 class TestTheGraderIsCalibrated(unittest.TestCase):
     def test_calibration_passes(self):
-        """5 correct answers score 4/4; 11 defects each lose exactly their criteria."""
+        """4 correct answers score 4/4; 9 defects each lose exactly their criteria."""
         out = subprocess.run([sys.executable, "-I", str(SUITE / "calibrate.py")],
                              cwd=str(SUITE), capture_output=True, text=True, timeout=900)
         self.assertEqual(0, out.returncode, out.stdout + out.stderr)
@@ -85,6 +86,51 @@ class TestTheRunnerCannotDestroyTheFixtures(unittest.TestCase):
                              env={**__import__("os").environ, "REPEAT": "3"}, timeout=120)
         self.assertEqual(2, out.returncode)
         self.assertIn("REPEAT must be 1", out.stdout + out.stderr)
+
+
+class TestTheSuiteMeasuresWhatItClaims(unittest.TestCase):
+    """Three runs were discarded to harness bugs, and each produced plausible numbers.
+
+    Both of these were invisible from the results file: a run over three of five cases and a
+    run where both providers were the same model both reported a full table of scores.
+    """
+
+    def test_every_fixture_case_is_wired_into_the_config(self):
+        """Cases 04 and 05 had fixtures and ground truth but no `tests:` entry, so the suite
+        looked complete and silently measured three of five."""
+        config = (SUITE / "promptfooconfig.yaml").read_text()
+        # The `vars:` form only, so a case named in a comment cannot stand in for a test.
+        wired = set(re.findall(r"vars:\s*\{\s*case:\s*(case-\d+)\s*\}", config))
+        on_disk = {p.name for p in (SUITE / "fixture").iterdir() if p.is_dir()}
+        self.assertEqual(on_disk, wired)
+
+    def test_the_provider_has_no_model_default(self):
+        """`${CLI_MODEL:-sonnet}` ran both providers as sonnet and reported it as a
+        two-model comparison. A missing model must fail, not fall back."""
+        cli = (SUITE / "provider" / "claude-cli.sh").read_text()
+        self.assertIn("MODEL_OVERRIDE:?", cli)
+        self.assertNotRegex(cli, r"MODEL_OVERRIDE:-|CLI_MODEL:-")
+
+    def test_each_wrapper_sets_its_own_model(self):
+        for model in ("haiku", "sonnet"):
+            with self.subTest(model=model):
+                text = (SUITE / "provider" / f"claude-{model}.sh").read_text()
+                self.assertRegex(text, rf"MODEL_OVERRIDE=[\"']?{model}")
+
+    def test_the_provider_reads_only_the_prompt_argument(self):
+        """promptfoo's third argument is a context JSON holding the test's ground truth."""
+        cli = (SUITE / "provider" / "claude-cli.sh").read_text()
+        self.assertNotRegex(cli, r'\$\{?[23]\}?|\$\{?@\}?|\$\*')
+
+    def test_the_provider_keeps_its_stderr(self):
+        """Sending it to /dev/null turned a missing model into a bare 'Command failed'."""
+        cli = (SUITE / "provider" / "claude-cli.sh").read_text()
+        self.assertNotIn("2>/dev/null", cli)
+
+    def test_the_work_tree_is_keyed_by_case_and_model(self):
+        """Keyed by case alone, parallel providers copied into each other's trees."""
+        cli = (SUITE / "provider" / "claude-cli.sh").read_text()
+        self.assertIn('.work/$CASE-$MODEL', cli)
 
 
 class TestTheRegistryClaimsOnlyWhatExists(unittest.TestCase):

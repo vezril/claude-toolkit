@@ -11,7 +11,12 @@ function grade(output, context) {
   if (!id) throw new Error('test is missing vars.case');
   // The agent worked in fixture/<case> via working_dir; promptfoo copies nothing, so the
   // tree it left IS that directory.
-  const work = path.join(ROOT, 'fixture', id);
+  // .work/<case> is the copy the provider made and the agent edited; fixture/<case> is the
+  // pristine baseline grade.py diffs against.
+  // Must match the provider's layout: keyed by case and model, because they run in parallel.
+  const label = (context && context.provider && (context.provider.label || context.provider.id))
+    || 'sonnet';
+  const work = path.join(ROOT, '.work', `${id}-${label}`);
   // The agent's reply goes to grade.py via a temp file, so ALL grading stays in that one
   // script. One criterion reads what the agent said (a disputed priority has to be reported,
   // not merely acted on), and splitting that into JS would put grading in two places.

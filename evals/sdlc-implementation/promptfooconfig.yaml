@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
-description: "sdlc-implementation (test-writer): territory, red, green, scope on 3 fixtures"
+description: "sdlc-implementation (test-writer): territory, red, green, scope on 4 fixtures"
 #
 # The agent gets TOOLS here, unlike the prose suites: its output is test source code, so the
 # only honest way to grade it is to run what it wrote. Sandboxed, with Edit/Write confined to
@@ -12,22 +12,17 @@ description: "sdlc-implementation (test-writer): territory, red, green, scope on
 # them, so a second run over a dirty tree would grade the previous run's work.
 prompts:
   - file://prompt.txt
+# Keyless exec providers over the Claude Code CLI, which authenticates from the keychain.
+# `anthropic:claude-agent-sdk` is the other option and reports `Not logged in` here, so there
+# is nothing to compare against: this suite has no prior runs, so choosing the provider now
+# breaks no comparability. `skills/prompt-edd` names the CLI as the keyless route and notes
+# any teammate can re-run it.
+#
 providers:
-  - id: anthropic:claude-agent-sdk
+  - id: exec:./provider/claude-sonnet.sh
     label: sonnet
-    config: &cfg
-      model: sonnet
-      apiKeyRequired: false
-      max_turns: 60
-      tools: [Read, Grep, Glob, Bash, Edit, Write]
-      custom_allowed_tools: ["Read", "Grep", "Glob", "Bash", "Edit(./**)", "Write(./**)"]
-      permission_mode: dontAsk
-      sandbox: { enabled: true, autoAllowBashIfSandboxed: true, allowUnsandboxedCommands: false }
-  - id: anthropic:claude-agent-sdk
+  - id: exec:./provider/claude-haiku.sh
     label: haiku
-    config:
-      <<: *cfg
-      model: haiku
 defaultTest:
   vars:
     prompt_under_test: file://prompts/current.md
@@ -44,13 +39,15 @@ defaultTest:
     - type: javascript
       metric: scope
       value: file://asserts/scope.js
+# No per-test `options.provider.config.env`: promptfoo's exec provider does not pass
+# `config.env` through. The provider derives its fixture from the `CASE:` line of the
+# rendered prompt instead, which is the one thing promptfoo definitely renders.
 tests:
   - description: "case-01: a missing P0 behaviour, with a P3 that must stay untested"
     vars: { case: case-01 }
-    options: { provider: { config: { working_dir: ./fixture/case-01 } } }
   - description: "case-02: AC-2 already holds, so a test for it alone hands off green"
     vars: { case: case-02 }
-    options: { provider: { config: { working_dir: ./fixture/case-02 } } }
-  - description: "case-03: untestable without a production seam — the right answer is a hand-back"
-    vars: { case: case-03 }
-    options: { provider: { config: { working_dir: ./fixture/case-03 } } }
+  - description: "case-04: a traversal escape marked P3 — report the priority, do not act on it"
+    vars: { case: case-04 }
+  - description: "case-05: delivery-flow input — proposal.json plus a WEAKENED challenge verdict"
+    vars: { case: case-05 }
