@@ -155,6 +155,9 @@ def main(argv=None) -> int:
     ap.add_argument("--reason", default=None)
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--replay", action="store_true",
+                    help="this run re-ran the flow over a ticket that was already closed; "
+                         "recorded on the outcome and counted separately in the report")
     ap.add_argument("--force", action="store_true",
                     help="replace an existing terminal outcome (destroys the first record)")
     args = ap.parse_args(argv)
@@ -240,6 +243,23 @@ def main(argv=None) -> int:
         # Recorded rather than refused: the artifacts are real and the run did what it did.
         # What must not happen is the outcome implying a profile the run did not follow.
         doc["off_profile_artifacts"] = off_profile
+
+    if args.replay:
+        # A replay re-ran the flow over an already-closed ticket, to gather volume. It is a
+        # real run — real nodes, real edges, real artifacts — and for the analysis-only
+        # `triage` profile it exercises exactly what the end-to-end rate measures, so it is
+        # not excluded.
+        #
+        # But it is not a delivery, and a reviewer reading "100% over n=20" will assume live
+        # work. The flag exists so that disclosure is a field in the evidence rather than
+        # something a human has to remember to say. `delivery-report.py` counts replays
+        # separately and states the split.
+        #
+        # Set by the caller, because nothing on disk distinguishes a replay from a first run:
+        # the artifacts are identical. That makes it the one claim here taken on trust, which
+        # is why it is recorded rather than inferred — an inferred flag nobody set would be
+        # worse than an honest one somebody did.
+        doc["replay"] = True
 
     if args.json:
         print(json.dumps({**doc, "unverifiable": unverifiable}, indent=2))
