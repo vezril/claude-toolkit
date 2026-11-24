@@ -39,6 +39,7 @@ from common import (CONFIG_NAME, artifact_root, artifact_root_problems,  # noqa:
                     is_delivery_repo, load_config, load_json,
                     load_profiles, open_punch_outs, repo_root, select_profile)
 import descriptor as workflow_descriptor  # noqa: E402
+import verdict as verdict_rules  # noqa: E402
 
 MAX_RERUNS = 3
 
@@ -298,6 +299,31 @@ def status(repo: Path, item: str, profile: dict, profiles: list) -> dict:
     weakened = [c for c in verdicts if not c["stale"] and c["verdict"] == "WEAKENED"]
     unreadable = [c for c in verdicts if c["unreadable"]]
 
+    # Route every verdict through the substrate rather than deciding here.
+    #
+    # `scripts/workflow/verdict.py` was built for this and had **no caller**: it was imported
+    # only by its own test file, while this function decided verdicts inline. Two routers, one
+    # of them inert — which also made `verdict_policy` decorative in both descriptors, so
+    # sdlc's deliberately-declared `require-addressed` was never enforced either.
+    #
+    # The step is passed so a per-step policy can differ from the workflow's. delivery-flow
+    # needs both: its breakdown challenge feeds a brief a human reads and must not block on
+    # WEAKENED (documented behaviour of the certified triage chain), while `review` feeds a
+    # merge and must.
+    decisions = []
+    for c in verdicts:
+        step_name = c["artifact"].removesuffix(".json")
+        decided = verdict_rules.decide(
+            {"verdict": c["verdict"], "findings": [{"finding": f} for f in c["findings"]]},
+            target_changed=c["stale"],
+            refutations=c["refutations"],
+            descriptor=DESCRIPTOR,
+            step=step_name)
+        decisions.append((c, step_name, decided))
+
+    def _first(action):
+        return next(((c, s, d) for c, s, d in decisions if d["action"] == action), None)
+
     if punch_outs:
         first = punch_outs[0]
         next_step, blocked = None, (
@@ -330,12 +356,34 @@ def status(repo: Path, item: str, profile: dict, profiles: list) -> dict:
             findings = "; ".join(c["findings"][:2]) or "see the findings in the challenge artifact"
             next_step, blocked = c["step"], (
                 f"rerun {c['step']}: {c['artifact']} came back REFUTED — {findings[:200]}")
+    # The substrate's remaining blocking actions, after the four cases above — which it agrees
+    # with and which carry this function's existing wording, kept verbatim so the certified
+    # chain's reports do not change.
+    #
+    # What is new here is only what the inline router never looked at: a WEAKENED verdict under
+    # a `require-addressed` policy, and SURVIVED carrying findings.
+    elif _first(verdict_rules.BLOCKED):
+        c, _s, d = _first(verdict_rules.BLOCKED)
+        next_step, blocked = None, f"{c['artifact']}: {d['reason']}"
+    elif _first(verdict_rules.PUNCH_OUT):
+        c, _s, d = _first(verdict_rules.PUNCH_OUT)
+        next_step, blocked = None, f"{c['artifact']}: {d['reason']}"
+    elif _first(verdict_rules.RERUN_REVIEWER):
+        c, s, d = _first(verdict_rules.RERUN_REVIEWER)
+        next_step, blocked = s, f"rerun {s}: {d['reason']}"
+    elif _first(verdict_rules.RERUN_PRODUCER):
+        c, _s, d = _first(verdict_rules.RERUN_PRODUCER)
+        next_step, blocked = c["step"], f"rerun {c['step']}: {d['reason']}"
     elif missing:
         next_step, blocked = missing[0]["step"], None
     else:
         next_step, blocked = None, None
 
-    complete = not missing and not punch_outs and not failed and not stale and not refuted
+    # `blocked` already carries every reason the flow cannot advance, including the
+    # substrate's. Deriving `complete` from the same value rather than re-listing the causes is
+    # what stops the two from drifting — the earlier list omitted WEAKENED entirely, which was
+    # harmless only because nothing blocked on it.
+    complete = not missing and not punch_outs and not failed and not blocked
 
     # A finished profile hands over through the artifact directory, not through a model: the
     # next profile recomputes its own position from what is on disk. All that is owed here is

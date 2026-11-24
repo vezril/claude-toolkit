@@ -52,19 +52,43 @@ REQUIRE_ADDRESSED = "require-addressed"
 WEAKENED_POLICIES = (ADVANCE_ON_WEAKENED, REQUIRE_ADDRESSED)
 
 
-def weakened_policy(descriptor: dict) -> str:
-    """A workflow's WEAKENED policy, defaulting to the non-blocking one.
+def weakened_policy(descriptor: dict, step: str = None) -> str:
+    """The WEAKENED policy for a step, falling back to the workflow's, then to `advance`.
 
-    The default is `advance` because that is delivery-flow's documented behaviour, and the
-    workflow that existed before this module must not change by having it added. A workflow
-    wanting the stricter rule says so.
+    The workflow-level default is `advance` because that is delivery-flow's documented
+    behaviour, and the workflow that existed before this module must not change by having it
+    added. A workflow wanting the stricter rule says so.
+
+    **Per step, because one workflow legitimately wants both.** delivery-flow's breakdown
+    challenge feeds a brief a human reads, where a WEAKENED verdict should not block — that is
+    documented behaviour of the certified triage chain. Its `review` step feeds a merge, where
+    unaddressed findings are exactly what must block. A single workflow-wide value cannot say
+    both, and setting the workflow to `require-addressed` to get the review's behaviour would
+    silently change the certified chain's.
+
+    Declared as `verdict_policy.weakened_<step>`, read **before** the workflow-level key so an
+    explicit per-step rule always wins over an inherited one.
+
+    Flat rather than a nested `weakened_by_step:` block because `descriptor.py`'s YAML subset
+    flattens two-level nesting into the parent mapping: a nested block silently parsed as a
+    sibling key and the per-step rule never resolved at all.
     """
-    policy = ((descriptor or {}).get("verdict_policy") or {}).get("weakened")
+    policy_block = (descriptor or {}).get("verdict_policy") or {}
+
+    if step:
+        per_step = policy_block.get(f"weakened_{step}")
+        if per_step in WEAKENED_POLICIES:
+            return per_step
+        # A per-step value that is not a recognised policy is ignored rather than honoured, and
+        # the workflow-level answer is used. Guessing which policy a typo meant is how a
+        # merge-blocking rule becomes a non-blocking one without anybody editing it.
+
+    policy = policy_block.get("weakened")
     return policy if policy in WEAKENED_POLICIES else ADVANCE_ON_WEAKENED
 
 
 def decide(verdict: dict, *, target_changed: bool, refutations: int = 0,
-           descriptor: dict = None) -> dict:
+           descriptor: dict = None, step: str = None) -> dict:
     """{action, reason, findings} for one verdict. Never raises on bad input.
 
     `target_changed` — has the reviewed artifact been rewritten since this verdict was written?
@@ -105,7 +129,7 @@ def decide(verdict: dict, *, target_changed: bool, refutations: int = 0,
                 "reason": "REFUTED: the artifact is wrong, so the node that produced it reruns"}
 
     # WEAKENED
-    if weakened_policy(descriptor) == ADVANCE_ON_WEAKENED:
+    if weakened_policy(descriptor, step) == ADVANCE_ON_WEAKENED:
         return {"action": ADVANCE, "findings": findings,
                 "reason": f"WEAKENED with {len(findings)} finding(s), and this workflow does "
                           f"not block on it; the findings travel as constraints the consuming "

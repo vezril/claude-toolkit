@@ -38,7 +38,16 @@ class Repo:
         self.item_dir = self.dir / "delivery" / item
         self.item_dir.mkdir(parents=True)
 
+    # Verdict-bearing artifacts need a readable verdict, because flow-status now routes them
+    # through `scripts/workflow/verdict.py` and an unreadable verdict blocks a segment. A
+    # placeholder `{"item": …}` is valid JSON with no verdict in it, which previously slipped
+    # through both the unreadable check and the REFUTED/WEAKENED checks — the gap the substrate
+    # closes. A default of SURVIVED keeps these fixtures meaning "this step is simply done".
+    VERDICT_BEARING = ("challenge-breakdown.json", "challenge-implementation.json", "review.json")
+
     def artifact(self, name, doc=None):
+        if doc is None and name in self.VERDICT_BEARING:
+            doc = {"item": self.item, "target": "x", "verdict": "SURVIVED", "findings": []}
         (self.item_dir / name).write_text(json.dumps(doc or {"item": self.item}, indent=2))
 
     def edge(self, artifact, exit_code=0, summary="ok", step=None):
