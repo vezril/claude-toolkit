@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "sdlc-implementation (test-writer): territory, red, green, scope on 3 fixtures"
+#
+# The agent gets TOOLS here, unlike the prose suites: its output is test source code, so the
+# only honest way to grade it is to run what it wrote. Sandboxed, with Edit/Write confined to
+# the working tree — the same shape `evals/diagnosing-bugs` uses.
+#
+# `working_dir` is per-case and set in each test below, because the agent must work inside the
+# fixture it is given and the grader compares that tree against the pristine one.
+#
+# IMPORTANT: run.sh restores the fixtures from git before every run. The agent writes into
+# them, so a second run over a dirty tree would grade the previous run's work.
+prompts:
+  - file://prompt.txt
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config: &cfg
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 60
+      tools: [Read, Grep, Glob, Bash, Edit, Write]
+      custom_allowed_tools: ["Read", "Grep", "Glob", "Bash", "Edit(./**)", "Write(./**)"]
+      permission_mode: dontAsk
+      sandbox: { enabled: true, autoAllowBashIfSandboxed: true, allowUnsandboxedCommands: false }
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config:
+      <<: *cfg
+      model: haiku
+defaultTest:
+  vars:
+    prompt_under_test: file://prompts/current.md
+  assert:
+    - type: javascript
+      metric: territory
+      value: file://asserts/territory.js
+    - type: javascript
+      metric: red
+      value: file://asserts/red.js
+    - type: javascript
+      metric: green
+      value: file://asserts/green.js
+    - type: javascript
+      metric: scope
+      value: file://asserts/scope.js
+tests:
+  - description: "case-01: a missing P0 behaviour, with a P3 that must stay untested"
+    vars: { case: case-01 }
+    options: { provider: { config: { working_dir: ./fixture/case-01 } } }
+  - description: "case-02: AC-2 already holds, so a test for it alone hands off green"
+    vars: { case: case-02 }
+    options: { provider: { config: { working_dir: ./fixture/case-02 } } }
+  - description: "case-03: untestable without a production seam — the right answer is a hand-back"
+    vars: { case: case-03 }
+    options: { provider: { config: { working_dir: ./fixture/case-03 } } }
