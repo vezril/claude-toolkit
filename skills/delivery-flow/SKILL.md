@@ -121,10 +121,11 @@ its job; raise the decision instead. Field mappings and each adapter's quirks ar
 | 8 | `implementation.json` | implementation | SDLC dev pair, per task |
 | 9 | `verify.json` | verify | the repo's test command + protected-paths check |
 | 10 | `challenge-implementation.json` | challenge-implementation | `cross-examine` |
-| 11 | `pr.md` → `pr-opened.json` | pr-description, open-pr | node, then forge adapter |
-| 12 | `post.md` → `posted.json` | post-summary, post-back | node, then tracker adapter |
-| 13 | `outcome.json` | report | script → `write-outcome.py` |
-| 14 | `vault-updated.json` | vault-update | node → `references/vault-update.md` (**uncertified**; skipped with no vault binding) |
+| 11 | `review.json` | review | node → `references/review.md`, one per roster reviewer (**uncertified**) |
+| 12 | `pr.md` → `pr-opened.json` | pr-description, open-pr | node, then forge adapter |
+| 13 | `post.md` → `posted.json` | post-summary, post-back | node, then tracker adapter |
+| 14 | `outcome.json` | report | script → `write-outcome.py` |
+| 15 | `vault-updated.json` | vault-update | node → `references/vault-update.md` (**uncertified**; skipped with no vault binding) |
 
 **Branching.** A `bug` or `task` takes the quick path and skips the breakdown and its
 challenge; a `feature` takes the standard path and runs everything. The path comes from
@@ -139,15 +140,67 @@ naming no profile gets `full`, which is every step.
 | Profile | Steps | Ends with |
 |---|---|---|
 | `triage` | intake → triage → (project-memory) → breakdown → challenge-breakdown → brief → report | `summary.md`, then `outcome.json` |
-| `full` | …the same, then propose → brief → implementation → verify → challenge-implementation → PR → post-back → report → vault-update | `vault-updated.json` |
+| `full` | …the same, then propose → brief → implementation → verify → challenge-implementation → review → PR → post-back → report → vault-update | `vault-updated.json` |
 
 `triage` is the Stage 4 certified chain: three certified nodes, deterministic edges between
 them, a rendered brief for a human, and an outcome. Nothing is implemented and no PR is
 opened, so it has no outward action.
 
 `full` adds the proposal and everything after it. **Its rate is not a Stage 4 number** while
-`propose` is uncertified: an uncertified node in the chain makes the end-to-end figure
-meaningless, which is why the report breaks the rate out per profile.
+`propose` and `review` are uncertified: an uncertified node in the chain makes the end-to-end
+figure meaningless, which is why the report breaks the rate out per profile.
+
+Adding `review` moved `full` **further** from a certified chain, not closer. That costs nothing
+measured — the profile was already outside any Stage 4 claim — but it is the honest statement,
+and the work of certifying it is a separate change with its own eval suite.
+
+## Review before the PR
+
+`review` reads the **diff**. `challenge-implementation`, which runs before it, cross-examines
+the implementation's *record* — what it claims it changed, which tests it claims cover it.
+Neither satisfies the other and both run; a passing challenge is not a review.
+
+The reviewers are the ones the roster names for the story's work kind, resolved by
+`resolve-roster.py`. One step fans out to all of them and merges their findings into one
+`review.json` with per-reviewer attribution, rather than one profile step per reviewer — which
+would make the routing table a function of configuration.
+
+Each reviewer gets the diff, the story or proposal, and `verify.json`. It is deliberately **not**
+given `implementation.json`: that artifact argues the change is correct, and a reviewer handed
+the argument reviews the argument. Review findings travel as `carry_forward`, so
+`pr-description` is obliged to address each one.
+
+A work kind whose roster entry names no reviewer is an **error**, not a kind that skips review.
+A silent skip is how this step would become decorative — the run would look reviewed and nobody
+would have read the diff.
+
+## Bounding a change's size
+
+`punch_out.max_diff_files` and `max_diff_lines` raise a punch-out at `verify`, the first point
+where the whole diff exists. The measurement comes from the diff itself, never from an
+artifact's claim about its own size, so unlike `scope` / `architecture` / `breaking` there is no
+flag path and rewording an artifact cannot clear it.
+
+Unlike every other ceiling, these have **no default**. What counts as a large change differs
+enough by repository that a plugin-level number would be wrong everywhere, so an absent ceiling
+raises its own punch-out asking for one — an unmeasured diff must not read the same as a small
+one. Lines count insertions plus deletions: a change deleting 900 lines is as much to review as
+one adding them.
+
+## Test scope is P0/P1
+
+A story's acceptance criteria may carry priorities — `- AC-1 (P0): …`. Where they do, that is
+the dev pair's test scope: `test-writer` covers every P0 and P1 and writes no test below P1,
+and a priority it disputes is handed back as a finding rather than acted on.
+
+`check-test-scope.py` checks `verify.json` on the write, in **both** directions: an uncovered
+P0 fails, and so does a test for anything below P1. The second direction is the one that bounds
+the diff — a suite only ever gets checked for being too small.
+
+The verify step passes `lint-story.py --require-priority`, which refuses an unprioritised
+story. The flag is opt-in rather than the default because the certified readiness suites carry
+unprioritised fixtures and `readiness-stories` shells out to that linter: making it mandatory
+would fail those fixtures against their own gate.
 
 **A profile hands over through the artifact directory, not through you.** When a profile
 reaches its terminus, `flow-status.py` names the next profile and stops. The next profile

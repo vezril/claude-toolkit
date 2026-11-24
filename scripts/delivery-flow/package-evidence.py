@@ -120,9 +120,20 @@ def source_label(path: Path) -> str:
 
 
 def certification_state() -> tuple:
-    """(ok, output) from check-certification.py over every registered step."""
-    out = subprocess.run([sys.executable, "-I", str(HERE / "check-certification.py"), "--all"],
-                         capture_output=True, text=True)
+    """(ok, output) from check-certification.py over the **chain** steps.
+
+    Chain only, because that is what this package asserts and what its refusal has always
+    said. It gated on `--all` before, which was the same claim/behaviour mismatch the report
+    had: every registered step had to be certified for the package to build, including steps
+    outside the chain and steps the repo declares under `allow_uncertified`. Registering an
+    uncertified `review` step was enough to take the package back to DRAFT even though the
+    certified chain was untouched.
+
+    `--chain-only` refuses an empty chain rather than passing over nothing, so narrowing the
+    gate did not turn it into one that cannot fail.
+    """
+    out = subprocess.run([sys.executable, "-I", str(HERE / "check-certification.py"),
+                          "--all", "--chain-only"], capture_output=True, text=True)
     return out.returncode == 0, (out.stdout or "") + (out.stderr or "")
 
 

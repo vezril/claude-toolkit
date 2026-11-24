@@ -72,11 +72,24 @@ def ceilings(cfg: dict) -> dict:
             return int(policy.get(key))
         except (TypeError, ValueError):
             return default
+    # The diff ceilings have **no default**, unlike every ceiling above them. What counts as a
+    # large change differs enough by repository that a plugin-level number would be wrong
+    # everywhere, and the spec is explicit that an absent ceiling is reported rather than
+    # treated as permission for any size. `None` here becomes `fired: None` in the derivation —
+    # undetermined, which the flow already knows not to read as "no".
+    def opt(key):
+        try:
+            return int(policy.get(key))
+        except (TypeError, ValueError):
+            return None
+
     return {"epics": num("epic_ceiling", DEFAULT_EPIC_CEILING),
             "stories": num("story_ceiling", DEFAULT_STORY_CEILING),
             "domains": num("domain_ceiling", DEFAULT_DOMAIN_CEILING),
             "proposal_tasks": num("proposal_task_ceiling", DEFAULT_PROPOSAL_TASK_CEILING),
-            "proposal_files": num("proposal_file_ceiling", DEFAULT_PROPOSAL_FILE_CEILING)}
+            "proposal_files": num("proposal_file_ceiling", DEFAULT_PROPOSAL_FILE_CEILING),
+            "diff_files": opt("max_diff_files"),
+            "diff_lines": opt("max_diff_lines")}
 
 
 def item_text(item: dict) -> str:
@@ -351,3 +364,82 @@ def disagreements(item: dict, triage: dict, breakdown: dict, cfg: dict) -> list:
         out.append({"trigger": trigger, "flag": FLAG_FOR[trigger], "claimed": v["claim"],
                     "derived": v["derived"], "evidence": v["evidence"]})
     return out
+
+
+def diff_stat(repo, base: str = None) -> dict:
+    """`{"files": n, "lines": n}` for the working change, or `{}` when git cannot say.
+
+    Separated from the derivation on purpose: `derive_diff` below is pure and takes this
+    mapping, so the rule is testable without a git repository and the hooks that import this
+    module do not shell out unless a caller asks for it.
+
+    Lines counts insertions **plus** deletions. A change that deletes 900 lines is as much to
+    review as one that adds them, and counting only insertions would let a large deletion
+    through a ceiling meant to bound reviewer effort.
+    """
+    import subprocess
+    base = base or "main"
+    try:
+        out = subprocess.run(["git", "diff", "--numstat", f"{base}...HEAD"],
+                             cwd=str(repo), capture_output=True, text=True, timeout=30)
+        if out.returncode != 0:
+            return {}
+        files = lines = 0
+        for row in (out.stdout or "").splitlines():
+            parts = row.split("\t")
+            if len(parts) < 3:
+                continue
+            files += 1
+            for n in parts[:2]:
+                # `-` is git's marker for a binary file: countable as a file, not as lines.
+                if n.isdigit():
+                    lines += int(n)
+        return {"files": files, "lines": lines}
+    except (OSError, subprocess.SubprocessError):
+        return {}
+
+
+def derive_diff(stat: dict, cfg: dict) -> dict:
+    """`{"diff-size": {"fired": bool|None, "evidence": str}}` from the measured diff.
+
+    **Derivation only — there is no flag to disagree with.** The `scope`, `architecture` and
+    `breaking` triggers each fire on a node's flag *or* on a derivation, and record
+    `policy_disagreement` where the two differ. Diff size has no artifact field claiming it, so
+    rewording an artifact cannot move it. That makes it the strongest trigger of the set, and
+    it is deliberately the only one with no flag path.
+
+    Three distinct answers, and conflating any two of them would break the control:
+      - `fired: True`  — measured over a configured ceiling
+      - `fired: False` — measured, and inside every configured ceiling
+      - `fired: None`  — not determinable: no ceiling configured, or git could not measure.
+                         Undetermined is never "no".
+    """
+    caps = ceilings(cfg)
+    want_files, want_lines = caps.get("diff_files"), caps.get("diff_lines")
+
+    if want_files is None and want_lines is None:
+        return {"diff-size": {
+            "fired": None,
+            "evidence": ("no punch_out.max_diff_files or punch_out.max_diff_lines is "
+                         "configured, so the change's size is unbounded and unmeasured — "
+                         "this is not a statement that it is small")}}
+
+    if not stat:
+        return {"diff-size": {
+            "fired": None,
+            "evidence": ("the diff could not be measured, so the size ceilings could not be "
+                         "applied; an unmeasurable diff is not a small one")}}
+
+    files, lines = stat.get("files", 0), stat.get("lines", 0)
+    reasons, within = [], []
+    if want_files is not None:
+        (reasons if files > want_files else within).append(
+            f"{files} files against a ceiling of {want_files}")
+    if want_lines is not None:
+        (reasons if lines > want_lines else within).append(
+            f"{lines} lines (insertions + deletions) against a ceiling of {want_lines}")
+
+    # The measurement is recorded either way, so the punch-out carries its own evidence and a
+    # reader does not have to recompute the diff to see why it fired.
+    return {"diff-size": {"fired": bool(reasons),
+                          "evidence": "; ".join(reasons or within)}}

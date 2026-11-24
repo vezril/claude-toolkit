@@ -1,0 +1,57 @@
+{
+  "artifact": "review.json",
+  "produced_by": "review",
+  "consumed_by": ["harness", "pr-description"],
+  "counts": {"reviewers": "reviewers[]", "findings": "findings[]"},
+  "consumers": {
+    "harness": {"requires": ["verdict", "reviewers"]},
+    "pr-description": {"requires": ["findings"]}
+  },
+  "type": "object",
+  "required": ["item", "target", "diff_sha256", "verdict", "reviewers", "findings"],
+  "additionalProperties": false,
+  "properties": {
+    "item": {"type": "string", "minLength": 1},
+    "target": {"type": "string", "minLength": 1},
+    "diff_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "The diff this review is about. A verdict is about one version of its target: when the diff moves, the review on disk is stale and reruns."
+    },
+    "verdict": {"type": "string", "enum": ["REFUTED", "WEAKENED", "SURVIVED"]},
+    "reviewers": {
+      "type": "array",
+      "minItems": 1,
+      "description": "One entry per roster reviewer dispatched. Attribution is required because the step fans out: a merged artifact that does not say who reviewed what cannot be audited, and a reviewer that silently did not run would be invisible.",
+      "items": {
+        "type": "object",
+        "required": ["agent", "verdict"],
+        "additionalProperties": false,
+        "properties": {
+          "agent": {"type": "string", "minLength": 1},
+          "verdict": {"type": "string", "enum": ["REFUTED", "WEAKENED", "SURVIVED"]},
+          "note": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "description": "Carried forward to pr-description, which must address each.",
+      "items": {
+        "type": "object",
+        "required": ["finding", "evidence", "reviewer"],
+        "additionalProperties": false,
+        "properties": {
+          "finding": {"type": "string", "minLength": 1},
+          "evidence": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A path and line, or a quoted hunk, from the diff under review. A finding with no locatable evidence is not actionable by the step that has to address it."
+          },
+          "reviewer": {"type": "string", "minLength": 1},
+          "severity": {"type": "string", "enum": ["blocking", "advisory"]}
+        }
+      }
+    }
+  }
+}

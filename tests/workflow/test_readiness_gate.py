@@ -179,10 +179,20 @@ class TestTheDescriptorDeclaresIt(unittest.TestCase):
             mod = load(Path(script).stem.replace("-", "_"), ROOT / script)
             self.assertTrue(callable(getattr(mod, "problems", None)), script)
 
-    def test_delivery_flow_declares_none(self):
-        """Its proposal check is still the older hard-coded branch, and that is recorded."""
+    def test_delivery_flow_declares_the_test_scope_check_and_not_the_proposal_one(self):
+        """delivery-flow declared no `edge_checks` at all until the test-scope check; its
+        **proposal** check is still the older hard-coded branch in check-edge.py, and that is
+        what this records.
+
+        The previous version asserted the whole block was empty, which stopped being a fact
+        about the proposal branch the moment any check was declared for any artifact.
+        """
         other = D.load(ROOT / "skills" / "delivery-flow" / "workflow.yaml")
-        self.assertFalse(other.get("edge_checks"))
+        checks = other.get("edge_checks") or {}
+        self.assertIn("verify.json", checks)
+        self.assertNotIn("proposal.json", checks,
+                         "the proposal check is still hard-coded; declaring it here would "
+                         "run it twice")
 
 
 class TestTheDispatchCannotGoInert(unittest.TestCase):

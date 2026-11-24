@@ -274,6 +274,16 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("step", nargs="?")
     ap.add_argument("--all", action="store_true")
+    # The evidence package's claim is about the **chain** — its refusal has always said
+    # "a chain step is not certified" — while `certification_state()` gated on `--all`, every
+    # step in the registry. That was invisible while every registered step happened to be
+    # certified, and it bit the moment an uncertified non-chain step was registered: a `review`
+    # step declared in `allow_uncertified` took the Stage 4 package back to DRAFT.
+    #
+    # `--all` keeps reporting everything, because a reader asking for the registry's state
+    # should get it. This flag narrows the *gate* to what the package actually asserts.
+    ap.add_argument("--chain-only", action="store_true",
+                    help="check only steps with chain: true — what the evidence package claims")
     ap.add_argument("--registry", default="skills/delivery-flow/steps.yaml")
     args = ap.parse_args(argv)
     if not args.step and not args.all:
@@ -303,6 +313,15 @@ def main(argv=None) -> int:
         entries = [e for e in entries if e.get("step") == args.step]
         if not entries:
             print(f"{args.step}: not in the registry ({args.registry})")
+            return 1
+    if args.chain_only:
+        entries = [e for e in entries if e.get("chain")]
+        # An empty chain is an error, not a pass. A registry whose chain steps all vanished —
+        # renamed, or `chain:` dropped — would otherwise report success over nothing, which is
+        # the refuse-to-pass-by-absence rule this repo applies everywhere else.
+        if not entries:
+            print(f"no chain steps in the registry ({args.registry}); refusing to pass by absence",
+                  file=sys.stderr)
             return 1
 
     failed = 0

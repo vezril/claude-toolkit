@@ -52,6 +52,27 @@ The spec is the OpenSpec change: `proposal.json` plus the change's `tasks.md`. T
 - One behavior per test; fast suite; match the project's existing framework, layout, and naming exactly.
 - Coverage follows risk (`test-strategy` P0–P3): acceptance criteria and failure paths before happy-path padding.
 
+## Test scope: P0 and P1, and nothing below
+
+Where a story's acceptance criteria carry priorities — `- AC-1 (P0): …` — that priority **is**
+the test scope, and it is not yours to widen.
+
+- **Cover every P0 and P1 criterion.** A P0 or P1 with no test is an uncovered requirement.
+- **Write no test for a P2 or P3 criterion.** Those stay in the story as requirements that are
+  deliberately untested, not as gaps to fill. Tests beyond the scope are a finding against the
+  change, not diligence — they are the reason PRs grow past what a reviewer can read.
+- **One test may cover several criteria.** If it genuinely pins two P0 behaviours, it counts
+  for both; do not write a second test for the sake of a one-to-one mapping.
+- **If you think a priority is wrong, say so — do not act on it.** Hand back a finding naming
+  the criterion and why it deserves a different priority. Writing the test anyway would make
+  the priority advisory, and the point of having it in the story is that the scope is data a
+  reviewer can check rather than a judgement inside this step.
+
+A story whose criteria carry no priorities is the older format and leaves the scope to the
+risk rules above. Delivery-flow's verify edge requires priorities (`lint-story.py
+--require-priority`) and checks the scope **in both directions**: an uncovered P0 fails, and so
+does a test for anything below P1.
+
 ## Output
 
 Per hand-off: the increment, the new/changed test files, the failing run output, and what "pass" means. If blocked on production code, a precise request (file + change + why) instead of an edit.
