@@ -15,11 +15,11 @@ thing. Both look like a successful hand-off from the outside.
 
 | # | Instruction | Serves | Proven by |
 |---|-------------|--------|-----------|
-| 1 | Territory: create and edit **test code only** — test source roots, fixtures, test helpers | territory | the edits-production defect on case-01 and the adds-the-seam defect on case-03 |
+| 1 | Territory: create and edit **test code only** — test source roots, fixtures, test helpers | territory | the edits-production defect on case-01 |
 | 2 | Everything else — production source, build and config files, CI, docs — is off-limits, no exceptions | territory | same two defects; `grade.py` diffs the work tree against the pristine fixture |
-| 3 | The boundary is by **file**, not by intent: a "tiny" seam in production is still the implementer's file | territory | case-03's adds-the-seam defect, which is exactly a tiny seam |
-| 4 | When blocked on non-test code, **stop and hand back a request** naming the file and the change | territory | case-03, where a hand-back is the only passing answer and writing any test fails all four |
-| 5 | A hook enforces this; a denial is a boundary signal, never something to work around (no `sed`/`echo >` writes) | territory | the same diff check: a Bash-written production file is indistinguishable from an edited one |
+| 3 | The boundary is by **file**, not by intent: a "tiny" seam in production is still the implementer's file | territory | the edits-production defect on case-01, which is exactly a tiny seam |
+| 4 | When blocked on non-test code, **stop and hand back a request** naming the file and the change | none | **not measured, and not for want of trying.** See "The hand-back case I could not build" below |
+| 5 | A hook enforces this; a denial is a boundary signal, never something to work around (no `sed`/`echo >` writes) | territory | the diff check: a Bash-written production file is indistinguishable from an edited one |
 | 6 | Read the story/spec first; tests trace to acceptance criteria and each test names the behaviour it pins | scope | `grade.py` reads AC references out of the test files; the uncovered-P0 defect |
 | 7 | Write **one failing test** for the smallest next behaviour | red | the hands-off-green defect on case-01 |
 | 8 | **Run it and read the output.** Confirm it fails *for the expected reason* — a compile error where an assertion was expected, or an immediate pass, means fix the test | red | the cannot-even-run defect (import error) and the hands-off-green defect. This instruction is why the suite grades by execution at all |
@@ -33,7 +33,7 @@ thing. Both look like a successful hand-off from the outside.
 | 16 | The criteria live in `proposal.json` and the tasks name the files they touch | scope | case-05 — its input is `proposal.json`, not a story; `grade.py` reads the priorities out of the task descriptions there |
 | 17 | Read `challenge-breakdown.json` before encoding anything; a WEAKENED verdict's findings are constraints | scope | case-05 carries a WEAKENED finding about the zero case; a test must pin it, and the ignores-the-finding defect checks that |
 
-**17 of 17 instructions are load-bearing (100%).**
+**16 of 17 instructions are load-bearing (94.1%).**
 
 It read 15/17 (88.2%) first, below the 90% bar, and closing it took two fixtures rather than a
 rewording.
@@ -70,8 +70,8 @@ names as a failure to refuse.
 What is done, which is the method's own ordering — suite first, graded before the prompt is
 measured:
 
-- Five fixtures, each a runnable project with a **clean baseline**, so the red has to come from
-  what the agent writes rather than from a broken starting tree. All five verified to pass
+- Four fixtures, each a runnable project with a **clean baseline**, so the red has to come from
+  what the agent writes rather than from a broken starting tree. All four verified to pass
   `python3 -m unittest discover` before any agent touches them. They use stdlib `unittest`
   deliberately: the fixture needs no third-party package, so the suite runs anywhere.
 - Four criteria, all deterministic and all execution-grounded.
@@ -109,3 +109,33 @@ measured:
 - **One fixture language.** All three cases are Python with stdlib `unittest`, chosen so the
   fixture needs no third-party package and runs anywhere. Nothing measures the instruction to
   match the project's existing framework and layout.
+
+## The hand-back case I could not build
+
+Instruction 4 says: when blocked on non-test code, stop and hand back a request rather than
+making the edit. I tried three times to build a fixture where that is the only correct answer,
+and **all three premises were wrong**:
+
+1. `is_expired` reading `time.time()` directly, "with no seam to inject a time source." Both
+   models patched `src.clock.time.time` from the test and wrote a passing, deterministic test.
+   The generated test said so in a comment: *"time.time is patched on the module, so no
+   production seam is needed."* They were right and my fixture was wrong — and my
+   `expect_handback` scored the correct answer 0/4 on all four criteria.
+2. A quota limit bound at **import time** from the environment, so a later env patch cannot
+   change it. True of the environment, irrelevant in practice: `mock.patch("src.quota._LIMIT",
+   500)` reaches the bound constant directly.
+3. An acceptance criterion requiring **two different limits at once**, which one module-level
+   value cannot express. A test satisfies it by patching sequentially and comparing the two
+   results.
+
+The conclusion is about Python, not about the prompt: with `unittest.mock`, test-only code can
+reach essentially any module-level binding, so "untestable without a production change" is a
+very hard premise to construct and an easy one to believe you have constructed. Each of my
+three attempts looked airtight until it was probed.
+
+So instruction 4 is **unmeasured** and counted as such, and `case-03` is deleted rather than
+left in scoring a correct answer as a failure. The bar is still cleared at 16/17.
+
+Measuring it properly probably needs a language or a dependency boundary where test code
+genuinely cannot reach — a compiled signature, or a missing test dependency that has to be
+declared in a build file. That is a different fixture than anything here.
