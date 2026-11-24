@@ -6,9 +6,6 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-python3 -I calibrate.py >/dev/null || {
-  echo "the grader failed calibration; fix it before measuring a prompt" >&2; exit 1; }
-
 # Restore the fixtures from git. **Refuses if they are not tracked**, because on an
 # uncommitted tree `git clean` does not restore anything — it deletes the fixtures outright.
 # That is not hypothetical: it wiped three of them here before this guard existed.
@@ -22,6 +19,12 @@ restore_fixtures() {
   git clean -fdq fixture/
 }
 restore_fixtures
+
+# Calibrate AFTER restoring, so the grader is checked against pristine fixtures. Running it
+# first meant a tree left dirty by a previous run failed calibration and aborted before the
+# restore could clean it — a real refusal, in an order that could not recover.
+python3 -I calibrate.py >/dev/null || {
+  echo "the grader failed calibration against pristine fixtures; fix grade.py" >&2; exit 1; }
 
 # REPEAT must stay 1. promptfoo's --repeat reruns a case against the SAME working_dir, and
 # this agent writes into it — repeat 2 would be graded against repeat 1's files, and the
