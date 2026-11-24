@@ -10,6 +10,7 @@ So the tests that matter most here are the ones asserting the default did **not*
 """
 
 import importlib.util
+import json
 import subprocess
 import sys
 import tempfile
@@ -156,3 +157,94 @@ class TestTheTestWriterCarriesTheRule(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTheVerifyEdgeChecksScope(unittest.TestCase):
+    """3.3 — the edge check, in both directions.
+
+    An uncovered P0 is a coverage failure anyone would catch. A test for a P3 is the actual
+    complaint this change answers, and nothing noticed it before: a suite only ever gets
+    checked for being too small.
+    """
+
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location(
+            "check_test_scope", ROOT / "scripts" / "delivery-flow" / "check-test-scope.py")
+        self.m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.m)
+        self.d = Path(tempfile.mkdtemp())
+        (self.d / ".git").mkdir()
+        (self.d / "docs").mkdir()
+        (self.d / "docs" / "story.md").write_text(
+            "## Acceptance Criteria\n"
+            "- AC-1 (P0): Given a, when b, then c.\n"
+            "- AC-2 (P1): Given d, when e, then f.\n"
+            "- AC-3 (P3): Given g, when h, then i.\n")
+
+    def _verify(self, tests, story="docs/story.md"):
+        p = self.d / "verify.json"
+        doc = {"tests": tests}
+        if story is not None:
+            doc["story"] = story
+        p.write_text(json.dumps(doc))
+        return self.m.problems(p, self.d)
+
+    def test_covering_exactly_p0_and_p1_passes(self):
+        found, _ = self._verify([{"name": "t1", "covers": ["AC-1", "AC-2"]}])
+        self.assertEqual([], found)
+
+    def test_an_uncovered_p0_fails(self):
+        found, _ = self._verify([{"name": "t1", "covers": ["AC-2"]}])
+        self.assertTrue(any("AC-1 is P0" in f for f in found), found)
+
+    def test_a_test_for_a_p3_fails(self):
+        """Direction two — the one this change exists for."""
+        found, _ = self._verify([{"name": "t1", "covers": ["AC-1", "AC-2"]},
+                                 {"name": "t_extra", "covers": ["AC-3"]}])
+        self.assertTrue(any("AC-3 is P3" in f and "t_extra" in f for f in found), found)
+
+    def test_one_test_covering_two_criteria_counts_for_both(self):
+        """Demanding a test per criterion would force duplicates and grow the diff — the
+        opposite of what this change is for."""
+        found, info = self._verify([{"name": "shared", "covers": ["AC-1", "AC-2"]}])
+        self.assertEqual([], found)
+        self.assertEqual([1, 2], info["test_scope"]["covered"])
+
+    def test_a_test_for_an_undeclared_criterion_fails(self):
+        found, _ = self._verify([{"name": "t1", "covers": ["AC-1", "AC-2"]},
+                                 {"name": "ghost", "covers": ["AC-9"]}])
+        self.assertTrue(any("AC-9" in f and "does not declare" in f for f in found), found)
+
+    def test_an_unprioritised_story_declares_no_scope_and_is_not_a_pass(self):
+        """It returns no problems, and says why — "no scope declared" is not "scope is right".
+        delivery-flow's verify step passes --require-priority so this case never arrives."""
+        (self.d / "docs" / "story.md").write_text(
+            "## Acceptance Criteria\n- AC-1: Given a, when b, then c.\n")
+        found, info = self._verify([{"name": "t1", "covers": ["AC-1"]}])
+        self.assertEqual([], found)
+        self.assertIn("no test scope is declared", str(info))
+
+    def test_a_missing_story_file_is_a_problem_not_a_skip(self):
+        found, _ = self._verify([{"name": "t1", "covers": ["AC-1"]}], story="docs/gone.md")
+        self.assertTrue(any("does not exist" in f for f in found), found)
+
+    def test_an_unreadable_verify_is_a_problem(self):
+        p = self.d / "verify.json"
+        p.write_text("{not json")
+        found, _ = self.m.problems(p, self.d)
+        self.assertTrue(found)
+
+
+class TestTheCheckIsActuallyDispatched(unittest.TestCase):
+    """A declared check nothing runs is the inert-guardrail failure, five times found."""
+
+    def test_the_descriptor_declares_the_check_for_verify_json(self):
+        spec = importlib.util.spec_from_file_location(
+            "descriptor", ROOT / "scripts" / "workflow" / "descriptor.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        d = mod.load(ROOT / "skills" / "delivery-flow" / "workflow.yaml")
+        checks = d.get("edge_checks") or {}
+        self.assertIn("verify.json", checks)
+        self.assertTrue((ROOT / checks["verify.json"]).exists(),
+                        f"declared checker does not exist: {checks['verify.json']}")

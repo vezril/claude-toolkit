@@ -58,7 +58,7 @@ check that the three controls actually fire on a real run.
       three-place agreement with `agents/implementer.md` and
       `hooks/enforce-dev-pair-boundary.py` still holds — and assert that in a test rather than
       trusting the diff.
-- [ ] 3.3 The verify check, **both directions**: every P0/P1 criterion has a test, and no test
+- [x] 3.3 The verify check, **both directions**: every P0/P1 criterion has a test, and no test
       claims a criterion below P1. The second direction is the one this change exists for.
 - [x] 3.4 A test covering several criteria counts for each; no duplicate test is demanded.
 - [x] 3.5 Tests for all four cases above, with the out-of-scope direction mutation-checked.
