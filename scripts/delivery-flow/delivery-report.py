@@ -365,6 +365,7 @@ def summarize(items: dict) -> dict:
                      # `outcome.json` has carried the evidence all along — artifact, traced
                      # sha, actual sha — and nothing read it, so the honest answer to a
                      # reviewer asking was "no". Counted per run and totalled below.
+                     "replay": bool(outcome.get("replay")),
                      "manual_corrections": len(outcome.get("manual_corrections") or []),
                      "corrected_artifacts": sorted(
                          c.get("artifact", "?") for c in (outcome.get("manual_corrections") or [])),
@@ -447,6 +448,31 @@ def markdown(s: dict, pricing_as_of: str) -> str:
                  f"{'$' + format(r['cost_usd'], '.4f') if r['priced'] else 'unpriced'} | "
                  f"{'unknown' if r['certified'] is None else ('yes' if r['certified'] else 'no')} | "
                  f"{r['failed_edges']} | {r['unchecked_edges']} |")
+
+    # The composition of the denominator, stated before any rate computed over it. A replay is
+    # a real run and is counted; it is not a delivery, and a reviewer reading a rate without
+    # this split would reasonably assume every run was live work.
+    terminal = [r for r in s["items"]
+                if r["status"] in ("completed", "failed", "punched-out", "abandoned")]
+    replays = [r for r in terminal if r.get("replay")]
+    L += ["", "## What the runs were", ""]
+    if not terminal:
+        L.append("No terminal runs, so there is no denominator to describe.")
+    elif not replays:
+        L.append(f"All **{len(terminal)}** terminal runs were first runs on live tickets. "
+                 "No replays.")
+    else:
+        L += [f"**{len(replays)} of {len(terminal)}** terminal runs were **replays** — the flow "
+              f"re-run over tickets that were already closed, to gather volume.",
+              "",
+              "A replay is a real run: real nodes, real edges, real artifacts, and for the "
+              "analysis-only `triage` profile it exercises exactly what the end-to-end rate "
+              "measures. They are counted in the rates below. They are **not deliveries**, so "
+              "a rate quoted without this split would imply live work that did not happen.",
+              ""]
+        for r in replays:
+            L.append(f"- `{r['item']}` ({r['profile']}, {r['status']})")
+    L.append("")
 
     mc = s["manual_corrections"]
     L += ["", "## Manually-corrected runs", "",

@@ -105,6 +105,37 @@ punch_out:
                              # ceiling is reported, never treated as unlimited.
 ```
 
+## Replayed runs
+
+Re-running the flow over an already-closed ticket, to gather volume for criterion 4:
+
+```bash
+write-outcome.py <ITEM-KEY> --replay
+```
+
+A replay **is** a real run — real nodes, real edges, real artifacts — and for the
+analysis-only `triage` profile it exercises exactly what the end-to-end rate measures, so it is
+counted in the rates rather than excluded.
+
+It is **not a delivery**. `delivery-report.py` states the split in a "What the runs were"
+section placed before any rate computed over it, and names each replayed item so the count can
+be audited against the run directories. A rate quoted without that split would imply live work
+that did not happen.
+
+The flag is set by the caller, because **nothing on disk distinguishes a replay from a first
+run** — the artifacts are identical. That makes it the one claim in `outcome.json` taken on
+trust, which is why it is recorded rather than inferred: an inferred flag nobody set would be
+worse than an honest one somebody did. Absent rather than `false` when not passed, so outcomes
+written before the field existed do not read as asserted first runs.
+
+Two things that make a replay worth counting at all:
+
+- **A fresh item key.** The flow is artifact-driven, so re-running an existing item directory
+  skips to `report` without the nodes executing. Deleting artifacts to force a rerun is what
+  `manual-correction` detection exists to catch.
+- **A ticket with a followable body.** The Jira adapter resolves GitHub issue references, not
+  other trackers' links. A triage over a 50-character stub is not a run worth evidencing.
+
 ## `review` and the chain gate
 
 `review` is outside the certified chain (`chain: false` in `steps.yaml`). That matters for the
