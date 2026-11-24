@@ -20,9 +20,29 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+
+# Loaded by path under unique names, NOT via `sys.path` + `import verdict`.
+#
+# `scripts/application-review/verdict.py` and `scripts/workflow/verdict.py` are two different
+# modules that both import as `verdict`, so whichever test file ran first won
+# `sys.modules["verdict"]` and the other silently got the wrong module. That is the whole of
+# the ~38 "pre-existing failures" this suite carried: not a pytest basename artifact, as it was
+# repeatedly described, but one module shadowing another — and the symptom was an
+# `AttributeError` for a function that exists, in a file that passes in isolation.
 sys.path.insert(0, str(ROOT / "scripts" / "workflow"))
-import descriptor as D  # noqa: E402
-import verdict as V  # noqa: E402
+
+
+def _load(name, path):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+D = _load("workflow_descriptor_for_tests", ROOT / "scripts" / "workflow" / "descriptor.py")
+V = _load("workflow_verdict_for_tests", ROOT / "scripts" / "workflow" / "verdict.py")
 
 SDLC = D.load(ROOT / "skills" / "sdlc-orchestration" / "workflow.yaml")
 DELIVERY = D.load(ROOT / "skills" / "delivery-flow" / "workflow.yaml")
@@ -193,3 +213,55 @@ class TestAnUnreadableVerdictBlocks(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestThePolicyIsPerStep(unittest.TestCase):
+    """One workflow legitimately wants both answers.
+
+    delivery-flow's breakdown challenge feeds a brief a human reads and must not block on
+    WEAKENED — documented behaviour of the certified triage chain. Its `review` step feeds a
+    merge, where unaddressed findings are exactly what must block. A single workflow-wide value
+    cannot say both, and setting the workflow to `require-addressed` to get the review's
+    behaviour would silently change the certified chain's.
+    """
+
+    DESC = {"verdict_policy": {"weakened": "advance",
+                               "weakened_review": "require-addressed"}}
+
+    def test_a_per_step_rule_wins_over_the_workflow_default(self):
+        self.assertEqual("require-addressed", V.weakened_policy(self.DESC, "review"))
+
+    def test_a_step_with_no_rule_inherits_the_workflow_default(self):
+        self.assertEqual("advance", V.weakened_policy(self.DESC, "challenge-breakdown"))
+
+    def test_no_step_given_falls_back_to_the_workflow_default(self):
+        self.assertEqual("advance", V.weakened_policy(self.DESC))
+
+    def test_an_unrecognised_per_step_value_falls_back_rather_than_blocking(self):
+        """Guessing which policy a typo meant is how a merge-blocking rule quietly becomes a
+        non-blocking one without anybody editing it — so it falls back and does not invent."""
+        desc = {"verdict_policy": {"weakened": "advance", "weakened_review": "requre-adressed"}}
+        self.assertEqual("advance", V.weakened_policy(desc, "review"))
+
+    def test_the_same_verdict_routes_differently_by_step(self):
+        """The behaviour this exists for, asserted end to end through decide()."""
+        weak = {"verdict": "WEAKENED", "findings": [{"finding": "f", "evidence": "e"}]}
+        advanced = V.decide(weak, target_changed=False, descriptor=self.DESC,
+                                  step="challenge-breakdown")
+        blocked = V.decide(weak, target_changed=False, descriptor=self.DESC,
+                                 step="review")
+        self.assertEqual(V.ADVANCE, advanced["action"])
+        self.assertEqual(V.BLOCKED, blocked["action"])
+
+    def test_a_rewritten_target_reruns_the_reviewer_rather_than_advancing(self):
+        """There is deliberately no path from WEAKENED to advance that skips a fresh verdict."""
+        weak = {"verdict": "WEAKENED", "findings": [{"finding": "f", "evidence": "e"}]}
+        d = V.decide(weak, target_changed=True, descriptor=self.DESC, step="review")
+        self.assertEqual(V.RERUN_REVIEWER, d["action"])
+
+    def test_the_real_descriptor_declares_it_this_way(self):
+        """Against the shipped file, so a rename of the key fails here rather than silently
+        reverting `review` to the non-blocking policy."""
+        desc = DELIVERY
+        self.assertEqual("require-addressed", V.weakened_policy(desc, "review"))
+        self.assertEqual("advance", V.weakened_policy(desc, "challenge-breakdown"))

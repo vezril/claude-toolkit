@@ -54,7 +54,21 @@ edge_checks:
   verify.json: scripts/delivery-flow/check-test-scope.py
 
 verdict_policy:
+  # The workflow-wide answer, and delivery-flow's documented behaviour: a WEAKENED verdict on
+  # the breakdown never blocks. Its findings travel as constraints the consuming step must
+  # address. The certified triage chain depends on this.
   weakened: advance
+
+  # Per step, because this workflow legitimately wants both answers. `review` feeds a merge,
+  # where unaddressed findings are exactly what should stop the flow; the breakdown challenge
+  # above feeds a brief a human reads. Setting the workflow-wide key to require-addressed to
+  # get the review's behaviour would silently change the certified chain's.
+  # Flat `weakened_<step>` rather than a nested block: `descriptor.py`'s YAML subset
+  # flattens two-level nesting into the parent mapping, so a nested `weakened_by_step:`
+  # silently became a sibling key and the per-step rule never resolved. An explicit flat key
+  # is readable to the parser that exists, and extending that parser is substrate surgery for
+  # a cosmetic gain.
+  weakened_review: require-addressed
 
 # The routing table, in order. Moved here from `flow-status.py`, where it was Python literals
 # that no second workflow could reuse.
