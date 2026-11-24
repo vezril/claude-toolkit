@@ -65,14 +65,14 @@ check that the three controls actually fire on a real run.
 
 ## 4. Documentation, in the same change
 
-- [ ] 4.1 `skills/delivery-flow/SKILL.md`: the routing table gains `review`; the profile table
+- [x] 4.1 `skills/delivery-flow/SKILL.md`: the routing table gains `review`; the profile table
       is updated; the sentence about `full` not being a Stage 4 number is extended to say it now
       carries a sixth uncertified node.
-- [ ] 4.2 `skills/delivery-flow/references/roster.md`: say that `reviewers:` is now dispatched,
+- [x] 4.2 `skills/delivery-flow/references/roster.md`: say that `reviewers:` is now dispatched,
       and by which step. It has described an unused field since the roster was written.
-- [ ] 4.3 `docs/delivery-flow-handoff.md` and `docs/delivery-flow-status.md`. Not
+- [x] 4.3 `docs/delivery-flow-handoff.md` and `docs/delivery-flow-status.md`. Not
       `docs/using-the-sdlc-dev-team.md` — this is delivery-flow, not the SDLC pipeline.
-- [ ] 4.4 State the trade-off from the design where a reader will meet it: P0/P1-only reduces
+- [x] 4.4 State the trade-off from the design where a reader will meet it: P0/P1-only reduces
       coverage deliberately, and a later regression in a P2 path is the cost of smaller PRs.
 
 ## 5. Prove the controls fire

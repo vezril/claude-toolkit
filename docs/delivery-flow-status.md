@@ -38,6 +38,29 @@ Certification gate: `triage` 38/40, `breakdown` 24/24, `challenge-breakdown` 107
 with three consecutive runs each. `pr-description` **FAIL** — the live prompt is v6, the
 registry pins v5.
 
+## In flight: review step and size limits
+
+`openspec/changes/add-review-step-and-size-limits/`, on branch
+`feat/review-step-and-size-limits`. Groups 1-4 of 5 done; group 5 needs a real run.
+
+Three controls, none of which touches the `triage` profile or the Stage 4 submission:
+
+- **`review`** between `challenge-implementation` and `pr-description`, dispatching the
+  reviewers the roster names per work kind. Uncertified and declared.
+- **`punch_out.max_diff_files` / `max_diff_lines`**, derived from the diff at `verify`.
+- **P0/P1 test scope**, checked at the verify edge in both directions.
+
+Two things found while building it, both pre-existing:
+
+- **`resolve-roster.py` did not exist.** `references/roster.md` documented it since the roster
+  was written, so `reviewers:` was declared, documented and dispatched by nothing.
+- **`package-evidence.py` gated on every registered step** while its refusal said "a chain
+  step is not certified". Registering one uncertified non-chain step took the Stage 4 package
+  back to DRAFT. It now gates on `--all --chain-only`.
+
+**Deliberate trade:** P0/P1-only reduces coverage. A later regression in a P2 path is the cost
+of PRs small enough to review, and that is the choice, not an oversight.
+
 ## Fixed today
 
 - **Plugin cache was five versions stale: 0.16.0 against main's 0.21.0.** This is the cause of

@@ -122,10 +122,18 @@ node rescore.js results/run_v6_sonnet_run1.json   # re-score saved outputs, no m
 | `triage` | Sonnet | 3 consecutive runs: 95.0 / 97.5 / 100% |
 | `breakdown` | Sonnet | 3 consecutive runs: 100 / 95.8 / 100% |
 | `challenge-breakdown` | Sonnet | 3 consecutive runs, prompt v3a |
-| `pr-description` | Haiku | 89/90, but terminal prose with no edge — **not** chain evidence |
+| `pr-description` | Haiku | v6: 128/132 and 129/132 over two samples — terminal prose with no edge, **not** chain evidence |
+| `review` | — | **nothing.** No eval suite exists; declared uncertified |
 
-`propose` and `vault-update` are **declared uncertified** (`allow_uncertified`), so the `full`
-profile's rate is not a Stage 4 number. `project-memory` is not in that list because it is a
+`propose`, `review` and `vault-update` are **declared uncertified**
+(`allow_uncertified`), so the `full` profile's rate is not a Stage 4 number. Adding `review`
+moved that profile further from a certified chain, not closer — which costs nothing measured,
+since it was already outside any Stage 4 claim.
+
+`pr-description` carries **two** v6 samples where the three chain steps each carry three
+consecutive runs. `consecutive_runs` is absent from its registry entry rather than listing
+two, because the gate enforces the three-run rule only when the field is present — the
+asymmetry is recorded in its `known_residual`, and a third sample closes it. `project-memory` is not in that list because it is a
 script: its scoring is arithmetic the spec fully determines, so it is tested exactly rather
 than certified to a 95% bar. That is a deliberate departure from
 `extend-vault-graphrag-projects` task 3.4 — reasoning in `add-vault-delivery-memory` design D1.
