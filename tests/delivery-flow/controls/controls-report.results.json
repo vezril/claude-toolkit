@@ -1,0 +1,89 @@
+{
+  "generated": "2026-11-24T16:23:02Z",
+  "probes": [
+    {
+      "probe": "review-schema-rejects-malformed",
+      "ok": true,
+      "expect": "validate-artifact refuses a review.json with a bad verdict",
+      "detail": {
+        "exit": 1,
+        "said": "INVALID /var/folders/rl/kcmrm1897yb0950k7px0h01h0000gq/T/controls-8fzjn5d3/runs/CTRL-1/review.json against review.json\n  - (root): missing required field 'target'\n  - (root): missing required field 'diff_sha256'\n  - (root): missing required field 'reviewers'\n  - (root): missing required field 'findi"
+      }
+    },
+    {
+      "probe": "review-schema-accepts-valid",
+      "ok": true,
+      "expect": "a well-formed review.json validates",
+      "detail": {
+        "exit": 0,
+        "said": "valid: /var/folders/rl/kcmrm1897yb0950k7px0h01h0000gq/T/controls-8fzjn5d3/runs/CTRL-1/review.json against review.json"
+      }
+    },
+    {
+      "probe": "size-ceiling-fires",
+      "ok": true,
+      "expect": "a diff over the ceiling raises the diff-size punch-out",
+      "detail": {
+        "exit": 1,
+        "mentions_diff_size": true,
+        "said": "{\n  \"item\": \"CTRL-1\",\n  \"step\": \"verify\",\n  \"triggered\": [\n    {\n      \"trigger\": \"diff-size\",\n      \"evidence\": \"measured from the diff (6 files against a ceiling of 3; 240 lines (insertions + deletions) against a ceiling of 50)\",\n      \"decision\": \"This change is larger than one review should carry. Proceed?\",\n      \"options\": [\n        \"split it into separate changes\",\n        \"proceed as one c"
+      }
+    },
+    {
+      "probe": "size-within-ceiling-quiet",
+      "ok": true,
+      "expect": "a diff inside the ceilings raises nothing",
+      "detail": {
+        "exit": 0,
+        "fired": false,
+        "said": "{\n  \"item\": \"CTRL-1\",\n  \"step\": \"verify\",\n  \"triggered\": [],\n  \"written\": [],\n  \"already_open\": [],\n  \"diff_attribution\": {\n    \"range\": \"main..HEAD\",\n    \"commits_attributed\": 0,\n    \"commits_in_range\": 1,\n    \"commits_unattributed\": 1,\n    \"working_tree\": false\n  }\n}"
+      }
+    },
+    {
+      "probe": "scope-rejects-uncovered-p0",
+      "ok": true,
+      "expect": "an uncovered P0 fails the verify edge",
+      "detail": {
+        "exit": 1,
+        "said": "- AC-1 is P0 and no test covers it\n{\n  \"test_scope\": {\n    \"in_scope\": [\n      1,\n      2\n    ],\n    \"out_of_scope\": [\n      3\n    ],\n    \"covered\": [\n      2\n    ]\n  }\n}"
+      }
+    },
+    {
+      "probe": "scope-rejects-out-of-scope-p3",
+      "ok": true,
+      "expect": "a test for a P3 fails the verify edge",
+      "detail": {
+        "exit": 1,
+        "said": "- AC-3 is P3, below the P1 scope, but 1 test(s) cover it: extra\n{\n  \"test_scope\": {\n    \"in_scope\": [\n      1,\n      2\n    ],\n    \"out_of_scope\": [\n      3\n    ],\n    \"covered\": [\n      1,\n      2,\n      3\n    ]\n  }\n}"
+      }
+    },
+    {
+      "probe": "scope-accepts-right-scope",
+      "ok": true,
+      "expect": "covering exactly P0 and P1 passes",
+      "detail": {
+        "exit": 0,
+        "said": "{\n  \"test_scope\": {\n    \"in_scope\": [\n      1,\n      2\n    ],\n    \"out_of_scope\": [\n      3\n    ],\n    \"covered\": [\n      1,\n      2\n    ]\n  }\n}"
+      }
+    },
+    {
+      "probe": "weakened-review-blocks",
+      "ok": true,
+      "expect": "a WEAKENED review with an unchanged target blocks the flow",
+      "detail": {
+        "blocked": "review.json: WEAKENED with 1 finding(s) and the target is unchanged since the verdict, so nothing has been addressed",
+        "carry_forward": 1
+      }
+    },
+    {
+      "probe": "weakened-breakdown-advances",
+      "ok": true,
+      "expect": "a WEAKENED breakdown challenge still advances (certified chain unchanged)",
+      "detail": {
+        "blocked": "(not blocked on the verdict)",
+        "carry_forward": 1
+      }
+    }
+  ],
+  "inconclusive": ""
+}

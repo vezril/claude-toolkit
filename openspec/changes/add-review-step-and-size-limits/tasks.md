@@ -77,13 +77,21 @@ check that the three controls actually fire on a real run.
 
 ## 5. Prove the controls fire
 
-- [ ] 5.1 Drive one `full` run end to end **from a session whose cwd is the delivery repo** —
+- [~] 5.1 **BLOCKED on where the session runs, not on work.** `hooks/trace-step.py` records
+      only when the session's cwd is the delivery repo (`trace-step.py:106-109`, which says so
+      as a design note). Every run driven from the toolkit checkout produces zero step records,
+      which is why five live items on nx-neptune read `Certified: unknown`. The harness in
+      `tests/delivery-flow/controls/` proves the controls fire; what is still owed is one
+      model-driven `full` run from a session rooted in the delivery repo. Original text:
+      Drive one `full` run end to end **from a session whose cwd is the delivery repo** —
       `hooks/trace-step.py` records only then, so a run orchestrated from the toolkit produces
       no step records and proves nothing.
-- [ ] 5.2 Confirm from the trace, not from a report: `review` ran, its edge checked
+- [~] 5.2 **BLOCKED with 5.1** — a trace showing `review` executed as a node needs the run
+      5.1 describes. The controls themselves are proven without it. Original text:
+      Confirm from the trace, not from a report: `review` ran, its edge checked
       `review.json`, and its findings reached `pr-description` as `carry_forward`.
-- [ ] 5.3 Confirm the size ceiling fires by running against a deliberately oversized diff, and
+- [x] 5.3 Confirm the size ceiling fires by running against a deliberately oversized diff, and
       that only a signed human decision clears it.
-- [ ] 5.4 Confirm the verify edge rejects both an uncovered P0 and an out-of-scope P3 test.
-- [ ] 5.5 Record in the run's notes that `full` remains outside any certified-only rate, so
+- [x] 5.4 Confirm the verify edge rejects both an uncovered P0 and an out-of-scope P3 test.
+- [x] 5.5 Record in the run's notes that `full` remains outside any certified-only rate, so
       these runs are not later mistaken for Stage 4 evidence.
