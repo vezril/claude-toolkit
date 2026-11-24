@@ -190,7 +190,7 @@ class TestTheUngovernedArtifactsAreKnown(unittest.TestCase):
 
     EXPECTED_UNGOVERNED = {
         "implementation.json",            # step implementation (sdlc)
-        "verify.json",                    # step verify (build)
+        "implementation.json",                    # step verify (build)
         "challenge-implementation.json",  # step challenge-implementation (node)
         "pr-opened.json",                 # step open-pr (adapter)
         "posted.json",                    # step post-back (adapter)
@@ -231,11 +231,11 @@ class TestTheUngovernedArtifactsAreKnown(unittest.TestCase):
         empty, whereas a success record is a false statement a reviewer would believe.
         """
         f = Fixture()
-        f.write("verify.json", "{ not valid json either")
-        r = f.hook("verify.json")
+        f.write("implementation.json", "{ not valid json either")
+        r = f.hook("implementation.json")
         self.assertEqual(r.returncode, 0, "an ungoverned artifact must not block the flow")
 
-        records = [t for t in f.trace() if t.get("artifact") == "verify.json"]
+        records = [t for t in f.trace() if t.get("artifact") == "implementation.json"]
         self.assertTrue(records, "an ungoverned artifact must still leave a record")
         edge = records[-1].get("edge") or {}
         self.assertEqual(edge.get("name"), "no-schema")
@@ -255,14 +255,14 @@ class TestTheUngovernedArtifactsAreKnown(unittest.TestCase):
         # the name is not simply "whatever happened to be recorded".
         f.write("triage.json", "{ not valid json")
         f.hook("triage.json")
-        f.write("verify.json", "{ ungoverned")
-        f.hook("verify.json")
+        f.write("implementation.json", "{ ungoverned")
+        f.hook("implementation.json")
 
         by_artifact = {}
         for rec in f.trace():
             by_artifact[rec.get("artifact")] = (rec.get("edge") or {}).get("name")
 
-        self.assertEqual(by_artifact.get("verify.json"), "no-schema")
+        self.assertEqual(by_artifact.get("implementation.json"), "no-schema")
         self.assertIsNotNone(by_artifact.get("triage.json"),
                              "a governed artifact must leave a record")
         self.assertNotEqual(by_artifact.get("triage.json"), "no-schema",

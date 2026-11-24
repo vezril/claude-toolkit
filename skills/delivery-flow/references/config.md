@@ -105,6 +105,24 @@ punch_out:
                              # ceiling is reported, never treated as unlimited.
 ```
 
+## `test_command` and the verify step
+
+`run-verify.py` runs `test_command`, runs the protected-path check, and writes `verify.json`
+with the `tests[].covers` mapping the scope edge reads. A script, not a node.
+
+`verify` was `kind: build` with no producer for a long time: four things read `verify.json` and
+nothing wrote it, so the test-scope edge could never fire and a `full` run could not pass this
+step.
+
+Two distinctions the artifact keeps, because collapsing either flatters a bad run:
+
+- **`suite.status: not-run` is not `red`.** A suite that never started says nothing about the
+  code. An unset `test_command` is `not-run`, never a failing build.
+- **`protected_paths_checked: false` is not an empty pass.** An unusable `protected_paths:`
+  block means nobody looked, which must not read as nothing being touched.
+
+A red suite is a **successful** verify — the step reports, the edge and the reviewer judge.
+
 ## Before submitting
 
 `check-submission.py` is the last gate: chain certified, package builds without a DRAFT stamp,
