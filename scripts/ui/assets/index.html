@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workflow — delivery-flow &amp; sdlc</title>
+<style>
+/* Roles, not raw hex, so the dark values swap in one place. Values are the dataviz
+   reference palette; the categorical set was run through validate_palette.js (light mode,
+   surface #fcfcfb): all checks pass, with a contrast WARN on aqua and yellow that obliges
+   visible labels — every bar here carries a direct value label, which is that relief. */
+:root {
+  color-scheme: light;
+  --surface-0: #f4f4f2;
+  --surface-1: #fcfcfb;
+  --surface-2: #ebebe7;
+  --border:    #d8d8d2;
+  --text-1:    #0b0b0b;
+  --text-2:    #52514e;
+  --text-3:    #78776f;
+  --series-1:  #2a78d6;
+  --good:      #0ca30c;
+  --warning:   #fab219;
+  --critical:  #d03b3b;
+  --neutral:   #78776f;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --surface-0: #121211; --surface-1: #1a1a19; --surface-2: #26262400;
+    --surface-2: #262624; --border: #3a3a37;
+    --text-1: #f0efec; --text-2: #c3c2b7; --text-3: #8f8e85;
+    --series-1: #3987e5; --good: #0ca30c; --warning: #fab219; --critical: #d03b3b;
+    --neutral: #8f8e85;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-0: #121211; --surface-1: #1a1a19; --surface-2: #262624; --border: #3a3a37;
+  --text-1: #f0efec; --text-2: #c3c2b7; --text-3: #8f8e85;
+  --series-1: #3987e5; --good: #0ca30c; --warning: #fab219; --critical: #d03b3b;
+  --neutral: #8f8e85;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--surface-0); color: var(--text-1);
+  font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+}
+header {
+  display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+  padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--surface-1);
+}
+h1 { font-size: 15px; margin: 0; font-weight: 600; }
+.sub { color: var(--text-2); font-size: 13px; }
+.spacer { flex: 1; }
+button, select {
+  font: inherit; color: var(--text-1); background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; cursor: pointer;
+}
+button[aria-pressed="true"] { border-color: var(--series-1); color: var(--series-1); }
+main { display: grid; grid-template-columns: 1fr 380px; gap: 0; align-items: start; }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+#diagram { padding: 20px; overflow-x: auto; }
+aside {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  border-left: 1px solid var(--border); background: var(--surface-1); padding: 18px 20px;
+}
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
+     color: var(--text-3); margin: 22px 0 8px; font-weight: 600; }
+h2:first-child { margin-top: 0; }
+
+/* --- the diagram: a column of segments, each a row of step cards --- */
+.profile-row { margin-bottom: 26px; }
+.profile-name { font-weight: 600; margin-bottom: 2px; }
+.profile-meta { color: var(--text-2); font-size: 13px; margin-bottom: 10px; }
+.chain { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0; }
+.node {
+  position: relative; text-align: left; min-width: 132px; max-width: 170px;
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; margin: 0 14px 10px 0; cursor: pointer;
+}
+.node:hover { border-color: var(--series-1); }
+.node[aria-selected="true"] { border-color: var(--series-1); box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 3px var(--series-1); }
+.node::after {
+  content: "→"; position: absolute; right: -13px; top: 50%; transform: translateY(-50%);
+  color: var(--text-3);
+}
+.node:last-child::after, .node.last::after { content: ""; }
+.node .step { font-weight: 600; font-size: 13px; word-break: break-word; }
+.node .artifact { color: var(--text-3); font-size: 11.5px; font-family: ui-monospace, monospace;
+                  word-break: break-all; }
+.node.skipped { opacity: .55; }
+/* Status is never colour alone: each badge pairs a glyph with a word. */
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
+         margin-top: 5px; font-weight: 600; }
+.badge.certified      { color: var(--good); }
+.badge.uncertified    { color: var(--critical); }
+.badge.not-registered { color: var(--neutral); }
+.kv { display: grid; grid-template-columns: 112px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--text-2); }
+.kv dd { margin: 0; word-break: break-word; }
+code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.tiles { display: flex; gap: 10px; flex-wrap: wrap; }
+.tile { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+        padding: 8px 11px; min-width: 86px; }
+.tile .n { font-size: 19px; font-weight: 650; }
+.tile .l { color: var(--text-2); font-size: 11.5px; }
+.note { color: var(--text-2); font-size: 12.5px; }
+.residual { background: var(--surface-2); border-left: 3px solid var(--warning);
+            padding: 8px 10px; border-radius: 0 6px 6px 0; font-size: 12.5px; }
+.empty { color: var(--text-3); font-style: italic; }
+/* One bar chart: cost by step. One measure, one series, so one hue and no legend —
+   the heading names it. Direct value labels on every bar are the contrast relief. */
+.bars { display: grid; gap: 4px; }
+.bar-row { display: grid; grid-template-columns: 108px 1fr auto; gap: 8px; align-items: center;
+           font-size: 12px; }
+.bar-track { background: var(--surface-2); border-radius: 3px; height: 14px; }
+.bar-fill { background: var(--series-1); height: 100%; border-radius: 0 3px 3px 0; min-width: 2px; }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+th { color: var(--text-2); font-weight: 600; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.banner { padding: 10px 20px; background: var(--surface-2); border-bottom: 1px solid var(--border);
+          color: var(--text-2); font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Workflow</h1>
+  <span class="sub" id="headline">loading…</span>
+  <span class="spacer"></span>
+  <select id="wf" aria-label="Workflow"></select>
+  <select id="profile" aria-label="Profile"></select>
+  <button id="theme" aria-label="Toggle dark mode">◐</button>
+</header>
+<div class="banner" id="banner" hidden></div>
+<main>
+  <section id="diagram" aria-label="Pipeline diagram"></section>
+  <aside id="detail" aria-live="polite"><p class="empty">Select a step to see its details.</p></aside>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let STRUCT = null, RUNS = null, SEL = null;
+
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const money = (n) => n == null ? "—" : "$" + Number(n).toFixed(2);
+const num = (n) => n == null ? "—" : Number(n).toLocaleString();
+
+// Status glyph + word. Never colour alone.
+const GATE = {
+  "certified":      { glyph: "●", word: "certified" },
+  "uncertified":    { glyph: "▲", word: "uncertified" },
+  "not-registered": { glyph: "○", word: "no prompt" },
+};
+
+async function load() {
+  const [s, r] = await Promise.all([
+    fetch("/api/structure").then(x => x.json()),
+    fetch("/api/runs").then(x => x.json()),
+  ]);
+  STRUCT = s; RUNS = r;
+
+  const wf = $("#wf");
+  wf.innerHTML = Object.keys(s).map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join("");
+  wf.onchange = () => { fillProfiles(); draw(); };
+  $("#profile").onchange = draw;
+  fillProfiles();
+  draw();
+
+  if (!r.available) {
+    const b = $("#banner");
+    b.hidden = false;
+    // "no data" and "could not read the data" must not look the same.
+    b.textContent = "No run statistics: " + r.reason;
+  }
+}
+
+function current() { return STRUCT[$("#wf").value]; }
+
+function fillProfiles() {
+  const w = current();
+  const opts = [`<option value="">all steps</option>`]
+    .concat((w.profiles || []).map(p => `<option value="${esc(p.profile)}">${esc(p.profile)}</option>`));
+  $("#profile").innerHTML = opts.join("");
+}
+
+function runStats() {
+  if (!RUNS || !RUNS.available) return { perStep: {}, overall: null, items: [] };
+  const rep = RUNS.report || {};
+  return { perStep: rep.per_step || {}, overall: rep.overall || null, items: rep.items || [] };
+}
+
+function draw() {
+  const w = current();
+  const prof = $("#profile").value;
+  const chosen = prof ? (w.profiles.find(p => p.profile === prof) || {}).steps || [] : null;
+  const { overall } = runStats();
+
+  const certified = w.steps.filter(s => s.gate === "certified").length;
+  const nodes = w.steps.filter(s => s.gate !== "not-registered").length;
+  const rate = overall && overall.certified_only
+    ? overall.certified_only.rate_excluding_punch_outs : null;
+  $("#headline").textContent =
+    `${w.steps.length} steps · ${certified}/${nodes} prompts certified · `
+    + `certified-only rate ${rate == null ? "— (no certified runs)" : rate.toFixed(1) + "%"}`;
+
+  const rows = prof
+    ? [{ name: prof, steps: chosen }]
+    : (w.profiles.length ? w.profiles.map(p => ({ name: p.profile, steps: p.steps }))
+                         : [{ name: "all steps", steps: w.steps.map(s => s.step) }]);
+
+  $("#diagram").innerHTML = rows.map(row => {
+    const p = (w.profiles || []).find(x => x.profile === row.name);
+    const cards = row.steps.map((name, i) => {
+      const s = w.steps.find(x => x.step === name)
+             || { step: name, artifact: "(not in the routing table)", gate: "not-registered" };
+      const g = GATE[s.gate] || GATE["not-registered"];
+      return `<button class="node${i === row.steps.length - 1 ? " last" : ""}"
+        data-step="${esc(name)}" aria-selected="${SEL === name}">
+        <span class="step">${esc(name)}</span><br>
+        <span class="artifact">${esc(s.artifact)}</span>
+        <span class="badge ${esc(s.gate)}">${g.glyph} ${g.word}</span>
+      </button>`;
+    }).join("");
+    return `<div class="profile-row">
+      <div class="profile-name">${esc(row.name)}</div>
+      <div class="profile-meta">${p ? `ends on <code>${esc(p.terminus)}</code>${p.next ? ` · next profile <code>${esc(p.next)}</code>` : ""}` : ""}</div>
+      <div class="chain">${cards}</div></div>`;
+  }).join("");
+
+  document.querySelectorAll(".node").forEach(n =>
+    n.onclick = () => { SEL = n.dataset.step; draw(); detail(SEL); });
+  if (SEL) detail(SEL);
+}
+
+function detail(name) {
+  const w = current();
+  const s = w.steps.find(x => x.step === name);
+  const { perStep, items } = runStats();
+  const st = perStep[name];
+  const g = GATE[(s && s.gate) || "not-registered"];
+
+  if (!s) {
+    $("#detail").innerHTML = `<h2>${esc(name)}</h2><p class="note">In a profile but not in the
+      routing table. That is a real inconsistency, not a display gap.</p>`;
+    return;
+  }
+
+  const edge = Object.entries(w.edge_checks || {}).find(([a]) => a === s.artifact);
+  const failed = items.reduce((a, it) => a + (it.failed_edges || 0), 0);
+
+  let html = `<h2>${esc(s.step)}</h2>
+    <p class="badge ${esc(s.gate)}">${g.glyph} ${g.word}</p>
+    <dl class="kv">
+      <dt>artifact</dt><dd><code>${esc(s.artifact)}</code></dd>
+      <dt>kind</dt><dd>${esc(s.kind)}</dd>
+      ${s.tier ? `<dt>model tier</dt><dd>${esc(s.tier)}</dd>` : ""}
+      ${s.agent ? `<dt>agent</dt><dd><code>${esc(s.agent)}</code></dd>` : ""}
+      ${s.prompt ? `<dt>prompt</dt><dd><code>${esc(s.prompt)}</code></dd>` : ""}
+      ${s.optional_when ? `<dt>optional when</dt><dd>${esc(s.optional_when)}</dd>` : ""}
+      ${s.nodes && s.nodes.length ? `<dt>nodes</dt><dd><code>${s.nodes.map(esc).join(", ")}</code></dd>` : ""}
+      <dt>in chain</dt><dd>${s.chain ? "yes — Stage 4 certified chain" : "no"}</dd>
+      ${edge ? `<dt>edge check</dt><dd><code>${esc(edge[1])}</code></dd>` : ""}
+    </dl>`;
+
+  if (s.gate === "certified" || s.gate === "uncertified") {
+    html += `<h2>Certification</h2>
+      <dl class="kv">
+        ${s.eval ? `<dt>eval suite</dt><dd><code>${esc(s.eval)}</code></dd>` : ""}
+        <dt>criteria</dt><dd>${s.criteria.length ? s.criteria.map(esc).join(", ") : '<span class="empty">none declared</span>'}</dd>
+        <dt>consecutive runs</dt><dd>${s.consecutive_runs || '<span class="empty">none recorded</span>'}</dd>
+      </dl>
+      <p class="note mono">${esc(s.gate_detail)}</p>`;
+  }
+
+  if (s.known_residual) {
+    html += `<h2>Known residual</h2><p class="residual">${esc(s.known_residual)}</p>`;
+  }
+
+  html += `<h2>Statistics</h2>`;
+  if (!RUNS.available) {
+    html += `<p class="empty">No run data: ${esc(RUNS.reason)}</p>`;
+  } else if (!st) {
+    // Absent is not zero: this step has never been traced.
+    html += `<p class="empty">This step has no trace records, so it has never run — or ran in
+      a session that could not record it. That is not the same as costing nothing.</p>`;
+  } else {
+    html += `<div class="tiles">
+      <div class="tile"><div class="n">${num(st.runs)}</div><div class="l">traced calls</div></div>
+      <div class="tile"><div class="n">${money(st.cost)}</div><div class="l">API-equiv cost</div></div>
+      <div class="tile"><div class="n">${num(st.output)}</div><div class="l">output tokens</div></div>
+    </div>
+    <p class="note">Cost is API-equivalent: tokens at published list rates, not billed spend.</p>`;
+  }
+
+  // One chart on the page, in the panel where the comparison is useful: cost by step.
+  // One measure, one series, so one hue and no legend — the heading names it. Every bar
+  // carries a direct value label, which is the relief the palette's contrast WARN obliges.
+  if (RUNS.available) {
+    const rows = Object.entries(perStep)
+      .map(([k, v]) => [k, v.cost || 0]).filter(([, c]) => c > 0)
+      .sort((a, b) => b[1] - a[1]).slice(0, 10);
+    if (rows.length) {
+      const max = rows[0][1];
+      html += `<h2>Cost by step, all traced runs</h2><div class="bars">`
+        + rows.map(([k, c]) => `<div class="bar-row">
+            <span${k === name ? ' style="font-weight:650"' : ""}>${esc(k)}</span>
+            <span class="bar-track"><span class="bar-fill" style="width:${(c / max * 100).toFixed(1)}%"></span></span>
+            <span class="num">${money(c)}</span></div>`).join("")
+        + `</div>
+        <h2>The same numbers as a table</h2>
+        <table><thead><tr><th>step</th><th class="num">calls</th><th class="num">cost</th></tr></thead>
+        <tbody>${rows.map(([k, c]) => `<tr><td>${esc(k)}</td><td class="num">${num((perStep[k]||{}).runs)}</td><td class="num">${money(c)}</td></tr>`).join("")}</tbody></table>`;
+    }
+  }
+
+  $("#detail").innerHTML = html;
+}
+
+$("#theme").onclick = () => {
+  const now = document.documentElement.getAttribute("data-theme");
+  document.documentElement.setAttribute("data-theme", now === "dark" ? "light" : "dark");
+};
+
+load().catch(e => { $("#headline").textContent = "failed to load: " + e; });
+</script>
+</body>
+</html>
