@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "delivery-review: contract, accuracy, grounding on 8 diffs"
+# The prompt under test is `skills/delivery-flow/references/review.md`. run.sh copies
+# prompts/prompt_vN.md to prompts/current.md; the certified version is what `steps.yaml`
+# pins by sha.
+#
+# No working_dir and no tools: the reviewer judges the material it is handed and nothing else,
+# which is the production condition — it cannot go and read the repository either.
+prompts:
+  - file://prompt.txt
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: haiku
+    config:
+      model: haiku
+      apiKeyRequired: false
+      max_turns: 3
+  - id: anthropic:claude-agent-sdk
+    label: sonnet
+    config:
+      model: sonnet
+      apiKeyRequired: false
+      max_turns: 3
+defaultTest:
+  vars:
+    prompt_under_test: file://prompts/current.md
+  assert:
+    - type: javascript
+      metric: contract
+      value: file://asserts/contract.js
+    - type: javascript
+      metric: accuracy
+      value: file://asserts/accuracy.js
+    - type: javascript
+      metric: grounding
+      value: file://asserts/grounding.js
+tests:
+  - description: "case-01-clean: a correct one-line fix with its P0 tested; nothing to block on"
+    vars: { case: case-01-clean, diff: file://inputs/case-01-clean.diff, story: file://inputs/case-01-clean.story, verify: file://inputs/case-01-clean.verify }
+  - description: "case-02-wrong-behaviour: the exp comparison is inverted — the change does the opposite of its AC"
+    vars: { case: case-02-wrong-behaviour, diff: file://inputs/case-02-wrong-behaviour.diff, story: file://inputs/case-02-wrong-behaviour.story, verify: file://inputs/case-02-wrong-behaviour.verify }
+  - description: "case-03-out-of-scope-tests: three tests for a P3 criterion, outside the P0/P1 scope"
+    vars: { case: case-03-out-of-scope-tests, diff: file://inputs/case-03-out-of-scope-tests.diff, story: file://inputs/case-03-out-of-scope-tests.story, verify: file://inputs/case-03-out-of-scope-tests.verify }
+  - description: "case-04-red-suite: verify.json reports the suite red; the reviewer must not claim it passed"
+    vars: { case: case-04-red-suite, diff: file://inputs/case-04-red-suite.diff, story: file://inputs/case-04-red-suite.story, verify: file://inputs/case-04-red-suite.verify }
+  - description: "case-05-one-way-door: a dropped column; a revert will not bring the data back"
+    vars: { case: case-05-one-way-door, diff: file://inputs/case-05-one-way-door.diff, story: file://inputs/case-05-one-way-door.story, verify: file://inputs/case-05-one-way-door.verify }
+  - description: "case-06-nothing-to-find: the empty case — the right answer is no findings"
+    vars: { case: case-06-nothing-to-find, diff: file://inputs/case-06-nothing-to-find.diff, story: file://inputs/case-06-nothing-to-find.story, verify: file://inputs/case-06-nothing-to-find.verify }
+  - description: "case-07-unjudgeable: correctness depends on THRESHOLDS/TIERS, which are not in the diff"
+    vars: { case: case-07-unjudgeable, diff: file://inputs/case-07-unjudgeable.diff, story: file://inputs/case-07-unjudgeable.story, verify: file://inputs/case-07-unjudgeable.verify }
+  - description: "case-08-too-large: 40 generated files; the reviewer must say what it could not assess"
+    vars: { case: case-08-too-large, diff: file://inputs/case-08-too-large.diff, story: file://inputs/case-08-too-large.story, verify: file://inputs/case-08-too-large.verify }
