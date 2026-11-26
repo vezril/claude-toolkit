@@ -132,6 +132,42 @@ it rather than a fixed record. A first version of the schema was closed and requ
 field names; it rejected all eight real artifacts and blocked their edges. `story` and `tests`
 are optional for the same reason: the scope edge reports an honest no-op without them.
 
+## `mutation` — the gate that proves the tests can fail
+
+```yaml
+mutation:
+  enabled: true                            # off unless set; the cost is per-mutant
+  subset_template: "pytest -q {paths}"      # {paths} = the diff's test files
+  max_mutants: 20                           # budget; a cap is reported, never hidden
+  timeout: 300                              # seconds per mutant run
+```
+
+A green suite says the tests pass. It does not say they would fail if the code were wrong, and
+the difference is where a whole class of review comments lives — one on a client PR read
+*"making it unconditional still passes."* A test had been added for a conditional write and
+never reached the branch, so deleting the condition broke nothing the suite could see.
+
+`mutation-gate.py` settles that by measurement: break the production lines **this branch
+changed**, run the diff's tests, and record which mutants nobody noticed. `verify.json` carries
+the result under `mutation`, and `survived[]` is the finding — each entry a line the branch
+added that no test defends.
+
+Four properties worth knowing before turning it on:
+
+- **The diff only.** Mutating untouched code measures the suite's whole history, which is a
+  different question and would bury the finding.
+- **Production files only**, by the same classifier the dev-pair hook uses
+  (`hooks/enforce-dev-pair-boundary.py`). Mutating a test and watching it fail proves nothing.
+- **It never writes inside your repo.** It copies the tree once and mutates the copy, because
+  it deliberately breaks source and the repo may hold uncommitted work.
+- **A red baseline means it does not run**, and says so. A mutant "killed" by an
+  already-failing suite was killed by the failure. `ran: false` always carries a `reason` and is
+  never an empty pass — the same rule as `protected_paths_checked`.
+
+It is **Python-only** today, and off by default. `--mutation` / `--no-mutation` on
+`run-verify.py` override the config either way, and `mutation-gate.py` runs standalone: exit 0
+all killed, 1 survivors, 3 could not run.
+
 ## Before submitting
 
 `check-submission.py` is the last gate: chain certified, package builds without a DRAFT stamp,
