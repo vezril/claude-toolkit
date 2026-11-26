@@ -64,6 +64,67 @@
       "type": "string",
       "minLength": 1
     },
+    "mutation": {
+      "type": "object",
+      "description": "The mutation gate's result: the diff's own production lines broken on purpose, and whether the diff's tests noticed. `ran: false` carries a `reason` and is never an empty pass — a gate that did not run must not read as a clean one. When `ran` is true, `survived[]` is the finding: each entry is a line this branch changed that no test defends.",
+      "required": [
+        "ran"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "ran": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mutants": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "killed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "capped": {
+          "type": "boolean",
+          "description": "True when the mutant budget cut the candidate list, so `killed/mutants` is a sample rather than the whole diff."
+        },
+        "survived": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "file",
+              "line",
+              "operator"
+            ],
+            "additionalProperties": true,
+            "properties": {
+              "file": {
+                "type": "string",
+                "minLength": 1
+              },
+              "line": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "operator": {
+                "type": "string",
+                "minLength": 1
+              },
+              "before": {
+                "type": "string"
+              },
+              "after": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
     "tests": {
       "type": "array",
       "description": "Optional. When present, `covers` is what lets the scope edge check P0/P1 in both directions; without it the edge no-ops.",

@@ -119,7 +119,7 @@ its job; raise the decision instead. Field mappings and each adapter's quirks ar
 | 6 | `proposal.json` + `openspec/changes/<id>/` | propose | node → `references/propose.md` (**uncertified**) |
 | 7 | `summary.md` | brief | script → `render-brief.py` |
 | 8 | `implementation.json` | implementation | SDLC dev pair, per task |
-| 9 | `verify.json` | verify | script → `run-verify.py` (the repo's `test_command` + protected-paths check) |
+| 9 | `verify.json` | verify | script → `run-verify.py` (the repo's `test_command` + protected-paths check + the mutation gate where enabled) |
 | 10 | `challenge-implementation.json` | challenge-implementation | `cross-examine` |
 | 11 | `review.json` | review | node → `references/review.md`, one per roster reviewer (**uncertified**) |
 | 12 | `pr.md` → `pr-opened.json` | pr-description, open-pr | node, then forge adapter |
