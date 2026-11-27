@@ -1,4 +1,7 @@
-"""The evidence package counts each artifact root once.
+"""The evidence package: one entry per artifact root, and every entry findable.
+
+Both defects here were in the one claim the package makes — *every file is listed with its
+sha, go and diff it* — and both made that claim false while the package looked immaculate.
 
 Every ticket worktree carries a copy of `.delivery-flow.yaml` on purpose, so every worktree
 registers itself as a delivery repo and they all resolve to one artifact root. The packager
@@ -114,6 +117,63 @@ class TestOneArtifactRootCountsOnce(unittest.TestCase):
         missing.mkdir()
         kept, _ = pe.dedupe_by_artifact_root([missing])
         self.assertEqual([missing], kept)
+
+
+class TestTheManifestCanActuallyBeChecked(unittest.TestCase):
+    """Its first column said `AN-3641/item.json` for a file at
+    `4-end-to-end-rate/runs/AN-3641/item.json`, and `SKILL.md` for one at
+    `1-workflow-definition/SKILL.md`. Not one of 498 entries resolved from the package root,
+    so a reviewer verifying a sha could not find a single file to verify."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        t = Path(self.tmp.name)
+        self.artifacts = t / "runs"
+        (self.artifacts / "AN-1").mkdir(parents=True)
+        (self.artifacts / "AN-1" / "item.json").write_text('{"item": "AN-1"}')
+        (self.artifacts / "AN-1" / "outcome.json").write_text(
+            json.dumps({"item": "AN-1", "status": "completed", "profile": "triage"}))
+        self.repo = make_repo(t / "repo", self.artifacts)
+        self.out = t / "pkg"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _build(self):
+        import subprocess
+        res = subprocess.run(
+            [sys.executable, "-I", str(SCRIPT), "--out", str(self.out), "--force",
+             "--allow-uncertified", "--repo", str(self.repo)],
+            capture_output=True, text=True)
+        self.assertEqual(0, res.returncode, res.stdout + res.stderr)
+        return [l for l in (self.out / "MANIFEST.txt").read_text().splitlines()
+                if l.strip() and not l.startswith("#")]
+
+    def test_every_entry_resolves_from_the_package_root(self):
+        rows = self._build()
+        self.assertTrue(rows, "the manifest is empty")
+        for row in rows:
+            rel = row.split("|")[0].strip()
+            with self.subTest(entry=rel):
+                self.assertTrue((self.out / rel).is_file(),
+                                f"{rel} is in the manifest and not at that path")
+
+    def test_every_recorded_sha_matches_the_file_in_the_package(self):
+        """A path that resolves is not enough; the digest has to be the digest."""
+        import hashlib
+        for row in self._build():
+            rel, _src, sha = [c.strip() for c in row.split("|")]
+            with self.subTest(entry=rel):
+                got = hashlib.sha256((self.out / rel).read_bytes()).hexdigest()
+                self.assertEqual(sha, got, f"{rel} does not match its recorded sha")
+
+    def test_the_run_artifacts_are_under_the_criterion_that_cites_them(self):
+        """The nesting is the point of the layout: one directory answers one question."""
+        rows = [r.split("|")[0].strip() for r in self._build()]
+        runs = [r for r in rows if "AN-1" in r]
+        self.assertTrue(runs)
+        for r in runs:
+            self.assertTrue(r.startswith("4-end-to-end-rate/runs/"), r)
 
 
 if __name__ == "__main__":
