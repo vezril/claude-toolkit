@@ -176,5 +176,102 @@ class TestTheManifestCanActuallyBeChecked(unittest.TestCase):
             self.assertTrue(r.startswith("4-end-to-end-rate/runs/"), r)
 
 
+class TestThePackageCanBeVerifiedByItsReader(unittest.TestCase):
+    """The reviewer is an agent, so the package ships the recomputation of its own claims.
+
+    A verifier that cannot fail is worse than none: it converts "unchecked" into "checked and
+    fine". So these tests tamper with a built package six ways and require a non-zero exit
+    each time.
+    """
+
+    def setUp(self):
+        import subprocess
+        self.tmp = tempfile.TemporaryDirectory()
+        t = Path(self.tmp.name)
+        self.artifacts = t / "runs"
+        for item, status in (("AN-1", "completed"), ("AN-2", "completed")):
+            d = self.artifacts / item
+            d.mkdir(parents=True)
+            (d / "item.json").write_text(json.dumps({"item": item}))
+            (d / "trace.jsonl").write_text(json.dumps({"item": item, "step": "triage"}) + "\n")
+            (d / "outcome.json").write_text(json.dumps(
+                {"item": item, "status": status, "profile": "triage", "replay": True}))
+        self.repo = make_repo(t / "repo", self.artifacts)
+        self.out = t / "pkg"
+        res = subprocess.run(
+            [sys.executable, "-I", str(SCRIPT), "--out", str(self.out), "--force",
+             "--allow-uncertified", "--repo", str(self.repo)],
+            capture_output=True, text=True)
+        self.assertEqual(0, res.returncode, res.stdout + res.stderr)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _verify(self):
+        import subprocess
+        return subprocess.run([sys.executable, str(self.out / "verify.py")],
+                              cwd=str(self.out), capture_output=True, text=True)
+
+    def test_a_clean_package_verifies(self):
+        r = self._verify()
+        self.assertEqual(0, r.returncode, r.stdout + r.stderr)
+        self.assertIn("VERIFIED", r.stdout)
+
+    def test_the_index_states_the_untrusted_paths(self):
+        """The run artifacts reproduce third-party prose verbatim. An agent reviewer reads it,
+        so the package has to say it is data rather than direction."""
+        idx = json.loads((self.out / "INDEX.json").read_text())
+        self.assertIn("untrusted_content", idx)
+        self.assertTrue(idx["untrusted_content"]["paths"])
+        self.assertIn("DATA", idx["untrusted_content"]["why"])
+
+    def test_the_index_states_its_known_limits(self):
+        """Stated as data so they cannot be skimmed past."""
+        idx = json.loads((self.out / "INDEX.json").read_text())
+        self.assertGreaterEqual(len(idx["known_limits"]), 3)
+        for lim in idx["known_limits"]:
+            self.assertTrue(lim.get("limit") and lim.get("where"))
+
+    def test_the_rate_in_the_index_is_falsifiable(self):
+        """It divided the completed runs by themselves once, which is 100% for any input."""
+        idx = json.loads((self.out / "INDEX.json").read_text())
+        obs = idx["criterion_4"]["observed_terminal_rate"]
+        self.assertEqual(obs["denominator"], 2)
+        self.assertNotIn("denominator", idx["criterion_4"],
+                         "the top-level circular denominator must be gone")
+
+    def test_tampering_with_a_file_fails_verification(self):
+        f = self.out / "1-workflow-definition" / "SKILL.md"
+        f.write_bytes(f.read_bytes() + b"\n<!-- tampered -->\n")
+        self.assertEqual(1, self._verify().returncode)
+
+    def test_deleting_a_manifested_file_fails_verification(self):
+        (self.out / "1-workflow-definition" / "steps.yaml").unlink()
+        self.assertEqual(1, self._verify().returncode)
+
+    def test_overstating_the_run_count_fails_verification(self):
+        idx = self.out / "INDEX.json"
+        d = json.loads(idx.read_text()); d["runs"]["completed"] = 99
+        idx.write_text(json.dumps(d))
+        self.assertEqual(1, self._verify().returncode)
+
+    def test_inflating_the_denominator_fails_verification(self):
+        idx = self.out / "INDEX.json"
+        d = json.loads(idx.read_text())
+        d["criterion_4"]["observed_terminal_rate"]["denominator"] = 50
+        idx.write_text(json.dumps(d))
+        self.assertEqual(1, self._verify().returncode)
+
+    def test_hiding_the_replays_fails_verification(self):
+        idx = self.out / "INDEX.json"
+        d = json.loads(idx.read_text()); d["runs"]["replays"] = 0
+        idx.write_text(json.dumps(d))
+        self.assertEqual(1, self._verify().returncode)
+
+    def test_a_counted_run_without_a_trace_fails_verification(self):
+        (self.out / "4-end-to-end-rate" / "runs" / "AN-1" / "trace.jsonl").unlink()
+        self.assertEqual(1, self._verify().returncode)
+
+
 if __name__ == "__main__":
     unittest.main()
