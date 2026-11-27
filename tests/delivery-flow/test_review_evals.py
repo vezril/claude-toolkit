@@ -87,15 +87,36 @@ class TestTheGateSeesWhatIsActuallyThere(unittest.TestCase):
         self.assertGreaterEqual(got / total, self.m.LOAD_BEARING_BAR,
                                 f"{got}/{total} is below the bar")
 
-    def test_it_declares_three_criteria(self):
+    def test_it_declares_at_least_three_criteria(self):
         self.assertGreaterEqual(len(set(self.entry["criteria"])), 3)
 
+    def test_every_criterion_it_declares_has_an_assert(self):
+        """A declared criterion with no file behind it is a claim about nothing."""
+        for name in self.entry["criteria"]:
+            with self.subTest(criterion=name):
+                self.assertTrue((SUITE / "asserts" / f"{name}.js").exists())
+
     def test_it_claims_no_results_it_does_not_have(self):
-        """The honest state. Declaring a results file or a frozen prompt before a run has
-        happened is the fabricated-evidence failure the method refuses."""
-        for field in ("results", "prompt_sha256", "certified_version", "iteration_log"):
+        """The honest state. Declaring a results file or a frozen prompt before the bar is
+        cleared is the fabricated-evidence failure the method refuses.
+
+        `iteration_log` used to be on this list, because there were no runs at all. There are
+        four now and the log records them, so the field is legitimate; the three that remain
+        are the ones that assert a *passing* version exists."""
+        for field in ("results", "prompt_sha256", "certified_version"):
             with self.subTest(field=field):
                 self.assertNotIn(field, self.entry)
+
+    def test_the_iteration_log_it_names_exists_and_cites_its_results(self):
+        """A log is evidence only if the runs behind it are on disk to check."""
+        log = ROOT / self.entry["iteration_log"]
+        self.assertTrue(log.exists(), f"{log} is named by steps.yaml and missing")
+        text = log.read_text()
+        for version in ("v1", "v2", "v3", "v4"):
+            with self.subTest(version=version):
+                self.assertTrue((SUITE / "results" / f"run_{version}_all.json").exists(),
+                                f"the log discusses {version} with no results file")
+                self.assertIn(version, text)
 
     def test_the_step_is_still_uncertified(self):
         """Until the runs exist. A suite is not a certification."""

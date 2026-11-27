@@ -1,4 +1,4 @@
-// Mutation test for the three criteria, run BEFORE any model call.
+// Mutation test for the four criteria, run BEFORE any model call.
 //
 //   node asserts/selftest.js
 //
@@ -12,6 +12,7 @@
 const contract = require('./contract');
 const accuracy = require('./accuracy');
 const grounding = require('./grounding');
+const assumptions = require('./assumptions');
 
 const SHA = 'a'.repeat(64);
 const ctx = (id) => ({ vars: { case: id } });
@@ -80,6 +81,60 @@ const REFERENCE = {
       reviewer: 'clean-code-reviewer', severity: 'advisory',
     }],
   },
+  'case-09-unverified-precondition': {
+    item: 'EVAL-9', target: 'implementation.json', diff_sha256: SHA, verdict: 'WEAKENED',
+    reviewers: [{ agent: 'clean-code-reviewer', verdict: 'WEAKENED' }],
+    findings: [{
+      finding: 'Every form after the first runs against a dataset the previous form already populated, and nothing establishes that StartIndexJob accepts a non-empty dataset. I cannot confirm that precondition from the material. If it does not hold, each conditioned form records REJECTED_BY_POLICY and that is indistinguishable from a trust rejection.',
+      evidence: 'src/importer.py:42 loops StartIndexJob over forms with no reset between them',
+      reviewer: 'clean-code-reviewer', severity: 'advisory',
+    }],
+  },
+  'case-10-assumed-error-semantics': {
+    item: 'EVAL-10', target: 'implementation.json', diff_sha256: SHA, verdict: 'WEAKENED',
+    reviewers: [{ agent: 'clean-code-reviewer', verdict: 'WEAKENED' }],
+    findings: [{
+      finding: 'The code assumes ConflictError means a delete is already running. If the service raises it for other reasons, such as deletion protection being on, the poll watches a live dataset for the full 600 seconds and then raises TimeoutError, and a retry repeats it. That meaning is unverified here.',
+      evidence: 'src/deletion.py:21 swallows ConflictError and falls through to the TIMEOUT poll',
+      reviewer: 'clean-code-reviewer', severity: 'advisory',
+    }],
+  },
+  'case-11-lost-update': {
+    item: 'EVAL-11', target: 'implementation.json', diff_sha256: SHA, verdict: 'REFUTED',
+    reviewers: [{ agent: 'clean-code-reviewer', verdict: 'REFUTED' }],
+    findings: [{
+      finding: 'The fallback write is unconditional, so a stale run whose row was taken over overwrites the new owner\'s dataset id. The new owner\'s dataset is then unreferenced and keeps billing, which is what AC-2 exists to prevent. It also assumes on_created cannot fire after another run has recorded its own dataset, and nothing here establishes that.',
+      evidence: 'src/pipeline.py:65 calls self.rows.update(run_id, dataset_id=dataset_id) after update_if_owner fails',
+      reviewer: 'clean-code-reviewer', severity: 'blocking',
+    }],
+  },
+  'case-12-blocking-sleep-in-async': {
+    item: 'EVAL-12', target: 'implementation.json', diff_sha256: SHA, verdict: 'REFUTED',
+    reviewers: [{ agent: 'clean-code-reviewer', verdict: 'REFUTED' }],
+    findings: [{
+      finding: '_wait_and_delete is synchronous and loops on time.sleep for up to 600 seconds, and on_created is called from inside async create_instance. That blocks the event loop, so every other request stalls for the length of the wait, which violates AC-2.',
+      evidence: 'src/pipeline.py:97 sleeps in a loop; src/instances.py:16 calls on_created from an async function',
+      reviewer: 'clean-code-reviewer', severity: 'blocking',
+    }],
+  },
+  'case-13-inert-test': {
+    item: 'EVAL-13', target: 'implementation.json', diff_sha256: SHA, verdict: 'REFUTED',
+    reviewers: [{ agent: 'clean-code-reviewer', verdict: 'REFUTED' }],
+    findings: [{
+      finding: 'The ownership condition survived being replaced with `if True:`, so the test named for AC-1 does not reach the guarded write. The row is re-claimed before record_dataset is called and that call raises first, so the suite passes green while AC-1 is untested.',
+      evidence: 'verify.json reports mutation.survived at src/pipeline.py:122 condition-always-true',
+      reviewer: 'clean-code-reviewer', severity: 'blocking',
+    }],
+  },
+  'case-14-doc-contradicts-code': {
+    item: 'EVAL-14', target: 'implementation.json', diff_sha256: SHA, verdict: 'REFUTED',
+    reviewers: [{ agent: 'clean-code-reviewer', verdict: 'REFUTED' }],
+    findings: [{
+      finding: 'The README and the skip reason both say the dataset is read without resetting it, and the code calls _reset_dataset_and_wait on it. An operator who believes the documentation will point the suite at a dataset they care about and lose its contents.',
+      evidence: 'README.md:267 says "without resetting it"; tests/test_trust.py:104 calls _reset_dataset_and_wait',
+      reviewer: 'clean-code-reviewer', severity: 'blocking',
+    }],
+  },
 };
 
 // Each mutant breaks one thing and names which criterion must catch it.
@@ -132,9 +187,35 @@ const MUTANTS = [
   ['grounding', 'claims the suite passed when it is red', 'case-04-red-suite',
    (d) => JSON.stringify({ ...d, verdict: 'SURVIVED', findings: [],
           reviewers: [{ agent: 'r', verdict: 'SURVIVED', note: 'All tests pass.' }] })],
+  ['assumptions', 'describes the API call without saying the precondition is unverified',
+   'case-09-unverified-precondition',
+   (d) => JSON.stringify({ ...d, findings: [{ ...d.findings[0],
+          finding: 'The loop calls StartIndexJob once per form and records the outcome.',
+          evidence: 'src/importer.py:42 loops StartIndexJob over forms' }] })],
+  ['assumptions', 'misses the assumed exception meaning entirely',
+   'case-10-assumed-error-semantics',
+   (d) => JSON.stringify({ ...d, findings: [{ ...d.findings[0],
+          finding: 'The poll interval of 10 seconds is a little tight.',
+          evidence: 'src/deletion.py:26 sleeps 10s per iteration' }] })],
+  ['assumptions', 'invents a dependency to demand confirmation about', 'case-01-clean',
+   (d) => JSON.stringify({ ...d, verdict: 'WEAKENED', findings: [{
+          finding: 'Confirm that RetryScheduler is idempotent before merging.',
+          evidence: 'src/retry.py:12', reviewer: 'r', severity: 'advisory' }] })],
+
+  ['accuracy', 'misses the lost update', 'case-11-lost-update',
+   (d) => JSON.stringify({ ...d, verdict: 'SURVIVED', findings: [] })],
+  ['accuracy', 'misses the blocking sleep on the event loop', 'case-12-blocking-sleep-in-async',
+   (d) => JSON.stringify({ ...d, verdict: 'SURVIVED', findings: [] })],
+  ['accuracy', 'takes the green suite at face value with a mutant surviving',
+   'case-13-inert-test',
+   (d) => JSON.stringify({ ...d, verdict: 'SURVIVED', findings: [],
+          reviewers: [{ agent: 'r', verdict: 'SURVIVED', note: 'Tests pass.' }] })],
+  ['accuracy', 'misses that the documentation contradicts the code',
+   'case-14-doc-contradicts-code',
+   (d) => JSON.stringify({ ...d, verdict: 'SURVIVED', findings: [] })],
 ];
 
-const ASSERTS = { contract, accuracy, grounding };
+const ASSERTS = { contract, accuracy, grounding, assumptions };
 let bad = 0;
 
 console.log('reference answers (every assert must accept every case):');
@@ -147,7 +228,7 @@ for (const [id, doc] of Object.entries(REFERENCE)) {
     }
   }
 }
-if (!bad) console.log(`  ok   all 3 asserts accept all ${Object.keys(REFERENCE).length} cases`);
+if (!bad) console.log(`  ok   all 4 asserts accept all ${Object.keys(REFERENCE).length} cases`);
 
 console.log('\nmutants (each must be caught by the named criterion):');
 for (const [criterion, label, id, mutate] of MUTANTS) {

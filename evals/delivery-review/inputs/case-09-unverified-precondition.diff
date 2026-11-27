@@ -1,0 +1,16 @@
+diff --git a/src/importer.py b/src/importer.py
+index aaa1111..bbb2222 100644
+--- a/src/importer.py
++++ b/src/importer.py
+@@ -40,6 +40,18 @@ def run_forms(client, dataset_id, forms):
+     results = {}
++    for form in forms:
++        # The first form resets the dataset; the conditioned forms below reuse it.
++        try:
++            client.StartIndexJob(datasetId=dataset_id, source=form.source,
++                                 roleArn=form.role_arn)
++        except client.exceptions.AccessDenied:
++            results[form.name] = "REJECTED_BY_POLICY"
++            continue
++        results[form.name] = "ACCEPTED"
+     return results

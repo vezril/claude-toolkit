@@ -1,0 +1,18 @@
+diff --git a/src/deletion.py b/src/deletion.py
+index aaa1111..bbb2222 100644
+--- a/src/deletion.py
++++ b/src/deletion.py
+@@ -18,6 +18,20 @@ TIMEOUT = 600
+ def delete_dataset(client, dataset_id):
++    try:
++        client.DeleteIndex(datasetId=dataset_id)
++    except client.exceptions.ConflictError:
++        # Already being deleted by someone else; fall through to the poll.
++        pass
++    waited = 0
++    while waited < TIMEOUT:
++        if client.DescribeIndex(datasetId=dataset_id)["status"] == "DELETED":
++            return
++        time.sleep(10)
++        waited += 10
++    raise TimeoutError(f"{dataset_id} was not deleted within {TIMEOUT}s")

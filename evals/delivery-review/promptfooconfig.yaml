@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
-description: "delivery-review: contract, accuracy, grounding on 8 diffs"
+description: "delivery-review: contract, accuracy, grounding, assumptions on 14 diffs"
 # The prompt under test is `skills/delivery-flow/references/review.md`. run.sh copies
 # prompts/prompt_vN.md to prompts/current.md; the certified version is what `steps.yaml`
 # pins by sha.
@@ -8,19 +8,14 @@ description: "delivery-review: contract, accuracy, grounding on 8 diffs"
 # which is the production condition — it cannot go and read the repository either.
 prompts:
   - file://prompt.txt
+# Keyless exec providers over the Claude Code CLI. `anthropic:claude-agent-sdk` is what this
+# config named first and it reports `Not logged in` here, which is why this step has a
+# mutation-tested suite and no scores. There are no prior runs to stay comparable with.
 providers:
-  - id: anthropic:claude-agent-sdk
-    label: haiku
-    config:
-      model: haiku
-      apiKeyRequired: false
-      max_turns: 3
-  - id: anthropic:claude-agent-sdk
+  - id: exec:./provider/claude-sonnet.sh
     label: sonnet
-    config:
-      model: sonnet
-      apiKeyRequired: false
-      max_turns: 3
+  - id: exec:./provider/claude-haiku.sh
+    label: haiku
 defaultTest:
   vars:
     prompt_under_test: file://prompts/current.md
@@ -34,20 +29,39 @@ defaultTest:
     - type: javascript
       metric: grounding
       value: file://asserts/grounding.js
+    # Criterion 4. Added after eight review comments on real PRs, four of whose required
+    # changes began with the word "Confirm" — a reviewer carrying a burden the change should
+    # have discharged. Two-sided: raise the preconditions the diff leans on, and do not
+    # invent preconditions about things nobody mentioned.
+    - type: javascript
+      metric: assumptions
+      value: file://asserts/assumptions.js
 tests:
   - description: "case-01-clean: a correct one-line fix with its P0 tested; nothing to block on"
-    vars: { case: case-01-clean, diff: file://inputs/case-01-clean.diff, story: file://inputs/case-01-clean.story, verify: file://inputs/case-01-clean.verify }
+    vars: { case: case-01-clean, diff: file://inputs/case-01-clean.diff, story: file://inputs/case-01-clean.story, verify: file://inputs/case-01-clean.verify, diff_sha256: 26288cbfe4e427921ab71ddeddea8fd60ff608a368c446920aba2b7e9d025590 }
   - description: "case-02-wrong-behaviour: the exp comparison is inverted — the change does the opposite of its AC"
-    vars: { case: case-02-wrong-behaviour, diff: file://inputs/case-02-wrong-behaviour.diff, story: file://inputs/case-02-wrong-behaviour.story, verify: file://inputs/case-02-wrong-behaviour.verify }
+    vars: { case: case-02-wrong-behaviour, diff: file://inputs/case-02-wrong-behaviour.diff, story: file://inputs/case-02-wrong-behaviour.story, verify: file://inputs/case-02-wrong-behaviour.verify, diff_sha256: 0aa7a331f9e3779cab833879936b8467b3d6ef516efedb80ff2c6d39a88024d2 }
   - description: "case-03-out-of-scope-tests: three tests for a P3 criterion, outside the P0/P1 scope"
-    vars: { case: case-03-out-of-scope-tests, diff: file://inputs/case-03-out-of-scope-tests.diff, story: file://inputs/case-03-out-of-scope-tests.story, verify: file://inputs/case-03-out-of-scope-tests.verify }
+    vars: { case: case-03-out-of-scope-tests, diff: file://inputs/case-03-out-of-scope-tests.diff, story: file://inputs/case-03-out-of-scope-tests.story, verify: file://inputs/case-03-out-of-scope-tests.verify, diff_sha256: 6b468d2ec270aba16edfcb45158459a3b382b9c35bceb68016af3484c2ce4c6f }
   - description: "case-04-red-suite: verify.json reports the suite red; the reviewer must not claim it passed"
-    vars: { case: case-04-red-suite, diff: file://inputs/case-04-red-suite.diff, story: file://inputs/case-04-red-suite.story, verify: file://inputs/case-04-red-suite.verify }
+    vars: { case: case-04-red-suite, diff: file://inputs/case-04-red-suite.diff, story: file://inputs/case-04-red-suite.story, verify: file://inputs/case-04-red-suite.verify, diff_sha256: 7fee21b4bb23362c37c0406f9301d39b929d17a13d8e27ea8f3dc49bb79e1e0a }
   - description: "case-05-one-way-door: a dropped column; a revert will not bring the data back"
-    vars: { case: case-05-one-way-door, diff: file://inputs/case-05-one-way-door.diff, story: file://inputs/case-05-one-way-door.story, verify: file://inputs/case-05-one-way-door.verify }
+    vars: { case: case-05-one-way-door, diff: file://inputs/case-05-one-way-door.diff, story: file://inputs/case-05-one-way-door.story, verify: file://inputs/case-05-one-way-door.verify, diff_sha256: 1903ad1ea1a0c898080cef4203a5dee3ecbdb57794dbbdfa6e6035916fe81529 }
   - description: "case-06-nothing-to-find: the empty case — the right answer is no findings"
-    vars: { case: case-06-nothing-to-find, diff: file://inputs/case-06-nothing-to-find.diff, story: file://inputs/case-06-nothing-to-find.story, verify: file://inputs/case-06-nothing-to-find.verify }
+    vars: { case: case-06-nothing-to-find, diff: file://inputs/case-06-nothing-to-find.diff, story: file://inputs/case-06-nothing-to-find.story, verify: file://inputs/case-06-nothing-to-find.verify, diff_sha256: 04424f866bc4d16afc8503b0370971341ad18b1698e8dee1b9cccca1ddf78a14 }
   - description: "case-07-unjudgeable: correctness depends on THRESHOLDS/TIERS, which are not in the diff"
-    vars: { case: case-07-unjudgeable, diff: file://inputs/case-07-unjudgeable.diff, story: file://inputs/case-07-unjudgeable.story, verify: file://inputs/case-07-unjudgeable.verify }
+    vars: { case: case-07-unjudgeable, diff: file://inputs/case-07-unjudgeable.diff, story: file://inputs/case-07-unjudgeable.story, verify: file://inputs/case-07-unjudgeable.verify, diff_sha256: 69803ea4c31874e1c07a74d76f2c440ff86052a525523fbb4faed1f9a84042d2 }
   - description: "case-08-too-large: 40 generated files; the reviewer must say what it could not assess"
-    vars: { case: case-08-too-large, diff: file://inputs/case-08-too-large.diff, story: file://inputs/case-08-too-large.story, verify: file://inputs/case-08-too-large.verify }
+    vars: { case: case-08-too-large, diff: file://inputs/case-08-too-large.diff, story: file://inputs/case-08-too-large.story, verify: file://inputs/case-08-too-large.verify, diff_sha256: 1724ab5c7c52a51edfb4f6387a3e2515c46f7348e96bc9dfe9cf409f44c10395 }
+  - description: "case-09-unverified-precondition: forms reuse a populated dataset; StartIndexJob's precondition is assumed, and its refusal would read as a trust rejection"
+    vars: { case: case-09-unverified-precondition, diff: file://inputs/case-09-unverified-precondition.diff, story: file://inputs/case-09-unverified-precondition.story, verify: file://inputs/case-09-unverified-precondition.verify, diff_sha256: a2f01ce9608bbec50f0d4ab25ca1649a5640b7edbf0b88af66d29fc46a29dfa3 }
+  - description: "case-10-assumed-error-semantics: ConflictError is read as 'delete in progress'; if it also means 'protected', the path waits 600s and fails"
+    vars: { case: case-10-assumed-error-semantics, diff: file://inputs/case-10-assumed-error-semantics.diff, story: file://inputs/case-10-assumed-error-semantics.story, verify: file://inputs/case-10-assumed-error-semantics.verify, diff_sha256: c8861c4281e5e097ece9163ec8a6d1454df94453f82d900029cff849b01e3c01 }
+  - description: "case-11-lost-update: the fallback write is unconditional, so a stale run orphans the new owner's dataset and it keeps billing"
+    vars: { case: case-11-lost-update, diff: file://inputs/case-11-lost-update.diff, story: file://inputs/case-11-lost-update.story, verify: file://inputs/case-11-lost-update.verify, diff_sha256: cf90dcde0151d3675b4924dca3b2495baf8273b2d923d25c53b4b842ac2050a8 }
+  - description: "case-12-blocking-sleep-in-async: a sync 600s sleep loop reached from an async caller — transitive, so a linter misses it"
+    vars: { case: case-12-blocking-sleep-in-async, diff: file://inputs/case-12-blocking-sleep-in-async.diff, story: file://inputs/case-12-blocking-sleep-in-async.story, verify: file://inputs/case-12-blocking-sleep-in-async.verify, diff_sha256: 055fc4045857ede2bcfca6d9893a95c792a6045078f08cbce7c121dfea2e78d4 }
+  - description: "case-13-inert-test: green suite AND a surviving mutant on the line the new test is named for"
+    vars: { case: case-13-inert-test, diff: file://inputs/case-13-inert-test.diff, story: file://inputs/case-13-inert-test.story, verify: file://inputs/case-13-inert-test.verify, diff_sha256: aa29092b40499b60e436ba28fb1cea54a78aae21a1c4c7b0178a0c74b51eb6f9 }
+  - description: "case-14-doc-contradicts-code: the README promises it does not reset the dataset; the code resets it with no snapshot"
+    vars: { case: case-14-doc-contradicts-code, diff: file://inputs/case-14-doc-contradicts-code.diff, story: file://inputs/case-14-doc-contradicts-code.story, verify: file://inputs/case-14-doc-contradicts-code.verify, diff_sha256: 7b42d80a572ce922515a46582802da2ac952893b41ce0c6a6440f196c21fa574 }

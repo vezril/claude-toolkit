@@ -1,0 +1,13 @@
+diff --git a/src/pipeline.py b/src/pipeline.py
+index aaa1111..bbb2222 100644
+--- a/src/pipeline.py
++++ b/src/pipeline.py
+@@ -60,6 +60,16 @@ class Pipeline:
+     def on_created(self, run_id, dataset_id):
++        if not self.rows.update_if_owner(run_id, self.worker_id,
++                                         dataset_id=dataset_id):
++            # The row moved on; record the dataset anyway so it is not lost.
++            if self.rows.exists(run_id):
++                self.rows.update(run_id, dataset_id=dataset_id)
++                return
++            self._delete_orphan(dataset_id)
