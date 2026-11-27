@@ -76,6 +76,28 @@ below.
 
 ### 2. Eight eval cases in `evals/delivery-review`, then iterate the review prompt
 
+**Built and measured — four iterations, 22 → 98 of 112.** Full numbers and reasoning in
+`evals/delivery-review/iteration-log.md`. Three things came out of it that were not visible
+from reading the feedback:
+
+- **The live review prompt scores 0/28 on the output contract.** It names the six top-level
+  fields and not the nested ones, so the model invents `reviewers[].specialist` and omits
+  `findings[].finding`. Every artifact it writes would fail its own edge. The step has never
+  run on a live item, which is the only reason nobody hit it. v3 fixes it and takes the
+  criterion to 28/28.
+- **Class A really is one missing instruction.** `assumptions` scored 21/28 on a naive
+  one-liner and 22/28 on the live prompt — everything the real prompt adds, and it adds a
+  lot, does nothing for the half of the feedback that begins with "Confirm". v4 adds the
+  instruction and moves it to 25/28.
+- **A naive reviewer is silent about assumptions, not reckless about them.** The precision
+  half of the criterion passed almost everywhere from v1 onward. The gap was never a tendency
+  to invent homework; it was never raising the real precondition.
+
+Still at 87.5% against a 95% bar, so nothing is certified. The three residual groups are named
+in the log, and the first one is the one that matters most in practice: both models now
+**refute the clean case**, and a reviewer that blocks a correct one-line change is worse than
+one that misses a defect.
+
 The review node exists and is certified (8 cases, 99.1% on its own suite), and it did not catch
 any of these. That is not a reason to distrust the certification — it means the suite does not
 contain these shapes. A certified prompt is certified against its suite and nothing else.
@@ -84,7 +106,7 @@ So: add all eight as cases, run the current prompt as the baseline, and iterate.
 baseline to score badly on Class A, since nothing in the review prompt currently asks "what
 does this change assume about an API it does not own?"
 
-This needs a **new criterion**, because the existing four don't cover it: *every external-API
+This needs a **new criterion**, because the existing three don't cover it: *every external-API
 precondition the diff relies on is either tested, documented, or named as an open question.*
 Class A is half the findings and it is a single missing instruction.
 

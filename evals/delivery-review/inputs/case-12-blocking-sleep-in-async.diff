@@ -1,0 +1,23 @@
+diff --git a/src/pipeline.py b/src/pipeline.py
+index aaa1111..bbb2222 100644
+--- a/src/pipeline.py
++++ b/src/pipeline.py
+@@ -90,6 +90,19 @@ class Pipeline:
++    def _wait_and_delete(self, dataset_id):
++        """A dataset can only be deleted once it leaves CREATING."""
++        waited = 0
++        while waited < 600:
++            if self.client.DescribeIndex(datasetId=dataset_id)["status"] != "CREATING":
++                self.client.DeleteIndex(datasetId=dataset_id)
++                return
++            time.sleep(10)
++            waited += 10
++
+diff --git a/src/instances.py b/src/instances.py
+index ccc3333..ddd4444 100644
+--- a/src/instances.py
++++ b/src/instances.py
+@@ -14,6 +14,7 @@ async def create_instance(pipeline, spec):
+     dataset_id = await provision(spec)
++    pipeline.on_created(spec.run_id, dataset_id)
+     return dataset_id

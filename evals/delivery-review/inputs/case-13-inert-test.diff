@@ -1,0 +1,23 @@
+diff --git a/src/pipeline.py b/src/pipeline.py
+index aaa1111..bbb2222 100644
+--- a/src/pipeline.py
++++ b/src/pipeline.py
+@@ -120,6 +120,12 @@ class Pipeline:
++    def finish(self, run_id, owner):
++        if self.rows.owner_of(run_id) == owner:
++            self.rows.update(run_id, state="complete")
++            return True
++        return False
++
+diff --git a/tests/test_recovery.py b/tests/test_recovery.py
+index ccc3333..ddd4444 100644
+--- a/tests/test_recovery.py
++++ b/tests/test_recovery.py
+@@ -30,6 +30,14 @@ def test_records_the_dataset():
++def test_finish_is_refused_for_a_reclaimed_row():
++    p = Pipeline()
++    p.rows.insert("a", owner="me")
++    p.rows.reclaim("a", owner="someone-else")
++    with pytest.raises(KeyError):
++        p.record_dataset("zz", "d1")
++

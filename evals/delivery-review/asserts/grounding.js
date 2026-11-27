@@ -6,8 +6,15 @@
 // not in verify.json is a claim the reviewer made up.
 const { expected, source, lenient, groupHit, result } = require('./lib');
 
-// A path-looking token: at least one slash and a file-ish ending.
-const PATHY = /[\w./-]+\.[A-Za-z0-9]{1,6}(?::\d+)?/g;
+// A path-looking token: a file-ish ending from a known set, with an optional :line.
+//
+// The extension list is not decoration. The old pattern was any 1-6 character ending, and it
+// clipped `mutation.survived` down to `mutation.surviv` and then reported that the reviewer
+// had cited a file not in the diff. `mutation.survived` is a field in verify.json, and citing
+// it is exactly what a reviewer handed mutation evidence should do. The assert was wrong, and
+// a hand-written reference answer caught it before any model run.
+const EXT = 'py|js|jsx|ts|tsx|java|kt|scala|rb|go|rs|cs|swift|sql|sh|yaml|yml|json|toml|ini|cfg|md|txt|html|css|tf|proto';
+const PATHY = new RegExp(`[\\w./-]+\\.(?:${EXT})(?::\\d+)?\\b`, 'g');
 
 module.exports = (output, context) => {
   const exp = expected(context);
