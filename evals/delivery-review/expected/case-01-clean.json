@@ -1,7 +1,8 @@
 {
   "verdict": "SURVIVED",
-  "_why": "A correct one-character fix with a test for its P0. Nothing to block on.",
   "blocking_allowed": false,
-  "must_not_mention": [["AC-2"], ["out of scope"]],
-  "_must_not_why": "AC-2 is P2 and correctly untested; flagging its absence is the over-reporting trap."
+  "findings_max": 1,
+  "_why": "Both criteria are implemented and the P0 carries a test. AC-2 is P2 and correctly untested, which is the over-reporting trap. Nothing here should block.",
+  "_history": "This fixture was wrong until 2026-11-27. The diff changed `2 ** attempt` to `2.0 ** attempt`, and BOTH models refuted it, independently, for the same reason: float exponentiation raises OverflowError at attempt >= 1024 where integer exponentiation does not, and `min(2 ** attempt, MAX_DELAY)` already capped correctly, so the change was pure regression. They were right and the ground truth said SURVIVED. The story's task line also claimed `(AC: 1, 2)` while the diff implemented only AC-1, so a reviewer flagging AC-2 as unimplemented was also correct and also marked wrong. The diff now caps BEFORE converting to float, which is the ordering that matters, and implements both criteria.",
+  "_must_not_why": "The `must_not_mention` ban on AC-2 is dropped. A reviewer saying 'AC-2 is implemented and needs no test at P2' is reasoning correctly, and banning the string penalised it. Over-reporting is caught by verdict SURVIVED, blocking_allowed false and findings_max instead \u2014 properties of the answer rather than words in it."
 }

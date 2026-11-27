@@ -85,11 +85,17 @@ module.exports = (output, context) => {
       if (!CLAIM.test(sentence)) continue;
       for (const ident of sentence.match(IDENT) || []) {
         if (NOT_SYMBOLS.has(ident) || ident.length < 5) continue;
-        // A more specific spelling of something that IS in the material is grounded:
-        // the diff calls `bisect(...)` and a reviewer writing `bisect_right` has named the
-        // real function, not invented one. Only a stem nobody mentioned is an invention.
-        const stem = ident.split(/[._]/)[0];
-        if (!material.includes(ident) && !(stem.length > 4 && material.includes(stem))) {
+        // A dotted or underscored name is grounded when EVERY part of it is in the material:
+        // the diff defines `Adapter` in `base`, and a reviewer writing `base.Adapter` has
+        // named a real class on a real module rather than invented one. Same for `Row.amount`
+        // where the diff has both, and `bisect_right` where it calls `bisect`.
+        //
+        // Split on `.` and `_` only, never on case. Splitting CamelCase would ground
+        // `RetryScheduler` against any diff containing the word "retry", which is exactly the
+        // invention this half of the criterion exists to catch.
+        const parts = ident.split(/[._]/).filter((s) => s.length >= 3);
+        const allPartsPresent = parts.length > 1 && parts.every((s) => material.includes(s));
+        if (!material.includes(ident) && !allPartsPresent) {
           problems.push(
             `findings[${i}] demands confirmation about ${ident}, which is not in the material`);
         }

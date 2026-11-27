@@ -3,29 +3,33 @@
 Every number here comes from a promptfoo run that executed. The results JSON for each is in
 `results/`. The suite is 14 cases × 2 models × 4 criteria = 112 asserts.
 
+**The live prompt is v6 as of 2026-11-27.** v2 is the version it replaced, kept here as the
+historical record: v2 is what `skills/delivery-flow/references/review.md` contained when this
+suite was first run, and `prompts/prompt_v2.md` is a verbatim copy of it.
+
 Six of the fourteen cases exist because of eight review comments filed on real pull requests.
 Four of those comments' *Required* lines begin with the word "Confirm" — a reviewer carrying a
 burden the change should have discharged — which is what the fourth criterion measures.
 
 ## Score progression
 
-| criterion | v1 | v2 | v3 | v4 |
-|---|---|---|---|---|
-| contract | 0/28 | 0/28 | **28/28** | 28/28 |
-| accuracy | 0/28 | 12/28 | 19/28 | 21/28 |
-| grounding | 1/28 | 26/28 | 26/28 | 24/28 |
-| assumptions | 21/28 | 22/28 | 23/28 | **25/28** |
-| **total** | **22/112 (19.6%)** | **60/112 (53.6%)** | **96/112 (85.7%)** | **98/112 (87.5%)** |
+Re-run after each suite correction, so the row for a version is the version on the suite as it
+stands. The v1/v2 figures below come from the run before the `case-01` fixture was fixed; that
+fixture made clean-case rows unwinnable, so if anything those two are flattered.
 
-| version | haiku | sonnet |
-|---|---|---|
-| v1 | 11/56 | 11/56 |
-| v2 | 30/56 | 30/56 |
-| v3 | 48/56 | 48/56 |
-| v4 | 51/56 | 47/56 |
+| criterion | v1 | v2 (the old live prompt) | v3 | v4 | v5 | v6 |
+|---|---|---|---|---|---|---|
+| contract | 0/28 | 0/28 | **28/28** | 28/28 | 28/28 | 28/28 |
+| accuracy | 0/28 | 13/28 | 22/28 | 19/28 | 19–22/28 | 18–24/28 |
+| grounding | 1/28 | 24/28 | 27/28 | 27/28 | 25–28/28 | 26/28 |
+| assumptions | 21/28 | 22/28 | 22/28 | **25/28** | 24–25/28 | 24–26/28 |
+| **total** | **22 (19.6%)** | **59 (52.7%)** | **99 (88.4%)** | **99 (88.4%)** | **97–102** | **97–104** |
 
-**Nothing is certified on this.** 87.5% is under the 95% bar, and `steps.yaml` keeps
-`certified: false` with no `results` or `prompt_sha256` field.
+**v6, three consecutive samples: 104, 102, 97 of 112 — 92.9%, 91.1%, 86.6%.** Mean 90.2%,
+spread 7 marks.
+
+**Nothing is certified.** The bar is 95% on each of three consecutive runs and no sample
+reaches it, so `steps.yaml` keeps `certified: false` with no `results` or `prompt_sha256`.
 
 ## Iteration 1 — v1, the naive baseline
 
@@ -142,6 +146,85 @@ Fourteen asserts, in three groups:
    `if True:` mutant on the line the new test is named for, and they do not articulate that
    the test cannot reach the branch. They have the evidence and do not use it — which is its
    own finding about the prompt, since nothing in it says what a surviving mutant means.
+
+## Iteration 5 — v5, scope the assumptions instruction to the diff
+
+**Baseline:** v4 at 99/112.
+
+**Hypothesis:** v4 bought `assumptions` at the cost of two `grounding` marks, because asking
+for assumptions produced findings about modules the reviewer had never seen. Add one clause —
+an assumption has to be anchored to a symbol, call or path in the material — and `grounding`
+should recover without giving the assumptions gain back.
+
+**Result:** 102/112 on the first sample. `grounding` 27→28, `accuracy` 19→22,
+`assumptions` 25→24.
+
+**Reasoning.** The prediction held and the trade reversed: one assumption mark for three
+elsewhere.
+
+Then the `case-01` fixture correction landed and v5 was re-run: **97/112.** Same prompt, same
+suite, five marks apart. That is the most useful number in this log and it is not about any
+prompt — at `REPEAT=1` this suite has a spread of roughly ±2 percentage points, so a +3 delta
+is inside the noise. Every single-sample comparison above iteration 3 should be read with that
+in mind, and the three-sample figures for v6 exist because of it.
+
+Two more of my own assert bugs surfaced in the v5 failures, both the same mistake: it rejected
+`base.Adapter` and `Row.amount` as invented when `base`, `Adapter`, `Row` and `amount` all
+appear in those diffs and only the dotted spelling does not. A dotted or underscored name is
+now grounded when every part of it is present. Split on `.` and `_` only, **never on case** —
+splitting CamelCase would ground `RetryScheduler` against any diff containing the word
+"retry", which is exactly the invention this half of the criterion exists to catch. The mutant
+proving that still dies.
+
+## Iteration 6 — v6, what a surviving mutant means
+
+**Baseline:** v5, 97–102/112.
+
+**Hypothesis:** on `case-13` both models were handed a surviving `if True:` mutant in
+`verify.json` and neither said the test could not reach the branch. Nothing in the prompt says
+what `mutation.survived` is. Say it — a green suite and a surviving mutant cannot both be good
+news — and name the required output: which test, which line, why it cannot get there. I
+expected `case-13` to flip and little else to move.
+
+**Result:** 104/112 (92.9%), then 102 and 97 on two further samples.
+
+**Reasoning.** `case-13` flipped on both models in the first two samples and failed once in the
+third, so the instruction works and is not yet reliable. The rest of the movement is within the
+variance established in iteration 5, so I am not claiming the other criteria moved.
+
+This is the one iteration whose instruction depends on another part of the pipeline existing:
+the `mutation` block it tells the reviewer to read is produced by `scripts/delivery-flow/
+mutation-gate.py`. A reviewer told to read a field nothing writes would be an instruction about
+nothing, which is why the gate came first.
+
+## What is still failing, after three samples
+
+Counting failures per `(case, criterion)` across all three v6 samples — 6 means both models
+failed it in all three runs:
+
+| failures | case | criterion |
+|---|---|---|
+| **6 of 6** | case-09-unverified-precondition | accuracy |
+| **5 of 6** | case-10-assumed-error-semantics | accuracy |
+| **5 of 6** | case-11-lost-update | assumptions |
+| 3 of 6 | case-03-out-of-scope-tests | accuracy |
+| ≤2 of 6 | everything else | — |
+
+The first three are the residual and everything below them is noise. All three are **Class A**:
+the change leans on something it does not own, and the reviewer does not name the specific
+thing. On `case-09` it never reaches "the dataset the previous form already populated"; on
+`case-10` it does not offer deletion protection as an alternative meaning for the exception; on
+`case-11` it does not raise `on_created` firing after another run has recorded its own dataset.
+
+The instruction added in v4 and narrowed in v5 gets the reviewer **talking** about assumptions.
+It does not get it to the right assumption. That is a harder problem than a missing instruction
+and the honest read is that it needs either a worked example per failure mode in the prompt, or
+acceptance that a reviewer catches two of these three classes and a human catches the third.
+
+Class B (`case-11`'s lost update, `case-12`'s blocking sleep) and Class C (`case-13`'s inert
+test, `case-14`'s contradicted documentation) are reliably caught on `accuracy`. Class A is the
+one the original comments had to be written four times about, and it is the one a prompt moves
+least.
 
 ## Provider
 
