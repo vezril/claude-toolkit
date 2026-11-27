@@ -96,9 +96,18 @@ should be known but does not stop the merge.
 2. **Is it correct?** The failure modes of this language and this domain — that is why a
    specialist was named rather than a general reviewer.
 3. **What does it break?** Callers, contracts, data, anything a revert would not undo.
-4. **Is the test scope right?** `verify.json` tells you what ran. The change should carry tests
-   for its P0 and P1 criteria and not for anything below — tests beyond that scope are a
-   finding, not diligence.
+4. **Is the test scope right, and do the tests actually test?** `verify.json` tells you what
+   ran. The change should carry tests for its P0 and P1 criteria and not for anything below —
+   tests beyond that scope are a finding, not diligence.
+
+   A green suite says the tests pass. It does not say they would fail if the code were wrong.
+   When `verify.json` carries a `mutation` block, read it: each entry in `mutation.survived` is
+   a line **this change added** that was broken on purpose and that no test noticed. A
+   surviving mutant on a line a new test is named for means that test does not reach it, and
+   the usual cause is that something earlier in the test raises or returns first. Say which
+   test, which line, and why it cannot get there. **A green suite and a surviving mutant
+   cannot both be good news**, and taking the green at face value is how an untested
+   criterion ships looking covered.
 5. **What does it take on faith?** List, for yourself, every behaviour the change relies on
    from something it does not own — an API's preconditions, what an exception means, whether a
    callback can fire at a particular moment, what a library returns at a boundary. For each
@@ -110,6 +119,11 @@ should be known but does not stop the merge.
    guard the call."*
    The code may well be right. A reviewer cannot tell, and leaving the reader to find out in
    production is the cost.
+   **Only about things the diff actually names.** An assumption you raise has to be anchored
+   to a symbol, call or path that appears in the material you were given. If you find yourself
+   asking about a module you have not seen, you are speculating rather than reviewing, and a
+   reviewer who demands confirmation of everything costs as much attention as one who demands
+   none.
 6. **Is it reviewable at this size?** If the diff is too large to judge honestly, say so as a
    finding and say which part you could not assess. Do not imply coverage you did not give.
 

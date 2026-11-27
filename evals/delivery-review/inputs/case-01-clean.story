@@ -10,4 +10,5 @@ As an operator, I want retry delays capped, so that a long outage does not stall
 - AC-2 (P2): Given a successful call, when logged, then the attempt count appears in the log line.
 
 ## Tasks / Subtasks
-- [ ] cap the delay (AC: 1, 2)
+- [ ] cap the delay (AC: 1)
+- [ ] log the attempt count (AC: 2)
