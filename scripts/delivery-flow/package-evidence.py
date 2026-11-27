@@ -137,10 +137,28 @@ def certification_state() -> tuple:
     return out.returncode == 0, (out.stdout or "") + (out.stderr or "")
 
 
-def copy_source(src: Path, dest_dir: Path, manifest: list, dry: bool) -> int:
-    """Copy a file or directory verbatim, recording every file in the manifest."""
+def copy_source(src: Path, dest_dir: Path, manifest: list, dry: bool,
+                pkg_root: Path = None) -> int:
+    """Copy a file or directory verbatim, recording every file in the manifest.
+
+    The manifest's first column is the path **from the package root**, which is what its own
+    header promises and what a reviewer needs to find the file. It used to be the path within
+    the criterion directory — `AN-3641/item.json` for a file living at
+    `4-end-to-end-rate/runs/AN-3641/item.json`, and `SKILL.md` for one at
+    `1-workflow-definition/SKILL.md`. Not one of 498 entries resolved.
+
+    That defeats the only claim the manifest makes. The package's argument is "every file is
+    here with its sha, go and diff it", and a reviewer taking it up on that could not locate a
+    single entry. `root` is the package root; without it the column falls back to the old
+    behaviour, which is why every caller passes it.
+    """
     if not src.exists():
         return 0
+
+    def entry(dest_file: Path, source_file: Path):
+        rel = dest_file.relative_to(pkg_root) if pkg_root else Path(dest_file.name)
+        manifest.append((str(rel), source_label(source_file), sha256(source_file)))
+
     copied = 0
     if src.is_dir():
         for f in sorted(p for p in src.rglob("*") if p.is_file()):
@@ -148,13 +166,13 @@ def copy_source(src: Path, dest_dir: Path, manifest: list, dry: bool) -> int:
             if not dry:
                 (dest_dir / rel).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(f, dest_dir / rel)
-            manifest.append((str(rel), source_label(f), sha256(f)))
+            entry(dest_dir / rel, f)
             copied += 1
     else:
         if not dry:
             dest_dir.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dest_dir / src.name)
-        manifest.append((src.name, source_label(src), sha256(src)))
+        entry(dest_dir / src.name, src)
         copied = 1
     return copied
 
@@ -192,7 +210,8 @@ def dedupe_by_artifact_root(repos: list) -> tuple:
     return keep, collapsed
 
 
-def collect_runs(repos: list, dest: Path, manifest: list, dry: bool) -> dict:
+def collect_runs(repos: list, dest: Path, manifest: list, dry: bool,
+                 pkg_root: Path = None) -> dict:
     """Copy each item's artifacts and trace, and report the run census."""
     census = {"completed": 0, "failed": 0, "punched-out": 0, "abandoned": 0,
               "discarded": 0, "items": []}
@@ -215,7 +234,7 @@ def collect_runs(repos: list, dest: Path, manifest: list, dry: bool) -> dict:
                 census[outcome] += 1
             census["items"].append({"item": item_dir.name, "repo": str(repo),
                                     "outcome": outcome, "discarded": discarded})
-            copy_source(item_dir, dest / "runs", manifest, dry)
+            copy_source(item_dir, dest / "runs", manifest, dry, pkg_root)
     return census
 
 
@@ -288,10 +307,10 @@ def main(argv=None) -> int:
         d = dest / name
         copied = 0
         for rel, _note in SOURCES.get(name, []):
-            copied += copy_source(PLUGIN_ROOT / rel, d, manifest, args.dry_run)
+            copied += copy_source(PLUGIN_ROOT / rel, d, manifest, args.dry_run, dest)
         counts[name] = copied
 
-    census = collect_runs(repos, dest / "4-end-to-end-rate", manifest, args.dry_run)
+    census = collect_runs(repos, dest / "4-end-to-end-rate", manifest, args.dry_run, dest)
     report = subprocess.run([sys.executable, "-I", str(HERE / "delivery-report.py"),
                              *[str(r) for r in repos]], capture_output=True, text=True)
 
