@@ -159,6 +159,39 @@ def copy_source(src: Path, dest_dir: Path, manifest: list, dry: bool) -> int:
     return copied
 
 
+def dedupe_by_artifact_root(repos: list) -> tuple:
+    """(repos, collapsed) — one entry per artifact root, in the order given.
+
+    The artifact root IS the unit of evidence here, so walking the same root twice can only
+    duplicate: the same files, the same shas, the same runs, counted again. That is not
+    hypothetical. `ensure-worktree.py` copies `.delivery-flow.yaml` into every ticket worktree
+    on purpose (a worktree without it has inert hooks), so each worktree registers itself as a
+    delivery repo and they all resolve to one root. With 21 worktrees registered the package
+    reported **220 completed runs instead of 10**, 264 discards instead of 12, and a
+    MANIFEST.txt of 10,244 lines for 499 distinct files — every line repeated 22 times with an
+    identical sha.
+
+    That is the worst possible place for the defect. The package's whole argument is "here is
+    every file with its sha, go and diff it", and a reviewer checking that claim met the same
+    line 22 times and a run census inflated 22-fold.
+
+    Collapsing is also the right answer rather than a workaround: two paths sharing an artifact
+    root hold the same evidence, so counting it once is the honest census.
+    """
+    seen, keep, collapsed = {}, [], []
+    for repo in repos:
+        try:
+            key = artifact_root(repo).resolve()
+        except Exception:
+            key = repo
+        if key in seen:
+            collapsed.append((repo, seen[key]))
+            continue
+        seen[key] = repo
+        keep.append(repo)
+    return keep, collapsed
+
+
 def collect_runs(repos: list, dest: Path, manifest: list, dry: bool) -> dict:
     """Copy each item's artifacts and trace, and report the run census."""
     census = {"completed": 0, "failed": 0, "punched-out": 0, "abandoned": 0,
@@ -248,6 +281,7 @@ def main(argv=None) -> int:
         shutil.rmtree(dest)
 
     repos = [Path(r).expanduser().resolve() for r in args.repo] or known_repos()
+    repos, collapsed = dedupe_by_artifact_root(repos)
     manifest, counts = [], {}
 
     for name, _question in CRITERIA:
@@ -305,6 +339,14 @@ def main(argv=None) -> int:
     print(f"  runs collected               {len(census['items']):3} "
           f"({census['completed']} completed, {census['discarded']} discarded)")
     print(f"  manifest entries             {len(manifest):3}")
+    if collapsed:
+        # Said out loud, because silently dropping a path the caller asked about is the kind of
+        # quiet helpfulness that hides a misconfiguration.
+        print(f"  collapsed to one artifact root {len(collapsed):3} duplicate repo path(s)")
+        for dup, kept in collapsed[:3]:
+            print(f"    {dup} -> already covered by {kept}")
+        if len(collapsed) > 3:
+            print(f"    ...and {len(collapsed) - 3} more")
     if not certified:
         print("\n  DRAFT: a chain step is not certified (see CERTIFICATION.txt)")
     return 0
